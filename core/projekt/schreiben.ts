@@ -75,7 +75,7 @@ const S = {
   strang: ['id', 'name', 'farbe', 'gruppe'],
   idee: ['id', 'titel', 'notiz', 'straenge'],
   motiv: ['id', 'name', 'aliase'],
-  figur: ['id', 'name', 'aliase', 'formen', 'rolle', 'kurz', 'existenz', 'gruppe', 'beziehungen', 'plan', 'netz'],
+  figur: ['id', 'name', 'aliase', 'formen', 'rolle', 'kurz', 'existenz', 'gruppe', 'beziehungen', 'plan', 'netz', 'ruheSchwelle'],
   beziehung: ['zu', 'art', 'abKapitel', 'kategorie', 'strang', 'notiz', 'unsicher'],
   gruppe: ['id', 'name', 'typ', 'status', 'mitglieder', 'strang', 'spuren', 'praesenz', 'netz'],
   spur: ['id', 'text', 'kapitel', 'anker', 'status'],

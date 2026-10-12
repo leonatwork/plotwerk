@@ -6,3 +6,4 @@ export * from './boegen';
 export * from './stimme';
 export * from './zusammenfuehren';
 export * from './namen';
+export * from './hinweise';

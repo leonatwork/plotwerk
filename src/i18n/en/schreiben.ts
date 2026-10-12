@@ -136,6 +136,7 @@ export const schreiben: Form<typeof de> = {
       struktur: 'Structure',
       zeitleiste: 'Timeline',
       sprache: 'Language',
+      figuren: 'Characters',
     },
     keineErkannt: 'No characters or places detected in the text yet.',
     imTextKarte: '{n}× in the text · Open card',

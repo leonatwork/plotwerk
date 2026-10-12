@@ -12,6 +12,7 @@ import type {
   Zitat,
 } from '../model/types';
 import { stimmenHinweise } from '../figuren/stimme';
+import { figurenHinweise } from '../figuren/hinweise';
 import type { Sprache } from '../i18n';
 import { strukturHinweise } from '../struktur';
 import { zeitHinweise } from '../zeit';
@@ -165,7 +166,7 @@ function kiHinweisGueltig(h: Hinweis, daten: ProjektDaten): boolean {
   });
 }
 
-function hinweiseBerechnen(daten: ProjektDaten, sprache: Sprache): Hinweis[] {
+function hinweiseBerechnen(daten: ProjektDaten, sprache: Sprache, erwaehnungen: Erwaehnung[]): Hinweis[] {
   const entscheidungen = new Map((daten.entscheidungen?.hinweise ?? []).map((e) => [e.schluessel, e.entscheidung]));
   const stellen = markierteStellen(daten);
   // lokal berechnet (Struktur, Schreibweisen, Zeitprüfung) bzw. aus eigenen KI-Ablagen (Figurenstimme, bereits geprüft);
@@ -175,6 +176,7 @@ function hinweiseBerechnen(daten: ProjektDaten, sprache: Sprache): Hinweis[] {
     ...schreibweisenHinweise(daten, sprache),
     ...zeitHinweise(daten, sprache),
     ...stimmenHinweise(daten, sprache),
+    ...figurenHinweise(daten, erwaehnungen, sprache),
   ];
   const ki = (daten.kiHinweise ?? [])
     .filter((h) => kiHinweisGueltig(h, daten))
@@ -240,7 +242,7 @@ export function berechneIndex(daten: ProjektDaten, vorher?: Index | null, sprach
     erwaehnungen,
     erstesVorkommen,
     faeden: faedenBerechnen(daten, reihe),
-    hinweise: hinweiseBerechnen(daten, sprache),
+    hinweise: hinweiseBerechnen(daten, sprache, erwaehnungen),
     wortzahlen,
     textHashes,
     erkennungsHash,
