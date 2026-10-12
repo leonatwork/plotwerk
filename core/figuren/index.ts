@@ -8,3 +8,4 @@ export * from './zusammenfuehren';
 export * from './namen';
 export * from './hinweise';
 export * from './besetzung';
+export * from './fakten';

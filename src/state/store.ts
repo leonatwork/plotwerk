@@ -23,6 +23,7 @@ import type {
   Markenliste,
   Recherche,
   Schreibstatistik,
+  FigurFakt,
   StimmenBeobachtung,
   Zeitleiste,
   ZeitVorschlag,
@@ -92,6 +93,7 @@ export type DialogId =
   | 'zeit-vorschlaege'
   /** G3: Figurenstimme prüfen; param {figur?: Id} */
   | 'stimme-pruefen'
+  | 'figurenfakten'
   /** G4: Markennamen-Übersicht */
   | 'marken'
   /** G5: benannte Fassung anlegen */
@@ -213,6 +215,8 @@ export interface Basis {
   speichereKiZustandVorschlaege(a: KiAblage<ZustandVorschlag>): Promise<void>;
   /** G3 .plotwerk/stimmen.json */
   speichereKiStimmen(a: KiAblage<StimmenBeobachtung>): Promise<void>;
+  /** F-17 .plotwerk/figurenfakten.json */
+  speichereKiFakten(a: KiAblage<FigurFakt>): Promise<void>;
   /** G6 .plotwerk/leser.json */
   speichereKiLeser(a: KiAblage<LeserStand>): Promise<void>;
   /** G6 .plotwerk/fragen.json */
@@ -708,6 +712,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     speichereKiZustandVorschlaege: (a) =>
       speichereFeld('kiZustandVorschlaege', a, persistenz.PFADE.kiZustand, persistenz.speichereKiZustandVorschlaege),
     speichereKiStimmen: (a) => speichereFeld('kiStimmen', a, persistenz.PFADE.kiStimmen, persistenz.speichereKiStimmen),
+    speichereKiFakten: (a) => speichereFeld('kiFakten', a, persistenz.PFADE.kiFakten, persistenz.speichereKiFakten),
     speichereKiLeser: (a) => speichereFeld('kiLeser', a, persistenz.PFADE.kiLeser, persistenz.speichereKiLeser),
     speichereKiFragen: (a) => speichereFeld('kiFragen', a, persistenz.PFADE.kiFragen, persistenz.speichereKiFragen),
 
@@ -810,6 +815,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
         recherche: get().speichereRecherche,
         kiZustandVorschlaege: get().speichereKiZustandVorschlaege,
         kiStimmen: get().speichereKiStimmen,
+        kiFakten: get().speichereKiFakten,
       };
       const einzeln = (Object.keys(felder) as (keyof ProjektDaten)[])
         .filter((k) => nachher[k] !== vorher[k] && nachher[k] != null)

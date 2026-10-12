@@ -474,6 +474,8 @@ export interface ProjektDaten {
   kiZustandVorschlaege?: KiAblage<ZustandVorschlag>;
   /** G3 .plotwerk/stimmen.json */
   kiStimmen?: KiAblage<StimmenBeobachtung>;
+  /** F-17 .plotwerk/figurenfakten.json */
+  kiFakten?: KiAblage<FigurFakt>;
   /** G6 .plotwerk/leser.json */
   kiLeser?: KiAblage<LeserStand>;
   /** G6 .plotwerk/fragen.json */
@@ -754,6 +756,25 @@ export interface StimmenBeobachtung {
   /** typische Stellen zum Vergleich (wörtlich, E6) */
   vergleich: Zitat[];
   status: KiBeobachtungsStatus;
+}
+
+/**
+ * F-17: Angabe über eine Figur, wie sie im Text steht (KI, wörtlich belegt). Widersprüche (gleiches Merkmal,
+ * verschiedene Werte) und Abweichungen von der Planung findet die App selbst (core/figuren/fakten.ts).
+ */
+export interface FigurFakt {
+  /** stabiler Schlüssel „fakt:<figur>|<merkmal>|<kapitel>/<zitatkern>“ */
+  schluessel: string;
+  figur: Id;
+  /** Merkmal, z. B. „Alter“, „Beruf“, „Auto“ (möglichst wie ein Planfeld der Figur benannt) */
+  merkmal: string;
+  /** Wert laut Text, kurz, z. B. „34“, „alter Saab 900“ */
+  wert: string;
+  kapitel: Id;
+  /** Beleg (wörtlich, E6) */
+  zitat: Zitat;
+  /** „verworfen“: Leon hält die Angabe für falsch erkannt; kommt nicht wieder */
+  status: 'neu' | 'verworfen';
 }
 
 // ---------------------------------------------------------------------------

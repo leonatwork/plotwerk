@@ -287,3 +287,9 @@ Aufgabentext, Schema, optional `kapitelBis`, `auswerten`). `fuehreAufgabeAus` ba
 Zitate. `schaetzeAufgabe` liefert die Kostenschätzung, `werteAufgabenAntwortAus` wertet vorbereitete Antworten aus.
 Die Browser-Demo beantwortet Aufgaben über `src/backend/ki/demoAntworten/` (je Gruppe eine Datei, Schlüssel = `art`).
 
+Figurenfakten (`fakten.ts`, `art="fakten"`, F-17): ein Request für das ganze Buch (optional eine Figur), Antwort
+`{fakten: [{figur, merkmal, wert, kapitel, zitat}]}`. Merkmal höchstens drei, Wert höchstens acht Wörter; Zitat wörtlich
+(E6); Figur nur aus dem Schema-Enum. Die KI vergleicht nichts – Widersprüche und Planabweichungen berechnet
+`core/figuren/fakten.ts` lokal. An das Modell gehen nur Daten der Allowlist (E12): Namen, Aliase, Gewissheit und die
+Namen der Planfelder.
+

@@ -68,6 +68,17 @@ export const figuren = {
       erstesVorkommen: 'Erstes Vorkommen',
       stelleZeigen: 'Stelle im Text zeigen',
     },
+    /** F-17 Angaben aus dem Text (Figurenkarte, Abschnitt „Aus dem Text“) */
+    fakten: {
+      widerspruch: 'Der Text nennt verschiedene Werte',
+      planAbweichung: 'Der Text weicht von deiner Planung ab',
+      planung: 'Planung: {wert}',
+      verwerfen: '{wert} verwerfen',
+      verwerfenTitel: 'Falsch erkannt – verwerfen (kommt nicht wieder)',
+      sammeln: 'Fakten aus dem Text sammeln (KI) …',
+      erneut: 'Fakten erneut sammeln (KI) …',
+      laeuft: 'Fakten werden gesammelt …',
+    },
     planung: {
       titel: 'Deine Planung',
       rechts: 'frei bearbeitbar',
@@ -324,6 +335,20 @@ export const figuren = {
     nochNicht: 'Noch nicht geprüft.',
     nichtsOffen: 'Nichts mehr offen.',
     nichtsEntschieden: 'Noch nichts entschieden.',
+  },
+
+  /** F-17 Dialog „Figurenfakten“ (FaktenDialog.tsx) */
+  faktenDialog: {
+    titel: 'Fakten aus dem Text sammeln',
+    intro:
+      'Die KI liest das Buch und sammelt, was der Text über die Figuren als Tatsache sagt – Alter, Aussehen, Beruf, Wohnort, Auto … –, jede Angabe mit wörtlichem Zitat. Widersprüche und Abweichungen von deiner Planung findet danach die App. Die KI bewertet nichts und ändert keinen Text.',
+    alle: 'Alle Figuren (ohne Statisten)',
+    liestAlle: 'Die KI sammelt die Angaben über alle Figuren …',
+    liestEine: 'Die KI sammelt die Angaben über {name} …',
+    fertig: 'Fakten gesammelt',
+    angaben: { one: '1 Angabe', other: '{n} Angaben' },
+    widersprueche: 'Widersprüche und Abweichungen von der Planung stehen auf der Figurenkarte unter „Aus dem Text“ und als „Prüfen“ in den Hinweisen.',
+    starten: 'Sammeln',
   },
 
   stimmeDialog: {

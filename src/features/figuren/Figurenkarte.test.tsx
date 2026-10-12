@@ -94,3 +94,26 @@ describe('Figurenkarte – Spitznamen als Chips (F-08/F-16)', () => {
     expect(useStore.getState().daten!.figuren.ole!.spitznamen).toBeUndefined();
   });
 });
+
+describe('Figurenkarte – Angaben aus dem Text (F-17)', () => {
+  it('zeigt Merkmale mit Werten und Kapitel, markiert Widersprüche, × verwirft', async () => {
+    const SAAB = 'Dann nimmt er den Schlüssel und fährt mit seinem alten Saab 900 zum Lindenhof.';
+    const VOLVO = 'Ich steige aus dem Volvo, schlage die Tür zu und sehe ihm nach, bis er hinter den Lagerhallen verschwunden ist.';
+    await useStore.getState().speichereKiFakten({
+      version: 1,
+      eintraege: [
+        { schluessel: 'a', figur: 'paul', merkmal: 'Auto', wert: 'alter Saab 900', kapitel: 'lotte', zitat: { kapitel: 'lotte', text: SAAB }, status: 'neu' },
+        { schluessel: 'b', figur: 'paul', merkmal: 'Auto', wert: 'Volvo', kapitel: 'flut', zitat: { kapitel: 'flut', text: VOLVO }, status: 'neu' },
+      ],
+    });
+    useStore.getState().indexNeuBerechnen();
+    useStore.getState().waehle({ figur: 'paul' });
+    render(<Figuren />);
+    expect(screen.getByText(/^Auto ⚠$/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^alter Saab 900 · Kap\. 3/ }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Volvo verwerfen' }));
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.kiFakten!.eintraege.find((f) => f.schluessel === 'b')!.status).toBe('verworfen');
+    expect(await screen.findByText(/^Auto$/)).toBeInTheDocument();
+  });
+});

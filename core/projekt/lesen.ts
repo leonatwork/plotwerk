@@ -25,6 +25,7 @@ import type {
   Recherche,
   RechercheEintrag,
   Schreibstatistik,
+  FigurFakt,
   StimmenBeobachtung,
   Szene,
   Tageszeit,
@@ -104,6 +105,8 @@ export const PFADE = {
   kiZustand: '.plotwerk/zustand-vorschlaege.json',
   /** G3 KI-Beobachtungen zur Figurenstimme (KiAblage<StimmenBeobachtung>) */
   kiStimmen: '.plotwerk/stimmen.json',
+  /** F-17 Figurenfakten aus dem Text (KiAblage<FigurFakt>) */
+  kiFakten: '.plotwerk/figurenfakten.json',
   /** G6 Leser-Simulation (KiAblage<LeserStand>) */
   kiLeser: '.plotwerk/leser.json',
   /** G6 Fragen an das Buch (KiAblage<BuchFrage>) */
@@ -1033,6 +1036,22 @@ export function parseKiZustandVorschlaege(text: string): KiAblage<ZustandVorschl
   });
 }
 
+export function parseKiFakten(text: string): KiAblage<FigurFakt> {
+  return parseKiAblage(text, (v) => {
+    const zitat = parseZitate([v.zitat])[0];
+    if (!s(v.schluessel) || !s(v.figur) || !s(v.merkmal) || !zitat) return null;
+    return {
+      schluessel: s(v.schluessel),
+      figur: s(v.figur),
+      merkmal: s(v.merkmal),
+      wert: s(v.wert),
+      kapitel: s(v.kapitel) || zitat.kapitel,
+      zitat,
+      status: eines(v.status, ['neu', 'verworfen'] as const, 'neu'),
+    };
+  });
+}
+
 export function parseKiStimmen(text: string): KiAblage<StimmenBeobachtung> {
   return parseKiAblage(text, (v) => {
     if (!s(v.schluessel) || !s(v.figur)) return null;
@@ -1197,12 +1216,13 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
     lies(PFADE.lektorat, parseLektorat),
     lies(PFADE.recherche, parseRecherche),
   ]);
-  const [kiZeitVorschlaege, kiZustandVorschlaege, kiStimmen, kiLeser, kiFragen] = await Promise.all([
+  const [kiZeitVorschlaege, kiZustandVorschlaege, kiStimmen, kiLeser, kiFragen, kiFakten] = await Promise.all([
     lies(PFADE.kiZeit, parseKiZeitVorschlaege),
     lies(PFADE.kiZustand, parseKiZustandVorschlaege),
     lies(PFADE.kiStimmen, parseKiStimmen),
     lies(PFADE.kiLeser, parseKiLeser),
     lies(PFADE.kiFragen, parseKiFragen),
+    lies(PFADE.kiFakten, parseKiFakten),
   ]);
 
   const projekt: Projekt = projektRoh ?? { version: 1, titel: '', kapitel: [], notiz: '' };
@@ -1257,6 +1277,7 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
       ...(kiStimmen ? { kiStimmen } : {}),
       ...(kiLeser ? { kiLeser } : {}),
       ...(kiFragen ? { kiFragen } : {}),
+      ...(kiFakten ? { kiFakten } : {}),
     },
     warnungen,
   };

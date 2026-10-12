@@ -20,6 +20,7 @@ import type {
   Markenliste,
   Recherche,
   Schreibstatistik,
+  FigurFakt,
   StimmenBeobachtung,
   Szene,
   Zeitleiste,
@@ -372,6 +373,7 @@ const SW = {
   zeitVorschlag: ['schluessel', 'kapitel', 'szene', 'zeit', 'belege', 'begruendung', 'status'],
   zustandVorschlag: ['schluessel', 'figur', 'kapitel', 'szene', 'zustand', 'belege', 'begruendung', 'status'],
   stimme: ['schluessel', 'figur', 'kapitel', 'titel', 'erklaerung', 'zitate', 'vergleich', 'status'],
+  fakt: ['schluessel', 'figur', 'merkmal', 'wert', 'kapitel', 'zitat', 'status'],
   leser: ['kapitel', 'basisHash', 'weiss', 'fragen', 'vermutungen', 'spannung', 'plan', 'modell', 'datum'],
   leserPlan: ['kapitel', 'aussage', 'status', 'erklaerung', 'belege'],
   leserAussage: ['text', 'belege'],
@@ -484,6 +486,9 @@ export const serializeKiZustandVorschlaege = (a: KiAblage<ZustandVorschlag>) =>
 
 export const serializeKiStimmen = (a: KiAblage<StimmenBeobachtung>) =>
   serializeKiAblage(a, (v) => ordne({ ...v, zitate: zitate(v.zitate), vergleich: zitate(v.vergleich) }, SW.stimme));
+
+export const serializeKiFakten = (a: KiAblage<FigurFakt>) =>
+  serializeKiAblage(a, (v) => ordne({ ...v, zitat: zitate([v.zitat])[0] }, SW.fakt));
 
 export const serializeKiLeser = (a: KiAblage<LeserStand>) =>
   serializeKiAblage(a, (v) =>
@@ -610,6 +615,8 @@ export const speichereKiZustandVorschlaege = (fs: ProjektDateisystem, a: KiAblag
 
 export const speichereKiStimmen = (fs: ProjektDateisystem, a: KiAblage<StimmenBeobachtung>) =>
   schreibeWennGeaendert(fs, PFADE.kiStimmen, serializeKiStimmen(a), true);
+export const speichereKiFakten = (fs: ProjektDateisystem, a: KiAblage<FigurFakt>) =>
+  schreibeWennGeaendert(fs, PFADE.kiFakten, serializeKiFakten(a), true);
 
 export const speichereKiLeser = (fs: ProjektDateisystem, a: KiAblage<LeserStand>) =>
   schreibeWennGeaendert(fs, PFADE.kiLeser, serializeKiLeser(a), true);
