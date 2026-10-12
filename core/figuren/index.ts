@@ -7,3 +7,4 @@ export * from './stimme';
 export * from './zusammenfuehren';
 export * from './namen';
 export * from './hinweise';
+export * from './besetzung';

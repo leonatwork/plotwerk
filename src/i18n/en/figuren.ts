@@ -17,6 +17,7 @@ export const figuren: Form<typeof de> = {
     ansicht: 'View',
     karte: 'Card',
     boegen: 'Arcs',
+    besetzung: 'Cast',
     neueFigur: '+ New character',
     nameNeu: 'Name of the new character',
     namePlatzhalter: 'Name, then Return',
@@ -39,6 +40,15 @@ export const figuren: Form<typeof de> = {
     vorschlaege: { one: '{n} AI suggestion', other: '{n} AI suggestions' },
     vorab: '+ Add character in advance',
     namePlatzhalter: 'Character name, then Return',
+  },
+
+  besetzung: {
+    titel: 'Cast',
+    legende: 'Characters × chapters · filled: appears · outlined: by message · dashed: mentioned · light: in the text · hatched: only in the chapter plan · yellow underline: absent',
+    kap: 'Ch.',
+    jeKapitel: 'Characters per chapter',
+    nurPlan: 'only in the chapter plan',
+    karteOeffnen: 'Open character card',
   },
 
   karte: {
