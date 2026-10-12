@@ -117,7 +117,7 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
         zuordnung.set(k, v.figur);
         continue;
       }
-      const vorhanden = figurMitNamen(d, v.name);
+      const vorhanden = figurMitNamen(d, v.name, ...v.aliase);
       if (vorhanden) {
         zuordnung.set(k, vorhanden);
         continue;
