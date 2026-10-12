@@ -12,6 +12,7 @@ import { Button, StrangPunkt } from '../../ui';
 import { strangFarbe } from '../akte/gemeinsam';
 import { datum, f, useTexte } from '../../i18n';
 import './faeden.css';
+import { NurMit } from '../../app/NurMit';
 
 const kapNr = (daten: ProjektDaten, id: Id) => daten.projekt.kapitel.indexOf(id) + 1;
 
@@ -186,9 +187,11 @@ export function StrangVorschlaegeListe({ daten, strang }: { daten: ProjektDaten;
         <span className="fd-label" style={{ color: 'var(--accent-dark)' }}>
           {tv.kopf}
         </span>
-        <Button klein onClick={() => oeffneDialog('straenge-vorschlagen')} disabled={lauf}>
-          {letzter ? tv.nochmal : tv.starten}
-        </Button>
+        <NurMit funktion="kiErkennung">
+          <Button klein onClick={() => oeffneDialog('straenge-vorschlagen')} disabled={lauf}>
+            {letzter ? tv.nochmal : tv.starten}
+          </Button>
+        </NurMit>
       </div>
       {!letzter && !strang && <span className="fd-leise">{tv.intro}</span>}
       {letzter && alle.length === 0 && <span className="fd-leise">{tv.leer}</span>}
@@ -247,9 +250,11 @@ export function KapitelStrangVorschlaege({ kapitel, daten }: { kapitel: Id; date
         ),
       )}
       {hatText && (
-        <button type="button" className="pl-link" style={{ alignSelf: 'flex-start' }} disabled={lauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
-          {t.faeden.raster.kiVorschlagen}
-        </button>
+        <NurMit funktion="kiErkennung">
+          <button type="button" className="pl-link" style={{ alignSelf: 'flex-start' }} disabled={lauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
+            {t.faeden.raster.kiVorschlagen}
+          </button>
+        </NurMit>
       )}
     </div>
   );
