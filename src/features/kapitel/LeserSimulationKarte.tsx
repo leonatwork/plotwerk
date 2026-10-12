@@ -1,10 +1,10 @@
 /**
  * Karte „Leserin nach Kap. n“ im Kapitel-Überblick (G6 Leser-Simulation). Besitzer: G6.
- * Zeigt den gespeicherten Stand aus .plotwerk/leser.json kompakt; Details, Kostenschätzung und Start im Dialog
- * „leser-simulation“.
+ * Zeigt die neueste nicht erledigte Simulation aus .plotwerk/leser.json kompakt; Details, Kostenschätzung und Start
+ * im Dialog „leser-simulation“.
  */
 import { useMemo } from 'react';
-import { ausLeserStand, leserStandVeraltet, offeneFragen } from '@core/ki/index';
+import { aktuellerStand, ausLeserStand, leserStandVeraltet, offeneFragen, staendeFuer } from '@core/ki/index';
 import type { Id } from '@core/model/types';
 import { f, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
@@ -15,7 +15,9 @@ export function LeserSimulationKarte({ kapitelId }: { kapitelId: Id }) {
   const daten = useStore((s) => s.daten);
   const lauf = useStore((s) => s.kileser.simLauf);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
-  const stand = daten?.kiLeser?.eintraege.find((e) => e.kapitel === kapitelId);
+  const alle = daten?.kiLeser?.eintraege;
+  const stand = useMemo(() => aktuellerStand(alle ?? [], kapitelId), [alle, kapitelId]);
+  const erledigt = useMemo(() => staendeFuer(alle ?? [], kapitelId).filter((e) => e.erledigt).length, [alle, kapitelId]);
   const sim = useMemo(() => (stand ? ausLeserStand(stand) : null), [stand]);
   const tl = useTexte().kapitel.leser;
   if (!daten) return null;
@@ -52,10 +54,11 @@ export function LeserSimulationKarte({ kapitelId }: { kapitelId: Id }) {
           <p className="pw-kl-klein">
             {textBisN ? f(tl.einladung, { nr }) : tl.keinText}
           </p>
-          {textBisN && (
+          {erledigt > 0 && <p className="pw-kl-klein">{f(tl.erledigt, { n: erledigt })}</p>}
+          {(textBisN || erledigt > 0) && (
             <div className="pw-kl-karte__knoepfe">
               <Button klein onClick={oeffnen} disabled={laeuft}>
-                {tl.simulieren}
+                {erledigt > 0 ? tl.ansehen : tl.simulieren}
               </Button>
             </div>
           )}

@@ -126,6 +126,14 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 - **Leser-Simulation** (Kapitel-Überblick „Leserin simulieren …“, Fragen → „Leser-Simulation …“): Die KI liest nur
   Kapitel 1 bis n und beschreibt, was eine Erstleserin weiß, fragt, vermutet und wo Spannung entsteht – plus Abgleich
   mit deinen Kapitelplänen („belegt / nur angedeutet / nicht belegt“). Wird veraltet, sobald sich Text oder Plan ändert.
+  Jede Simulation bleibt gespeichert, auch wenn du dasselbe Kapitel erneut simulierst; im Dialog wählst du zwischen
+  den Simulationen eines Kapitels. „Erledigt“ klappt eine Simulation unter „erledigt“ weg (die Kapitelkarte zeigt dann
+  die neueste offene), „Löschen“ entfernt sie nach Rückfrage. Beides geht im Dialog und in der Seitenspalte unter
+  Fragen (✓ und × beim Überfahren); ein Klick auf eine Zeile öffnet die Simulation. Läuft eine Simulation im
+  Hintergrund, zeigt unten rechts eine Meldung den Lauf, das fertige Ergebnis oder den Fehler. Jede offene Frage lässt
+  sich übernehmen: „Als Faden planen“ legt einen Faden an (kommt auf in, Auflösung geplant in, wie sie gelöst wird, oder
+  bewusst offen), „Notiz an die Stelle“ heftet eine Notiz an die Belegstelle im Text. Die nächste Simulation gleicht die
+  Fäden wieder mit den Leserfragen ab.
 - **Fragen an das Buch** (Werkzeuge → Fragen): „Wo erwähne ich Pauls Bleistifte?“ – Antworten nur mit Belegstellen; Klick
   öffnet die Stelle. „nicht im Buch“ und „ohne Beleg“ sind unterschieden. ↩ fragt, ⇧↩ neue Zeile, ↑ holt die letzte
   Frage zurück. Schreibaufträge lehnt die App ab, ohne das Modell zu fragen.

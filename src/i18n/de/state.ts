@@ -54,6 +54,7 @@ export const state = {
       one: '{n} Beleg verworfen – nicht wörtlich im Buch.',
       other: '{n} Belege verworfen – nicht wörtlich im Buch.',
     },
+    projektGewechselt: 'Das Projekt wurde während der Simulation gewechselt. Das Ergebnis wurde verworfen.',
   },
   statistik: {
     fassungOhneName: 'Bitte gib der Fassung einen Namen.',

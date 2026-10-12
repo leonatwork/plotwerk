@@ -88,5 +88,6 @@ export const kapitel: Form<typeof de> = {
     frageTitel: 'Open reader simulation with evidence',
     alleAnsehen: 'View all {n}',
     ansehen: 'View',
+    erledigt: { one: 'The last simulation is done.', other: '{n} simulations done.' },
   },
 };

@@ -52,6 +52,7 @@ export const state: Form<typeof de> = {
       one: '{n} quote discarded – not verbatim in the book.',
       other: '{n} quotes discarded – not verbatim in the book.',
     },
+    projektGewechselt: 'The project was switched during the simulation. The result was discarded.',
   },
   statistik: {
     fassungOhneName: 'Please give the draft version a name.',

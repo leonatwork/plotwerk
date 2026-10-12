@@ -7,6 +7,9 @@ import type { StateCreator } from 'zustand';
 import {
   alsBuchFrage,
   alsLeserStand,
+  ordneStaende,
+  staendeFuer,
+  standId,
   frageAufgabe,
   fuehreAufgabeAus,
   KiFehler,
@@ -16,9 +19,10 @@ import {
   preisFuer,
   schaetzeAufgabe,
   schreibAuftrag,
+  uebernahmenMitnehmen,
   type Schaetzung,
 } from '@core/ki/index';
-import type { BuchFrage, Id, KiAblage, LeserStand } from '@core/model/types';
+import type { BuchFrage, Id, KiAblage, LeserFrage, LeserStand, TextAnker } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
 import { f, sprache, texte } from '../../i18n';
 import type { Store } from '../store';
@@ -36,11 +40,34 @@ export interface FragenSchaetzung {
   gezaehlt: boolean;
 }
 
+/** Ergebnis eines Laufs, der ohne offenen Dialog zu Ende ging (Meldung unten rechts). */
+export interface SimMeldung {
+  kapitel: Id;
+  /** gespeicherte Simulation (bei „fertig“) */
+  stand?: Id;
+  /** Kapitelnummer beim Start (das Kapitel kann inzwischen verschoben oder gelöscht sein) */
+  nr: number;
+  art: 'fertig' | 'fehler';
+  text?: string;
+}
+
+/** Angaben für „Als Faden planen“ */
+export interface FadenUebernahme {
+  name: string;
+  eroeffnetIn: Id;
+  aufloesungIn?: Id;
+  /** wie die Frage gelöst wird */
+  notiz: string;
+  bewusstOffen: boolean;
+}
+
 export interface KiLeser {
   /** laufende Leser-Simulation */
   simLauf: { kapitel: Id; tiefencheck: boolean; seit: number } | null;
   simFehler: { kapitel: Id; fehler: KiFehlerAnzeige } | null;
-  /** Gründe für Verworfenes im letzten Lauf je Kapitel (nur diese Sitzung) */
+  /** Lauf ist fertig oder fehlgeschlagen, während der Dialog geschlossen war */
+  simMeldung: SimMeldung | null;
+  /** Gründe für Verworfenes je gespeicherter Simulation (Stand-ID, nur diese Sitzung) */
   simVerworfen: Record<Id, string[]>;
   /** laufende Frage */
   frageLauf: { frage: string; seit: number } | null;
@@ -55,11 +82,22 @@ export interface KiLeser {
 
   /** Kostenschätzung vor dem Start (eine Anfrage, Kapitel 1..n) */
   schaetzen(kapitel: Id, tiefencheck: boolean): Promise<Schaetzung>;
-  /** Simulation starten; speichert den Stand in .plotwerk/leser.json. false bei Fehler oder Abbruch. */
-  simulieren(kapitel: Id, tiefencheck: boolean): Promise<boolean>;
+  /**
+   * Simulation starten; hängt eine neue Simulation an .plotwerk/leser.json an (ältere bleiben erhalten).
+   * Gibt ihre ID zurück, null bei Fehler oder Abbruch.
+   */
+  simulieren(kapitel: Id, tiefencheck: boolean): Promise<Id | null>;
   /** Laufende Simulation abbrechen: nichts wird gespeichert, kein Fehler bleibt stehen. */
   simAbbrechen(): void;
-  standEntfernen(kapitel: Id): Promise<void>;
+  meldungSchliessen(): void;
+  /** Eine gespeicherte Simulation löschen (Stand-ID, siehe standId) */
+  standEntfernen(stand: Id): Promise<void>;
+  /** Simulation als erledigt markieren bzw. wieder öffnen */
+  standErledigt(stand: Id, erledigt: boolean): Promise<void>;
+  /** Offene Leserfrage als Faden planen (plan/faeden.md); merkt den Faden an der Frage. Gibt die Faden-ID zurück. */
+  alsFaden(stand: Id, frageId: Id, angaben: FadenUebernahme): Promise<Id | null>;
+  /** Offene Leserfrage als Notiz an die Belegstelle heften (anmerkungen.json). Gibt die Anmerkung-ID zurück. */
+  alsNotiz(stand: Id, frageId: Id, anker: TextAnker, notiz: string): Promise<Id | null>;
   fragenSchaetzen(): Promise<FragenSchaetzung | null>;
   /** Frage stellen; Antwort (mit Belegen) landet in .plotwerk/fragen.json */
   fragen(frage: string): Promise<boolean>;
@@ -104,11 +142,34 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
     return d ? leserBasisHash(d, kapitel) : '';
   }
 
+  /** Meldung nur, wenn der Dialog nicht offen ist – sonst sieht Leon das Ergebnis dort. */
+  function melden(meldung: SimMeldung) {
+    if (get().dialog?.id === 'leser-simulation') return;
+    setze({ simMeldung: meldung });
+  }
+
+  /** Eine gespeicherte Simulation ändern; die abgeleitete ID älterer Stände wird dabei festgeschrieben. */
+  async function standAendern(id: Id, aendern: (s: LeserStand) => LeserStand) {
+    const alt = get().daten?.kiLeser;
+    if (!alt || !alt.eintraege.some((e) => standId(e) === id)) return;
+    await get().speichereKiLeser({ ...alt, eintraege: alt.eintraege.map((e) => (standId(e) === id ? { ...aendern(e), id } : e)) });
+  }
+
+  /** Eine Frage einer gespeicherten Simulation ändern (Übernahme merken). */
+  async function frageAendern(stand: Id, frageId: Id, teil: Partial<Pick<LeserFrage, 'faden' | 'anmerkung'>>) {
+    await standAendern(stand, (e) => ({ ...e, fragen: e.fragen.map((f) => (f.id === frageId ? { ...f, ...teil } : f)) }));
+  }
+
+  function frageIn(stand: Id, frageId: Id): LeserFrage | undefined {
+    return get().daten?.kiLeser?.eintraege.find((e) => standId(e) === stand)?.fragen.find((f) => f.id === frageId);
+  }
+
   return {
     kileser: {
       simLauf: null,
       simFehler: null,
       simVerworfen: {},
+      simMeldung: null,
       frageLauf: null,
       frageFehler: null,
       frageHinweise: {},
@@ -121,10 +182,12 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
       },
 
       async simulieren(kapitel, tiefencheck) {
-        if (zustand().simLauf) return false;
+        if (zustand().simLauf) return null;
         const steuerung = new AbortController();
         simAbbruch = steuerung;
-        setze({ simLauf: { kapitel, tiefencheck, seit: Date.now() }, simFehler: null });
+        const projektFs = get().fs;
+        const nr = (get().daten?.projekt.kapitel.indexOf(kapitel) ?? -1) + 1;
+        setze({ simLauf: { kapitel, tiefencheck, seit: Date.now() }, simFehler: null, simMeldung: null });
         try {
           const basisHash = hash(kapitel);
           const r = await fuehreAufgabeAus(await leser(), transport(), get().kiEinstellungen(), leserSimulationAufgabe(kapitel, { tiefencheck, basisHash }), {
@@ -132,24 +195,34 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
             oberflaeche: sprache(),
           });
           // Kam die Antwort trotz Abbruch an (Transport kann nicht abbrechen): verwerfen, nichts speichern.
-          if (steuerung.signal.aborted) return false;
-          const stand: LeserStand = alsLeserStand({ ...r.ergebnis, modell: r.modell, datum: r.datum });
+          if (steuerung.signal.aborted) return null;
+          // Projekt inzwischen gewechselt: nicht in das falsche Projekt schreiben
+          if (get().fs !== projektFs) throw new KiFehler('auftrag', texte().state.kileser.projektGewechselt);
           const daten = get().daten;
-          if (!daten) return false;
+          if (!daten) return null;
           const alt = daten.kiLeser ?? leereAblage<LeserStand>();
-          const reihenfolge = daten.projekt.kapitel;
-          const eintraege = [...alt.eintraege.filter((e) => e.kapitel !== kapitel), stand].sort(
-            (a, b) => reihenfolge.indexOf(a.kapitel) - reihenfolge.indexOf(b.kapitel),
+          const ids = new Set(alt.eintraege.map(standId));
+          let id = `${kapitel}-${Date.now().toString(36)}`;
+          for (let n = 2; ids.has(id); n++) id = `${kapitel}-${Date.now().toString(36)}-${n}`;
+          // Übernahmen (Faden, Notiz) gleicher Fragen aus der vorigen Simulation des Kapitels mitnehmen
+          const stand: LeserStand = uebernahmenMitnehmen(
+            staendeFuer(alt.eintraege, kapitel)[0],
+            alsLeserStand({ ...r.ergebnis, id, modell: r.modell, datum: r.datum }),
           );
+          const eintraege = ordneStaende([...alt.eintraege, stand], daten.projekt.kapitel);
           await get().speichereKiLeser({ version: 1, eintraege, lauf: { datum: r.datum, modell: r.modell, ...(r.kostenBekannt === false ? {} : { kostenUsd: Math.round(r.kostenUsd * 10000) / 10000 }) } });
-          setze({ simVerworfen: { ...zustand().simVerworfen, [kapitel]: r.verworfen.map((v) => v.grund) } });
-          return true;
+          setze({ simVerworfen: { ...zustand().simVerworfen, [id]: r.verworfen.map((v) => v.grund) } });
+          melden({ kapitel, stand: id, nr, art: 'fertig' });
+          return id;
         } catch (e) {
           // Abbruch ist kein Fehler: Zustand sauber zurück, keine Meldung
           if (!steuerung.signal.aborted && !(e instanceof KiFehler && e.art === 'abgebrochen')) {
-            setze({ simFehler: { kapitel, fehler: kiFehlerAnzeige(e) } });
+            const fehler = kiFehlerAnzeige(e);
+            console.warn('Leser-Simulation fehlgeschlagen:', e);
+            setze({ simFehler: { kapitel, fehler } });
+            melden({ kapitel, nr, art: 'fehler', text: fehler.text });
           }
-          return false;
+          return null;
         } finally {
           if (simAbbruch === steuerung) simAbbruch = null;
           setze({ simLauf: null });
@@ -160,10 +233,41 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
         simAbbruch?.abort();
       },
 
-      async standEntfernen(kapitel) {
+      meldungSchliessen() {
+        setze({ simMeldung: null });
+      },
+
+      async alsFaden(stand, frageId, angaben) {
+        if (!frageIn(stand, frageId)) return null;
+        const name = angaben.name.trim();
+        if (!name) return null;
+        const id = await get().struktur.fadenNeu(name, angaben.eroeffnetIn);
+        await get().struktur.fadenAendern(id, { aufloesungIn: angaben.aufloesungIn || undefined, notiz: angaben.notiz.trim() || undefined });
+        if (angaben.bewusstOffen) await get().planung.fadenStatusSetzen(id, 'bewusst_offen');
+        await frageAendern(stand, frageId, { faden: id });
+        return id;
+      },
+
+      async alsNotiz(stand, frageId, anker, notiz) {
+        const frage = frageIn(stand, frageId);
+        if (!frage || !notiz.trim()) return null;
+        const a = await get().anmerkungAnlegen(anker, notiz, null);
+        await frageAendern(stand, frageId, { anmerkung: a.id });
+        return a.id;
+      },
+
+      async standEntfernen(stand) {
         const alt = get().daten?.kiLeser;
-        if (!alt || !alt.eintraege.some((e) => e.kapitel === kapitel)) return;
-        await get().speichereKiLeser({ ...alt, eintraege: alt.eintraege.filter((e) => e.kapitel !== kapitel) });
+        if (!alt || !alt.eintraege.some((e) => standId(e) === stand)) return;
+        await get().speichereKiLeser({ ...alt, eintraege: alt.eintraege.filter((e) => standId(e) !== stand) });
+      },
+
+      async standErledigt(stand, erledigt) {
+        await standAendern(stand, (e) => {
+          const { erledigt: _alt, ...rest } = e;
+          void _alt;
+          return erledigt ? { ...rest, erledigt: new Date().toISOString() } : rest;
+        });
       },
 
       async fragenSchaetzen() {
@@ -254,7 +358,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
       },
 
       fehlerZuruecksetzen() {
-        setze({ simFehler: null, frageFehler: null });
+        setze({ simFehler: null, frageFehler: null, simMeldung: null });
       },
     },
   };
