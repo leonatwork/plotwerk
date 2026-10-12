@@ -4,11 +4,12 @@ export const hinweise = {
   typ: {
     pruefen: 'Prüfen',
     schreibweise: 'Schreibweise',
-    offener_faden: 'Offener Faden',
+    offener_faden: 'Loses Ende',
     unbekannt: 'Unbekannt',
     struktur: 'Struktur',
     zeitleiste: 'Zeitleiste',
     sprache: 'Sprache',
+    figuren: 'Figuren',
   },
   /** Kurzbeschreibung je Typ (Gruppenkopf) */
   typBeschreibung: {
@@ -19,6 +20,7 @@ export const hinweise = {
     struktur: 'leere Kapitel, Satzabbrüche, leere Überschriften',
     zeitleiste: 'Zeitpunkte, die nicht zusammenpassen, und zeitliche Verankerung',
     sprache: 'Sprache und Figurenstimme – nur markiert, nie korrigiert',
+    figuren: 'Spitznamen vor dem Namen, verwechselbare Namen, ruhende Figuren',
   },
   /** Status (neu / Entscheidung) */
   status: { neu: 'Neu', absicht: 'Ist Absicht', erledigt: 'Erledigt' },
@@ -32,7 +34,7 @@ export const hinweise = {
   keine: 'Keine Hinweise',
   buchPruefen: 'Buch prüfen',
   leerText:
-    'Struktur-Hinweise und Schreibweisen erscheinen automatisch beim Speichern. Widersprüche, offene Fäden und die Zeitleiste findet die Prüfung, die du bewusst startest.',
+    'Struktur-Hinweise und Schreibweisen erscheinen automatisch beim Speichern. Widersprüche, lose Enden und die Zeitleiste findet die Prüfung, die du bewusst startest.',
   filterLabel: 'Filter nach Typ und Kapitel',
   alleTypen: 'Alle Typen',
   kapitel: 'Kapitel',

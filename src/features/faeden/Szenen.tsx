@@ -27,6 +27,7 @@ import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { f, texte, useTexte, vergleich } from '../../i18n';
 import { zeitText as zeitKurz } from './gemeinsam';
 import './faeden.css';
+import { NurMit } from '../../app/NurMit';
 
 // ---------------------------------------------------------------------------
 // Daten
@@ -287,7 +288,11 @@ function SzenenFormular({
           </>
         )}
       </div>
-      {sz && <RechercheLeiste ziel={szenenVerweis(sz.id)} titel={ts.recherche} max={4} />}
+      {sz && (
+        <NurMit funktion="recherche">
+          <RechercheLeiste ziel={szenenVerweis(sz.id)} titel={ts.recherche} max={4} />
+        </NurMit>
+      )}
     </div>
   );
 }

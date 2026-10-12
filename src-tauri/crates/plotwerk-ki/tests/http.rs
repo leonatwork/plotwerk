@@ -9,6 +9,7 @@ use tokio::net::TcpListener;
 
 const F: Anbieter = Anbieter::Foundry;
 const C: Anbieter = Anbieter::Claude;
+const O: Anbieter = Anbieter::OpenAi;
 
 struct Anfrage {
     zeile: String,
@@ -393,4 +394,82 @@ async fn foundry_ohne_beta_header() {
     let anfrage = server.await.unwrap();
     assert_eq!(anfrage.zeile, "POST /anthropic/v1/messages HTTP/1.1");
     assert_eq!(anfrage.kopf("anthropic-beta"), None);
+}
+
+#[tokio::test]
+async fn openai_chat_completions_mit_bearer() {
+    let (endpoint, server) = server(
+        "200 OK",
+        "",
+        r#"{"choices":[{"index":0,"message":{"role":"assistant","content":"{}"},"finish_reason":"stop"}],"usage":{"prompt_tokens":3,"completion_tokens":1}}"#,
+    )
+    .await;
+    let body = json!({"model":"gpt-5","messages":[{"role":"user","content":"Hallo"}],"max_completion_tokens":10});
+    let antwort = KiKlient::neu()
+        .unwrap()
+        .nachricht(
+            O,
+            &format!("{endpoint}/v1/chat/completions"),
+            "sk-test",
+            &body,
+        )
+        .await
+        .unwrap();
+    assert_eq!(antwort["usage"]["prompt_tokens"], 3);
+    let anfrage = server.await.unwrap();
+    assert_eq!(
+        anfrage.zeile,
+        "POST /anthropic/v1/chat/completions HTTP/1.1"
+    );
+    assert_eq!(anfrage.kopf("authorization"), Some("Bearer sk-test"));
+    assert_eq!(anfrage.kopf("x-api-key"), None);
+    assert_eq!(anfrage.kopf("anthropic-version"), None);
+    assert_eq!(anfrage.body, body);
+}
+
+#[tokio::test]
+async fn openai_lokal_ohne_schluessel() {
+    let (endpoint, server) = server(
+        "200 OK",
+        "",
+        r#"{"choices":[{"index":0,"message":{"role":"assistant","content":"{}"},"finish_reason":"stop"}]}"#,
+    )
+    .await;
+    klient()
+        .nachricht(
+            O,
+            &format!("{endpoint}/v1"),
+            "",
+            &json!({"model":"qwen3:8b","messages":[]}),
+        )
+        .await
+        .unwrap();
+    let anfrage = server.await.unwrap();
+    assert_eq!(
+        anfrage.zeile,
+        "POST /anthropic/v1/chat/completions HTTP/1.1"
+    );
+    assert_eq!(anfrage.kopf("authorization"), None);
+}
+
+#[tokio::test]
+async fn openai_fehlermeldung_von_ollama() {
+    let (endpoint, server) = server(
+        "404 Not Found",
+        "",
+        r#"{"error":{"message":"model \"qwen3:99b\" not found, try pulling it first","type":"api_error"}}"#,
+    )
+    .await;
+    let e = klient()
+        .nachricht(
+            O,
+            &format!("{endpoint}/v1"),
+            "",
+            &json!({"model":"qwen3:99b"}),
+        )
+        .await
+        .unwrap_err();
+    server.await.unwrap();
+    assert_eq!(e.status(), Some(404));
+    assert!(e.to_string().contains("try pulling it first"), "{e}");
 }

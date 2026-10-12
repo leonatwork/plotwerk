@@ -19,6 +19,12 @@ Oct 9, 2026 · @Leon Machnik · fortgeschrieben aus v1.0
 - Hinweis-Typ „Zeitleiste“ entsteht jetzt auch lokal (Zeitprüfung), „Sprache“ auch aus der Figurenstimme.
 - Tastenkürzel ergänzt (⌘8, ⌘9, ⌘0, ⌘⇧T, ⌘⇧S). Nicht-Ziele präzisiert (Abgabeformate statt Buchsatz, kein iPhone-Begleiter).
 
+**Nachtrag 13. Oktober 2026 – Funktionsumfang und Einrichtung**
+
+- Neuer Abschnitt „Funktionsumfang und Einrichtung“ mit den IDs FU-01 … FU-08: Einrichtungs-Assistent beim ersten Start,
+  Presets je Schreibertyp, eigene Presets, Funktionen ein- und ausblenden, KI-Umfang, No-AI-Modus.
+- Neue Entscheidungen E15 (dritter KI-Anbieter „OpenAI-kompatibel“), E16 (Funktionsumfang als App-Einstellung, ausgeblendet ≠ gelöscht) und E17 (No-AI-Modus).
+
 ## Ziel und Leitprinzipien
 
 Plotwerk (Arbeitstitel) ist eine lokale Mac-App, in der Leon seinen Roman schreibt, plant und auf Stimmigkeit prüfen lässt. Die KI liest dabei nur mit und verändert nie den Text.
@@ -53,7 +59,7 @@ Nutzer ist eine Person. Zum Start verwaltet die App ein Projekt; die Ordnerstruk
 
 **Datenschutz:** Nur beim Start einer Analyse gehen Daten an den gewählten KI-Anbieter (Microsoft Foundry oder Claude API), und nur, was auf der Allowlist steht (E12): Kapiteltext, Kapiteltitel, Namen und Aliase von Figuren und Orten, Existenz und Realitätsebene, Gruppennamen, Plan-Felder von Figuren und Kapitelplänen (Szene, „Was soll hier passieren?“). Nie: „Wahrheit hinter den Kulissen“, Notizen, Anmerkungen, Ideen, Abweichungen. Hosting und Region des Deployments sind egal; Leon akzeptiert die Verarbeitung in den USA. Ohne Netz funktioniert alles außer der KI-Prüfung.
 
-## Grundsatzentscheidungen (E1–E14)
+## Grundsatzentscheidungen (E1–E17)
 
 | # | Entscheidung | Grund |
 | --- | --- | --- |
@@ -71,6 +77,9 @@ Nutzer ist eine Person. Zum Start verwaltet die App ein Projekt; die Ordnerstruk
 | E12 | Allowlist für alles, was an das Modell geht (siehe Datenschutz). Plan-Felder freigegeben am 2026-10-09 (F-05). | private Felder können nicht durchrutschen |
 | E13 | Ganzes Buch als gecachter Prefix (Prompt Caching) plus Aufgaben pro Kapitel; Ergebnis-Cache pro Kapitel-Text-Hash; Token-Schätzung über `count_tokens`. | findet kapitelübergreifende Widersprüche |
 | E14 | Zwei Anbieter zur Wahl: Microsoft Foundry (Deployment-Namen) oder Claude API (Modell-IDs, serverseitiger Fallback bei Sonnet/Opus 5.5). Hosting/Region egal. Modelle Haiku/Sonnet/Opus 5.5. | Leons Vorgabe |
+| E15 | Dritter Anbieter „OpenAI-kompatibel“ (Ollama, LM Studio, OpenAI, OpenRouter, Qwen, eigene URL): Übersetzung nach Chat Completions im Transport, keine Listenpreise, optionale Kontextlänge. | lokale und andere Modelle |
+| E16 | Funktionsumfang als App-Einstellung (nie im Projektordner): Presets je Schreibertyp, eigene Presets, freie Auswahl. Ausgeblendet heißt nicht gelöscht – Daten bleiben im Projekt und im Export. Ohne Plan-Abgleich gehen keine Plan-Felder an die KI. | Einstieg für neue Nutzer, weniger Tokens |
+| E17 | No-AI-Modus: alle KI-Funktionen ausgeblendet, der KI-Transport ist gesperrt (auch `count_tokens`). | Datenschutz, Arbeiten ohne Zugang |
 
 ## Datenmodell und Projektordner
 
@@ -208,6 +217,17 @@ Die Planung ist die zweite Ebene neben dem Text. Referenz-Screens: `Akte.dc.html
 | F-04 | Figuren | Notizen, Auftritte als Kapitelstreifen (tritt auf, nur erwähnt oder per Nachricht), Beziehungen | Muss |
 | F-05 | Figuren | Hinweis, wenn ein Plan-Feld dem Text widerspricht, außer die Figur oder Stelle ist bewusst vage. Umgesetzt: Die Prüfung vergleicht Plan-Felder von Figuren und Kapitelplänen mit dem Text und meldet Widersprüche als „Prüfen“ mit Plan-Bezug (Figur/Kapitel, Feld); die Figurenkarte zeigt sie mit Etikett „Plan“ | Soll |
 | F-06 | Figuren | Figur vorab anlegen, bevor sie im Text vorkommt | Muss |
+| F-07 | Figuren | Zwei Figuren zusammenführen (Richtung wählbar): Namen werden Spitznamen, Beziehungen, Planfelder und Notizen kommen dazu, alle Verweise im Projekt zeigen auf die bleibende Figur; Hinweis auf der Figurenkarte bei gleichem Namen | Soll |
+| F-08 | Figuren | Feld „Auch genannt / Spitzname“: mehrere Namen mit Komma, sofort in der Erkennung und bei KI-Vorschlägen berücksichtigt | Muss |
+| F-09 | Figuren | Auswahl-Leiste im Editor „Figur“: markierten Text als neue Figur oder als Spitznamen einer Figur übernehmen | Soll |
+| F-10 | Figuren | KI-Vorschläge, die eine angelegte Figur unter anderem Namen meinen, als „Spitznamen für X“ übernehmen; Erwähnungsvorschläge „Als Spitznamen merken“ | Soll |
+| F-11 | Figuren | Hinweis, wenn eine Figur zuerst über einen Spitznamen vorkommt und ihr Name erst später fällt | Soll |
+| F-12 | Figuren | Hinweis auf leicht verwechselbare Namen (ein Buchstabe Unterschied, gleicher Anfang bei gleicher Länge) | Kann |
+| F-13 | Figuren | Hinweis auf ruhende Figuren (Standard Haupt 3, Neben 6 Kapitel, je Figur einstellbar); im Auftrittsstreifen markiert | Soll |
+| F-14 | Figuren | Rolle „Statist“: eigener eingeklappter Bereich, schlanke Karte, im Netz nur auf Wunsch, nie im Exposé; Hinweis „zur Nebenfigur machen?“ ab drei Kapiteln | Soll |
+| F-15 | Figuren | Besetzungsübersicht Figuren × Kapitel | Soll |
+| F-16 | Figuren | Spitznamen als Chips mit Kontext (wer nennt die Figur so, ab welchem Kapitel, Notiz); Hinweis, wenn ein Spitzname vor seinem Kapitel fällt | Kann |
+| F-17 | Figuren | Figurenfakten aus dem Text (KI, wörtlich belegt) je Merkmal auf der Figurenkarte; Widersprüche und Planabweichungen als „Prüfen“ | Soll |
 | O-01 | Orte | Liste mit Kapiteln, Belegen aus dem Text, Beschreibung, Notizen; Unterorte (Zeichensaal im Büro) | Muss |
 | O-02 | Orte | Schreibweisen zusammenführen und die gültige festlegen | Muss |
 | O-03 | Orte | Weg einer Figur (z. B. „Pauls Weg“): Ortsfolge über alle Kapitel | Soll |
@@ -218,6 +238,9 @@ Die Planung ist die zweite Ebene neben dem Text. Referenz-Screens: `Akte.dc.html
 | A-01 | Antagonisten | Zwei Antagonisten als Gruppen: Nordhaven (im Text über Herrn Kessler und den Aufsichtsrat) und das Konsortium (geplant) | Muss |
 | A-02 | Antagonisten | Pro Gruppe Mitglieder, Präsenz pro Akt und Kapitel und mögliche Spuren im Text als Vorschlag (z. B. »Kranich«), die Leon bestätigt oder verwirft | Muss |
 | A-03 | Antagonisten | Antagonisten erscheinen als eigene Stränge im Akt-Board und im Kapitel-Überblick | Muss |
+| A-04 | Gruppen | Gruppen in der App anlegen („+ Gruppe“ im Beziehungsnetz, „+ Neue Gruppe …“ auf der Figurenkarte) und löschen; eine neue Gruppe bekommt sofort eine Fläche im Netz um ihre Mitglieder | Muss |
+| A-05 | Gruppen | Eine Figur in mehreren Gruppen; Hauptgruppe bestimmt Farbe und Platz im Netz, andere Gruppen zeigen sie als Verweis | Soll |
+| A-06 | Gruppen | Rolle je Mitglied in der Gruppe (Inspektor, Netzkarte, Figurenkarte) | Kann |
 
 ## Funktionen: Werkzeuge (G1–G8)
 
@@ -232,6 +255,9 @@ Seit 10. Oktober 2026. Alles, was Leon festlegt, liegt als Markdown oder JSON im
 | PS-01 | Fäden | Board mit Spalten Offen, Auflösung geplant, Erledigt, Bewusst offen; Warnung bei ruhenden Fäden und überschrittenem Auflösungskapitel; eigene Fäden anlegen | Soll |
 | PS-02 | Akte planen | Strang-Raster (Stränge × Kapitel) mit Lücken; Klick nimmt einen Strang in den Kapitelplan auf | Soll |
 | PS-03 | Szenen | Szenen über die Trenner `* * *`: Plan je Szene (Titel, Ort, Figuren, Zeit, Notiz) im Schreiben-Inspektor und im Kapitel-Überblick; der Kapiteltext wird nie verändert | Soll |
+| PS-04 | Akte planen | Stränge als Haupt- oder Nebenhandlung markieren und beschreiben („Wofür steht der Strang?“); Kapitelplan mit Kurzbeschreibung und optionaler Funktion im Buch | Soll |
+| PS-05 | Akte planen | KI schlägt Kapitel-Zuordnungen zu Strängen, neue Stränge (mit Rolle und Zweck) und Rückfragen vor, jeweils mit wörtlichem Beleg; Leon übernimmt, verwirft oder antwortet, Verworfenes kommt nicht wieder | Kann |
+| PS-06 | Lose Enden | Bereich „Fäden“ heißt „Lose Enden“; Tabelle lose Enden × Kapitel, gruppiert nach Strang; ein loses Ende lässt sich als Strang übernehmen (mit seinen Kapiteln) | Soll |
 | FB-01 | Figuren | Figuren-Bögen: frei benannte Stufen je Kapitel oder Akt mit wörtlichen Belegen, Auftritte als Linie, Vergleich mehrerer Figuren | Soll |
 | FB-02 | Figuren | Figurenstimme: KI vergleicht die Rede einer Figur mit ihren typischen Stellen; Ergebnis mit auffälliger und typischer Stelle, beide wörtlich; erscheint auch als Hinweis „Sprache“ | Kann |
 | EW-01 | Editor | Typewriter-Modus: Cursorzeile mittig, übrige Absätze abgedunkelt | Kann |
@@ -248,11 +274,28 @@ Seit 10. Oktober 2026. Alles, was Leon festlegt, liegt als Markdown oder JSON im
 | AB-03 | Abgabe | EPUB 3 mit Satz wie die Buch-Vorschau | Kann |
 | AB-04 | Abgabe | Lektoratsmappe (PDF) mit offenen Hinweisen | Kann |
 | AB-05 | Abgabe | Rückimport aus Word: Kommentare als Anmerkungen, nachverfolgte Änderungen einzeln annehmen/ablehnen (vorher Schnappschuss); offene Änderungen im Editor markiert | Soll |
+| AB-06 | Abgabe | Personenverzeichnis (.docx/.md) nach Gruppen oder Rolle, „nur bis Kapitel X“; optional als Vorspann von Normseite und EPUB | Kann |
 | RC-01 | Recherche | Bilder, Links und Notizen ablegen (Ziehen, Einfügen, Dialog), Bilder nach `recherche/dateien/`; Links werden nie geladen, nur auf Klick im Browser geöffnet | Soll |
 | RC-02 | Recherche | Einträge an Figur, Ort, Kapitel oder Szene heften; Recherche-Leiste auf Figurenkarte, Ortskarte, Kapitel-Überblick, Schreiben-Inspektor und Szenen-Formular | Soll |
 | RC-03 | Recherche | Filter nach Art, Ziel, Schlagwort, Suche; Raster oder Liste | Soll |
 | MAC-01 | Mac | Ad-hoc-Signatur im Build; Skript für Developer-ID-Signatur und Notarisierung (`scripts/notarisieren.sh`), Anleitung `docs/mac-verteilung.md` | Soll |
 | MAC-02 | Mac | Updater-Vorlage (nicht aktiv) | Kann |
+
+## Funktionsumfang und Einrichtung (E16/E17)
+
+Seit 13. Oktober 2026. Plotwerk hat alle Funktionen an Bord, zeigt aber nur, was zum Schreibertyp passt. Die Auswahl
+gilt für die App (alle Projekte), nicht für ein Projekt. Logik: `core/funktionen`.
+
+| ID | Anforderung | Prio |
+| --- | --- | --- |
+| FU-01 | Beim ersten Start führt ein Assistent durch die Einrichtung: Schreibertyp → Funktionen → mit oder ohne KI → Fertig. Überspringen zeigt alles. Bestehende Nutzer (schon ein Projekt geöffnet) sehen ihn nicht und behalten alles. | Soll |
+| FU-02 | Schreibertypen als Presets: Anfänger („Ich schreibe meine erste Geschichte“), Mittel („ein paar Geschichten geschrieben“), Profi („viele Geschichten veröffentlicht, z. B. auf Wattpad“), Schriftsteller („verkaufe bereits Bücher“) sowie „Alles selbst einstellen“. Jede Stufe enthält die vorige. | Soll |
+| FU-03 | Die Funktionsauswahl zeigt jede Funktion mit Kurzbeschreibung, Abhängigkeiten („braucht Figuren“), KI-Kennzeichen mit Modellgröße und einem Beispiel aus dem Demo-Roman; Abhängigkeiten werden beim Ein- und Ausschalten aufgelöst. | Soll |
+| FU-04 | Die aktuelle Auswahl lässt sich unter einem Namen als eigenes Preset speichern, später wählen und löschen. | Soll |
+| FU-05 | Ausgeblendete Funktionen fehlen in Seitenleiste, Schnellsuche, Titelleisten und Inspektoren. Ruft man sie über Menü, Tastenkürzel oder Verweis auf, fragt die App, ob sie sie einblenden soll. Daten bleiben erhalten. | Soll |
+| FU-06 | Einstellungen (⌘,) → Funktionen: aktueller Umfang, „Funktionen anpassen …“ (Ausgangspunkt, Auswahl, KI) und „Einrichtung erneut starten“. | Soll |
+| FU-07 | KI-Umfang: Ausgeblendete KI-Funktionen laufen nie; ohne Plan-Abgleich enthält der Buchkontext der Prüfung keine Plan-Felder (weniger Tokens). Anzeige der KI-Nutzung als gering/mittel/hoch. | Soll |
+| FU-08 | No-AI-Modus: blendet alle KI-Funktionen aus und sperrt den Transport. Vor dem Einschalten nennt die App konkret, welche gewählten Funktionen wegfallen; lokale Hinweise (Struktur, Zeit, Schreibweisen) bleiben. | Soll |
 
 ## Erkennung und KI-Prüfung
 

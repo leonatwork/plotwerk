@@ -10,12 +10,16 @@ import { Netz } from './Netz';
 import { NetzInspektor } from './NetzInspektor';
 import { useOffeneVorschlaege, VorschlagDialog, VorschlaegePanel } from './Vorschlaege';
 import './beziehungen.css';
+import { NurMit } from '../../app/NurMit';
+import { useFunktion } from '../../state/funktionen';
 
 export default function Ansicht() {
   const daten = useStore((s) => s.daten);
   const index = useStore((s) => s.index);
   const stand = useStore((s) => s.netzStand);
   const filter = useStore((s) => s.netzFilter);
+  const statisten = useStore((s) => s.netzStatisten);
+  const umschalteNetzStatisten = useStore((s) => s.umschalteNetzStatisten);
   const verbinden = useStore((s) => s.netzVerbinden);
   const globaleFigur = useStore((s) => s.auswahl.figur);
   const globaleGruppe = useStore((s) => s.auswahl.gruppe);
@@ -28,6 +32,7 @@ export default function Ansicht() {
   const vorschlagLaeuft = useStore((s) => s.vorschlagLaeuft);
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
   const offeneVorschlaege = useOffeneVorschlaege();
+  const mitKi = useFunktion('kiErkennung');
   const netzAuswahl = useStore((s) => s.netzAuswahl);
   const schliesseVorschlagsPanel = useStore((s) => s.schliesseVorschlagsPanel);
   const flaeche = useRef<HTMLDivElement>(null);
@@ -64,8 +69,8 @@ export default function Ansicht() {
   // Beschriftungen aus logik.ts folgen der Oberflächensprache: beim Umschalten neu berechnen
   const stufen = useMemo(() => (daten ? aktStufen(daten) : []), [daten, sprache]);
   const ansicht = useMemo(
-    () => (daten ? netzBerechnen(daten, index, standIdx, filter) : null),
-    [daten, index, standIdx, filter, sprache],
+    () => (daten ? netzBerechnen(daten, index, standIdx, filter, statisten) : null),
+    [daten, index, standIdx, filter, statisten, sprache],
   );
   if (!daten || !ansicht) return null;
 
@@ -80,7 +85,7 @@ export default function Ansicht() {
         <LeerZustand
           titel={ta.titel}
           aktionen={
-            anzahl > 0 && mitText && offeneVorschlaege.anzahl === 0 ? (
+            mitKi && anzahl > 0 && mitText && offeneVorschlaege.anzahl === 0 ? (
               <Button variante="primaer" onClick={() => oeffneVorschlaege({ dialog: true })} disabled={vorschlagLaeuft}>
                 {ta.vorschlagen}
               </Button>
@@ -167,6 +172,11 @@ export default function Ansicht() {
                 {t.beziehungen.kategorie[k]}
               </Chip>
             ))}
+            {Object.values(daten.figuren).some((x) => x.rolle === 'statist') && (
+              <Chip variante="knopf" aktiv={statisten} onClick={umschalteNetzStatisten} title={ta.statistenTitel}>
+                {ta.statisten}
+              </Chip>
+            )}
           </div>
           {ablage.length > 0 && (
             <div className="pw-bz-ablage">
@@ -199,15 +209,24 @@ export function Titelaktionen() {
   const mitText = useStore((s) => !!s.daten && s.daten.projekt.kapitel.some((id) => s.daten!.kapitel[id]?.text.trim()));
   const laeuft = useStore((s) => s.vorschlagLaeuft);
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
+  const gruppeAnlegen = useStore((s) => s.gruppeAnlegen);
+  const waehleImNetz = useStore((s) => s.waehleImNetz);
   const ta = useTexte().beziehungen.ansicht;
+  const neueGruppe = async () => {
+    // eine ausgewählte Figur wird gleich Mitglied
+    const a = useStore.getState().netzAuswahl;
+    const id = await gruppeAnlegen(ta.neueGruppe, { mitglieder: a?.typ === 'figur' ? [a.id] : [] });
+    waehleImNetz({ typ: 'gruppe', id });
+  };
   return (
     <>
-      <Button
-        disabled={!bereit || !mitText}
-        onClick={() => oeffneVorschlaege({ dialog: true })}
-        title={ta.vorschlagenTitel}
-      >
-        {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
+      <NurMit funktion="kiErkennung">
+        <Button disabled={!bereit || !mitText} onClick={() => oeffneVorschlaege({ dialog: true })} title={ta.vorschlagenTitel}>
+          {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
+        </Button>
+      </NurMit>
+      <Button disabled={!bereit} onClick={() => void neueGruppe()} title={ta.plusGruppeTitel}>
+        {ta.plusGruppe}
       </Button>
       <Button variante="primaer" aria-pressed={verbinden} disabled={!bereit} onClick={() => setzeNetzVerbinden(!verbinden)}>
         {verbinden ? ta.verbindenBeenden : ta.plusBeziehung}

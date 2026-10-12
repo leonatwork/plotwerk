@@ -177,6 +177,8 @@ export interface NetzFlaeche {
   rechteck: Rechteck;
   farben: FarbSatz;
   label: string;
+  /** A-05: am Stand bekannte Mitglieder, deren Karte nicht in der Fläche liegt (z. B. andere Hauptgruppe) */
+  aussen: { id: Id; name: string }[];
 }
 
 export interface NetzPlatzhalter {
@@ -260,10 +262,11 @@ function rechteckVon(f: Figur): Rechteck | null {
 
 const einWort = (s: string) => !/\s/.test(s.trim()) && s.trim().length > 0 && s.trim().length <= 24;
 
-export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: number, filter: NetzFilter): NetzAnsicht {
+export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: number, filter: NetzFilter, statisten = false): NetzAnsicht {
   const t = texte();
   const tl = t.beziehungen.logik;
-  const figuren = Object.values(daten.figuren);
+  // F-14: Statisten nur auf Wunsch
+  const figuren = Object.values(daten.figuren).filter((f) => statisten || f.rolle !== 'statist');
   const sichtbar = new Set(figuren.filter((f) => figurSichtbar(daten, index, f.id, standIdx)).map((f) => f.id));
 
   // Paare am Stand
@@ -342,6 +345,9 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
       variante = 'normal';
       untertitel = f.kurz ?? kapLabel(daten, erst);
     }
+    // A-06: Rolle in der Hauptgruppe ersetzt die Kurzbeschreibung bei gesicherten Figuren
+    const rolle = gruppe?.rollen?.[f.id];
+    if (rolle && (variante === 'normal' || variante === 'zentrum')) untertitel = rolle;
     karten.push({ figur: f, rechteck: r, variante, untertitel, farben });
     rechtecke.set(f.id, r);
   }
@@ -357,8 +363,17 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
     }
     const farben = farbSatz(strangVon(daten, g.strang)?.farbe);
     const rechteck = { x: g.netz.x, y: g.netz.y, breite: g.netz.breite, hoehe: g.netz.hoehe };
-    flaechen.push({ gruppe: g, rechteck, farben, label: fmt(tl.flaecheLabel, { typ: t.beziehungen.gruppenTyp[g.typ], name: g.name }) });
-    const mitgliedSichtbar = g.mitglieder.some((m) => rechtecke.has(m));
+    const innen = (r: Rechteck) => {
+      const cx = r.x + r.breite / 2;
+      const cy = r.y + r.hoehe / 2;
+      return cx >= rechteck.x && cx <= rechteck.x + rechteck.breite && cy >= rechteck.y && cy <= rechteck.y + rechteck.hoehe;
+    };
+    const aussen = g.mitglieder
+      .filter((m) => sichtbar.has(m) && daten.figuren[m] && !(rechtecke.has(m) && innen(rechtecke.get(m)!)))
+      .map((m) => ({ id: m, name: daten.figuren[m]!.name }));
+    flaechen.push({ gruppe: g, rechteck, farben, label: fmt(tl.flaecheLabel, { typ: t.beziehungen.gruppenTyp[g.typ], name: g.name }), aussen });
+    // Platzhalter nur, wenn keine Mitgliedskarte in der Fläche liegt (Mitglieder anderer Hauptgruppen zählen nicht)
+    const mitgliedSichtbar = g.mitglieder.some((m) => rechtecke.has(m) && innen(rechtecke.get(m)!));
     if (mitgliedSichtbar) continue;
     const spuren = g.spuren
       .filter((s) => s.status !== 'verworfen')

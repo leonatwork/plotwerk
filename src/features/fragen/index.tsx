@@ -3,14 +3,14 @@
  * Jede Antwort kommt nur aus dem Buchtext und zeigt wörtliche Belege (Klick → Stelle im Editor);
  * Antworten ohne prüfbaren Beleg sind als „ohne Beleg“ markiert. Die KI schreibt keinen Text. Besitzer: G6.
  */
-import { useEffect, useRef, type KeyboardEvent, type RefObject } from 'react';
-import { ohneBeleg } from '@core/ki/index';
-import type { BuchFrage, ProjektDaten } from '@core/model/types';
+import { useEffect, useMemo, useRef, type KeyboardEvent, type RefObject } from 'react';
+import { ausLeserStand, leserStandVeraltet, offeneFragen, ohneBeleg, staendeFuer, standId } from '@core/ki/index';
+import type { BuchFrage, LeserStand, ProjektDaten } from '@core/model/types';
 import { f, texte, useTexte, zahl } from '../../i18n';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button, Inspektor, Segment, Werkzeugseite } from '../../ui';
-import { Belege, Etikett, formatiereDatum, formatiereKosten, KiFehlerKasten } from './gemeinsam';
+import { Belege, Etikett, formatiereDatum, formatiereKosten, kapitelTitel, kapNr, KiFehlerKasten } from './gemeinsam';
 
 function Eintrag({ daten, frage: fr, hinweis }: { daten: ProjektDaten; frage: BuchFrage; hinweis?: string }) {
   const entfernen = useStore((s) => s.kileser.frageEntfernen);
@@ -56,7 +56,9 @@ function Kostenzeile() {
   const schaetzung = useStore((s) => s.kileser.fragenSchaetzung);
   const schaetzen = useStore((s) => s.kileser.fragenSchaetzen);
   const hatDaten = useStore((s) => !!s.daten);
-  const t = useTexte().fragen.ansicht;
+  const alle = useTexte();
+  const t = alle.fragen.ansicht;
+  const kostenUnbekanntText = alle.ki.kostenUnbekannt;
   useEffect(() => {
     if (hatDaten) void schaetzen();
   }, [schnell, hatDaten, schaetzen]);
@@ -64,7 +66,7 @@ function Kostenzeile() {
   if (!w) return <span>{t.kostenSchaetzen}</span>;
   return (
     <span title={f(w.gezaehlt ? t.kostenTitel : t.kostenTitelGeschaetzt, { modell: w.modell, n: zahl(w.eingabeTokens) })}>
-      {f(t.kostenZeile, { erste: formatiereKosten(w.ersteUsd), weitere: formatiereKosten(w.weitereUsd) })}
+      {w.kostenBekannt === false ? kostenUnbekanntText : f(t.kostenZeile, { erste: formatiereKosten(w.ersteUsd), weitere: formatiereKosten(w.weitereUsd) })}
     </span>
   );
 }
@@ -143,6 +145,112 @@ function Eingabe({ feldRef }: { feldRef: RefObject<HTMLTextAreaElement> }) {
   );
 }
 
+/** Eine gespeicherte Simulation: Klick öffnet sie; daneben „erledigt“ und „löschen“. */
+function SimulationsZeile({ daten, stand }: { daten: ProjektDaten; stand: LeserStand }) {
+  const oeffneDialog = useStore((s) => s.oeffneDialog);
+  const erledigen = useStore((s) => s.kileser.standErledigt);
+  const entfernen = useStore((s) => s.kileser.standEntfernen);
+  const tt = useTexte();
+  const t = tt.fragen.ansicht;
+  const id = standId(stand);
+  const kap = kapNr(daten, stand.kapitel);
+  const datum = formatiereDatum(stand.datum);
+  const offen = offeneFragen(ausLeserStand(stand)).length;
+  return (
+    <li className="pw-kl-simulation-zeile">
+      <button
+        type="button"
+        className="pw-kl-simulation"
+        title={f(t.simulationOeffnen, { kap })}
+        onClick={() => oeffneDialog('leser-simulation', { kapitel: stand.kapitel, stand: id })}
+      >
+        <span className="pw-kl-simulation__titel">{kapitelTitel(daten, stand.kapitel)}</span>
+        <span className="pw-kl-simulation__meta">
+          {datum} · {f(t.offeneFragen, { n: offen })}
+          {!stand.erledigt && leserStandVeraltet(daten, stand) && (
+            <>
+              {' · '}
+              <span className="pw-kl-simulation__veraltet">{t.veraltet}</span>
+            </>
+          )}
+        </span>
+      </button>
+      <span className="pw-kl-simulation__aktionen">
+        <button
+          type="button"
+          className="pw-kl-simulation__aktion"
+          aria-label={f(stand.erledigt ? t.wiederOffenLabel : t.alsErledigtLabel, { kap, datum })}
+          title={f(stand.erledigt ? t.wiederOffenLabel : t.alsErledigtLabel, { kap, datum })}
+          aria-pressed={!!stand.erledigt}
+          onClick={() => void erledigen(id, !stand.erledigt)}
+        >
+          ✓
+        </button>
+        <button
+          type="button"
+          className="pw-kl-simulation__aktion pw-kl-simulation__aktion--weg"
+          aria-label={f(t.loeschenLabel, { kap, datum })}
+          title={f(t.loeschenLabel, { kap, datum })}
+          onClick={async () => {
+            const nr = daten.projekt.kapitel.indexOf(stand.kapitel) + 1;
+            if (await bestaetigen(f(tt.fragen.simulation.entfernenFrage, { nr, datum }), { knopf: tt.gemeinsam.loeschen })) await entfernen(id);
+          }}
+        >
+          ×
+        </button>
+      </span>
+    </li>
+  );
+}
+
+/**
+ * Alle gespeicherten Leser-Simulationen (.plotwerk/leser.json): offene nach Kapitel, je Kapitel neueste zuerst;
+ * erledigte eingeklappt darunter. Ein laufender Lauf steht oben.
+ */
+function Simulationen() {
+  const daten = useStore((s) => s.daten);
+  const lauf = useStore((s) => s.kileser.simLauf);
+  const oeffneDialog = useStore((s) => s.oeffneDialog);
+  const t = useTexte().fragen.ansicht;
+  const eintraege = daten?.kiLeser?.eintraege;
+  const sortiert = useMemo(() => {
+    if (!daten) return [];
+    return daten.projekt.kapitel.flatMap((k) => staendeFuer(eintraege ?? [], k));
+  }, [daten, eintraege]);
+  if (!daten) return null;
+  const offen = sortiert.filter((e) => !e.erledigt);
+  const erledigt = sortiert.filter((e) => e.erledigt);
+  return (
+    <>
+      {(lauf || offen.length > 0) && (
+        <ul className="pw-kl-simulationen" aria-label={t.simulationenLabel}>
+          {lauf && (
+            <li className="pw-kl-simulation-zeile">
+              <button type="button" className="pw-kl-simulation" onClick={() => oeffneDialog('leser-simulation', { kapitel: lauf.kapitel })}>
+                <span className="pw-kl-simulation__titel">{kapitelTitel(daten, lauf.kapitel)}</span>
+                <span className="pw-kl-simulation__meta">{t.simulationLaeuft}</span>
+              </button>
+            </li>
+          )}
+          {offen.map((e) => (
+            <SimulationsZeile key={standId(e)} daten={daten} stand={e} />
+          ))}
+        </ul>
+      )}
+      {erledigt.length > 0 && (
+        <details className="pw-kl-erledigte">
+          <summary className="pw-kl-klein">{f(t.erledigteTitel, { n: erledigt.length })}</summary>
+          <ul className="pw-kl-simulationen" aria-label={t.erledigteLabel}>
+            {erledigt.map((e) => (
+              <SimulationsZeile key={standId(e)} daten={daten} stand={e} />
+            ))}
+          </ul>
+        </details>
+      )}
+    </>
+  );
+}
+
 function Seitenspalte() {
   const schnell = useStore((s) => s.kileser.schnell);
   const setzeSchnell = useStore((s) => s.kileser.setzeSchnell);
@@ -151,6 +259,7 @@ function Seitenspalte() {
   const kosten = useStore((s) => (s.daten?.kiFragen?.eintraege ?? []).reduce((summe, f) => summe + (f.kostenUsd ?? 0), 0));
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const kapitel = useStore((s) => s.auswahl.kapitel);
+  const hatSimulationen = useStore((s) => (s.daten?.kiLeser?.eintraege.length ?? 0) > 0);
   const tt = useTexte().fragen;
   const t = tt.ansicht;
   return (
@@ -185,9 +294,11 @@ function Seitenspalte() {
       <section className="pw-kl-inspektor">
         <span className="pw-kl-label">{t.leserSimulation}</span>
         <p className="pw-kl-klein">{t.leserSimulationText}</p>
+        <Simulationen />
         <Button klein onClick={() => oeffneDialog('leser-simulation', { kapitel })}>
           {t.leserSimulationKnopf}
         </Button>
+        {hatSimulationen && <p className="pw-kl-klein">{t.simulationenGespeichert}</p>}
       </section>
       <section className="pw-kl-inspektor">
         <span className="pw-kl-label">{t.verlauf}</span>

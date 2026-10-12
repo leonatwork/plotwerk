@@ -85,6 +85,20 @@ export const schreiben = {
     ebene: 'Gewissheit',
     ebeneTitel: 'Gewissheit dieser Stelle: gesichert, noch offen oder bewusst vage',
     ebenenLabel: 'Gewissheit der Stelle',
+    figur: 'Figur',
+    figurTitel: 'Als neue Figur anlegen oder als Spitznamen einer Figur übernehmen',
+  },
+  /** Panel „Figur“ der Auswahl-Leiste (FigurPanel.tsx) */
+  figurPanel: {
+    name: 'Name bzw. Spitzname',
+    neueFigur: '+ Neue Figur {name}',
+    gehoertZu: '{name} gehört schon zu {figur}.',
+    spitznameVon: 'Spitzname von …',
+    suchen: 'Figur suchen',
+    keine: 'Keine Figur gefunden',
+    angelegt: 'Figur {name} angelegt.',
+    spitznameNeu: '{name} ist jetzt ein Spitzname von {figur}.',
+    spitznameDa: '{figur} heißt schon {name}.',
   },
   /** Notizen am Rand (Randnotizen.tsx, ziele.ts) */
   notizen: {
@@ -123,11 +137,12 @@ export const schreiben = {
     hinweisTyp: {
       pruefen: 'Prüfen',
       schreibweise: 'Schreibweise',
-      offener_faden: 'Offener Faden',
+      offener_faden: 'Loses Ende',
       unbekannt: 'Unbekannt',
       struktur: 'Struktur',
       zeitleiste: 'Zeitleiste',
       sprache: 'Sprache',
+      figuren: 'Figuren',
     },
     // Erkannt
     keineErkannt: 'Noch keine Figuren oder Orte im Text erkannt.',
@@ -165,8 +180,9 @@ export const schreiben = {
     wasMitPlan: 'Was passiert mit dem Plan?',
     alsPlanNotiz: 'Notiz als neue Plan-Notiz übernehmen',
     keinPlan: 'Für dieses Kapitel gibt es noch keinen Plan.',
-    geplanteSzene: 'Geplante Szene',
-    keineSzene: 'Noch keine Szene geplant',
+    geplanteSzene: 'Kurzbeschreibung',
+    keineSzene: 'Noch keine Kurzbeschreibung',
+    funktion: 'Funktion: {funktion}',
     erkanntHier: 'Erkannt in diesem Kapitel',
     // Hinweise
     offen: '· offen',

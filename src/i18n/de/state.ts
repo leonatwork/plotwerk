@@ -54,6 +54,7 @@ export const state = {
       one: '{n} Beleg verworfen – nicht wörtlich im Buch.',
       other: '{n} Belege verworfen – nicht wörtlich im Buch.',
     },
+    projektGewechselt: 'Das Projekt wurde während der Simulation gewechselt. Das Ergebnis wurde verworfen.',
   },
   statistik: {
     fassungOhneName: 'Bitte gib der Fassung einen Namen.',
@@ -68,7 +69,7 @@ export const state = {
     schonImText: 'Die Änderung steht schon im Text. Den Stand davor findest du unter „Versionen“ des Kapitels.',
     kapitelFehlt: 'Das Kapitel gibt es nicht mehr.',
     /** Zusatz im vorgeschlagenen Dateinamen, z. B. „Hafenlichter (Normseiten).docx“ */
-    zusatz: { normseite: ' (Normseiten)', expose: ' – Exposé', mappe: ' – Lektoratsmappe' },
+    zusatz: { normseite: ' (Normseiten)', expose: ' – Exposé', mappe: ' – Lektoratsmappe', personen: ' – Personen' },
   },
   importexport: {
     keinNeuesProjekt: 'Kein neues Projekt angelegt.',

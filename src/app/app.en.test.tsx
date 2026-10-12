@@ -30,7 +30,7 @@ describe('Oberfläche auf Englisch', () => {
     festeSprache('en');
     expect(BEREICHE.map((b) => b.titel)).toEqual([
       'Write', 'Chapter overview', 'Plan acts', 'Characters', 'Relationships', 'Places', 'Notes',
-      'Timeline', 'Threads', 'Research', 'Statistics', 'Questions',
+      'Timeline', 'Loose ends', 'Research', 'Statistics', 'Questions',
     ]);
     expect(bereichDefinition('zeitleiste')).toMatchObject({ id: 'zeitleiste', taste: '8', titel: 'Timeline' });
     festeSprache('de');
@@ -64,7 +64,7 @@ describe('Oberfläche auf Englisch', () => {
     ]);
     expect(within(nav).getByRole('button', { name: /^Write/ })).toHaveAttribute('title', 'Write (⌘1)');
     fireEvent.click(within(nav).getByRole('button', { name: 'Tools' }));
-    expect(within(nav).getAllByRole('button').slice(8).map((e) => e.textContent)).toEqual(['Timeline', 'Threads', 'Research', 'Statistics', 'Questions']);
+    expect(within(nav).getAllByRole('button').slice(8).map((e) => e.textContent)).toEqual(['Timeline', 'Loose ends', 'Research', 'Statistics', 'Questions']);
     expect(nav.textContent).not.toMatch(DEUTSCH);
 
     await act(async () => {
@@ -76,7 +76,7 @@ describe('Oberfläche auf Englisch', () => {
     expect(screen.getByText('No results.')).toBeInTheDocument();
     fireEvent.change(eingabe, { target: { value: 'threads' } });
     const liste = screen.getByRole('listbox', { name: 'Results' });
-    expect(within(liste).getAllByRole('option')[0]).toHaveTextContent('Threads⌘9');
+    expect(within(liste).getAllByRole('option')[0]).toHaveTextContent('Loose ends⌘9');
     fireEvent.keyDown(eingabe, { key: 'Enter' });
     expect(useStore.getState().bereich).toBe('faeden');
     expect(useStore.getState().dialog).toBeNull();

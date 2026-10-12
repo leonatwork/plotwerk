@@ -20,7 +20,7 @@ const karte = (id: string) => document.querySelector<HTMLElement>(`[data-faden="
 describe('Fäden-Board', () => {
   it('zeigt Analyse-Fäden und Leons Fäden in den Spalten, mit Ruhe-Warnung', () => {
     render(<Faeden />);
-    expect(screen.getByRole('heading', { name: 'Fäden' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Lose Enden' })).toBeInTheDocument();
     const geplant = spalte(/^Auflösung geplant/);
     expect(within(geplant).getByText('Die Fremde und die Postkarten')).toBeInTheDocument();
     expect(within(geplant).getByText('Auflösung Kap. 10')).toBeInTheDocument();
@@ -58,7 +58,7 @@ describe('Fäden-Board', () => {
     expect(useStore.getState().daten!.fadenplanung!.faeden.find((f) => f.id === 'der-messingschluessel')?.notiz).toBe('Wer hat sie ihm gegeben?');
 
     act(() => useStore.getState().struktur.setzeFadenNeuOffen(true));
-    const dialog = await screen.findByRole('dialog', { name: 'Neuer Faden' });
+    const dialog = await screen.findByRole('dialog', { name: 'Neues loses Ende' });
     fireEvent.change(within(dialog).getByPlaceholderText('z. B. Pauls Bleistifte'), { target: { value: 'Der Schlüssel' } });
     await act(async () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Anlegen' }));

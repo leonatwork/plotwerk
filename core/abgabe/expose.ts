@@ -10,6 +10,7 @@
  */
 import { AlignmentType, Document, HeadingLevel, HighlightColor, LineRuleType, Packer, Paragraph, TextRun } from 'docx';
 import { buchSprache, fmt, localeVon, texteJe, type Sprache } from '../i18n';
+import { nachRolle } from '../figuren/namen';
 import type { Id, ProjektDaten } from '../model/types';
 import { wortzahl } from '../text';
 import { normseitenZaehlen } from './normseite';
@@ -162,8 +163,8 @@ export function exposeGeruest(daten: ProjektDaten, optionen: ExposeOptionen): Ex
 
   bloecke.push({ art: 'ueberschrift', ebene: 1, text: t.figuren });
   const figuren = Object.values(daten.figuren)
-    .filter((f) => optionen.nebenfiguren !== false || f.rolle === 'haupt')
-    .sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, sprache) : a.rolle === 'haupt' ? -1 : 1));
+    .filter((f) => f.rolle !== 'statist' && (optionen.nebenfiguren !== false || f.rolle === 'haupt'))
+    .sort(nachRolle((a, b) => a.name.localeCompare(b.name, sprache)));
   if (figuren.length === 0) bloecke.push({ art: 'absatz', text: [P(t.figurenFrage)] });
   for (const f of figuren) {
     bloecke.push({ art: 'punkt', text: [F(f.name), T(' – '), f.kurz?.trim() ? T(f.kurz.trim()) : P(t.kurzbeschreibung)] });

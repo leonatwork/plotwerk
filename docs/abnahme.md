@@ -16,6 +16,11 @@ Stand 9. Oktober 2026. Grundlage: `docs/anforderungen-v1.0.md`, Entscheidungen E
 
 **Nachtrag 10. Oktober 2026 (Werkzeuge G1–G8):** 31 weitere Punkte (Abschnitt „Werkzeuge“) – 29 erfüllt, 2 teilweise (EW-03 in der Mac-App nicht per Klick gehört, MAC-01 nur ad-hoc signiert). Gesamt: `npm test` 861 Tests in 74 Dateien grün, `cargo test --workspace` grün, `npx tauri build --debug --bundles app` gebaut und 10 s ohne Fehler gestartet.
 
+**Nachtrag 13. Oktober 2026 (Funktionsumfang FU-01 … FU-08):** alle 8 erfüllt. Nachweis: `core/funktionen/funktionen.test.ts`
+(Katalog, Presets, Abhängigkeiten, eigene Presets, Laden), `core/ki/ki.test.ts` („ohne Plan-Abgleich …“, FU-07),
+`src/features/funktionen/funktionen.test.tsx` (Assistent, Auswahl, Preset speichern, No-AI-Sperre, ausgeblendete
+Bereiche mit Rückfrage), Browser (Assistent im Demo durchgeklickt).
+
 Legende Nachweis: Testdatei (automatisch) · „Browser“ = im Browser-Demo bedient · „Code“ = im Quelltext geprüft.
 
 ## Akzeptanzkriterien
@@ -72,6 +77,17 @@ Legende Nachweis: Testdatei (automatisch) · „Browser“ = im Browser-Demo bed
 | F-04 | Notizen, Auftritte als Kapitelstreifen, Beziehungen | erfüllt | Browser | |
 | F-05 | Hinweis, wenn ein Plan-Feld dem Text widerspricht (Soll) | erfüllt | `core/ki/ki.test.ts` (F-05), `Figurenkarte.tsx` (`hinweiseFuerFigur`) | Plan-Felder von Figuren und Kapitelplänen gehen an das Modell (Leon, 2026-10-09). Hinweise mit Plan-Bezug (Figur/Kapitel, Feld) werden geprüft; bei bewusst vagen Figuren verworfen. Demo: Paul „Alkohol: nein, trinkt keinen“ ↔ Aperol Spritz in Kap. 9. Live nur mit Demo-KI belegt. |
 | F-06 | Figur vorab anlegen | erfüllt | `planung.test.ts` | |
+| F-07 | Figuren zusammenführen | erfüllt | `core/figuren/zusammenfuehren.test.ts`, `gruppenFiguren.test.ts`, Browser | |
+| F-08 | Spitznamen-Feld | erfüllt | `core/ki/vorschlaege.test.ts`, Browser | Feld gab es als „Auch genannt“; neu beschriftet, KI-Vorschläge gleichen Aliase ab. |
+| F-09 | Blase „Figur“ (neue Figur / Spitzname) | erfüllt | `Editor.test.tsx`, Browser | |
+| F-10 | KI-Vorschläge als Spitznamen | erfüllt | `core/ki/vorschlaege.test.ts`, `ki.test.tsx`, `gruppenFiguren.test.ts` | Mit Demo-KI belegt. |
+| F-11 | Spitzname vor dem Namen | erfüllt | `core/figuren/hinweise.test.ts` | |
+| F-12 | Verwechselbare Namen | erfüllt | `core/figuren/hinweise.test.ts` | |
+| F-13 | Ruhende Figuren | erfüllt | `core/figuren/hinweise.test.ts`, Browser | |
+| F-14 | Statisten | erfüllt | `gruppenFiguren.test.ts`, `core/figuren/hinweise.test.ts`, Browser | |
+| F-15 | Besetzungsübersicht | erfüllt | `core/figuren/hinweise.test.ts`, Browser | |
+| F-16 | Spitznamen mit Kontext | erfüllt | `Figurenkarte.test.tsx`, `core/figuren/hinweise.test.ts`, Browser | |
+| F-17 | Figurenfakten | erfüllt | `core/ki/fakten.test.ts`, `core/figuren/fakten.test.ts`, `gruppenFiguren.test.ts`, `Figurenkarte.test.tsx`, Browser | Mit Demo-KI belegt; Live-Test mit echtem Modell steht aus. |
 | O-01 | Ortsliste mit Kapiteln, Text-Belegen, Notizen, Unterorten | erfüllt | `ansichten.test.tsx`; Browser | |
 | O-02 | Schreibweisen zusammenführen, gültige festlegen | erfüllt | `planung.test.ts`, `hinweise.test.tsx` | |
 | O-03 | Weg einer Figur (Soll) | erfüllt | `core/index/index.test.ts`, `ansichten.test.tsx` | |
@@ -82,6 +98,9 @@ Legende Nachweis: Testdatei (automatisch) · „Browser“ = im Browser-Demo bed
 | A-01 | Zwei Antagonisten-Gruppen (Demo: Nordhaven und Konsortium) | erfüllt | `src/features/gruppen/gruppen.test.tsx` | |
 | A-02 | Mitglieder, Präsenz, Spuren als Vorschlag | erfüllt | `gruppen.test.tsx` | |
 | A-03 | Antagonisten als Stränge in Board und Überblick | erfüllt | Browser | |
+| A-04 | Gruppen in der App anlegen und löschen | erfüllt | `gruppenFiguren.test.ts`, Browser | |
+| A-05 | Mehrere Gruppen pro Figur | erfüllt | `gruppen.test.tsx`, `gruppenFiguren.test.ts`, Browser | |
+| A-06 | Rollen in Gruppen | erfüllt | `gruppen.test.tsx`, `gruppenFiguren.test.ts` | |
 
 ## Erkennung, KI-Prüfung, Hinweis-Typen
 
@@ -145,6 +164,9 @@ Browser-Durchlauf mit dem Demo-Projekt bei 1440 × 900 und 1100 × 700, hell und
 | PS-01 | Fäden-Board | erfüllt | `src/features/faeden/faeden.test.tsx`, `core/struktur/faeden.test.ts`; Browser | Befehl „Neuer Faden …“ in Menü und Schnellsuche. |
 | PS-02 | Strang-Raster | erfüllt | `faeden.test.tsx`; Browser | |
 | PS-03 | Szenen | erfüllt | `core/struktur/szenen.test.ts`, `faeden.test.tsx`; Browser | Szenenkarte auch für Kapitel ohne Plan; Link springt zur Szene in der Zeitleiste. |
+| PS-04 | Haupt-/Nebenhandlung, Zweck, Kurzbeschreibung, Funktion | erfüllt | `core/ki/straenge.test.ts`, `src/features/faeden/straenge.test.tsx`; Browser | „Geplante Szene“ heißt jetzt „Kurzbeschreibung“ (Feld `szene` unverändert). |
+| PS-05 | KI-Vorschläge zu Strängen | erfüllt | `core/ki/straenge.test.ts`, `src/features/faeden/straenge.test.tsx`; Browser | Nur Demo-KI; Strang-Angaben an die KI von Leon am 2026-10-12 freigegeben (E12). |
+| PS-06 | Lose Enden: Tabelle, als Strang übernehmen | erfüllt | `src/features/faeden/straenge.test.tsx`; Browser | Interne Namen (`faeden`, `plan/faeden.md`, Befehl `faden-neu`) bleiben. |
 | FB-01 | Figuren-Bögen | erfüllt | `core/figuren/boegen.test.ts`, `src/features/figuren/Boegen.test.tsx`; Browser | |
 | FB-02 | Figurenstimme | erfüllt | `core/figuren/stimme.test.ts`, `core/ki/stimme.test.ts`, `Stimme.test.tsx`, `core/index/index.test.ts` | Erscheint als Hinweis „Sprache“ und auf der Figurenkarte. |
 | EW-01 | Typewriter | erfüllt | `src/features/schreiben/werkzeuge/werkzeuge.test.tsx`; Browser | |
@@ -161,6 +183,7 @@ Browser-Durchlauf mit dem Demo-Projekt bei 1440 × 900 und 1100 × 700, hell und
 | AB-03 | EPUB 3 | erfüllt | `core/epub/epub.test.ts` | Satz gemeinsam mit der Vorschau (`core/satz`). Nicht mit epubcheck geprüft. |
 | AB-04 | Lektoratsmappe | erfüllt | `abgabe.test.ts` | |
 | AB-05 | Rückimport aus Word | erfüllt | `core/docx/rueckimport.test.ts`, `abgabe.test.tsx`; Browser | Offene Änderungen im Editor gepunktet unterstrichen. |
+| AB-06 | Personenverzeichnis | erfüllt | `core/abgabe/personen.test.ts`, `gruppenFiguren.test.ts`, Browser | |
 | RC-01 | Recherche ablegen | erfüllt | `core/recherche/recherche.test.ts`, `src/features/recherche/recherche.test.tsx`, `src-tauri/src/recherche.rs`; Browser | AK-4 erlaubt Mediendateien unter `recherche/dateien/`. |
 | RC-02 | Heften und Recherche-Leiste | erfüllt | `recherche.test.tsx`; Browser | Figurenkarte, Ortskarte, Kapitel-Überblick, Schreiben-Inspektor, Szenen-Formular. |
 | RC-03 | Filter, Raster/Liste | erfüllt | `recherche.test.tsx`; Browser | |

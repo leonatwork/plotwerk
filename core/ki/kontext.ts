@@ -4,14 +4,15 @@
  * Es werden ausschließlich Felder einzeln übernommen, nie ganze Objekte: Kapiteltitel und
  * Klartext, Figuren (name, aliase, rolle, existenz, Plan-Felder), Kapitelpläne (szene, notiz),
  * Orte (name, aliase), Gruppen (name, typ, status) und Realitätseinträge (stufe, text, Zitat).
- * Nie: wahrheit, notizen, kurz, beschreibung, Anmerkungen, Ideen, Abweichungen, Akte, Stränge.
+ * Nie: wahrheit, notizen, kurz, beschreibung, Anmerkungen, Ideen, Abweichungen, Akte, Stränge. (Stränge gehen nur im
+ * Aufgabentext von „Stränge vorschlagen“ mit, siehe straenge.ts – freigegeben 2026-10-12.)
  * Plan-Felder sind seit Leons Entscheidung vom 2026-10-09 freigegeben (F-05).
  *
  * Buchsprache (angaben.sprache, nur als Sprache der Beschriftungen, nicht als Feld): Für englische Bücher sind die
  * Beschriftungen im Prefix englisch („Characters:“, „Existence: …“, „Planned scene: …“); Tags und Attribute
  * (<angaben>, <buch>, <kapitel nr id titel>, <text>, <realitaetsebene>, <plan>) bleiben gleich.
  */
-import type { GruppenTyp, Id, ProjektDaten, Realitaet, TextAnker } from '../model/types';
+import type { FigurRolle, GruppenTyp, Id, ProjektDaten, Realitaet, TextAnker } from '../model/types';
 import { klartext, textHash } from '../text';
 import { kiSprache, type Sprache } from './sprache';
 
@@ -32,7 +33,7 @@ export interface KontextFigur {
   id: Id;
   name: string;
   aliase: string[];
-  rolle: 'haupt' | 'neben';
+  rolle: FigurRolle;
   existenz: Realitaet;
   /** nur lokal für die Prüfung (Genitiv-/Wortformen), wird nicht gesendet */
   formen: string[];
@@ -60,6 +61,12 @@ export interface KontextRealitaet {
   text: string;
   /** verankerte Textstelle, falls vorhanden */
   anker?: TextAnker;
+}
+
+/** Was neben Text, Namen und Gewissheit in den Kontext geht (E16). Fehlt = alles laut Allowlist E12. */
+export interface KontextUmfang {
+  /** Plan-Felder von Figuren und Kapitelplänen (F-05); false = weglassen */
+  plan: boolean;
 }
 
 export interface BuchKontext {
@@ -99,6 +106,7 @@ const BESCHRIFTUNG = {
     auch: 'auch',
     haupt: 'Hauptfigur',
     neben: 'Nebenfigur',
+    statist: 'Statist',
     existenz: 'Existenz',
     planung: 'Planung',
     imText: 'im Text',
@@ -120,6 +128,7 @@ const BESCHRIFTUNG = {
     auch: 'also',
     haupt: 'main character',
     neben: 'minor character',
+    statist: 'walk-on character',
     existenz: 'Existence',
     planung: 'Plan',
     imText: 'in the text',
@@ -158,8 +167,16 @@ export function planText(s: string | undefined): string {
     .trim();
 }
 
-/** `sprache`: Buchsprache (Standard: projekt.angaben.sprache, leer = Deutsch). */
-export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprache(daten.projekt.angaben)): BuchKontext {
+/**
+ * `sprache`: Buchsprache (Standard: projekt.angaben.sprache, leer = Deutsch). `umfang.plan = false` lässt die
+ * Plan-Felder weg (Funktion „Plan-Abgleich“ ausgeblendet).
+ */
+export function baueBuchKontext(
+  daten: ProjektDaten,
+  sprache: Sprache = kiSprache(daten.projekt.angaben),
+  umfang: KontextUmfang = { plan: true },
+): BuchKontext {
+  const mitPlan = umfang.plan;
   const kapitel: KontextKapitel[] = daten.projekt.kapitel
     .map((id, i) => {
       const k = daten.kapitel[id];
@@ -169,7 +186,7 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
         titel: k?.titel ?? id,
         text: k ? klartext(k.text) : '',
         hash: textHash(k?.text ?? ''),
-        plan: { szene: planText(daten.plaene[id]?.szene), notiz: planText(daten.plaene[id]?.notiz) },
+        plan: mitPlan ? { szene: planText(daten.plaene[id]?.szene), notiz: planText(daten.plaene[id]?.notiz) } : { szene: '', notiz: '' },
       };
     });
 
@@ -178,10 +195,10 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
       id: f.id,
       name: f.name,
       aliase: [...(f.aliase ?? [])],
-      rolle: f.rolle === 'haupt' ? ('haupt' as const) : ('neben' as const),
+      rolle: f.rolle,
       existenz: f.existenz,
       formen: [...(f.formen ?? [])],
-      plan: Object.entries(f.plan ?? {})
+      plan: Object.entries(mitPlan ? (f.plan ?? {}) : {})
         .map(([feld, wert]) => ({ feld: planText(feld), wert: planText(wert) }))
         .filter((p) => p.feld && p.wert),
     }))
@@ -206,7 +223,7 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
     realitaet.push({ kapitel: r.anker.kapitel, stufe: r.stufe, text: '', anker: r.anker });
   }
 
-  const text = renderBuch(kapitel, figuren, orte, gruppen, realitaet, sprache);
+  const text = renderBuch(kapitel, figuren, orte, gruppen, realitaet, sprache, mitPlan);
   return { kapitel, figuren, orte, gruppen, realitaet, text, sprache };
 }
 
@@ -217,19 +234,20 @@ function renderBuch(
   gruppen: KontextGruppe[],
   realitaet: KontextRealitaet[],
   sprache: Sprache,
+  mitPlan: boolean,
 ): string {
   const B = BESCHRIFTUNG[sprache];
   const z: string[] = [];
   z.push('<angaben>');
   z.push(B.einleitung);
-  z.push(B.planHinweis);
+  if (mitPlan) z.push(B.planHinweis);
   z.push('');
   z.push(B.figuren);
   if (figuren.length === 0) z.push(B.keine);
   for (const f of figuren) {
     const teile = [`${f.name} (id: ${f.id})`];
     if (f.aliase.length) teile.push(`${B.auch}: ${f.aliase.join(', ')}`);
-    teile.push(f.rolle === 'haupt' ? B.haupt : B.neben);
+    teile.push(B[f.rolle]);
     teile.push(`${B.existenz}: ${B.stufe[f.existenz]}`);
     z.push(`- ${teile.join(' · ')}`);
     for (const p of f.plan) z.push(`  ${B.planung} · ${p.feld}: ${p.wert}`);

@@ -1,0 +1,72 @@
+/* G6 Leser-Simulation im Hintergrund: Laufanzeige und Meldung unten rechts. Farben nur über Tokens. */
+.pw-sim-status {
+  position: fixed;
+  right: 20px;
+  bottom: 48px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(440px, calc(100vw - 40px));
+  padding: 10px 10px 10px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--schatten-popover);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.pw-sim-status--fehler {
+  border-color: var(--accent-line);
+  background: var(--accent-flaeche);
+  color: var(--accent-dark);
+}
+.pw-sim-status__text {
+  flex: 1;
+  min-width: 0;
+}
+.pw-sim-status__punkt {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--real-gesichert);
+}
+.pw-sim-status__punkt--laeuft {
+  background: var(--strang-arbeit);
+  animation: pw-sim-pulsieren 1.2s ease-in-out infinite;
+}
+.pw-sim-status__punkt--fehler {
+  background: var(--accent);
+}
+@keyframes pw-sim-pulsieren {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-sim-status__punkt--laeuft {
+    animation: none;
+  }
+}
+.pw-sim-status__zu {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+.pw-sim-status__zu:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+.pw-sim-status__zu:focus-visible {
+  outline: 2px solid var(--auswahl);
+}

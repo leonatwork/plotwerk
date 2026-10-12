@@ -24,6 +24,7 @@ const DIALOGE: DialogId[] = [
   'schnellsuche',
   'zeit-vorschlaege',
   'stimme-pruefen',
+  'straenge-vorschlagen',
   'marken',
   'fassung',
   'versionsvergleich',

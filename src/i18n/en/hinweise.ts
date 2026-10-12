@@ -5,11 +5,12 @@ export const hinweise: Form<typeof de> = {
   typ: {
     pruefen: 'Check',
     schreibweise: 'Spelling',
-    offener_faden: 'Open thread',
+    offener_faden: 'Loose end',
     unbekannt: 'Unknown',
     struktur: 'Structure',
     zeitleiste: 'Timeline',
     sprache: 'Language',
+    figuren: 'Characters',
   },
   typBeschreibung: {
     pruefen: 'details that might contradict each other',
@@ -19,6 +20,7 @@ export const hinweise: Form<typeof de> = {
     struktur: 'empty chapters, broken-off sentences, empty headings',
     zeitleiste: 'points in time that don’t fit together, and anchoring in time',
     sprache: 'language and character voice – only flagged, never corrected',
+    figuren: 'nicknames before the name, names easy to confuse, characters absent for a while',
   },
   status: { neu: 'New', absicht: 'Intentional', erledigt: 'Done' },
   titel: 'Notes',
@@ -30,7 +32,7 @@ export const hinweise: Form<typeof de> = {
   keine: 'No notes',
   buchPruefen: 'Check book',
   leerText:
-    'Structure notes and spellings appear automatically when you save. Contradictions, open threads and timeline issues are found by the check you start yourself.',
+    'Structure notes and spellings appear automatically when you save. Contradictions, loose ends and timeline issues are found by the check you start yourself.',
   filterLabel: 'Filter by type and chapter',
   alleTypen: 'All types',
   kapitel: 'Chapter',

@@ -6,8 +6,14 @@
  * - Szenen: Plan-Daten im Kapitelplan (speicherePlan). Der Kapiteltext wird nie verändert.
  */
 import type { StateCreator } from 'zustand';
-import type { Fadenplanung, Id, KapitelPlan } from '@core/model/types';
+import { bekannteKosten, KiFehler, mischeStrangVorschlaege, schaetzeStraenge, schlageStraengeVor, type Schaetzung } from '@core/ki/index';
+import type { Fadenplanung, Id, KapitelPlan, Strang } from '@core/model/types';
+import type { ProjektLeser } from '@core/projekt/fs';
 import { leereFadenplanung, standardPlan } from '@core/projekt/index';
+import { strangAusFaden, strangFrageBeantworten, strangVorschlagUebernehmen, strangVorschlagVerwerfen } from '@core/struktur/straenge';
+import { fadenKarten } from '@core/struktur/faeden';
+import { sprache, texte } from '../../i18n';
+import { kiFehlerAnzeige, type KiFehlerAnzeige } from './ki';
 import {
   fadenAnlegen,
   fadenEntfernen,
@@ -25,6 +31,24 @@ import {
   type SzenenTeil,
 } from '@core/struktur/szenen';
 import type { Store } from '../store';
+
+/** Ergebnis eines KI-Laufs „Stränge vorschlagen“ (für den Dialog). */
+export interface StrangLaufErgebnis {
+  /** neue Vorschläge in der Ablage */
+  neu: number;
+  /** offene Vorschläge nach dem Lauf */
+  offen: number;
+  /** vom Modell gemeldet, aber schon entschieden */
+  bereitsEntschieden: number;
+  verworfen: { grund: string }[];
+  modell: string;
+  kostenUsd: number;
+  /** false = Kosten unbekannt (OpenAI-kompatibler Dienst) */
+  kostenBekannt?: false;
+}
+
+/** Felder eines Strangs, die Leon im Inspektor ändert */
+export type StrangTeil = Partial<Pick<Strang, 'name' | 'farbe' | 'rolle' | 'beschreibung'>>;
 
 export interface FadenFilter {
   /** nur Fäden dieses Strangs; null = alle */
@@ -75,6 +99,35 @@ export interface Struktur {
   // Strang-Raster
   /** Strang im Kapitelplan an- oder abwählen (Zelle im Raster) */
   strangUmschalten(kapitel: Id, strang: Id): Promise<void>;
+  /** im Strang-Raster gewählter Strang (Inspektor); null = Übersicht mit allen KI-Vorschlägen */
+  strangAuswahl: Id | null;
+  /** wählt den Strang (oder die Übersicht) und zeigt im Raster-Inspektor wieder die Stränge statt eines Kapitels */
+  waehleStrang(id: Id | null): void;
+  /** Raster-Inspektor zeigt das gewählte Kapitel (Klick auf eine Kapitelnummer) statt der Stränge */
+  rasterKapitel: boolean;
+  setzeRasterKapitel(an: boolean): void;
+  /** Name, Farbe, Haupt-/Nebenhandlung oder „Wofür steht der Strang?“ ändern; leere Werte entfernen das Feld */
+  strangAendern(id: Id, teil: StrangTeil): Promise<void>;
+
+  // KI: Stränge vorschlagen (.plotwerk/strang-vorschlaege.json)
+  strangLauf: boolean;
+  strangFehler: KiFehlerAnzeige | null;
+  strangErgebnis: StrangLaufErgebnis | null;
+  strangSchaetzen(): Promise<Schaetzung>;
+  strangVorschlagen(): Promise<void>;
+  strangAbbrechen(): void;
+  strangZuruecksetzen(): void;
+  /** Zuordnung oder neuen Strang übernehmen; `kapitel`: Auswahl der Kapitel bei einem neuen Strang */
+  strangVorschlagUebernehmen(schluessel: string, kapitel?: Id[]): Promise<void>;
+  strangVorschlagVerwerfen(schluessel: string): Promise<void>;
+  /** Rückfrage beantworten (leer = wieder offen) */
+  strangFrageBeantworten(schluessel: string, antwort: string): Promise<void>;
+  /** Faden (loses Ende aus der Prüfung oder eigener) als Strang anlegen; Rückgabe: Strang-ID */
+  strangAusFaden(faden: Id): Promise<Id | null>;
+
+  /** Fäden: Board oder Tabelle (Fäden × Kapitel) */
+  fadenDarstellung: 'board' | 'tabelle';
+  setzeFadenDarstellung(d: 'board' | 'tabelle'): void;
 }
 
 export interface StrukturSlice {
@@ -83,6 +136,22 @@ export interface StrukturSlice {
 
 export const createStrukturSlice: StateCreator<Store, [], [], StrukturSlice> = (set, get) => {
   const setze = (teil: Partial<Struktur>) => set((s) => ({ struktur: { ...s.struktur, ...teil } }));
+  let abbruch: AbortController | null = null;
+
+  /** Nur-Lese-Sicht auf das Projekt (harte Regel 1: core/ki bekommt nie das schreibende Dateisystem). */
+  async function leser(): Promise<ProjektLeser> {
+    const fs = get().fs;
+    if (!fs || !get().daten) throw new KiFehler('auftrag', texte().state.fehler.keinProjekt);
+    await get().editorSichern();
+    await get().alleSpeichernAbwarten();
+    return { lesen: (p) => fs.lesen(p), auflisten: (o) => fs.auflisten(o), existiert: (p) => fs.existiert(p) };
+  }
+
+  function transport() {
+    const b = get().backend;
+    if (!b) throw new KiFehler('nicht_bereit', texte().state.fehler.nichtBereit);
+    return b.ki;
+  }
 
   const planung = (): Fadenplanung => get().daten?.fadenplanung ?? leereFadenplanung();
   const speichernPlanung = async (aendern: (p: Fadenplanung) => Fadenplanung) => {
@@ -192,6 +261,110 @@ export const createStrukturSlice: StateCreator<Store, [], [], StrukturSlice> = (
         if (!plan) return;
         const straenge = plan.straenge.includes(strang) ? plan.straenge.filter((s) => s !== strang) : [...plan.straenge, strang];
         await get().speicherePlan({ ...plan, straenge });
+      },
+
+      strangAuswahl: null,
+      waehleStrang: (strangAuswahl) => setze({ strangAuswahl, rasterKapitel: false }),
+      rasterKapitel: false,
+      setzeRasterKapitel: (rasterKapitel) => setze({ rasterKapitel }),
+
+      async strangAendern(id, teil) {
+        const d = get().daten;
+        if (!d) return;
+        const straenge = d.straenge.map((s) => {
+          if (s.id !== id) return s;
+          const neu: Strang = { ...s, ...teil };
+          if (!neu.name.trim()) neu.name = s.name;
+          if (!neu.rolle) delete neu.rolle;
+          if (!neu.beschreibung?.trim()) delete neu.beschreibung;
+          return neu;
+        });
+        await get().speichereStraenge(straenge);
+      },
+
+      strangLauf: false,
+      strangFehler: null,
+      strangErgebnis: null,
+
+      async strangSchaetzen() {
+        return schaetzeStraenge(await leser(), transport(), get().kiEinstellungen(), sprache());
+      },
+
+      async strangVorschlagen() {
+        if (get().struktur.strangLauf) return;
+        const steuerung = new AbortController();
+        abbruch = steuerung;
+        setze({ strangLauf: true, strangFehler: null, strangErgebnis: null });
+        try {
+          const r = await schlageStraengeVor(await leser(), transport(), get().kiEinstellungen(), { signal: steuerung.signal, oberflaeche: sprache() });
+          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', texte().state.ki.pruefungAbgebrochen);
+          const gemischt = mischeStrangVorschlaege(get().daten?.kiStrangVorschlaege, r.ergebnis.vorschlaege, {
+            datum: r.datum,
+            modell: r.modell,
+            ...bekannteKosten(r),
+          });
+          await get().speichereKiStrangVorschlaege(gemischt.ablage);
+          setze({
+            strangErgebnis: {
+              neu: gemischt.neu,
+              offen: gemischt.ablage.eintraege.filter((v) => v.status === 'neu').length,
+              bereitsEntschieden: gemischt.bereitsEntschieden,
+              verworfen: r.verworfen.map((v) => ({ grund: v.grund })),
+              modell: r.modell,
+              kostenUsd: r.kostenUsd,
+              ...(r.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
+            },
+          });
+        } catch (e) {
+          setze({ strangFehler: kiFehlerAnzeige(e) });
+        } finally {
+          if (abbruch === steuerung) abbruch = null;
+          setze({ strangLauf: false });
+        }
+      },
+
+      strangAbbrechen() {
+        abbruch?.abort();
+      },
+
+      strangZuruecksetzen() {
+        if (get().struktur.strangLauf) return;
+        setze({ strangErgebnis: null, strangFehler: null });
+      },
+
+      async strangVorschlagUebernehmen(schluessel, kapitel) {
+        const d = get().daten;
+        if (!d) return;
+        const u = strangVorschlagUebernehmen(d, schluessel, kapitel);
+        if (!u) return;
+        if (u.straenge !== d.straenge) await get().speichereStraenge(u.straenge);
+        for (const p of u.plaene) await get().speicherePlan(p);
+        await get().speichereKiStrangVorschlaege(u.ablage);
+      },
+
+      async strangVorschlagVerwerfen(schluessel) {
+        const ablage = get().daten?.kiStrangVorschlaege;
+        if (ablage) await get().speichereKiStrangVorschlaege(strangVorschlagVerwerfen(ablage, schluessel));
+      },
+
+      async strangAusFaden(faden) {
+        const d = get().daten;
+        if (!d) return null;
+        const karte = fadenKarten(d, get().index.faeden).find((k) => k.id === faden);
+        if (!karte) return null;
+        const u = strangAusFaden(d, karte);
+        await get().speichereStraenge(u.straenge);
+        for (const p of u.plaene) await get().speicherePlan(p);
+        await get().speichereFadenplanung(u.fadenplanung);
+        return u.strang;
+      },
+
+      fadenDarstellung: 'board',
+      setzeFadenDarstellung: (fadenDarstellung) => setze({ fadenDarstellung }),
+
+      async strangFrageBeantworten(schluessel, antwort) {
+        const ablage = get().daten?.kiStrangVorschlaege;
+        if (ablage) await get().speichereKiStrangVorschlaege(strangFrageBeantworten(ablage, schluessel, antwort));
       },
     },
   };

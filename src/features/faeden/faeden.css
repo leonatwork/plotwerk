@@ -373,9 +373,50 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  font: inherit;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.fd-raster__strangname:hover .fd-raster__strangtext,
+.fd-raster__strangname[aria-current='true'] .fd-raster__strangtext {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.fd-raster__strangname[aria-current='true'] .fd-raster__strangtext {
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+.fd-raster__strangname:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.fd-raster__strangtext {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Haupt-/Nebenhandlung im Raster */
+.fd-rolle {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  color: var(--ink-quiet);
+}
+.fd-rolle--haupt {
+  border-color: var(--accent-line);
+  background: var(--chip-accent);
+  color: var(--accent-dark);
 }
 .fd-raster__info {
   font-size: 11px;
@@ -647,4 +688,178 @@
 .fd-farbwahl__knopf:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+/* KI-Vorschläge zu Strängen (StrangVorschlaege.tsx) ------------------------ */
+.fd-etikett--knopf {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+.fd-etikett--knopf:hover {
+  text-decoration: underline;
+}
+.fd-vorschlaege {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.fd-vorschlaege--kapitel {
+  gap: 8px;
+}
+.fd-vorschlaege__kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.fd-vorschlaege__gruppe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fd-vorschlag {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--accent-line);
+  background: var(--accent-flaeche);
+  font-size: 13px;
+  line-height: 1.45;
+  min-width: 0;
+}
+.fd-vorschlag--frage {
+  border-style: solid;
+  border-color: var(--line-soft);
+  background: var(--inspector);
+}
+.fd-vorschlag__kopf {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.fd-vorschlag__text {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.fd-vorschlag__belege {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fd-vorschlag__belege li {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+}
+.fd-vorschlag__kap {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+.fd-vorschlag__zitat {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.fd-vorschlag__aktionen {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fd-vorschlag__antwort {
+  min-height: 0;
+  resize: vertical;
+}
+.fd-vorschlag__beantwortet {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.fd-vorschlag__beantwortet li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+}
+/* Strang-Inspektor */
+.fd-strang-name {
+  font-family: var(--schrift-titel);
+  font-size: 20px;
+  height: 38px;
+}
+.fd-strang-kapitel {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+/* Lose Enden als Stränge übernehmen */
+.fd-aus-faeden {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+.fd-aus-faeden li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 2px;
+}
+.fd-aus-faeden__name {
+  font-weight: 600;
+}
+
+/* Tabelle „Lose Enden × Kapitel“ */
+.fd-tabelle__kapitel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.fd-tabelle__gruppe {
+  position: sticky;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 4px 12px 4px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--surface);
+}
+.fd-tabelle__zelle {
+  flex: 1;
+  height: 26px;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
 }

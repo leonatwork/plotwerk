@@ -4,6 +4,7 @@ import { useStore } from '../../state/store';
 import { EditorWerkzeugleiste } from './werkzeuge';
 import { SchreibzielAnzeige } from '../statistik/SchreibzielAnzeige';
 import { f, useTexte } from '../../i18n';
+import { NurMit } from '../../app/NurMit';
 
 /** Wörter des Kapitels: live aus dem Editor, sonst aus dem Index. */
 export function useKapitelWoerter(id: Id | undefined): number | undefined {
@@ -60,8 +61,12 @@ export function Statusleiste({ kapitelId, ungespeichert, meldung }: { kapitelId:
         </button>
       </span>
       <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <EditorWerkzeugleiste kapitelId={kapitelId} />
-        <SchreibzielAnzeige />
+        <NurMit funktion="editorWerkzeuge">
+          <EditorWerkzeugleiste kapitelId={kapitelId} />
+        </NurMit>
+        <NurMit funktion="statistik">
+          <SchreibzielAnzeige />
+        </NurMit>
         <span>
           {f(T.woerter, { n: kapitel })} · {f(T.gesamt, { n: gesamt })}
         </span>

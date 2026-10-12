@@ -14,6 +14,7 @@ import { Fassungen } from './Fassungen';
 import { tagAnzeige, useHeute, useSchreibstatistik, woerterText, zahl } from './hooks';
 import { Ueberblick } from './Ueberblick';
 import './statistik.css';
+import { useFunktion } from '../../state/funktionen';
 
 const ANSICHTEN: StatistikAnsicht[] = ['ueberblick', 'fassungen'];
 
@@ -155,7 +156,10 @@ function Zaehlregel() {
 
 export default function Ansicht() {
   const daten = useStore((s) => s.daten);
-  const ansicht = useStore((s) => s.statistik.ansicht);
+  const gewaehlteAnsicht = useStore((s) => s.statistik.ansicht);
+  // ohne Fassungen (E16) nur der Überblick
+  const mitFassungen = useFunktion('fassungen');
+  const ansicht: StatistikAnsicht = mitFassungen ? gewaehlteAnsicht : 'ueberblick';
   const setzeAnsicht = useStore((s) => s.statistik.setzeAnsicht);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const anzahlFassungen = useStore((s) => s.daten?.fassungen?.length ?? 0);
@@ -188,28 +192,30 @@ export default function Ansicht() {
       }
     >
       <div className="pw-st-seite">
-        <div className="pw-st-leiste">
-          <Segment<StatistikAnsicht>
-            label={t.label}
-            rolle="tablist"
-            voll={false}
-            optionen={ANSICHTEN.map((wert) => ({
-              wert,
-              label: wert === 'ueberblick' ? t.ueberblick : anzahlFassungen ? f(t.fassungenAnzahl, { n: anzahlFassungen }) : t.fassungen,
-              steuert: 'pw-st-ansicht',
-            }))}
-            wert={ansicht}
-            onChange={setzeAnsicht}
-          />
-          <span style={{ display: 'flex', gap: 8 }}>
-            <Button klein onClick={() => oeffneDialog('versionsvergleich')}>
-              {t.vergleichen}
-            </Button>
-            <Button klein variante="primaer" onClick={() => oeffneDialog('fassung')}>
-              {t.sichern}
-            </Button>
-          </span>
-        </div>
+        {mitFassungen && (
+          <div className="pw-st-leiste">
+            <Segment<StatistikAnsicht>
+              label={t.label}
+              rolle="tablist"
+              voll={false}
+              optionen={ANSICHTEN.map((wert) => ({
+                wert,
+                label: wert === 'ueberblick' ? t.ueberblick : anzahlFassungen ? f(t.fassungenAnzahl, { n: anzahlFassungen }) : t.fassungen,
+                steuert: 'pw-st-ansicht',
+              }))}
+              wert={ansicht}
+              onChange={setzeAnsicht}
+            />
+            <span style={{ display: 'flex', gap: 8 }}>
+              <Button klein onClick={() => oeffneDialog('versionsvergleich')}>
+                {t.vergleichen}
+              </Button>
+              <Button klein variante="primaer" onClick={() => oeffneDialog('fassung')}>
+                {t.sichern}
+              </Button>
+            </span>
+          </div>
+        )}
         <div id="pw-st-ansicht" role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {ansicht === 'ueberblick' ? (
             <Ueberblick st={st} heute={heute} tag={tag} onTag={setTag} onZielBearbeiten={() => setZielFokus((n) => n + 1)} />

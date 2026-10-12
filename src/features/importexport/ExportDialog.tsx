@@ -9,6 +9,7 @@ import { exportDateiname, type ExportFormat } from '../../state/slices/importexp
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Dialog, Radio, Segment, StatusPunkt, Textfeld } from '../../ui';
 import './importexport.css';
+import { NurMit } from '../../app/NurMit';
 
 function mitEndung(name: string, format: ExportFormat): string {
   const basis = name.trim().replace(/\.(docx|pdf)$/i, '');
@@ -225,12 +226,14 @@ export function ExportDialog({ param, schliessen }: DialogKomponentenProps) {
           <p className="pw-ie-text" style={{ fontSize: 12 }}>
             {T.nichtExportiert}
           </p>
-          <p className="pw-ie-text" style={{ fontSize: 12 }}>
-            {T.abgabeVor}{' '}
-            <Button variante="text" klein onClick={() => oeffneDialog('abgabe-export')} disabled={laeuft} style={{ height: 'auto', padding: 0 }}>
-              {T.abgabeLink}
-            </Button>
-          </p>
+          <NurMit funktion="abgabe">
+            <p className="pw-ie-text" style={{ fontSize: 12 }}>
+              {T.abgabeVor}{' '}
+              <Button variante="text" klein onClick={() => oeffneDialog('abgabe-export')} disabled={laeuft} style={{ height: 'auto', padding: 0 }}>
+                {T.abgabeLink}
+              </Button>
+            </p>
+          </NurMit>
 
           {status.art === 'fehler' && (
             <p role="alert" className="pw-ie-meldung pw-ie-meldung--fehler">

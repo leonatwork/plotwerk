@@ -275,6 +275,117 @@ button.pl-chip__text:hover {
   min-width: 0;
 }
 
+/* Spitznamen als Chips (F-08/F-16) */
+.pl-spitznamen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 2px 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: text;
+}
+.pl-spitznamen:focus-within {
+  border-color: var(--ink-soft);
+}
+.pl-spitznamen__eingabe {
+  flex: 1 1 120px;
+  min-width: 80px;
+  height: 26px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.pl-spitzname {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--chip);
+  font-size: 12px;
+}
+.pl-spitzname[data-offen] {
+  outline: 1px solid var(--ink-soft);
+}
+.pl-spitzname button,
+.pl-spitzname > span {
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+}
+.pl-spitzname__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 4px 0 9px;
+  cursor: pointer;
+}
+.pl-spitzname__punkt {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--link);
+}
+.pl-spitzname__weg {
+  padding: 0 8px 0 3px;
+  color: var(--ink-quiet) !important;
+  cursor: pointer;
+}
+.pl-spitzname__kontext {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+/* Gruppen einer Figur (A-05): Chip mit Hauptgruppen-Stern, Name/Rolle, Entfernen */
+.pl-gruppenchip {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.pl-gruppenchip[data-haupt] {
+  border-color: var(--accent-line);
+  background: var(--accent-flaeche);
+}
+.pl-gruppenchip button {
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.pl-gruppenchip__stern {
+  padding: 0 2px 0 9px;
+  color: var(--accent-dark);
+}
+.pl-gruppenchip__name {
+  padding: 0 4px;
+  font-weight: 600;
+}
+.pl-gruppenchip__weg {
+  padding: 0 9px 0 4px;
+  color: var(--ink-quiet);
+}
+.pl-gruppenchip button:hover {
+  color: var(--link-hover);
+}
+
 /* Listen (Figuren, Orte) ---------------------------------------------------- */
 .pl-listeneintrag {
   display: flex;

@@ -22,6 +22,21 @@ Abnahmestand `docs/abnahme.md` · Release `docs/release.md` · Mac-Verteilung `d
 - **Mehrdeutigkeit ist ein Stilmittel.** Für Figuren und Textstellen legst du die **Gewissheit** fest: „gesichert“,
   „noch offen“ oder „bewusst vage“. Bewusst Vages wird nie als Widerspruch gemeldet.
 
+## Einrichtung und Funktionsumfang
+
+Beim ersten Start fragt ein Assistent, was für ein Schreiber du bist – Anfänger, Mittel, Profi oder Schriftsteller –
+und blendet passend dazu Funktionen ein. Jede Funktion hat eine kurze Erklärung und ein Beispiel aus „Hafenlichter“;
+du kannst einzelne Funktionen dazu- oder abwählen, die Auswahl als eigenes Preset speichern und festlegen, ob du mit
+oder ohne KI arbeitest. „Überspringen“ zeigt alles.
+
+- **Ausgeblendet heißt nicht gelöscht.** Die Daten bleiben im Projekt. Rufst du eine ausgeblendete Funktion über
+  Menü oder Tastenkürzel auf, fragt Plotwerk, ob sie eingeblendet werden soll.
+- **Einstellungen (⌘,) → Funktionen**: Umfang anpassen, Preset wechseln, Einrichtung erneut starten.
+- **KI-Umfang**: Ausgeblendete KI-Funktionen laufen nie. Ohne „Plan-Abgleich“ gehen keine Plan-Felder an die KI,
+  jede Prüfung wird kleiner.
+- **No-AI-Modus**: Alle KI-Funktionen sind aus, kein Text verlässt den Mac. Vorher zeigt Plotwerk, welche Funktionen
+  wegfallen; Hinweise ohne KI (Struktur, Zeit, Schreibweisen) bleiben.
+
 ## Funktionen nach Bereichen
 
 Bereiche stehen in der Seitenleiste; die Werkzeuge in der einklappbaren Gruppe „Werkzeuge“ (eingeklappt bleibt das
@@ -55,10 +70,22 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
   Enden bis hier, „Leserin nach Kap. n“, „Was ist sicher?“ (Gewissheit der Stellen), Recherche zum Kapitel.
 - **Akte planen** (⌘3): Akt-Board mit Kopfkarten (Quintessenz, Wendepunkt) und Ideen-Ablage; Umschalter „Nur Plan“,
   „Plan + Text“ und **„Stränge“** – das Strang-Raster zeigt, in welchen Kapiteln ein Strang fehlt oder verschwindet;
-  Klick oder Leertaste nimmt ihn in den Kapitelplan auf.
-- **Fäden** (⌘9): Board mit Offen, Auflösung geplant, Erledigt, Bewusst offen. Warnung bei Fäden, die zu lange ruhen,
-  oder deren geplante Auflösung schon geschrieben ist. „+ Faden“ bzw. „Neuer Faden …“ legt eigene Fäden an.
-  Pfeiltasten wandern, ⌥←/⌥→ verschiebt in die Nachbarspalte.
+  Klick oder Leertaste nimmt ihn in den Kapitelplan auf. Ein Klick auf den Strangnamen öffnet ihn im Inspektor:
+  Haupthandlung oder Nebenhandlung, „Wofür steht der Strang?“, Farbe. **„Mit KI vorschlagen …“** lässt die KI das Buch
+  lesen: Sie ordnet geschriebene Kapitel deinen Strängen zu, schlägt fehlende Stränge vor und stellt Rückfragen – jeweils
+  mit Zitat. Du übernimmst, verwirfst oder antwortest; Verworfenes kommt nicht wieder, Antworten gehen beim nächsten
+  Lauf mit.
+- **Kapitel planen** (Inspektor im Akt-Board): **Kurzbeschreibung** in einem Satz (steht auf der Karte), optional die
+  **Funktion im Buch** (Opening, Wendepunkt, Atempause … oder eigene; als Etikett auf der Karte) und ausführlich „Was
+  soll hier passieren?“. KI-Vorschläge zu Strängen erscheinen direkt beim Feld „Strang“.
+- **Lose Enden** (⌘9, früher „Fäden“): offene Fragen und Versprechen an die Leserin, die sich auflösen sollen – im
+  Unterschied zu **Strängen**, den Handlungslinien, die du in „Akte planen“ planst. Ein loses Ende kann zu einem Strang
+  gehören (Feld „Strang“). Ist es eigentlich eine ganze Handlungslinie (z. B. „Der Deloitte-Auftrag“), macht
+  **„Als Strang übernehmen“** daraus einen Strang und trägt ihn in alle Kapitel ein, in denen es vorkommt – auch aus dem
+  Kapitel-Inspektor und im Segment „Stränge“ möglich. Umschalter **Board | Tabelle**: Das Board hat die Spalten Offen,
+  Auflösung geplant, Erledigt, Bewusst offen; die Tabelle zeigt alle losen Enden × Kapitel, gruppiert nach Strang.
+  Warnung bei losen Enden, die zu lange ruhen, oder deren geplante Auflösung schon geschrieben ist. „+ Loses Ende“
+  legt eigene an. Pfeiltasten wandern, ⌥←/⌥→ verschiebt in die Nachbarspalte.
 - **Szenen**: Kapitel werden über `* * *` in Szenen geteilt. Pro Szene Titel, Ort, Figuren, Zeit und Notiz – im
   Schreiben-Inspektor und im Kapitel-Überblick. Der Kapiteltext wird dabei nie verändert.
 - In Notizen und Plan-Feldern verlinkt `[[` auf Figuren, Orte, Kapitel, Plan-Karten und Ideen.
@@ -99,6 +126,14 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 - **Leser-Simulation** (Kapitel-Überblick „Leserin simulieren …“, Fragen → „Leser-Simulation …“): Die KI liest nur
   Kapitel 1 bis n und beschreibt, was eine Erstleserin weiß, fragt, vermutet und wo Spannung entsteht – plus Abgleich
   mit deinen Kapitelplänen („belegt / nur angedeutet / nicht belegt“). Wird veraltet, sobald sich Text oder Plan ändert.
+  Jede Simulation bleibt gespeichert, auch wenn du dasselbe Kapitel erneut simulierst; im Dialog wählst du zwischen
+  den Simulationen eines Kapitels. „Erledigt“ klappt eine Simulation unter „erledigt“ weg (die Kapitelkarte zeigt dann
+  die neueste offene), „Löschen“ entfernt sie nach Rückfrage. Beides geht im Dialog und in der Seitenspalte unter
+  Fragen (✓ und × beim Überfahren); ein Klick auf eine Zeile öffnet die Simulation. Läuft eine Simulation im
+  Hintergrund, zeigt unten rechts eine Meldung den Lauf, das fertige Ergebnis oder den Fehler. Jede offene Frage lässt
+  sich übernehmen: „Als Faden planen“ legt einen Faden an (kommt auf in, Auflösung geplant in, wie sie gelöst wird, oder
+  bewusst offen), „Notiz an die Stelle“ heftet eine Notiz an die Belegstelle im Text. Die nächste Simulation gleicht die
+  Fäden wieder mit den Leserfragen ab.
 - **Fragen an das Buch** (Werkzeuge → Fragen): „Wo erwähne ich Pauls Bleistifte?“ – Antworten nur mit Belegstellen; Klick
   öffnet die Stelle. „nicht im Buch“ und „ohne Beleg“ sind unterschieden. ↩ fragt, ⇧↩ neue Zeile, ↑ holt die letzte
   Frage zurück. Schreibaufträge lehnt die App ab, ohne das Modell zu fragen.

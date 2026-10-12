@@ -30,6 +30,7 @@ const TYP_FARBEN: [HinweisTyp, string][] = [
   ['struktur', 'var(--ink-soft)'],
   ['zeitleiste', 'var(--organisation-dark)'],
   ['sprache', 'var(--ink-quiet)'],
+  ['figuren', 'var(--link)'],
 ];
 
 /** Reihenfolge und Bezeichnungen wie in der Anforderung (Hinweis-Typen); Texte folgen der Oberflächensprache. */

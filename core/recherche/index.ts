@@ -8,6 +8,7 @@
  * - Recherche geht nie an die KI (E12).
  */
 import { fmt, localeVon, texteJe, type Sprache } from '../i18n';
+import { nachRolle } from '../figuren/namen';
 import type { Id, ProjektDaten, Recherche, RechercheArt, RechercheEintrag, Szene, Verweis, VerweisTyp } from '../model/types';
 
 export const RECHERCHE_ORDNER = 'recherche/dateien';
@@ -316,7 +317,7 @@ export interface HeftZiel {
 /** Alles, woran Leon einen Eintrag heften kann: Figuren, Orte, Kapitel, Szenen (in dieser Reihenfolge). */
 export function heftZiele(daten: ProjektDaten, sprache: Sprache = 'de'): HeftZiel[] {
   const liste: HeftZiel[] = [];
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, 'de') : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => a.name.localeCompare(b.name, 'de')));
   for (const f of figuren) liste.push({ verweis: { typ: 'figur', id: f.id }, art: 'figur', name: f.name, suche: [f.name, ...f.aliase] });
   for (const o of Object.values(daten.orte).sort((a, b) => a.name.localeCompare(b.name, 'de')))
     liste.push({ verweis: { typ: 'ort', id: o.id }, art: 'ort', name: o.name, suche: [o.name, ...o.aliase] });

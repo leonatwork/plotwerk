@@ -4,6 +4,7 @@
  * Die ID ist maßgeblich (E1), die Anzeige nur der Text zum Zeitpunkt des Einfügens.
  * Nicht im Manuskripttext selbst.
  */
+import { nachRolle } from '@core/figuren/namen';
 import type { Id, ProjektDaten, Verweis, VerweisTyp } from '@core/model/types';
 import type { Bereich, Store } from '../../state/store';
 import { f, sprache, texte, vergleich } from '../../i18n';
@@ -87,7 +88,7 @@ export function alleVerweisZiele(daten: ProjektDaten): VerweisVorschlag[] {
   const liste: VerweisVorschlag[] = [];
   const art = verweisArten();
   const englisch = sprache() === 'en';
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => vergleich(a.name, b.name)));
   for (const fig of figuren) liste.push({ typ: 'figur', id: fig.id, anzeige: fig.name, art: art.figur, suche: [fig.name, ...fig.aliase] });
   for (const o of Object.values(daten.orte).sort((a, b) => vergleich(a.name, b.name)))
     liste.push({ typ: 'ort', id: o.id, anzeige: o.name, art: art.ort, suche: [o.name, ...o.aliase] });

@@ -44,7 +44,7 @@ export const kapitel = {
     titel: 'LOSE ENDEN BIS HIER',
     offen: '{n} offen',
     keineBekannt: 'Noch keine losen Enden bekannt. Sie entstehen bei der Prüfung der Kapitel.',
-    keinFaden: 'Bis hier ist kein Faden eröffnet.',
+    keinFaden: 'Bis hier ist kein loses Ende eröffnet.',
     wiederOffen: 'wieder als offen führen',
     erledigt: 'erledigt',
     bewusstOffen: 'bewusst offen',
@@ -91,5 +91,6 @@ export const kapitel = {
     frageTitel: 'Leser-Simulation mit Belegen öffnen',
     alleAnsehen: 'Alle {n} ansehen',
     ansehen: 'Ansehen',
+    erledigt: { one: 'Die letzte Simulation ist erledigt.', other: '{n} Simulationen erledigt.' },
   },
 };

@@ -25,6 +25,7 @@ import type {
   Recherche,
   RechercheEintrag,
   Schreibstatistik,
+  FigurFakt,
   StimmenBeobachtung,
   Szene,
   Tageszeit,
@@ -45,13 +46,16 @@ import type {
   KapitelAnalyse,
   KapitelPlan,
   KiEinstellungen,
+  KiOpenAiEinstellungen,
   Motiv,
   Ort,
   Projekt,
   ProjektDaten,
   RealitaetsEintrag,
+  SpitznameKontext,
   Spur,
   Strang,
+  StrangVorschlag,
   TextAnker,
   Verweis,
 } from '../model/types';
@@ -103,10 +107,14 @@ export const PFADE = {
   kiZustand: '.plotwerk/zustand-vorschlaege.json',
   /** G3 KI-Beobachtungen zur Figurenstimme (KiAblage<StimmenBeobachtung>) */
   kiStimmen: '.plotwerk/stimmen.json',
+  /** F-17 Figurenfakten aus dem Text (KiAblage<FigurFakt>) */
+  kiFakten: '.plotwerk/figurenfakten.json',
   /** G6 Leser-Simulation (KiAblage<LeserStand>) */
   kiLeser: '.plotwerk/leser.json',
   /** G6 Fragen an das Buch (KiAblage<BuchFrage>) */
   kiFragen: '.plotwerk/fragen.json',
+  /** G2 KI-Vorschläge zu Erzählsträngen (KiAblage<StrangVorschlag>) */
+  kiStraenge: '.plotwerk/strang-vorschlaege.json',
 } as const;
 
 export const kapitelPfad = (id: Id): string => `${PFADE.manuskript}/${id}.md`;
@@ -294,15 +302,31 @@ function parseKiModelle(v: unknown): KiEinstellungen['deployments'] {
   };
 }
 
-/** Ältere projekt.md ohne `anbieter`/`claude` bleiben gültig (gelten als Foundry). */
+/** Vorlagen des OpenAI-kompatiblen Anbieters (= KiVorlage; Standard Ollama wie in core/ki/anbieter.ts). */
+const KI_VORLAGEN = ['ollama', 'lmstudio', 'openai', 'openrouter', 'qwen', 'eigen'] as const;
+
+/** OpenAI-kompatibel: Modellnamen ohne Claude-Standard (leer bleibt leer). */
+function parseOpenAi(v: Record<string, unknown>): KiOpenAiEinstellungen {
+  const m = istObjekt(v.modelle) ? v.modelle : {};
+  const kontext = zahl(v.kontextTokens, 0);
+  return ohneUndefined<KiOpenAiEinstellungen>({
+    vorlage: eines(v.vorlage, KI_VORLAGEN, 'ollama'),
+    endpoint: s(v.endpoint),
+    modelle: { erkennung: s(m.erkennung), pruefung: s(m.pruefung), tiefencheck: s(m.tiefencheck) },
+    kontextTokens: kontext > 0 ? Math.round(kontext) : undefined,
+  });
+}
+
+/** Ältere projekt.md ohne `anbieter`/`claude`/`openai` bleiben gültig (gelten als Foundry). */
 function parseKi(v: unknown): KiEinstellungen | undefined {
   if (!istObjekt(v)) return undefined;
   const c = istObjekt(v.claude) ? v.claude : undefined;
   return ohneUndefined<KiEinstellungen>({
     endpoint: s(v.endpoint),
     deployments: parseKiModelle(v.deployments),
-    anbieter: v.anbieter === 'claude' ? 'claude' : v.anbieter === 'foundry' ? 'foundry' : undefined,
+    anbieter: v.anbieter === 'claude' || v.anbieter === 'foundry' || v.anbieter === 'openai' ? v.anbieter : undefined,
     claude: c ? { endpoint: s(c.endpoint), modelle: parseKiModelle(c.modelle) } : undefined,
+    openai: istObjekt(v.openai) ? parseOpenAi(v.openai) : undefined,
   });
 }
 
@@ -360,6 +384,7 @@ export function parseKapitelPlan(text: string, id?: Id): KapitelPlan {
     akt: akt === null || Number.isNaN(akt) ? null : akt,
     status: eines(daten.status, ['geplant', 'entwurf', 'geschrieben'] as const, 'geplant'),
     szene: s(daten.szene),
+    ...(sOpt(daten.funktion) ? { funktion: s(daten.funktion) } : {}),
     straenge: texte(daten.straenge),
     figuren: texte(daten.figuren),
     orte: texte(daten.orte),
@@ -384,11 +409,22 @@ export function parseAkte(text: string): Akt[] {
     }));
 }
 
+const STRANG_ROLLEN = ['haupt', 'neben'] as const;
+
 export function parseStraenge(text: string): Strang[] {
   const { daten } = parseFrontmatter(text);
   return liste(daten.straenge)
     .filter(istObjekt)
-    .map((st) => ohneUndefined({ id: s(st.id), name: s(st.name), farbe: s(st.farbe), gruppe: sOpt(st.gruppe) }))
+    .map((st) =>
+      ohneUndefined({
+        id: s(st.id),
+        name: s(st.name),
+        farbe: s(st.farbe),
+        gruppe: sOpt(st.gruppe),
+        rolle: STRANG_ROLLEN.find((r) => r === st.rolle),
+        beschreibung: sOpt(st.beschreibung),
+      }),
+    )
     .filter((st) => st.id !== '');
 }
 
@@ -429,6 +465,21 @@ function parsePlanFelder(v: unknown): Record<string, string> {
   return ergebnis;
 }
 
+function parseSpitznamen(v: unknown): SpitznameKontext[] | undefined {
+  const l = liste(v)
+    .filter(istObjekt)
+    .filter((x) => s(x.name))
+    .map((x) =>
+      ohneUndefined({
+        name: s(x.name),
+        von: x.von === undefined ? undefined : texte(x.von),
+        abKapitel: sOpt(x.abKapitel),
+        notiz: sOpt(x.notiz),
+      }),
+    );
+  return l.length ? l : undefined;
+}
+
 export const FIGUR_ABSCHNITTE = { wahrheit: 'Wahrheit hinter den Kulissen', notizen: 'Notizen' } as const;
 
 export function parseFigur(text: string, id?: Id): Figur {
@@ -444,7 +495,7 @@ export function parseFigur(text: string, id?: Id): Figur {
     name: s(daten.name) || fid,
     aliase: texte(daten.aliase),
     formen: daten.formen === undefined ? undefined : texte(daten.formen),
-    rolle: eines(daten.rolle, ['haupt', 'neben'] as const, 'neben'),
+    rolle: eines(daten.rolle, ['haupt', 'neben', 'statist'] as const, 'neben'),
     kurz: sOpt(daten.kurz),
     existenz: eines(daten.existenz, REALITAET, 'gesichert'),
     gruppe: sOpt(daten.gruppe) ?? null,
@@ -453,6 +504,8 @@ export function parseFigur(text: string, id?: Id): Figur {
     wahrheit,
     notizen: verbinde(notizen, rest),
     netz,
+    ruheSchwelle: daten.ruheSchwelle === null ? null : typeof daten.ruheSchwelle === 'number' ? Math.max(1, Math.round(daten.ruheSchwelle)) : undefined,
+    spitznamen: parseSpitznamen(daten.spitznamen),
   });
 }
 
@@ -496,6 +549,7 @@ export function parseGruppe(text: string, id?: Id): Gruppe {
     praesenz,
     notizen: verbinde(notizen, rest),
     netz,
+    rollen: istObjekt(daten.rollen) && Object.keys(daten.rollen).length ? parsePlanFelder(daten.rollen) : undefined,
   });
 }
 
@@ -600,7 +654,7 @@ export function parseAnalyse(text: string, id?: Id): KapitelAnalyse {
   };
 }
 
-const HINWEIS_TYPEN = ['pruefen', 'schreibweise', 'offener_faden', 'unbekannt', 'struktur', 'zeitleiste', 'sprache'] as const;
+const HINWEIS_TYPEN = ['pruefen', 'schreibweise', 'offener_faden', 'unbekannt', 'struktur', 'zeitleiste', 'sprache', 'figuren'] as const;
 
 export function parseHinweise(text: string): Hinweis[] {
   return liste(json(text))
@@ -652,11 +706,12 @@ export function parseKiVorschlaege(text: string): KiVorschlaegeT {
           schluessel: s(f.schluessel),
           name: s(f.name),
           aliase: texte(f.aliase),
-          rolle: eines(f.rolle, ['haupt', 'neben'] as const, 'neben'),
+          rolle: eines(f.rolle, ['haupt', 'neben', 'statist'] as const, 'neben'),
           kurz: s(f.kurz),
           belege: parseBelege(f.belege),
           status: eines(f.status, VORSCHLAGS_STATUS, 'neu'),
           figur: sOpt(f.figur),
+          ziel: sOpt(f.ziel),
         }),
       ),
     orte: liste(d.orte)
@@ -1013,6 +1068,22 @@ export function parseKiZustandVorschlaege(text: string): KiAblage<ZustandVorschl
   });
 }
 
+export function parseKiFakten(text: string): KiAblage<FigurFakt> {
+  return parseKiAblage(text, (v) => {
+    const zitat = parseZitate([v.zitat])[0];
+    if (!s(v.schluessel) || !s(v.figur) || !s(v.merkmal) || !zitat) return null;
+    return {
+      schluessel: s(v.schluessel),
+      figur: s(v.figur),
+      merkmal: s(v.merkmal),
+      wert: s(v.wert),
+      kapitel: s(v.kapitel) || zitat.kapitel,
+      zitat,
+      status: eines(v.status, ['neu', 'verworfen'] as const, 'neu'),
+    };
+  });
+}
+
 export function parseKiStimmen(text: string): KiAblage<StimmenBeobachtung> {
   return parseKiAblage(text, (v) => {
     if (!s(v.schluessel) || !s(v.figur)) return null;
@@ -1029,10 +1100,35 @@ export function parseKiStimmen(text: string): KiAblage<StimmenBeobachtung> {
   });
 }
 
+const STRANG_VORSCHLAG_ARTEN = ['zuordnung', 'neu', 'frage'] as const;
+
+export function parseKiStrangVorschlaege(text: string): KiAblage<StrangVorschlag> {
+  return parseKiAblage(text, (v) => {
+    const art = STRANG_VORSCHLAG_ARTEN.find((a) => a === v.art);
+    if (!s(v.schluessel) || !art) return null;
+    return ohneUndefined<StrangVorschlag>({
+      schluessel: s(v.schluessel),
+      art,
+      strang: sOpt(v.strang),
+      name: sOpt(v.name),
+      rolle: STRANG_ROLLEN.find((r) => r === v.rolle),
+      beschreibung: sOpt(v.beschreibung),
+      kapitel: texte(v.kapitel),
+      frage: sOpt(v.frage),
+      antwort: sOpt(v.antwort),
+      begruendung: s(v.begruendung),
+      belege: parseZitate(v.belege),
+      status: eines(v.status, VORSCHLAGS_STATI, 'neu'),
+      angelegt: sOpt(v.angelegt),
+    });
+  });
+}
+
 export function parseKiLeser(text: string): KiAblage<LeserStand> {
   return parseKiAblage(text, (v) => {
     if (!s(v.kapitel)) return null;
     return {
+      ...ohneUndefined({ id: sOpt(v.id) }),
       kapitel: s(v.kapitel),
       basisHash: s(v.basisHash),
       weiss: liste(v.weiss)
@@ -1040,7 +1136,14 @@ export function parseKiLeser(text: string): KiAblage<LeserStand> {
         .map((a) => ({ text: s(a.text), belege: parseZitate(a.belege) })),
       fragen: liste(v.fragen)
         .filter(istObjekt)
-        .map((f, i) => ohneUndefined({ id: s(f.id) || `frage-${i + 1}`, frage: s(f.frage), belege: parseZitate(f.belege), beantwortetIn: sOpt(f.beantwortetIn) })),
+        .map((f, i) => ohneUndefined({
+            id: s(f.id) || `frage-${i + 1}`,
+            frage: s(f.frage),
+            belege: parseZitate(f.belege),
+            beantwortetIn: sOpt(f.beantwortetIn),
+            faden: sOpt(f.faden),
+            anmerkung: sOpt(f.anmerkung),
+          })),
       modell: s(v.modell),
       datum: s(v.datum),
       ...ohneUndefined({
@@ -1054,6 +1157,7 @@ export function parseKiLeser(text: string): KiAblage<LeserStand> {
                 : [];
             })
           : undefined,
+        erledigt: sOpt(v.erledigt),
       }),
     };
   });
@@ -1177,12 +1281,14 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
     lies(PFADE.lektorat, parseLektorat),
     lies(PFADE.recherche, parseRecherche),
   ]);
-  const [kiZeitVorschlaege, kiZustandVorschlaege, kiStimmen, kiLeser, kiFragen] = await Promise.all([
+  const [kiZeitVorschlaege, kiZustandVorschlaege, kiStimmen, kiLeser, kiFragen, kiStrangVorschlaege, kiFakten] = await Promise.all([
     lies(PFADE.kiZeit, parseKiZeitVorschlaege),
     lies(PFADE.kiZustand, parseKiZustandVorschlaege),
     lies(PFADE.kiStimmen, parseKiStimmen),
     lies(PFADE.kiLeser, parseKiLeser),
     lies(PFADE.kiFragen, parseKiFragen),
+    lies(PFADE.kiStraenge, parseKiStrangVorschlaege),
+    lies(PFADE.kiFakten, parseKiFakten),
   ]);
 
   const projekt: Projekt = projektRoh ?? { version: 1, titel: '', kapitel: [], notiz: '' };
@@ -1237,6 +1343,8 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
       ...(kiStimmen ? { kiStimmen } : {}),
       ...(kiLeser ? { kiLeser } : {}),
       ...(kiFragen ? { kiFragen } : {}),
+      ...(kiStrangVorschlaege ? { kiStrangVorschlaege } : {}),
+      ...(kiFakten ? { kiFakten } : {}),
     },
     warnungen,
   };

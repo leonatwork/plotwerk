@@ -8,8 +8,9 @@ Stand Oktober 2026) und die Claude-API-Doku.
 
 ## Anbieter
 
-Leon wählt in den Einstellungen **Microsoft Foundry** oder die **Claude API** (Anthropic direkt).
-Beide sprechen dieselbe Messages-API; Prompt-Aufbau und Antwortprüfung sind identisch.
+Leon wählt in den Einstellungen **Microsoft Foundry**, die **Claude API** (Anthropic direkt) oder
+einen **OpenAI-kompatiblen Dienst** (siehe unten). Foundry und Claude API sprechen dieselbe
+Messages-API; Prompt-Aufbau und Antwortprüfung sind für alle Anbieter identisch.
 
 | | Microsoft Foundry | Claude API |
 | --- | --- | --- |
@@ -23,6 +24,40 @@ Beide sprechen dieselbe Messages-API; Prompt-Aufbau und Antwortprüfung sind ide
 `projekt.md`), gilt Foundry. Die Einstellungen des jeweils anderen Anbieters bleiben beim
 Umschalten erhalten. Helfer: `kiAnbieter`, `kiModell`, `kiEndpoint`, `kiMitStandards`
 (`core/ki/anbieter.ts`).
+
+## OpenAI-kompatible Dienste (E15)
+
+Dritter Anbieter `openai`: alles mit OpenAI-kompatibler Chat-Completions-API. Vorlagen in
+`core/ki/anbieter.ts` (`VORLAGEN`):
+
+| Vorlage | Basis-URL | Schlüssel | Antwortformat | Effort |
+| --- | --- | --- | --- | --- |
+| Ollama (Standard) | `http://localhost:11434/v1` | optional | `json_schema` (per Grammatik erzwungen) | – |
+| LM Studio | `http://localhost:1234/v1` | optional | `json_schema` | – |
+| OpenAI | `https://api.openai.com/v1` | Pflicht | `json_schema` strict, `max_completion_tokens` | `reasoning_effort` |
+| OpenRouter | `https://openrouter.ai/api/v1` | Pflicht | `json_schema`, `provider: {require_parameters, data_collection: "deny"}` | `reasoning.effort` |
+| Qwen (Alibaba Cloud) | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | Pflicht | `json_object`, Schema im System-Prompt | – |
+| Eigene URL | – | optional | `json_schema` | – |
+
+- `core/ki` baut weiter Messages-API-Bodys und liest Messages-API-Antworten. Der Tauri-Transport
+  übersetzt davor und danach (`nachOpenAi`, `vonOpenAi` in `core/ki/openai.ts`): `system` → Nachricht
+  `system`, Inhaltsblöcke → ein Text (ohne `cache_control`; die Dienste cachen gleiche Anfänge selbst),
+  `finish_reason` `stop`/`length`/`content_filter` → `end_turn`/`max_tokens`/`refusal`,
+  `prompt_tokens − cached_tokens` → `input_tokens`, `cached_tokens` → `cache_read_input_tokens`. Ein
+  vorangestelltes `<think>…</think>` und ein ```-Zaun werden vor dem JSON entfernt.
+- Unsere Schemas erfüllen den Strict-Modus von OpenAI (`obj()` in `anfrage.ts`: alle Felder Pflicht,
+  `additionalProperties: false`).
+- Rust: `POST {endpoint}/chat/completions`, `content-type` und – nur wenn hinterlegt –
+  `Authorization: Bearer <Schlüssel>` (Konto `openai-kompatibel`). Kein `x-api-key`, keine
+  `anthropic-*`-Kopfzeilen. `http://` nur für localhost. Zeitlimit 30 min (lokale Modelle lesen ein
+  ganzes Buch langsam ein).
+- Kein `count_tokens`: `tokenZaehlen` lehnt ab, `core/ki` schätzt über Zeichen/3.
+- Keine Listenpreise: Schätzung und Ergebnis tragen `kostenBekannt: false` (`kostenUsd` 0 bzw. fehlt),
+  Ablagen speichern dann kein `kostenUsd`.
+- Kontextlänge: Ist `ki.openai.kontextTokens` gesetzt, lehnt der Transport Anfragen ab, die geschätzt
+  samt 4 000 Tokens Reserve nicht hineinpassen. Lokale Server kürzen sonst still (Ollama:
+  `OLLAMA_CONTEXT_LENGTH`, LM Studio: Kontext beim Laden des Modells).
+- Modellnamen haben keinen Claude-Standard; eine leere Rolle nutzt das Prüfmodell.
 
 ## Endpoint und Pfade
 
@@ -286,4 +321,10 @@ Aufgabentext, Schema, optional `kapitelBis`, `auswerten`). `fuehreAufgabeAus` ba
 `AufgabenPruefung`: `zitate()` prüft Zitate wörtlich nach E6, `text()` verwirft Formulierungsvorschläge und fremde
 Zitate. `schaetzeAufgabe` liefert die Kostenschätzung, `werteAufgabenAntwortAus` wertet vorbereitete Antworten aus.
 Die Browser-Demo beantwortet Aufgaben über `src/backend/ki/demoAntworten/` (je Gruppe eine Datei, Schlüssel = `art`).
+
+Figurenfakten (`fakten.ts`, `art="fakten"`, F-17): ein Request für das ganze Buch (optional eine Figur), Antwort
+`{fakten: [{figur, merkmal, wert, kapitel, zitat}]}`. Merkmal höchstens drei, Wert höchstens acht Wörter; Zitat wörtlich
+(E6); Figur nur aus dem Schema-Enum. Die KI vergleicht nichts – Widersprüche und Planabweichungen berechnet
+`core/figuren/fakten.ts` lokal. An das Modell gehen nur Daten der Allowlist (E12): Namen, Aliase, Gewissheit und die
+Namen der Planfelder.
 

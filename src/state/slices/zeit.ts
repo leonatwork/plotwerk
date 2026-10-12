@@ -8,6 +8,7 @@
  */
 import type { StateCreator } from 'zustand';
 import {
+  bekannteKosten,
   KiFehler,
   schaetzeZeitpunkte,
   schaetzeZustaende,
@@ -70,6 +71,8 @@ export interface ZeitLaufErgebnis {
   kapitel: number;
   modell: string;
   kostenUsd: number;
+  /** false = Kosten unbekannt (OpenAI-kompatibler Dienst) */
+  kostenBekannt?: false;
   zeit: number;
 }
 
@@ -270,7 +273,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
           const gemischt = mischeZeitVorschlaege(
             daten().kiZeitVorschlaege,
             r.ergebnis.vorschlaege,
-            { datum: r.datum, modell: r.modell, kostenUsd: r.kostenUsd },
+            { datum: r.datum, modell: r.modell, ...bekannteKosten(r) },
             daten(),
             r.ergebnis.kapitel,
           );
@@ -285,6 +288,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
               kapitel: r.ergebnis.kapitel.length,
               modell: r.modell,
               kostenUsd: r.kostenUsd,
+              ...(r.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
               zeit: Date.now(),
             },
           });
@@ -295,7 +299,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
           const gemischt = mischeZustandVorschlaege(
             daten().kiZustandVorschlaege,
             r.ergebnis.vorschlaege,
-            { datum: r.datum, modell: r.modell, kostenUsd: r.kostenUsd },
+            { datum: r.datum, modell: r.modell, ...bekannteKosten(r) },
             daten(),
             za.figur,
           );
@@ -311,6 +315,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
               kapitel: r.ergebnis.kapitel.length,
               modell: r.modell,
               kostenUsd: r.kostenUsd,
+              ...(r.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
               zeit: Date.now(),
             },
           });

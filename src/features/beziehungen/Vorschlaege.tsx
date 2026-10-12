@@ -5,9 +5,10 @@
  * Die KI legt nichts an; angelegt wird nur auf Klick über den Store.
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { EFFORT, figurVerweisAufloesen, formatiereUsd, offeneVorschlaege, type OffeneVorschlaege, type Schaetzung } from '@core/ki/index';
+import { EFFORT, figurVerweisAufloesen, offeneVorschlaege, type OffeneVorschlaege, type Schaetzung } from '@core/ki/index';
 import type { BeziehungsVorschlag, FigurVorschlag, KiVorschlaege, OrtVorschlag, ProjektDaten, VorschlagsVerweis, Zitat } from '@core/model/types';
-import { f, liste, useTexte, zahl as zahlFormat, sprache } from '../../i18n';
+import { f, liste, useTexte, zahl as zahlFormat } from '../../i18n';
+import { kostenBetrag, kostenWert } from '../ki/kosten';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import type { VorschlagsArt } from '../../state/slices/vorschlaege';
 import { useStore } from '../../state/store';
@@ -15,14 +16,17 @@ import { Abschnittslabel, Button, Checkbox, Dialog, IconSchliessen, Inspektor, S
 import { ankerFuerZitat, kategorieFarbe, kapitelTitel, kapLabel } from './gemeinsam';
 import '../ki/ki.css';
 import './vorschlaege.css';
+import { useFunktion } from '../../state/funktionen';
 
 const zahl = (n: number) => zahlFormat(Math.round(n));
 const LEER: OffeneVorschlaege = { figuren: [], orte: [], beziehungen: [], anzahl: 0 };
 
 /** Offene KI-Vorschläge des geladenen Projekts (für Zähler in Netz und Figurenliste). */
+/** Offene KI-Vorschläge; bei ausgeblendeter KI-Erkennung (E16) keine. */
 export function useOffeneVorschlaege(): OffeneVorschlaege {
   const daten = useStore((s) => s.daten);
-  return useMemo(() => (daten ? offeneVorschlaege(daten.kiVorschlaege, daten) : LEER), [daten]);
+  const mitKi = useFunktion('kiErkennung');
+  return useMemo(() => (daten && mitKi ? offeneVorschlaege(daten.kiVorschlaege, daten) : LEER), [daten, mitKi]);
 }
 
 function FehlerKasten({ fehler }: { fehler: KiFehlerAnzeige }) {
@@ -132,7 +136,7 @@ function VorschlagDialogInhalt() {
               eingabe: zahl(tok.eingabe),
               cache: zahl(tok.cacheGelesen),
               ausgabe: zahl(tok.ausgabe),
-              kosten: formatiereUsd(ergebnis.kostenUsd, sprache()),
+              kosten: kostenBetrag(ergebnis),
             })}
           </dd>
         </dl>
@@ -187,7 +191,7 @@ function VorschlagDialogInhalt() {
               <dt>{tv.ausgabe}</dt>
               <dd>{f(tv.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
               <dt>{tv.kosten}</dt>
-              <dd>{f(tv.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, tv.kostenWert, 'kosten')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-ki-klein">{tv.nichtGezaehlt}</p>}
           </>
@@ -229,10 +233,12 @@ interface EintragProps {
   arbeitet: string | null;
   aktion(schluessel: string, was: 'uebernehmen' | 'verwerfen', art: VorschlagsArt): void;
   uebernehmenTitel?: string;
+  /** Beschriftung statt „Übernehmen“ */
+  uebernehmenText?: string;
   children: ReactNode;
 }
 
-function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children }: EintragProps) {
+function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, uebernehmenText, children }: EintragProps) {
   const beschaeftigt = arbeitet !== null;
   const tv = useTexte().beziehungen.vorschlaege;
   return (
@@ -240,7 +246,7 @@ function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children
       {children}
       <div className="pw-vs-knoepfe">
         <Button klein onClick={() => aktion(schluessel, 'uebernehmen', art)} disabled={beschaeftigt} title={uebernehmenTitel}>
-          {tv.uebernehmen}
+          {uebernehmenText ?? tv.uebernehmen}
         </Button>
         <Button klein variante="leise" onClick={() => aktion(schluessel, 'verwerfen', art)} disabled={beschaeftigt}>
           {tv.verwerfen}
@@ -282,6 +288,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
   const uebernehmen = useStore((s) => s.vorschlagUebernehmen);
   const verwerfen = useStore((s) => s.vorschlagVerwerfen);
   const alleUebernehmen = useStore((s) => s.alleVorschlaegeUebernehmen);
+  const statistenUebernehmen = useStore((s) => s.alleStatistenUebernehmen);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [meldung, setMeldung] = useState<string | null>(null);
   const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
@@ -321,6 +328,10 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       });
     });
 
+  const statisten = () =>
+    void ausfuehren('statisten', async () => f(tv.statistenUebernommen, { figuren: f(tv.figurenAnzahl, { n: await statistenUebernehmen() }) }));
+  const offeneStatisten = offen.figuren.filter((x) => x.rolle === 'statist' && !x.ziel).length;
+
   const a = ablage ?? { version: 1 as const, figuren: [], orte: [], beziehungen: [] };
 
   return (
@@ -355,7 +366,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
       {ergebnis && !laeuft && (
         <span className="pw-vs-klein">
-          {f(tv.letzterLauf, { neu: ergebnis.neu, verworfen: ergebnis.verworfen.length, kosten: formatiereUsd(ergebnis.kostenUsd, sprache()) })}
+          {f(tv.letzterLauf, { neu: ergebnis.neu, verworfen: ergebnis.verworfen.length, kosten: kostenBetrag(ergebnis) })}
         </span>
       )}
 
@@ -369,17 +380,32 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
 
       <Abschnitt titel={tv.figuren} anzahl={offen.figuren.length}>
-        {offen.figuren.map((fv: FigurVorschlag) => (
-          <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
-            <div className="pw-vs-zeile">
-              <strong>{fv.name}</strong>
-              <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : tv.nebenfigur}</span>
-            </div>
-            {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
-            {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
-            <Belege daten={daten} belege={fv.belege} />
-          </Eintrag>
-        ))}
+        {offeneStatisten > 1 && (
+          <Button klein onClick={statisten} disabled={arbeitet !== null} style={{ alignSelf: 'flex-start' }}>
+            {f(tv.alleStatisten, { n: offeneStatisten })}
+          </Button>
+        )}
+        {offen.figuren.map((fv: FigurVorschlag) =>
+          fv.ziel ? (
+            <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion} uebernehmenText={tv.alsSpitznamen}>
+              <div className="pw-vs-zeile">
+                <strong>{[fv.name, ...fv.aliase].join(', ')}</strong>
+              </div>
+              <span className="pw-vs-meta">{f(tv.spitznamenFuer, { name: daten.figuren[fv.ziel]?.name ?? fv.ziel })}</span>
+              <Belege daten={daten} belege={fv.belege} />
+            </Eintrag>
+          ) : (
+            <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
+              <div className="pw-vs-zeile">
+                <strong>{fv.name}</strong>
+                <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : fv.rolle === 'statist' ? tv.statist : tv.nebenfigur}</span>
+              </div>
+              {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
+              {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
+              <Belege daten={daten} belege={fv.belege} />
+            </Eintrag>
+          ),
+        )}
       </Abschnitt>
 
       <Abschnitt titel={tv.orte} anzahl={offen.orte.length}>

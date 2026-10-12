@@ -30,7 +30,7 @@ export const importexport: Form<typeof de> = {
     dateiname: 'File name',
     nichtExportiert: 'Comments, highlights and planning notes are not exported.',
     abgabeVor: 'For a publisher, agency or editor:',
-    abgabeLink: 'Standard manuscript pages, synopsis, EPUB or editor’s package …',
+    abgabeLink: 'Standard manuscript pages, synopsis, EPUB, editor’s package or characters …',
     schriftFehler: 'Couldn’t load the font for the PDF export ({status})',
   },
   import: {

@@ -20,6 +20,7 @@ import type {
   Markenliste,
   Recherche,
   Schreibstatistik,
+  FigurFakt,
   StimmenBeobachtung,
   Szene,
   Zeitleiste,
@@ -38,6 +39,7 @@ import type {
   Ort,
   Projekt,
   Strang,
+  StrangVorschlag,
 } from '../model/types';
 import { versionsPfadMitZusatz } from '../versionen/index';
 import type { ProjektDateisystem } from './fs';
@@ -61,23 +63,24 @@ import {
 const S = {
   projekt: ['version', 'titel', 'kapitel', 'ki', 'angaben'],
   angaben: ['autor', 'untertitel', 'genre', 'sprache'],
-  ki: ['endpoint', 'deployments', 'anbieter', 'claude'],
+  ki: ['endpoint', 'deployments', 'anbieter', 'claude', 'openai'],
   deployments: ['erkennung', 'pruefung', 'tiefencheck'],
   claude: ['endpoint', 'modelle'],
+  openai: ['vorlage', 'endpoint', 'modelle', 'kontextTokens'],
   kapitel: ['id', 'titel'],
-  plan: ['id', 'titel', 'akt', 'status', 'szene', 'straenge', 'figuren', 'orte', 'abweichungen', 'realitaet', 'zeit', 'szenen'],
+  plan: ['id', 'titel', 'akt', 'status', 'szene', 'funktion', 'straenge', 'figuren', 'orte', 'abweichungen', 'realitaet', 'zeit', 'szenen'],
   zeitpunkt: ['tag', 'wochentag', 'datum', 'tageszeit', 'uhrzeit', 'dauer', 'sicherheit', 'beleg', 'notiz'],
   szene: ['id', 'index', 'titel', 'ort', 'figuren', 'zeit', 'notiz'],
   abweichung: ['id', 'notiz', 'entscheidung', 'datum', 'alterPlan'],
   realitaet: ['id', 'text', 'stufe', 'anker'],
   anker: ['kapitel', 'exakt', 'davor', 'danach'],
   akt: ['nummer', 'titel', 'quintessenz', 'wendepunkt', 'antagonisten'],
-  strang: ['id', 'name', 'farbe', 'gruppe'],
+  strang: ['id', 'name', 'farbe', 'gruppe', 'rolle', 'beschreibung'],
   idee: ['id', 'titel', 'notiz', 'straenge'],
   motiv: ['id', 'name', 'aliase'],
-  figur: ['id', 'name', 'aliase', 'formen', 'rolle', 'kurz', 'existenz', 'gruppe', 'beziehungen', 'plan', 'netz'],
+  figur: ['id', 'name', 'aliase', 'formen', 'rolle', 'kurz', 'existenz', 'gruppe', 'beziehungen', 'plan', 'netz', 'ruheSchwelle', 'spitznamen'],
   beziehung: ['zu', 'art', 'abKapitel', 'kategorie', 'strang', 'notiz', 'unsicher'],
-  gruppe: ['id', 'name', 'typ', 'status', 'mitglieder', 'strang', 'spuren', 'praesenz', 'netz'],
+  gruppe: ['id', 'name', 'typ', 'status', 'mitglieder', 'strang', 'spuren', 'praesenz', 'netz', 'rollen'],
   spur: ['id', 'text', 'kapitel', 'anker', 'status'],
   ort: ['id', 'name', 'aliase', 'in'],
   hinweis: ['schluessel', 'typ', 'titel', 'zitate', 'erklaerung', 'quelle', 'offen', 'status'],
@@ -149,9 +152,20 @@ export function serializeProjekt(p: Projekt, vorhanden?: string | null): string 
   const claude = p.ki?.claude
     ? ordne({ endpoint: p.ki.claude.endpoint, modelle: ordne(p.ki.claude.modelle, S.deployments, altClaude?.modelle) }, S.claude, altClaude)
     : altClaude;
+  // Ebenso die Einstellungen des OpenAI-kompatiblen Dienstes.
+  const altOpenAi = altKi && istObjekt(altKi.openai) ? altKi.openai : undefined;
+  const openai = p.ki?.openai
+    ? ordne({ ...p.ki.openai, modelle: ordne(p.ki.openai.modelle, S.deployments, altOpenAi?.modelle) }, S.openai, altOpenAi)
+    : altOpenAi;
   const ki = p.ki
     ? ordne(
-        { endpoint: p.ki.endpoint, deployments: ordne(p.ki.deployments, S.deployments, altKi?.deployments), anbieter: p.ki.anbieter, claude },
+        {
+          endpoint: p.ki.endpoint,
+          deployments: ordne(p.ki.deployments, S.deployments, altKi?.deployments),
+          anbieter: p.ki.anbieter,
+          claude,
+          openai,
+        },
         S.ki,
         altKi,
       )
@@ -315,7 +329,7 @@ export function serializeHinweise(hinweise: Hinweis[]): string {
 /** Schlüsselreihenfolge = Typdefinitionen KiVorschlaege, FigurVorschlag, OrtVorschlag, BeziehungsVorschlag */
 const SV = {
   ablage: ['version', 'figuren', 'orte', 'beziehungen', 'lauf'],
-  figur: ['schluessel', 'name', 'aliase', 'rolle', 'kurz', 'belege', 'status', 'figur'],
+  figur: ['schluessel', 'name', 'aliase', 'rolle', 'kurz', 'belege', 'status', 'figur', 'ziel'],
   ort: ['schluessel', 'name', 'aliase', 'in', 'belege', 'status', 'ort'],
   beziehung: ['schluessel', 'von', 'zu', 'art', 'kategorie', 'abKapitel', 'unsicher', 'belege', 'begruendung', 'status'],
   verweis: ['typ', 'id', 'name'],
@@ -372,11 +386,13 @@ const SW = {
   zeitVorschlag: ['schluessel', 'kapitel', 'szene', 'zeit', 'belege', 'begruendung', 'status'],
   zustandVorschlag: ['schluessel', 'figur', 'kapitel', 'szene', 'zustand', 'belege', 'begruendung', 'status'],
   stimme: ['schluessel', 'figur', 'kapitel', 'titel', 'erklaerung', 'zitate', 'vergleich', 'status'],
-  leser: ['kapitel', 'basisHash', 'weiss', 'fragen', 'vermutungen', 'spannung', 'plan', 'modell', 'datum'],
+  fakt: ['schluessel', 'figur', 'merkmal', 'wert', 'kapitel', 'zitat', 'status'],
+  leser: ['id', 'kapitel', 'basisHash', 'weiss', 'fragen', 'vermutungen', 'spannung', 'plan', 'modell', 'datum', 'erledigt'],
   leserPlan: ['kapitel', 'aussage', 'status', 'erklaerung', 'belege'],
   leserAussage: ['text', 'belege'],
-  leserFrage: ['id', 'frage', 'belege', 'beantwortetIn'],
+  leserFrage: ['id', 'frage', 'belege', 'beantwortetIn', 'faden', 'anmerkung'],
   buchFrage: ['id', 'frage', 'datum', 'antwort', 'belege', 'imBuch', 'modell', 'kostenUsd'],
+  strangVorschlag: ['schluessel', 'art', 'strang', 'name', 'rolle', 'beschreibung', 'kapitel', 'frage', 'antwort', 'begruendung', 'belege', 'status', 'angelegt'],
 } as const;
 
 const zitate = (z: readonly object[]) => z.map((x) => ordne(x, S.zitat));
@@ -484,6 +500,12 @@ export const serializeKiZustandVorschlaege = (a: KiAblage<ZustandVorschlag>) =>
 
 export const serializeKiStimmen = (a: KiAblage<StimmenBeobachtung>) =>
   serializeKiAblage(a, (v) => ordne({ ...v, zitate: zitate(v.zitate), vergleich: zitate(v.vergleich) }, SW.stimme));
+
+export const serializeKiStrangVorschlaege = (a: KiAblage<StrangVorschlag>) =>
+  serializeKiAblage(a, (v) => ordne({ ...v, kapitel: [...v.kapitel], belege: zitate(v.belege) }, SW.strangVorschlag));
+
+export const serializeKiFakten = (a: KiAblage<FigurFakt>) =>
+  serializeKiAblage(a, (v) => ordne({ ...v, zitat: zitate([v.zitat])[0] }, SW.fakt));
 
 export const serializeKiLeser = (a: KiAblage<LeserStand>) =>
   serializeKiAblage(a, (v) =>
@@ -610,12 +632,17 @@ export const speichereKiZustandVorschlaege = (fs: ProjektDateisystem, a: KiAblag
 
 export const speichereKiStimmen = (fs: ProjektDateisystem, a: KiAblage<StimmenBeobachtung>) =>
   schreibeWennGeaendert(fs, PFADE.kiStimmen, serializeKiStimmen(a), true);
+export const speichereKiFakten = (fs: ProjektDateisystem, a: KiAblage<FigurFakt>) =>
+  schreibeWennGeaendert(fs, PFADE.kiFakten, serializeKiFakten(a), true);
 
 export const speichereKiLeser = (fs: ProjektDateisystem, a: KiAblage<LeserStand>) =>
   schreibeWennGeaendert(fs, PFADE.kiLeser, serializeKiLeser(a), true);
 
 export const speichereKiFragen = (fs: ProjektDateisystem, a: KiAblage<BuchFrage>) =>
   schreibeWennGeaendert(fs, PFADE.kiFragen, serializeKiFragen(a), true);
+
+export const speichereKiStrangVorschlaege = (fs: ProjektDateisystem, a: KiAblage<StrangVorschlag>) =>
+  schreibeWennGeaendert(fs, PFADE.kiStraenge, serializeKiStrangVorschlaege(a), true);
 
 // ---------------------------------------------------------------------------
 // Schnappschüsse und Entfernen

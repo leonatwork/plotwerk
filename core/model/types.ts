@@ -18,8 +18,14 @@ export type Realitaet = 'gesichert' | 'offen' | 'bewusst_vage';
 // Projekt (projekt.md)
 // ---------------------------------------------------------------------------
 
-/** KI-Anbieter: Claude in Microsoft Foundry oder die Claude API von Anthropic direkt. */
-export type KiAnbieter = 'foundry' | 'claude';
+/**
+ * KI-Anbieter: Claude in Microsoft Foundry, die Claude API von Anthropic direkt oder ein Dienst mit
+ * OpenAI-kompatibler Chat-Completions-API (OpenAI, OpenRouter, Qwen, Ollama, LM Studio …).
+ */
+export type KiAnbieter = 'foundry' | 'claude' | 'openai';
+
+/** Vorlage für den OpenAI-kompatiblen Anbieter: bestimmt Standard-URL und kleine Unterschiede im Request. */
+export type KiVorlage = 'openai' | 'openrouter' | 'qwen' | 'ollama' | 'lmstudio' | 'eigen';
 
 /** Modell je Aufgabe (Foundry: Deployment-Namen, Claude API: Modell-IDs). */
 export interface KiModelle {
@@ -39,6 +45,17 @@ export interface KiClaudeEinstellungen {
   modelle: KiModelle;
 }
 
+/** OpenAI-kompatibler Dienst. Schlüssel (optional, lokal meist keiner) im Schlüsselbund, Konto „openai-kompatibel“. */
+export interface KiOpenAiEinstellungen {
+  vorlage: KiVorlage;
+  /** Basis-URL ohne /chat/completions, z. B. http://localhost:11434/v1 */
+  endpoint: string;
+  /** Modellnamen des Dienstes; leer = das Modell einer anderen Rolle (kein Claude-Standard) */
+  modelle: KiModelle;
+  /** Kontextlänge des Modells in Tokens; größere Anfragen werden vor dem Senden abgelehnt statt still gekürzt */
+  kontextTokens?: number;
+}
+
 export interface KiEinstellungen {
   /** Foundry: z. B. https://<resource>.services.ai.azure.com/anthropic – ohne /v1/messages */
   endpoint: string;
@@ -55,6 +72,8 @@ export interface KiEinstellungen {
   anbieter?: KiAnbieter;
   /** Einstellungen der Claude API; bleiben erhalten, solange Foundry gewählt ist. */
   claude?: KiClaudeEinstellungen;
+  /** Einstellungen des OpenAI-kompatiblen Dienstes; bleiben erhalten, solange ein anderer Anbieter gewählt ist. */
+  openai?: KiOpenAiEinstellungen;
 }
 
 export interface Projekt {
@@ -111,8 +130,10 @@ export interface KapitelPlan {
   /** Aktnummer; null = noch keinem Akt zugeordnet */
   akt: number | null;
   status: KapitelStatus;
-  /** Titel der geplanten Szene, z. B. „Paul trifft Lotte am Lindenhof“ */
+  /** Kurzbeschreibung in einer Zeile (Oberfläche „Kurzbeschreibung“, früher „Geplante Szene“), z. B. „Paul trifft Lotte am Lindenhof“ */
   szene: string;
+  /** Funktion des Kapitels im Buch, z. B. „Opening“, „Wendepunkt“ (Vorschläge in der Oberfläche oder frei). Nicht an die KI. */
+  funktion?: string;
   straenge: Id[];
   figuren: Id[];
   orte: Id[];
@@ -135,6 +156,9 @@ export interface Akt {
   antagonisten: Id[];
 }
 
+/** Haupthandlung oder Nebenhandlung */
+export type StrangRolle = 'haupt' | 'neben';
+
 /** plan/straenge.md – Frontmatter {straenge: Strang[]} */
 export interface Strang {
   id: Id;
@@ -143,6 +167,10 @@ export interface Strang {
   farbe: string;
   /** Wenn der Strang zu einer Gruppe (Antagonist) gehört */
   gruppe?: Id;
+  /** Haupthandlung oder Nebenhandlung; fehlt = nicht festgelegt */
+  rolle?: StrangRolle;
+  /** „Wofür steht der Strang?“ – Zweck des Erzählstrangs in Leons Worten */
+  beschreibung?: string;
 }
 
 /** plan/ideen.md – Frontmatter {ideen: Idee[]} */
@@ -182,7 +210,18 @@ export interface Beziehung {
   unsicher?: boolean;
 }
 
-export type FigurRolle = 'haupt' | 'neben';
+export type FigurRolle = 'haupt' | 'neben' | 'statist';
+
+/** F-16: Kontext zu einem Spitznamen (der Name selbst steht in `Figur.aliase`, das die Erkennung speist). */
+export interface SpitznameKontext {
+  /** wie in `aliase` */
+  name: string;
+  /** Figuren, die die Figur so nennen */
+  von?: Id[];
+  /** gilt ab diesem Kapitel (früher im Text → Hinweis) */
+  abKapitel?: Id;
+  notiz?: string;
+}
 
 /** figuren/<id>.md – Body-Abschnitte „## Wahrheit hinter den Kulissen“ und „## Notizen“ (beide privat) */
 export interface Figur {
@@ -195,6 +234,7 @@ export interface Figur {
   /** Kurzbeschreibung für Listen und Netzkarten, z. B. „Jugendfreundin“, „Ich-Erzähler“ (Plan, nicht an die KI) */
   kurz?: string;
   existenz: Realitaet;
+  /** Hauptgruppe (Farbe, Platz im Netz); maßgeblich für die Mitgliedschaft ist Gruppe.mitglieder (A-05: mehrere Gruppen) */
   gruppe: Id | null;
   beziehungen: Beziehung[];
   /** Freie Planungsfelder („Deine Planung“), Reihenfolge = Anzeige-Reihenfolge */
@@ -205,6 +245,13 @@ export interface Figur {
   notizen: string;
   /** Position der Karte im Beziehungsnetz */
   netz?: { x: number; y: number };
+  /**
+   * F-13: nach so vielen Kapiteln ohne Vorkommen melden; null = nie; fehlt = nach Rolle
+   * (Hauptfigur 3, Nebenfigur 6, Statist nie)
+   */
+  ruheSchwelle?: number | null;
+  /** F-16: Kontext je Spitzname (nur für Namen in `aliase`) */
+  spitznamen?: SpitznameKontext[];
 }
 
 export type GruppenTyp = 'antagonist' | 'firma' | 'familie' | 'sonstige';
@@ -232,6 +279,8 @@ export interface Gruppe {
   notizen: string;
   /** Fläche im Beziehungsnetz */
   netz?: { x: number; y: number; breite: number; hoehe: number };
+  /** A-06: Rolle eines Mitglieds in der Gruppe (Figur-ID → z. B. „Chef“, „Praktikant“) */
+  rollen?: Record<Id, string>;
 }
 
 /** orte/<id>.md – Body = Beschreibung (Plan), Abschnitt „## Notizen“ privat */
@@ -349,7 +398,9 @@ export type HinweisTyp =
   | 'unbekannt'
   | 'struktur'
   | 'zeitleiste'
-  | 'sprache';
+  | 'sprache'
+  /** lokal: Namen und Vorkommen von Figuren (F-11–F-13) */
+  | 'figuren';
 
 export interface Zitat {
   kapitel: Id;
@@ -451,10 +502,14 @@ export interface ProjektDaten {
   kiZustandVorschlaege?: KiAblage<ZustandVorschlag>;
   /** G3 .plotwerk/stimmen.json */
   kiStimmen?: KiAblage<StimmenBeobachtung>;
+  /** F-17 .plotwerk/figurenfakten.json */
+  kiFakten?: KiAblage<FigurFakt>;
   /** G6 .plotwerk/leser.json */
   kiLeser?: KiAblage<LeserStand>;
   /** G6 .plotwerk/fragen.json */
   kiFragen?: KiAblage<BuchFrage>;
+  /** G2 .plotwerk/strang-vorschlaege.json */
+  kiStrangVorschlaege?: KiAblage<StrangVorschlag>;
 }
 
 // ---------------------------------------------------------------------------
@@ -487,6 +542,11 @@ export interface FigurVorschlag {
   status: VorschlagsStatus;
   /** nach der Übernahme: ID der angelegten Figur */
   figur?: Id;
+  /**
+   * F-10: keine neue Figur, sondern Spitznamen (`name` und `aliase`) für diese angelegte Figur;
+   * Schlüssel „spitzname:<figur>|<slug der Namen>“
+   */
+  ziel?: Id;
 }
 
 export interface OrtVorschlag {
@@ -684,6 +744,37 @@ export interface FadenPlan {
   strang?: Id;
 }
 
+/**
+ * KI-Vorschlag zu Erzählsträngen (.plotwerk/strang-vorschlaege.json). Leon übernimmt oder verwirft jeden Vorschlag;
+ * Verworfenes wird nie erneut vorgeschlagen (Abgleich über `schluessel`).
+ * - zuordnung: Kapitel `kapitel[0]` gehört zum angelegten Strang `strang` (Schlüssel „zuordnung:<strang>|<kapitel>“)
+ * - neu: ein noch nicht angelegter Strang mit Name, Rolle, Zweck und Kapiteln (Schlüssel „strang:<slug des Namens>“)
+ * - frage: Rückfrage an Leon (Schlüssel „frage:<slug der Frage>“); seine Antwort geht beim nächsten Lauf mit
+ */
+export interface StrangVorschlag {
+  schluessel: string;
+  art: 'zuordnung' | 'neu' | 'frage';
+  /** zuordnung: ID des angelegten Strangs · frage: betroffener Strang, falls einer */
+  strang?: Id;
+  /** neu: Name des vorgeschlagenen Strangs */
+  name?: string;
+  rolle?: StrangRolle;
+  /** neu: Zweck in einem sachlichen Satz (wird bei der Übernahme zu Strang.beschreibung) */
+  beschreibung?: string;
+  /** Kapitel in Buchreihenfolge (zuordnung: genau eins) */
+  kapitel: Id[];
+  /** frage: die Rückfrage */
+  frage?: string;
+  /** frage: Leons Antwort (dann status 'uebernommen') */
+  antwort?: string;
+  begruendung: string;
+  /** wörtliche Zitate (E6), mindestens eins je Kapitel */
+  belege: Zitat[];
+  status: VorschlagsStatus;
+  /** neu: nach der Übernahme die ID des angelegten Strangs */
+  angelegt?: Id;
+}
+
 /** plan/faeden.md – Frontmatter {ruheSchwelle, faeden}. Status bleibt in entscheidungen.faeden. */
 export interface Fadenplanung {
   /** Standard-Schwelle in Kapiteln (K-02: 3) */
@@ -726,6 +817,25 @@ export interface StimmenBeobachtung {
   /** typische Stellen zum Vergleich (wörtlich, E6) */
   vergleich: Zitat[];
   status: KiBeobachtungsStatus;
+}
+
+/**
+ * F-17: Angabe über eine Figur, wie sie im Text steht (KI, wörtlich belegt). Widersprüche (gleiches Merkmal,
+ * verschiedene Werte) und Abweichungen von der Planung findet die App selbst (core/figuren/fakten.ts).
+ */
+export interface FigurFakt {
+  /** stabiler Schlüssel „fakt:<figur>|<merkmal>|<kapitel>/<zitatkern>“ */
+  schluessel: string;
+  figur: Id;
+  /** Merkmal, z. B. „Alter“, „Beruf“, „Auto“ (möglichst wie ein Planfeld der Figur benannt) */
+  merkmal: string;
+  /** Wert laut Text, kurz, z. B. „34“, „alter Saab 900“ */
+  wert: string;
+  kapitel: Id;
+  /** Beleg (wörtlich, E6) */
+  zitat: Zitat;
+  /** „verworfen“: Leon hält die Angabe für falsch erkannt; kommt nicht wieder */
+  status: 'neu' | 'verworfen';
 }
 
 // ---------------------------------------------------------------------------
@@ -802,6 +912,10 @@ export interface LeserFrage {
   belege: Zitat[];
   /** im Text (bis zu diesem Kapitel) schon beantwortet in Kapitel … */
   beantwortetIn?: Id;
+  /** von Leon als Faden übernommen (FadenPlan-ID in plan/faeden.md) */
+  faden?: Id;
+  /** von Leon als Notiz an die Belegstelle geheftet (Anmerkung-ID in anmerkungen.json) */
+  anmerkung?: Id;
 }
 
 /** Plan-Abgleich der Leser-Simulation: „Plan sagt: … – belegt / nur angedeutet / nicht belegt“. */
@@ -817,8 +931,13 @@ export interface LeserPlanAbgleich {
   belege: Zitat[];
 }
 
-/** Leser-Simulation: Was weiß der Leser nach Kapitel n, welche Fragen hat er offen? */
+/**
+ * Leser-Simulation: Was weiß der Leser nach Kapitel n, welche Fragen hat er offen? Jede Simulation bleibt erhalten
+ * (mehrere je Kapitel), bis Leon sie löscht.
+ */
 export interface LeserStand {
+  /** eindeutig je Simulation; ältere Stände ohne id: `standId()` leitet sie aus Kapitel und Datum ab */
+  id?: Id;
   kapitel: Id;
   /** Hash der Kapiteltexte bis einschließlich `kapitel` (veraltet, wenn sich etwas ändert) */
   basisHash: string;
@@ -832,6 +951,8 @@ export interface LeserStand {
   spannung?: LeserAussage[];
   /** Abgleich mit Leons Kapitelplänen (ältere Stände: „plan|status|kapitel|…“) */
   plan?: LeserPlanAbgleich[];
+  /** von Leon als erledigt markiert (ISO-Datum) */
+  erledigt?: string;
 }
 
 /** Frage an das Buch (Chat) – Antworten nur mit Belegstellen. */

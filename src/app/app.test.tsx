@@ -63,7 +63,7 @@ describe('App im Browser-Demo', () => {
     expect(gruppe).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(gruppe);
     expect(gruppe).toHaveAttribute('aria-expanded', 'true');
-    expect(within(nav).getAllByRole('button').slice(8).map((e) => e.textContent)).toEqual(['Zeitleiste', 'Fäden', 'Recherche', 'Statistik', 'Fragen']);
+    expect(within(nav).getAllByRole('button').slice(8).map((e) => e.textContent)).toEqual(['Zeitleiste', 'Lose Enden', 'Recherche', 'Statistik', 'Fragen']);
     fireEvent.click(within(nav).getByText('Zeitleiste'));
     expect(useStore.getState().bereich).toBe('zeitleiste');
     expect(await screen.findByRole('heading', { name: 'Zeitleiste', level: 1 })).toBeInTheDocument();

@@ -1,16 +1,18 @@
-//! HTTP-Transport zur Messages-API: Claude in Microsoft Foundry oder die Claude API von
-//! Anthropic direkt (Anbieter wählt Leon in den Einstellungen).
+//! HTTP-Transport zur KI: Messages-API (Claude in Microsoft Foundry oder die Claude API von
+//! Anthropic direkt) oder OpenAI-kompatible Chat-Completions-API (OpenAI, OpenRouter, Ollama,
+//! LM Studio …). Den Anbieter wählt Leon in den Einstellungen.
 //!
 //! Dieses Crate hat bewusst keinen Dateizugriff (siehe `clippy.toml` und
 //! `tests/kein_dateizugriff.rs`): Die KI kann nichts schreiben. Es nimmt einen fertigen
-//! Request-Body entgegen, schickt ihn an `{endpoint}/v1/messages` bzw.
-//! `{endpoint}/v1/messages/count_tokens` und gibt das Antwort-JSON zurück.
+//! Request-Body entgegen, schickt ihn an `{endpoint}/v1/messages` (bzw.
+//! `{endpoint}/v1/messages/count_tokens`) oder `{endpoint}/chat/completions` und gibt das
+//! Antwort-JSON zurück. Die Übersetzung zwischen beiden Formaten passiert in TypeScript.
 #![deny(clippy::disallowed_methods, clippy::disallowed_types)]
 
 use std::fmt;
 use std::time::Duration;
 
-use reqwest::header::{HeaderMap, HeaderValue, CONTENT_TYPE, RETRY_AFTER};
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE, RETRY_AFTER};
 use reqwest::StatusCode;
 use serde_json::{Map, Value};
 
@@ -24,6 +26,8 @@ pub const BETA_FALLBACK_STANDARD: &str = "server-side-fallback-2026-07-01";
 pub const BETA_FALLBACK_LISTE: &str = "server-side-fallback-2026-06-01";
 /// Großzügig: Ein Tiefencheck über das ganze Buch kann mehrere Minuten dauern.
 pub const ZEITLIMIT: Duration = Duration::from_secs(600);
+/// OpenAI-kompatibel: Lokale Modelle lesen ein ganzes Buch deutlich langsamer ein.
+pub const ZEITLIMIT_OPENAI: Duration = Duration::from_secs(1800);
 const VERBINDUNGS_ZEITLIMIT: Duration = Duration::from_secs(30);
 /// Längere Retry-After-Angaben werden nicht abgewartet, sondern als Fehler gemeldet.
 const MAX_RETRY_AFTER: u64 = 60;
@@ -51,6 +55,8 @@ pub enum Anbieter {
     Foundry,
     /// Claude API von Anthropic (`https://api.anthropic.com`).
     Claude,
+    /// OpenAI-kompatible Chat-Completions-API (z. B. `http://localhost:11434/v1`). Schlüssel optional.
+    OpenAi,
 }
 
 impl Anbieter {
@@ -59,11 +65,14 @@ impl Anbieter {
         match wert.map(str::trim) {
             None | Some("" | "foundry") => Ok(Self::Foundry),
             Some("claude") => Ok(Self::Claude),
+            Some("openai") => Ok(Self::OpenAi),
             Some(andere) => Err(KiFehler::Einstellung(Text::neu(
                 format!(
-                    "Unbekannter KI-Anbieter „{andere}“. Erwartet wird „foundry“ oder „claude“."
+                    "Unbekannter KI-Anbieter „{andere}“. Erwartet wird „foundry“, „claude“ oder „openai“."
                 ),
-                format!("Unknown AI provider “{andere}”. Expected “foundry” or “claude”."),
+                format!(
+                    "Unknown AI provider “{andere}”. Expected “foundry”, “claude” or “openai”."
+                ),
             ))),
         }
     }
@@ -72,6 +81,15 @@ impl Anbieter {
         match self {
             Self::Foundry => "Microsoft Foundry",
             Self::Claude => "Claude API",
+            Self::OpenAi => "OpenAI-kompatibel",
+        }
+    }
+
+    /// Zeitlimit je Anfrage.
+    pub fn zeitlimit(self) -> Duration {
+        match self {
+            Self::OpenAi => ZEITLIMIT_OPENAI,
+            _ => ZEITLIMIT,
         }
     }
 }
@@ -113,7 +131,8 @@ pub enum KiFehler {
     Einstellung(Text),
     /// Keine Verbindung (DNS, TLS, Netz weg).
     Verbindung(String),
-    Zeitueberschreitung,
+    /// Keine Antwort innerhalb des Zeitlimits (in Minuten).
+    Zeitueberschreitung { minuten: u64 },
     /// HTTP-Status ≠ 2xx.
     Http {
         status: u16,
@@ -149,18 +168,16 @@ impl KiFehler {
         match self {
             KiFehler::Einstellung(m) => m.in_sprache(englisch).to_string(),
             KiFehler::Verbindung(m) if de => format!(
-                "Keine Verbindung zum KI-Endpoint. Bitte Internetverbindung und Endpoint-URL in den KI-Einstellungen prüfen. ({m})"
+                "Keine Verbindung zum KI-Endpoint. Bitte Internetverbindung (bei einem lokalen Modell: ob der Server läuft) und Endpoint-URL in den KI-Einstellungen prüfen. ({m})"
             ),
             KiFehler::Verbindung(m) => format!(
-                "No connection to the AI endpoint. Please check the internet connection and the endpoint URL in the AI settings. ({m})"
+                "No connection to the AI endpoint. Please check the internet connection (for a local model: whether the server is running) and the endpoint URL in the AI settings. ({m})"
             ),
-            KiFehler::Zeitueberschreitung if de => format!(
-                "Die KI hat nicht innerhalb von {} Minuten geantwortet. Bitte später erneut versuchen.",
-                ZEITLIMIT.as_secs() / 60
+            KiFehler::Zeitueberschreitung { minuten } if de => format!(
+                "Die KI hat nicht innerhalb von {minuten} Minuten geantwortet. Bitte später erneut versuchen."
             ),
-            KiFehler::Zeitueberschreitung => format!(
-                "The AI did not answer within {} minutes. Please try again later.",
-                ZEITLIMIT.as_secs() / 60
+            KiFehler::Zeitueberschreitung { minuten } => format!(
+                "The AI did not answer within {minuten} minutes. Please try again later."
             ),
             KiFehler::Antwort(m) if de => {
                 format!("Die Antwort des KI-Dienstes ist unbrauchbar: {m}")
@@ -231,7 +248,9 @@ impl std::error::Error for KiFehler {}
 /// Basis-URL aus dem eingetragenen Endpoint, z. B.
 /// `https://<ressource>.services.ai.azure.com/anthropic` (Foundry) oder
 /// `https://api.anthropic.com` (Claude API; leer = dieser Standard). Akzeptiert auch
-/// eingefügte Ziel-URIs mit `/v1/messages` am Ende. Nur HTTPS (HTTP nur für localhost/Tests).
+/// eingefügte Ziel-URIs mit `/v1/messages` am Ende. OpenAI-kompatibel: Basis-URL samt `/v1`
+/// (z. B. `http://localhost:11434/v1`), ein angehängtes `/chat/completions` wird abgeschnitten.
+/// Nur HTTPS (HTTP nur für localhost/Tests).
 pub fn basis_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler> {
     let mut e = endpoint.trim().trim_end_matches('/').to_string();
     if e.is_empty() {
@@ -241,13 +260,22 @@ pub fn basis_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler>
                 "Kein KI-Endpoint eingetragen. Bitte in den KI-Einstellungen die Foundry-URL angeben (https://<ressource>.services.ai.azure.com/anthropic).",
                 "No AI endpoint set. Please enter the Foundry URL in the AI settings (https://<resource>.services.ai.azure.com/anthropic).",
             ))),
+            Anbieter::OpenAi => return Err(KiFehler::Einstellung(Text::neu(
+                "Keine Basis-URL eingetragen. Bitte in den KI-Einstellungen die Adresse des Dienstes angeben (z. B. http://localhost:11434/v1).",
+                "No base URL set. Please enter the address of the service in the AI settings (e.g. http://localhost:11434/v1).",
+            ))),
         }
     }
     let beispiel = match anbieter {
         Anbieter::Foundry => "https://<ressource>.services.ai.azure.com/anthropic",
         Anbieter::Claude => CLAUDE_API_ENDPOINT,
+        Anbieter::OpenAi => "http://localhost:11434/v1",
     };
-    for endung in ["/v1/messages/count_tokens", "/v1/messages", "/v1"] {
+    let endungen: &[&str] = match anbieter {
+        Anbieter::OpenAi => &["/chat/completions"],
+        _ => &["/v1/messages/count_tokens", "/v1/messages", "/v1"],
+    };
+    for endung in endungen {
         if e.to_ascii_lowercase().ends_with(endung) {
             e.truncate(e.len() - endung.len());
             e = e.trim_end_matches('/').to_string();
@@ -281,11 +309,21 @@ pub fn basis_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler>
 
 /// `POST`-Ziel für eine Nachricht.
 pub fn nachrichten_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler> {
-    Ok(format!("{}/v1/messages", basis_url(anbieter, endpoint)?))
+    let basis = basis_url(anbieter, endpoint)?;
+    Ok(match anbieter {
+        Anbieter::OpenAi => format!("{basis}/chat/completions"),
+        _ => format!("{basis}/v1/messages"),
+    })
 }
 
-/// `POST`-Ziel für die Token-Zählung.
+/// `POST`-Ziel für die Token-Zählung (OpenAI-kompatible Dienste haben keine; die App schätzt dann).
 pub fn tokens_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler> {
+    if anbieter == Anbieter::OpenAi {
+        return Err(KiFehler::Einstellung(Text::neu(
+            "OpenAI-kompatible Dienste können keine Tokens zählen.",
+            "OpenAI-compatible services cannot count tokens.",
+        )));
+    }
     Ok(format!(
         "{}/v1/messages/count_tokens",
         basis_url(anbieter, endpoint)?
@@ -322,12 +360,28 @@ pub fn token_body(body: &Value) -> Result<Value, KiFehler> {
 }
 
 /// Kopfzeilen: `x-api-key`, `anthropic-version`, `content-type` und bei Bedarf `anthropic-beta`.
+/// OpenAI-kompatibel: `content-type` und, falls ein Schlüssel hinterlegt ist, `Authorization: Bearer`.
 pub fn kopfzeilen(
     anbieter: Anbieter,
     schluessel: &str,
     body: &Value,
 ) -> Result<HeaderMap, KiFehler> {
     let schluessel = schluessel.trim();
+    if anbieter == Anbieter::OpenAi {
+        let mut h = HeaderMap::new();
+        h.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        if !schluessel.is_empty() {
+            let mut wert = HeaderValue::from_str(&format!("Bearer {schluessel}")).map_err(|_| {
+                KiFehler::Einstellung(Text::neu(
+                    "Der gespeicherte API-Schlüssel enthält ungültige Zeichen. Bitte neu eintragen.",
+                    "The stored API key contains invalid characters. Please enter it again.",
+                ))
+            })?;
+            wert.set_sensitive(true);
+            h.insert(AUTHORIZATION, wert);
+        }
+        return Ok(h);
+    }
     if schluessel.is_empty() {
         return Err(KiFehler::Einstellung(Text::neu(
             "Kein API-Schlüssel hinterlegt. Bitte in den KI-Einstellungen eintragen.",
@@ -377,9 +431,11 @@ fn wiederholen_nach(h: &HeaderMap) -> Option<u64> {
     h.get(RETRY_AFTER)?.to_str().ok()?.trim().parse().ok()
 }
 
-fn netzfehler(e: reqwest::Error) -> KiFehler {
+fn netzfehler(e: reqwest::Error, zeitlimit: Duration) -> KiFehler {
     if e.is_timeout() {
-        return KiFehler::Zeitueberschreitung;
+        return KiFehler::Zeitueberschreitung {
+            minuten: zeitlimit.as_secs() / 60,
+        };
     }
     let mut ursache: &dyn std::error::Error = &e;
     while let Some(innen) = ursache.source() {
@@ -396,8 +452,8 @@ pub struct KiKlient {
 
 impl KiKlient {
     pub fn neu() -> Result<Self, KiFehler> {
+        // Zeitlimit je Anfrage (Anbieter::zeitlimit)
         let http = reqwest::Client::builder()
-            .timeout(ZEITLIMIT)
             .connect_timeout(VERBINDUNGS_ZEITLIMIT)
             .user_agent(concat!("Plotwerk/", env!("CARGO_PKG_VERSION")))
             .build()
@@ -419,18 +475,25 @@ impl KiKlient {
         self
     }
 
-    async fn einmal(&self, url: &str, kopf: &HeaderMap, body: &Value) -> Result<Value, KiFehler> {
+    async fn einmal(
+        &self,
+        url: &str,
+        kopf: &HeaderMap,
+        body: &Value,
+        zeitlimit: Duration,
+    ) -> Result<Value, KiFehler> {
         let antwort = self
             .http
             .post(url)
+            .timeout(zeitlimit)
             .headers(kopf.clone())
             .json(body)
             .send()
             .await
-            .map_err(netzfehler)?;
+            .map_err(|e| netzfehler(e, zeitlimit))?;
         let status = antwort.status();
         let retry = wiederholen_nach(antwort.headers());
-        let text = antwort.text().await.map_err(netzfehler)?;
+        let text = antwort.text().await.map_err(|e| netzfehler(e, zeitlimit))?;
         if !status.is_success() {
             return Err(KiFehler::Http {
                 status: status.as_u16(),
@@ -446,10 +509,16 @@ impl KiKlient {
     }
 
     /// Mit höchstens zwei Wiederholungen bei 429/529/5xx (Retry-After wird beachtet).
-    async fn post(&self, url: String, kopf: HeaderMap, body: &Value) -> Result<Value, KiFehler> {
+    async fn post(
+        &self,
+        url: String,
+        kopf: HeaderMap,
+        body: &Value,
+        zeitlimit: Duration,
+    ) -> Result<Value, KiFehler> {
         let mut versuch = 0;
         loop {
-            let fehler = match self.einmal(&url, &kopf, body).await {
+            let fehler = match self.einmal(&url, &kopf, body, zeitlimit).await {
                 Ok(v) => return Ok(v),
                 Err(e) => e,
             };
@@ -473,7 +542,8 @@ impl KiKlient {
         }
     }
 
-    /// POST {endpoint}/v1/messages – Body unverändert, Antwort-JSON unverändert.
+    /// POST {endpoint}/v1/messages (OpenAI-kompatibel: {endpoint}/chat/completions) – Body
+    /// unverändert, Antwort-JSON unverändert.
     pub async fn nachricht(
         &self,
         anbieter: Anbieter,
@@ -489,7 +559,7 @@ impl KiKlient {
         }
         let url = nachrichten_url(anbieter, endpoint)?;
         let kopf = kopfzeilen(anbieter, schluessel, body)?;
-        self.post(url, kopf, body).await
+        self.post(url, kopf, body, anbieter.zeitlimit()).await
     }
 
     /// POST {endpoint}/v1/messages/count_tokens → `input_tokens`.
@@ -503,7 +573,7 @@ impl KiKlient {
         let url = tokens_url(anbieter, endpoint)?;
         let body = token_body(body)?;
         let kopf = kopfzeilen(anbieter, schluessel, &body)?;
-        let antwort = self.post(url, kopf, &body).await?;
+        let antwort = self.post(url, kopf, &body, anbieter.zeitlimit()).await?;
         antwort
             .get("input_tokens")
             .and_then(Value::as_u64)
@@ -518,6 +588,7 @@ mod tests {
 
     const F: Anbieter = Anbieter::Foundry;
     const C: Anbieter = Anbieter::Claude;
+    const O: Anbieter = Anbieter::OpenAi;
 
     #[test]
     fn anbieter_aus_text() {
@@ -525,13 +596,14 @@ mod tests {
         assert_eq!(Anbieter::aus_text(Some("")).unwrap(), F);
         assert_eq!(Anbieter::aus_text(Some("foundry")).unwrap(), F);
         assert_eq!(Anbieter::aus_text(Some(" claude ")).unwrap(), C);
-        assert!(Anbieter::aus_text(Some("openai")).is_err());
+        assert_eq!(Anbieter::aus_text(Some("openai")).unwrap(), O);
+        assert!(Anbieter::aus_text(Some("gemini")).is_err());
         assert_eq!(Anbieter::default(), F);
     }
 
     #[test]
     fn basis_url_normalisiert() {
-        let b = "https://flamingo.services.ai.azure.com/anthropic";
+        let b = "https://beispiel.services.ai.azure.com/anthropic";
         assert_eq!(basis_url(F, b).unwrap(), b);
         assert_eq!(basis_url(F, &format!(" {b}/ ")).unwrap(), b);
         assert_eq!(basis_url(F, &format!("{b}/v1/messages")).unwrap(), b);
@@ -558,14 +630,14 @@ mod tests {
 
     #[test]
     fn urls_je_anbieter() {
-        let foundry = "https://flamingo.services.ai.azure.com/anthropic";
+        let foundry = "https://beispiel.services.ai.azure.com/anthropic";
         assert_eq!(
             nachrichten_url(F, foundry).unwrap(),
-            "https://flamingo.services.ai.azure.com/anthropic/v1/messages"
+            "https://beispiel.services.ai.azure.com/anthropic/v1/messages"
         );
         assert_eq!(
             tokens_url(F, &format!("{foundry}/")).unwrap(),
-            "https://flamingo.services.ai.azure.com/anthropic/v1/messages/count_tokens"
+            "https://beispiel.services.ai.azure.com/anthropic/v1/messages/count_tokens"
         );
         // Claude API: leer = Standard-Basis-URL, eigene Basis-URL überschreibt
         assert_eq!(
@@ -644,13 +716,13 @@ mod tests {
         assert!(ohne
             .to_string()
             .starts_with("Kein KI-Endpoint eingetragen."));
-        assert!(Anbieter::aus_text(Some("openai"))
+        assert!(Anbieter::aus_text(Some("gemini"))
             .unwrap_err()
             .meldung(true)
-            .contains("Unknown AI provider “openai”"));
-        assert!(KiFehler::Zeitueberschreitung
+            .contains("Unknown AI provider “gemini”"));
+        assert!(KiFehler::Zeitueberschreitung { minuten: 30 }
             .meldung(true)
-            .contains("did not answer within"));
+            .contains("did not answer within 30 minutes"));
         assert!(KiFehler::Verbindung("dns".into())
             .meldung(true)
             .starts_with("No connection to the AI endpoint."));
@@ -712,5 +784,49 @@ mod tests {
             .get("anthropic-beta")
             .is_none());
         assert_eq!(beta_fuer(C, &json!({"fallbacks": "irgendwas"})), None);
+    }
+
+    #[test]
+    fn openai_urls() {
+        assert_eq!(
+            nachrichten_url(O, "http://localhost:11434/v1").unwrap(),
+            "http://localhost:11434/v1/chat/completions"
+        );
+        assert_eq!(
+            nachrichten_url(O, " https://openrouter.ai/api/v1/chat/completions/ ").unwrap(),
+            "https://openrouter.ai/api/v1/chat/completions"
+        );
+        // /v1 bleibt Teil der Basis-URL
+        assert_eq!(
+            basis_url(O, "https://api.openai.com/v1/").unwrap(),
+            "https://api.openai.com/v1"
+        );
+        assert!(basis_url(O, "")
+            .unwrap_err()
+            .to_string()
+            .contains("Basis-URL"));
+        // HTTP nur lokal
+        assert!(basis_url(O, "http://127.0.0.1:1234/v1").is_ok());
+        assert!(basis_url(O, "http://example.com/v1").is_err());
+        assert!(tokens_url(O, "http://localhost:11434/v1").is_err());
+    }
+
+    #[test]
+    fn openai_kopfzeilen() {
+        let b = json!({"model":"qwen3:8b","messages":[]});
+        // lokal ohne Schlüssel: nur content-type
+        let ohne = kopfzeilen(O, "", &b).unwrap();
+        assert_eq!(ohne.len(), 1);
+        assert_eq!(ohne[CONTENT_TYPE], "application/json");
+        // mit Schlüssel: Bearer, kein x-api-key, keine anthropic-*-Kopfzeilen
+        let mit = kopfzeilen(O, " sk-or-x ", &json!({"fallbacks":"default"})).unwrap();
+        assert_eq!(mit[AUTHORIZATION], "Bearer sk-or-x");
+        assert!(mit[AUTHORIZATION].is_sensitive());
+        assert!(mit.get("x-api-key").is_none());
+        assert!(mit.get("anthropic-version").is_none());
+        assert!(mit.get("anthropic-beta").is_none());
+        assert!(kopfzeilen(O, "a\nb", &b).is_err());
+        assert_eq!(O.zeitlimit(), ZEITLIMIT_OPENAI);
+        assert_eq!(C.zeitlimit(), ZEITLIMIT);
     }
 }

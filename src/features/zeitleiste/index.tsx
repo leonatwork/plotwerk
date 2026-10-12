@@ -1,4 +1,5 @@
 /** Bereich „Zeitleiste“ (G1 Zeit & Zustand): Kapitel/Szenen auf Tages- und Uhrzeit-Achse, Zustandsspuren. Besitzer: G1. */
+import { nachRolle } from '@core/figuren/namen';
 import { SICHERHEIT_FARBE } from '@core/zeit/index';
 import type { ZeitSicherheit } from '@core/model/types';
 import { f, texte, useTexte, vergleich } from '../../i18n';
@@ -9,6 +10,8 @@ import { farbe, SicherheitPunkt, sicherheitName, useZeitDaten, wochentagName } f
 import { ZeitInspektor } from './Inspektor';
 import { Leiste } from './Leiste';
 import './zeitleiste.css';
+import { NurMit } from '../../app/NurMit';
+import { useFunktion } from '../../state/funktionen';
 
 function Werkzeugzeile({ figur }: { figur?: string }) {
   const daten = useStore((s) => s.daten)!;
@@ -18,7 +21,7 @@ function Werkzeugzeile({ figur }: { figur?: string }) {
   const setzeSpur = useStore((s) => s.zeit.setzeSpur);
   const setzeFigur = useStore((s) => s.zeit.setzeFigur);
   const t = useTexte().zeitleiste.ansicht;
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => vergleich(a.name, b.name)));
   const hatSzenen = Object.values(daten.plaene).some((p) => (p.szenen?.length ?? 0) >= 2);
   return (
     <div className="zl-werkzeuge">
@@ -68,6 +71,7 @@ export default function Ansicht() {
   const setzeBereich = useStore((s) => s.setzeBereich);
   const tz = useTexte().zeitleiste;
   const t = tz.ansicht;
+  const mitKi = useFunktion('kiZeit');
   if (!daten || !zd) return null;
 
   if (!daten.projekt.kapitel.length) {
@@ -97,9 +101,11 @@ export default function Ansicht() {
         {mitTag === 0 && (
           <div className="zl-banner" role="status">
             <span>{t.ohneTag}</span>
-            <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
-              {t.zeitpunkteVorschlagen}
-            </Button>
+            <NurMit funktion="kiZeit">
+              <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
+                {t.zeitpunkteVorschlagen}
+              </Button>
+            </NurMit>
           </div>
         )}
         {hinweise > 0 && (
@@ -110,7 +116,7 @@ export default function Ansicht() {
             </Button>
           </div>
         )}
-        {offeneVorschlaege > 0 && mitTag > 0 && (
+        {mitKi && offeneVorschlaege > 0 && mitTag > 0 && (
           <div className="zl-banner" role="status">
             <span>{f(t.vorschlaegeWarten, { n: offeneVorschlaege })}</span>
             <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
@@ -129,9 +135,11 @@ export function Titelaktionen() {
   const bereit = useStore((s) => !!s.daten);
   const t = useTexte().zeitleiste.ansicht;
   return (
-    <Button disabled={!bereit} onClick={() => oeffneDialog('zeit-vorschlaege')}>
-      {t.vorschlagen}
-    </Button>
+    <NurMit funktion="kiZeit">
+      <Button disabled={!bereit} onClick={() => oeffneDialog('zeit-vorschlaege')}>
+        {t.vorschlagen}
+      </Button>
+    </NurMit>
   );
 }
 

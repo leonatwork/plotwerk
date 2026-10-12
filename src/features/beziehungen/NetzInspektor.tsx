@@ -4,7 +4,7 @@ import type { Index } from '@core/index/index';
 import type { BeziehungsKategorie, Id, ProjektDaten } from '@core/model/types';
 import { f, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
-import { Abschnittslabel, Button, Checkbox, Chip, Inspektor, klassen, RealitaetsUmschalter, Segment } from '../../ui';
+import { Abschnittslabel, bestaetigen as rueckfrage, Button, Checkbox, Chip, Inspektor, klassen, RealitaetsUmschalter, Segment } from '../../ui';
 import { GruppenInspektor } from '../gruppen';
 import { EntwurfFeld } from './EntwurfFeld';
 import { farbSatz, KATEGORIEN, kapitelIndex, kapitelTitel, kapLabel } from './gemeinsam';
@@ -387,7 +387,10 @@ function BeziehungTeil({
 function GruppeTeil({ ansicht, id }: Props & { id: Id }) {
   const waehleImNetz = useStore((s) => s.waehleImNetz);
   const gruppeImNetzSetzen = useStore((s) => s.gruppeImNetzSetzen);
-  const ti = useTexte().beziehungen.inspektor;
+  const entferneGruppe = useStore((s) => s.entferneGruppe);
+  const name = useStore((s) => s.daten?.gruppen[id]?.name ?? '');
+  const t = useTexte();
+  const ti = t.beziehungen.inspektor;
   const hatFlaeche = ansicht.flaechen.some((x) => x.gruppe.id === id);
   return (
     <>
@@ -401,6 +404,17 @@ function GruppeTeil({ ansicht, id }: Props & { id: Id }) {
           {ti.flaecheAusDemNetz}
         </Button>
       )}
+      <Button
+        variante="leise"
+        style={{ alignSelf: 'flex-start', marginLeft: -10 }}
+        onClick={async () => {
+          if (!(await rueckfrage(f(ti.gruppeLoeschenFrage, { name }), { knopf: t.gemeinsam.loeschen }))) return;
+          waehleImNetz(null);
+          await entferneGruppe(id);
+        }}
+      >
+        {ti.gruppeLoeschen}
+      </Button>
       <Legende ansicht={ansicht} />
     </>
   );

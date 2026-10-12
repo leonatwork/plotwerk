@@ -12,6 +12,7 @@ import { verweiseAlsText } from '../schreiben/verweise';
 import { SzenenUebersicht } from '../faeden/Szenen';
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { LeserSimulationKarte } from './LeserSimulationKarte';
+import { NurMit } from '../../app/NurMit';
 
 const panel: CSSProperties = {
   background: 'var(--surface)',
@@ -97,7 +98,9 @@ function Zusammenfassung({ id, daten, index }: { id: Id; daten: ProjektDaten; in
             </LinkKnopf>
           )}
           {z.analyseVeraltet && z.quelle !== 'bearbeitet' && (
-            <LinkKnopf onClick={() => oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel: id })}>{tz.neuPruefen}</LinkKnopf>
+            <NurMit funktion="kiPruefung">
+              <LinkKnopf onClick={() => oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel: id })}>{tz.neuPruefen}</LinkKnopf>
+            </NurMit>
           )}
         </div>
       )}
@@ -142,7 +145,9 @@ function Zusammenfassung({ id, daten, index }: { id: Id; daten: ProjektDaten; in
         hatText ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6, color: 'var(--ink-quiet)' }}>{tz.nochNichtGeprueft}</p>
-            <Button onClick={() => oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel: id })}>{tz.kapitelPruefen}</Button>
+            <NurMit funktion="kiPruefung">
+              <Button onClick={() => oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel: id })}>{tz.kapitelPruefen}</Button>
+            </NurMit>
             <LinkKnopf onClick={starten}>{tz.selbstZusammenfassen}</LinkKnopf>
           </div>
         ) : (
@@ -405,7 +410,9 @@ export default function Ansicht() {
             </section>
             <Antagonisten id={id} daten={daten} text={z.antagonisten} />
           </div>
-          <SzenenUebersicht key={`szenen-${id}`} kapitelId={id} />
+          <NurMit funktion="faeden">
+            <SzenenUebersicht key={`szenen-${id}`} kapitelId={id} />
+          </NurMit>
           <section style={{ ...panel, flex: '1 1 auto', minHeight: 0, gap: 8, overflow: 'hidden' }} aria-label={tk.bisHierhinLabel}>
             <span style={label('var(--ink-quiet)')}>{tk.bisHierhin}</span>
             <div className="pl-scroll" style={{ display: 'flex', flexDirection: 'column' }}>
@@ -430,9 +437,13 @@ export default function Ansicht() {
           <LoseEnden id={id} daten={daten} index={index} />
           {/* nur die Liste der losen Enden schrumpft; reicht die Höhe nicht, scrollt die Spalte */}
           <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <LeserSimulationKarte kapitelId={id} />
+            <NurMit funktion="kiLeser">
+              <LeserSimulationKarte kapitelId={id} />
+            </NurMit>
             <Realitaetsebene key={id} id={id} daten={daten} />
-            <RechercheLeiste ziel={{ typ: 'kapitel', id }} max={3} />
+            <NurMit funktion="recherche">
+              <RechercheLeiste ziel={{ typ: 'kapitel', id }} max={3} />
+            </NurMit>
           </div>
         </div>
       </div>
@@ -443,7 +454,11 @@ export default function Ansicht() {
 export function Titelaktionen() {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const t = useTexte();
-  return <Button onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>{t.kapitel.zusammenfassungenAktualisieren}</Button>;
+  return (
+    <NurMit funktion="kiPruefung">
+      <Button onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>{t.kapitel.zusammenfassungenAktualisieren}</Button>
+    </NurMit>
+  );
 }
 
 export function kontext(state: Store): string {
