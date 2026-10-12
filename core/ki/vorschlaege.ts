@@ -61,7 +61,8 @@ Du machst Vorschläge, die der Autor einzeln übernimmt oder verwirft. Du schrei
 
 Figuren (figuren):
 - Schlage jede Person vor, die im Text handelt, spricht oder mit Namen bzw. fester Bezeichnung erwähnt wird (zum Beispiel „der Mann am Fischstand“), und die noch nicht unter den angelegten Figuren steht. Ein namenloser Ich-Erzähler ist keine eigene Figur, wenn er erkennbar eine angelegte oder vorgeschlagene Figur ist.
-- name: wie die Person im Text am häufigsten heißt. aliase: weitere Namen und Bezeichnungen derselben Person, Zeichen für Zeichen wie im Text, ohne Genitivformen.
+- name: der Eigenname der Person (Vorname, Nachname oder beides), sobald der Text ihn irgendwo nennt, auch wenn sie meist anders genannt wird. Spitznamen, Titel und Bezeichnungen (zum Beispiel „die Chefin“, „der Alte“) gehören dann zu aliase. Nur wenn der Text keinen Eigennamen nennt, ist name die Bezeichnung, unter der die Person am häufigsten vorkommt. aliase: weitere Namen, Spitznamen und Bezeichnungen derselben Person, Zeichen für Zeichen wie im Text, ohne Genitivformen.
+- Eine Person ist genau ein Vorschlag: Schlage niemanden zweimal unter verschiedenen Namen vor.
 - rolle: haupt für Figuren, die das Buch tragen (Erzähler, wiederkehrende zentrale Figuren), sonst neben.
 - kurz: eine sachliche Zeile, höchstens vier Wörter, was der Text über die Figur sagt (zum Beispiel „Kollege der Hauptfigur“ oder „Jugendfreundin“); sie steht als Untertitel auf der Karte im Beziehungsnetz. Keine Deutung, keine Vermutung über Verborgenes.
 - belege: eine bis drei Stellen, an denen die Figur vorkommt.
@@ -85,7 +86,7 @@ Regeln für alle Belege:
 - kapitel ist die id des Kapitels, zitat eine zusammenhängende Passage, Zeichen für Zeichen aus dem <text> dieses Kapitels kopiert, ohne Auslassungen, höchstens ein Satz. Vorschläge ohne wörtliches Zitat werden verworfen.
 
 Weitere Regeln:
-- Angelegte Figuren und Orte (unter <angaben>) schlägst du nicht erneut vor, auch nicht unter einer anderen Schreibweise. Beziehungen zwischen angelegten Figuren darfst du vorschlagen.
+- Angelegte Figuren und Orte (unter <angaben>) schlägst du nicht erneut vor, auch nicht unter einer anderen Schreibweise, einem Spitznamen oder einer Bezeichnung. Beziehungen zwischen angelegten Figuren darfst du vorschlagen.
 - Als „bewusst vage“ markierte Figuren und Stellen sind absichtlich mehrdeutig. Lege über sie nichts fest, was der Text offenlässt.
 - Lieber wenige belastbare Vorschläge als viele vage. Erfinde nichts, was nicht im Text steht.`;
 
@@ -96,7 +97,8 @@ You make suggestions which the author adopts or discards one by one. You never w
 
 Characters (figuren):
 - Suggest every person who acts, speaks or is mentioned by name or by a fixed designation in the text (for example “the man at the kiosk”) and who is not yet among the characters set up. A nameless first-person narrator is not a separate character if they are recognisably a character that is set up or suggested.
-- name: what the person is called most often in the text. aliase: further names and designations of the same person, character for character as in the text, without possessive forms (’s).
+- name: the person's proper name (first name, surname or both) as soon as the text gives it anywhere, even if they are mostly called something else. Nicknames, titles and designations (for example “the boss”, “the old man”) then belong in aliase. Only if the text gives no proper name is name the designation the person appears under most often. aliase: further names, nicknames and designations of the same person, character for character as in the text, without possessive forms (’s).
+- One person is exactly one suggestion: never suggest someone twice under different names.
 - rolle: haupt for characters who carry the book (narrators, recurring central characters), otherwise neben.
 - kurz: one factual line, at most four words, on what the text says about the character (for example “Paul's colleague” or “Kleinanzeigen match”); it appears as a subtitle on the card in the relationship web. No interpretation, no speculation about hidden things.
 - belege: one to three passages where the character appears.
@@ -120,7 +122,7 @@ Rules for all evidence:
 - kapitel is the id of the chapter, zitat one continuous passage, copied character for character from the <text> of that chapter, without omissions, at most one sentence. Suggestions without a verbatim quote are discarded.
 
 Further rules:
-- Do not suggest characters and places that are set up (under <angaben>) again, not even under a different spelling. You may suggest relationships between characters that are set up.
+- Do not suggest characters and places that are set up (under <angaben>) again, not even under a different spelling, a nickname or a designation. You may suggest relationships between characters that are set up.
 - Characters and passages marked “deliberately vague” are intentionally ambiguous. Settle nothing about them that the text leaves open.
 - Prefer a few solid suggestions to many vague ones. Invent nothing that is not in the text.
 
@@ -429,6 +431,19 @@ function figurNamen(f: { name: string; aliase?: string[]; formen?: string[] }): 
   return [f.name, ...(f.aliase ?? []), ...(f.formen ?? [])];
 }
 
+const MIT_ARTIKEL = /^(der|die|das|den|dem|des|the)\s/i;
+
+/**
+ * Hauptname eines Figurvorschlags: Ist der vorgeschlagene Name eine Bezeichnung mit Artikel („der Alte“) und steht
+ * unter den Aliasen ein Eigenname, wird der Eigenname zum Namen und die Bezeichnung zum Alias.
+ */
+export function hauptname(name: string, aliase: string[]): { name: string; aliase: string[] } {
+  if (!MIT_ARTIKEL.test(name)) return { name, aliase };
+  const eigen = aliase.find((a) => !MIT_ARTIKEL.test(a) && /^\p{Lu}/u.test(a));
+  if (!eigen) return { name, aliase };
+  return { name: eigen, aliase: [name, ...aliase.filter((a) => a !== eigen)] };
+}
+
 // ---------------------------------------------------------------------------
 // Antwortprüfung
 // ---------------------------------------------------------------------------
@@ -530,17 +545,23 @@ export function pruefeVorschlaege(
 
   for (const r of rohFiguren as unknown[]) {
     const f = (r ?? {}) as Record<string, unknown>;
-    const name = nameSauber(f.name);
+    const rohName = nameSauber(f.name);
+    const { name, aliase } = hauptname(rohName, aliaseSauber(f.aliase, rohName));
+    const namen = [name, ...aliase];
     const weg = (grund: string) => {
       verworfen.push({ grund, roh: r });
-      if (name) figurVerworfen.set(namensForm(name), { grund, entschieden: false });
+      for (const n of namen) if (n) figurVerworfen.set(namensForm(n), { grund, entschieden: false });
     };
     if (!name) {
       verworfen.push({ grund: m('figurOhneNamen'), roh: r });
       continue;
     }
-    if (bekannteFigur(name)) {
+    // auch über einen Alias: „der Alte“ mit Alias „Ole“ ist die angelegte Figur Ole, keine neue
+    const angelegt = namen.map(bekannteFigur).find((x) => x);
+    if (angelegt) {
       bereitsAngelegt += 1;
+      // Beziehungen dürfen die Figur unter den Namen dieses Vorschlags nennen
+      for (const n of namen) if (!figurNachForm.has(namensForm(n))) figurNachForm.set(namensForm(n), angelegt);
       continue;
     }
     const belege = belegePruefen(f.belege);
@@ -560,16 +581,17 @@ export function pruefeVorschlaege(
       for (const b of belege) if (!doppelt.belege.some((x) => x.kapitel === b.kapitel && x.text === b.text)) doppelt.belege.push(b);
       continue;
     }
-    const status = figurEntschieden.get(schluessel);
+    // entschieden auch unter einem anderen Namen derselben Person (z. B. früher als „der Alte“ vorgeschlagen)
+    const status = namen.map((n) => figurEntschieden.get(figurSchluessel(n))).find((x) => x);
     if (status) {
       bereitsEntschieden += 1;
-      if (status === 'verworfen') figurVerworfen.set(namensForm(name), { grund: m('figurVerworfen', { name }), entschieden: true });
+      if (status === 'verworfen') for (const n of namen) figurVerworfen.set(namensForm(n), { grund: m('figurVerworfen', { name }), entschieden: true });
       continue;
     }
     const vorschlag: FigurVorschlag = {
       schluessel,
       name,
-      aliase: aliaseSauber(f.aliase, name),
+      aliase,
       rolle: (f.rolle === 'haupt' ? 'haupt' : 'neben') satisfies FigurRolle,
       kurz,
       belege,
@@ -782,10 +804,13 @@ export function mischeVorschlaege(
   return { ablage: { version: 1, figuren, orte, beziehungen, ...(stand ? { lauf: stand } : {}) }, neu: anzahlNeu, aktualisiert };
 }
 
-/** Angelegte Figur mit diesem Namen (Name, Alias oder Form), z. B. wenn Leon sie inzwischen selbst angelegt hat. */
-export function figurMitNamen(daten: ProjektDaten, name: string): Id | undefined {
-  const form = namensForm(name);
-  return Object.values(daten.figuren).find((f) => figurNamen(f).some((n) => namensForm(n) === form))?.id;
+/**
+ * Angelegte Figur, die einen dieser Namen trägt (Name, Alias oder Form), z. B. wenn Leon sie inzwischen selbst
+ * angelegt hat. Mehrere Namen: Name und Aliase eines Vorschlags.
+ */
+export function figurMitNamen(daten: ProjektDaten, ...namen: string[]): Id | undefined {
+  const formen = new Set(namen.map(namensForm).filter(Boolean));
+  return Object.values(daten.figuren).find((f) => figurNamen(f).some((n) => formen.has(namensForm(n))))?.id;
 }
 
 export function ortMitNamen(daten: ProjektDaten, name: string): Id | undefined {
@@ -806,7 +831,7 @@ export function figurVerweisAufloesen(
   const v = ablage.figuren.find((f) => f.schluessel === verweis.id);
   if (!v || v.status === 'verworfen') return null;
   if (v.status === 'uebernommen') return v.figur && daten.figuren[v.figur] ? { figur: v.figur } : null;
-  const vorhanden = figurMitNamen(daten, v.name);
+  const vorhanden = figurMitNamen(daten, v.name, ...v.aliase);
   return vorhanden ? { figur: vorhanden } : { vorschlag: v };
 }
 
@@ -823,7 +848,7 @@ export interface OffeneVorschlaege {
  */
 export function offeneVorschlaege(ablage: KiVorschlaege | undefined, daten: ProjektDaten): OffeneVorschlaege {
   if (!ablage) return { figuren: [], orte: [], beziehungen: [], anzahl: 0 };
-  const figuren = ablage.figuren.filter((f) => f.status === 'neu' && !figurMitNamen(daten, f.name));
+  const figuren = ablage.figuren.filter((f) => f.status === 'neu' && !figurMitNamen(daten, f.name, ...f.aliase));
   const orte = ablage.orte.filter((o) => o.status === 'neu' && !ortMitNamen(daten, o.name));
   const beziehungen = ablage.beziehungen.filter((b) => {
     if (b.status !== 'neu') return false;

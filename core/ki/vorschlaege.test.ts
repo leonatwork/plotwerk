@@ -226,6 +226,45 @@ describe('Antwortprüfung', () => {
     expect(r.bereitsAngelegt).toBe(1);
   });
 
+  it('Spitznamen: Eigenname wird Name, Bezeichnung Alias; Spitzname einer angelegten Figur legt keine zweite an', async () => {
+    const fiete = beleg('funkstille', 'ob er die Krabben wieder für Fiete mitnimmt');
+    const ole = beleg('grundriss', 'Ole sitzt auf der Fensterbank neben dem Oleander und isst einen Apfel.');
+    const antwort = {
+      figuren: [
+        { name: 'der Krabbenmann', aliase: ['Fiete', 'Fietje'], rolle: 'neben', kurz: '', belege: [fiete] },
+        { name: 'der Mann am Fenster', aliase: ['Ole'], rolle: 'neben', kurz: '', belege: [ole] },
+        { name: 'die Stimme am Telefon', aliase: ['die Anruferin'], rolle: 'neben', kurz: '', belege: [fiete] },
+      ],
+      orte: [],
+      beziehungen: [
+        { von: 'der Mann am Fenster', zu: 'der Krabbenmann', art: 'Bekannter', kategorie: 'sonstige', abKapitel: 'funkstille', unsicher: false, belege: [fiete], begruendung: '' },
+      ],
+    };
+    const r = await pruefe(antwort);
+    expect(r.figuren.map((f) => [f.schluessel, f.name, f.aliase])).toEqual([
+      ['figur:fiete', 'Fiete', ['der Krabbenmann', 'Fietje']],
+      // ohne Eigennamen bleibt die Bezeichnung der Name
+      ['figur:die-stimme-am-telefon', 'die Stimme am Telefon', ['die Anruferin']],
+    ]);
+    expect(r.bereitsAngelegt).toBe(1);
+    // die Beziehung nennt Ole beim Spitznamen und wird trotzdem der angelegten Figur zugeordnet
+    expect(r.beziehungen.map((b) => [b.von, b.zu])).toEqual([
+      [{ typ: 'angelegt', id: 'ole', name: 'Ole' }, { typ: 'vorschlag', id: 'figur:fiete', name: 'Fiete' }],
+    ]);
+
+    // früher unter dem Spitznamen verworfen → kommt unter dem Eigennamen nicht wieder
+    const daten = await ladeProjekt(fsMit());
+    daten.kiVorschlaege = {
+      version: 1,
+      figuren: [{ schluessel: 'figur:der-krabbenmann', name: 'der Krabbenmann', aliase: [], rolle: 'neben', kurz: '', belege: [], status: 'verworfen' }],
+      orte: [],
+      beziehungen: [],
+    };
+    const zweiter = pruefeVorschlaege(daten, antwort);
+    expect(zweiter.figuren.map((f) => f.name)).toEqual(['die Stimme am Telefon']);
+    expect(zweiter.bereitsEntschieden).toBe(2);
+  });
+
   it('Ersatztext-Filter auf kurz, art und begruendung; art höchstens vier Wörter; abKapitel und Kategorie werden geprüft', async () => {
     const z = beleg('funkstille', 'ob er die Krabben wieder für Fiete mitnimmt');
     const r = await pruefe({
