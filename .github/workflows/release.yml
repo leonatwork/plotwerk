@@ -95,15 +95,9 @@ jobs:
         with:
           tagName: ${{ env.TAG }}
           releaseName: Plotwerk ${{ env.TAG }}
-          releaseBody: |
-            **Installieren:** Terminal öffnen und einfügen:
-
-            ```sh
-            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
-            ```
-
-            Oder `Plotwerk.dmg` unten laden und Plotwerk in „Programme“ ziehen. macOS 12 oder neuer, Apple Silicon und Intel.
-            Installierte Versionen aktualisieren sich über „Plotwerk → Nach Updates suchen …“.
+          # Landet auch als „notes“ in latest.json und erscheint im Update-Dialog der App.
+          # Die ausführlichen Release-Notizen vor dem Veröffentlichen auf GitHub ergänzen (docs/release.md).
+          releaseBody: "Neuerungen / What's new: https://github.com/${{ github.repository }}/releases/tag/${{ env.TAG }}"
           releaseDraft: true
           prerelease: ${{ contains(env.TAG, '-') }}
           includeUpdaterJson: true

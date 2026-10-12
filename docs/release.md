@@ -18,8 +18,11 @@ git tag v0.2.0
 git push --follow-tags
 ```
 
-Danach auf GitHub unter *Releases* den Entwurf prüfen, die Notizen ergänzen und **Publish release**
-klicken. Ein Tag mit Bindestrich (`v0.2.0-beta.1`) wird als Vorabversion markiert. Updater und
+Danach auf GitHub unter *Releases* den Entwurf prüfen, die Notizen ergänzen (Neuerungen auf Deutsch und
+Englisch, dazu der Installationsbefehl aus der README) und **Publish release** klicken. Der Update-Dialog der
+App zeigt nicht diese Notizen, sondern den kurzen Link aus `latest.json`. Wer dort mehr Text möchte, ersetzt vor
+dem Veröffentlichen `latest.json` mit geändertem `notes`-Feld (`gh release upload <tag> latest.json --clobber`).
+Die Signatur gilt nur für das App-Archiv, das Feld darf also geändert werden. Ein Tag mit Bindestrich (`v0.2.0-beta.1`) wird als Vorabversion markiert. Updater und
 `install.sh` ignorieren Vorabversionen, weil GitHub sie nicht als *latest* führt.
 
 ## Secrets (Repository → Settings → Secrets and variables → Actions)
