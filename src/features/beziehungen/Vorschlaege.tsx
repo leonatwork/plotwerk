@@ -229,10 +229,12 @@ interface EintragProps {
   arbeitet: string | null;
   aktion(schluessel: string, was: 'uebernehmen' | 'verwerfen', art: VorschlagsArt): void;
   uebernehmenTitel?: string;
+  /** Beschriftung statt „Übernehmen“ */
+  uebernehmenText?: string;
   children: ReactNode;
 }
 
-function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children }: EintragProps) {
+function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, uebernehmenText, children }: EintragProps) {
   const beschaeftigt = arbeitet !== null;
   const tv = useTexte().beziehungen.vorschlaege;
   return (
@@ -240,7 +242,7 @@ function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children
       {children}
       <div className="pw-vs-knoepfe">
         <Button klein onClick={() => aktion(schluessel, 'uebernehmen', art)} disabled={beschaeftigt} title={uebernehmenTitel}>
-          {tv.uebernehmen}
+          {uebernehmenText ?? tv.uebernehmen}
         </Button>
         <Button klein variante="leise" onClick={() => aktion(schluessel, 'verwerfen', art)} disabled={beschaeftigt}>
           {tv.verwerfen}
@@ -282,6 +284,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
   const uebernehmen = useStore((s) => s.vorschlagUebernehmen);
   const verwerfen = useStore((s) => s.vorschlagVerwerfen);
   const alleUebernehmen = useStore((s) => s.alleVorschlaegeUebernehmen);
+  const statistenUebernehmen = useStore((s) => s.alleStatistenUebernehmen);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [meldung, setMeldung] = useState<string | null>(null);
   const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
@@ -320,6 +323,10 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
         beziehungen: f(tv.beziehungenAnzahl, { n: r.beziehungen }),
       });
     });
+
+  const statisten = () =>
+    void ausfuehren('statisten', async () => f(tv.statistenUebernommen, { figuren: f(tv.figurenAnzahl, { n: await statistenUebernehmen() }) }));
+  const offeneStatisten = offen.figuren.filter((x) => x.rolle === 'statist' && !x.ziel).length;
 
   const a = ablage ?? { version: 1 as const, figuren: [], orte: [], beziehungen: [] };
 
@@ -369,17 +376,32 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
 
       <Abschnitt titel={tv.figuren} anzahl={offen.figuren.length}>
-        {offen.figuren.map((fv: FigurVorschlag) => (
-          <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
-            <div className="pw-vs-zeile">
-              <strong>{fv.name}</strong>
-              <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : tv.nebenfigur}</span>
-            </div>
-            {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
-            {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
-            <Belege daten={daten} belege={fv.belege} />
-          </Eintrag>
-        ))}
+        {offeneStatisten > 1 && (
+          <Button klein onClick={statisten} disabled={arbeitet !== null} style={{ alignSelf: 'flex-start' }}>
+            {f(tv.alleStatisten, { n: offeneStatisten })}
+          </Button>
+        )}
+        {offen.figuren.map((fv: FigurVorschlag) =>
+          fv.ziel ? (
+            <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion} uebernehmenText={tv.alsSpitznamen}>
+              <div className="pw-vs-zeile">
+                <strong>{[fv.name, ...fv.aliase].join(', ')}</strong>
+              </div>
+              <span className="pw-vs-meta">{f(tv.spitznamenFuer, { name: daten.figuren[fv.ziel]?.name ?? fv.ziel })}</span>
+              <Belege daten={daten} belege={fv.belege} />
+            </Eintrag>
+          ) : (
+            <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
+              <div className="pw-vs-zeile">
+                <strong>{fv.name}</strong>
+                <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : fv.rolle === 'statist' ? tv.statist : tv.nebenfigur}</span>
+              </div>
+              {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
+              {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
+              <Belege daten={daten} belege={fv.belege} />
+            </Eintrag>
+          ),
+        )}
       </Abschnitt>
 
       <Abschnitt titel={tv.orte} anzahl={offen.orte.length}>

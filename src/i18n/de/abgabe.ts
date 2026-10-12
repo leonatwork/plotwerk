@@ -5,7 +5,8 @@ export const abgabe = {
   /** Dialog „Für die Abgabe exportieren“ */
   export: {
     titel: 'Für die Abgabe exportieren',
-    formate: { normseite: 'Normseite', expose: 'Exposé', epub: 'EPUB', mappe: 'Lektoratsmappe' },
+    formate: { normseite: 'Normseite', expose: 'Exposé', epub: 'EPUB', mappe: 'Lektoratsmappe', personen: 'Personen' },
+    vorspann: 'Personenverzeichnis voranstellen (Einstellungen wie unter „Personen“)',
     wasExportieren: 'Was exportieren?',
     umfang: 'Umfang',
     ganzesBuch: { one: 'Ganzes Buch ({n} Kapitel mit Text)', other: 'Ganzes Buch ({n} Kapitel mit Text)' },
@@ -52,6 +53,18 @@ export const abgabe = {
       text: 'E-Book im Format EPUB 3 mit Inhaltsverzeichnis, gesetzt wie in der E-Book-Vorschau: Blocksatz mit Silbentrennung, Kapitelkopf, Szenentrenner.',
       titelseite: 'Titelseite',
       schrift: 'Newsreader einbetten (sonst wählt das Lesegerät die Schrift)',
+    },
+    personen: {
+      text: 'Verzeichnis der Figuren mit Spitznamen, Kurzbeschreibung und Rolle in der Gruppe – für Lektorat, Verlag oder als Seite vorne im Buch. Private Felder kommen nie hinein.',
+      gliederung: 'Gliederung',
+      nachGruppen: 'Nach Gruppen',
+      nachRolle: 'Nach Rolle (Haupt-, Nebenfiguren)',
+      statisten: 'Statisten aufnehmen',
+      spitznamen: 'Spitznamen nennen',
+      geplante: 'Auch Figuren, die noch nicht im Text vorkommen',
+      bisKapitel: 'Nur Figuren bis',
+      alleKapitel: 'Ende des Buchs',
+      anzahl: { one: '1 Figur', other: '{n} Figuren' },
     },
     mappe: {
       text: 'Die offenen Hinweise als PDF zum Weitergeben oder Ausdrucken – je Hinweis Typ, Titel, Zitat und Erklärung. Als Absicht oder erledigt markierte Hinweise fehlen.',

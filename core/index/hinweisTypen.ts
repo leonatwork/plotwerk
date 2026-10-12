@@ -11,6 +11,7 @@ export const HINWEIS_TYP_NAME: Record<HinweisTyp, string> = {
   struktur: 'Struktur',
   zeitleiste: 'Zeitleiste',
   sprache: 'Sprache',
+  figuren: 'Figuren',
 };
 
 export const HINWEIS_TYP_REIHE = Object.keys(HINWEIS_TYP_NAME) as HinweisTyp[];
@@ -23,6 +24,7 @@ const HINWEIS_TYP_NAME_EN: Record<HinweisTyp, string> = {
   struktur: 'Structure',
   zeitleiste: 'Timeline',
   sprache: 'Language',
+  figuren: 'Characters',
 };
 
 /** Alle Anzeigenamen in der Sprache (gleiche Schlüssel und Reihenfolge wie HINWEIS_TYP_NAME). */

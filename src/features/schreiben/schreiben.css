@@ -209,7 +209,7 @@
   border-radius: 7px;
   background: var(--ink);
   box-shadow: var(--schatten-popover);
-  transform: translate(-50%, calc(-100% - 8px));
+  transform: translate(-50%, -100%);
   font-family: var(--schrift-ui);
 }
 .pw-s-blase button {
@@ -231,11 +231,19 @@
   margin: 4px 2px;
   background: color-mix(in srgb, var(--on-ink) 25%, transparent);
 }
-.pw-s-blase__ebenen {
+.pw-s-blase--unten {
+  transform: translateX(-50%);
+}
+.pw-s-blase button:focus-visible {
+  outline: 2px solid var(--on-ink);
+  outline-offset: -2px;
+}
+/* Panel unter der Leiste (Gewissheit, Figur …); --versatz hält es im Papier */
+.pw-s-blase__panel {
   position: absolute;
   top: calc(100% + 4px);
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(calc(-50% + var(--versatz, 0px)));
   display: flex;
   gap: 2px;
   padding: 3px;
@@ -243,6 +251,84 @@
   background: var(--ink);
   box-shadow: var(--schatten-popover);
   white-space: nowrap;
+}
+.pw-s-blase__panel--spalte {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px;
+  width: 280px;
+  white-space: normal;
+  color: var(--on-ink);
+  font-size: 12px;
+}
+/* Panel „Figur“ (FigurPanel.tsx) */
+.pw-s-figurpanel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.pw-s-figurpanel__label {
+  margin-top: 2px;
+  color: color-mix(in srgb, var(--on-ink) 70%, transparent);
+  font-size: 11px;
+}
+.pw-s-figurpanel input {
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid color-mix(in srgb, var(--on-ink) 25%, transparent);
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--on-ink) 8%, transparent);
+  color: var(--on-ink);
+  font: inherit;
+  font-size: 12px;
+}
+.pw-s-figurpanel input:focus {
+  outline: 2px solid color-mix(in srgb, var(--on-ink) 60%, transparent);
+  outline-offset: -1px;
+}
+.pw-s-figurpanel input::placeholder {
+  color: color-mix(in srgb, var(--on-ink) 50%, transparent);
+}
+.pw-s-blase .pw-s-figurpanel__neu {
+  justify-content: flex-start;
+  text-align: left;
+  background: color-mix(in srgb, var(--on-ink) 12%, transparent);
+}
+.pw-s-figurpanel__hinweis {
+  color: color-mix(in srgb, var(--on-ink) 75%, transparent);
+}
+.pw-s-figurpanel__liste {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.pw-s-figurpanel__liste li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.pw-s-figurpanel__liste li[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.6;
+}
+.pw-s-figurpanel__option--aktiv {
+  background: color-mix(in srgb, var(--on-ink) 18%, transparent);
+}
+.pw-s-figurpanel__kurz {
+  overflow: hidden;
+  color: color-mix(in srgb, var(--on-ink) 60%, transparent);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-s-figurpanel__leer {
+  color: color-mix(in srgb, var(--on-ink) 60%, transparent);
+  cursor: default;
 }
 .pw-s-blase__punkt {
   display: inline-block;

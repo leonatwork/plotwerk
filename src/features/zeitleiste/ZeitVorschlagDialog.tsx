@@ -3,6 +3,7 @@
  * Schätzung vor dem Start, Lauf, Ergebnis; darunter alle offenen Vorschläge mit Übernehmen/Verwerfen.
  * Nichts wird automatisch übernommen. Besitzer: G1.
  */
+import { nachRolle } from '@core/figuren/namen';
 import { useEffect, useMemo, useState } from 'react';
 import { EFFORT, formatiereUsd, kiEndpoint, type Schaetzung } from '@core/ki/index';
 import type { Id } from '@core/model/types';
@@ -112,7 +113,7 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
 
   const einstellungenOeffnen = () => oeffneDialog('ki-einstellungen');
   const endpointFehlt = backendArt === 'tauri' && !kiEndpoint(kiEinstellungen());
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => vergleich(a.name, b.name)));
   const zustandOffen = offeneZustandVorschlaege(daten).length;
   const zeitListe = offeneZeitVorschlaege(daten);
   const zustandListe = offeneZustandVorschlaege(daten, art === 'zustand' ? figur : undefined);

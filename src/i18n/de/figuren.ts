@@ -7,7 +7,7 @@ export const figuren = {
   /** „Kap. 3 „Rot““ */
   kapitelMitTitel: 'Kap. {nr} „{titel}“',
   imTextZeigen: 'Im Text zeigen',
-  rolle: { haupt: 'Hauptfigur', neben: 'Nebenfigur' },
+  rolle: { haupt: 'Hauptfigur', neben: 'Nebenfigur', statist: 'Statist' },
   /** Art der Erwähnung je Kapitel (ErwaehnungsArt) */
   art: { auftritt: 'tritt auf', nachricht: 'per Nachricht', erwaehnt: 'erwähnt', unbestimmt: 'im Text' },
   /** Platz einer Bogen-Stufe bzw. Akt-Kopf im Raster */
@@ -19,6 +19,7 @@ export const figuren = {
     ansicht: 'Ansicht',
     karte: 'Karte',
     boegen: 'Bögen',
+    besetzung: 'Besetzung',
     neueFigur: '+ Neue Figur',
     nameNeu: 'Name der neuen Figur',
     namePlatzhalter: 'Name, Enter',
@@ -30,6 +31,9 @@ export const figuren = {
     label: 'Figuren',
     haupt: 'HAUPTFIGUREN',
     neben: 'NEBENFIGUREN',
+    statisten: 'STATISTEN · {n}',
+    statistenZeigen: 'Statisten zeigen',
+    statistenVerbergen: 'Statisten verbergen',
     offen: 'UNGEWISS',
     geplant: 'GEPLANT, NOCH NICHT IM TEXT',
     kapitelAnzahl: { one: '{n} Kap.', other: '{n} Kap.' },
@@ -38,6 +42,16 @@ export const figuren = {
     vorschlaege: { one: '{n} Vorschlag der KI', other: '{n} Vorschläge der KI' },
     vorab: '+ Figur vorab anlegen',
     namePlatzhalter: 'Name der Figur, Enter',
+  },
+
+  /** F-15 Besetzungsübersicht (Besetzung.tsx) */
+  besetzung: {
+    titel: 'Besetzung',
+    legende: 'Figuren × Kapitel · gefüllt: tritt auf · umrandet: per Nachricht · gestrichelt: erwähnt · hell: im Text · schraffiert: nur im Kapitelplan · gelb unterstrichen: ruht',
+    kap: 'Kap.',
+    jeKapitel: 'Figuren je Kapitel',
+    nurPlan: 'nur im Kapitelplan',
+    karteOeffnen: 'Figurenkarte öffnen',
   },
 
   karte: {
@@ -54,18 +68,52 @@ export const figuren = {
       erstesVorkommen: 'Erstes Vorkommen',
       stelleZeigen: 'Stelle im Text zeigen',
     },
+    /** F-17 Angaben aus dem Text (Figurenkarte, Abschnitt „Aus dem Text“) */
+    fakten: {
+      widerspruch: 'Der Text nennt verschiedene Werte',
+      planAbweichung: 'Der Text weicht von deiner Planung ab',
+      planung: 'Planung: {wert}',
+      verwerfen: '{wert} verwerfen',
+      verwerfenTitel: 'Falsch erkannt – verwerfen (kommt nicht wieder)',
+      sammeln: 'Fakten aus dem Text sammeln (KI) …',
+      erneut: 'Fakten erneut sammeln (KI) …',
+      laeuft: 'Fakten werden gesammelt …',
+    },
     planung: {
       titel: 'Deine Planung',
       rechts: 'frei bearbeitbar',
       existenz: 'Gewissheit',
       rolle: 'Rolle',
-      auchGenannt: 'Auch genannt',
-      auchGenanntTitel: 'Weitere Namen, unter denen die Figur im Text erkannt wird',
-      aliasePlatzhalter: 'Aliase, mit Komma getrennt',
-      gruppe: 'Gruppe',
+      auchGenannt: 'Auch genannt / Spitzname',
+      auchGenanntTitel: 'Spitznamen und weitere Namen, unter denen die Figur im Text erkannt wird',
+      aliasePlatzhalter: 'Spitznamen, mit Komma getrennt',
+      gruppe: 'Gruppen',
+      gruppeHinzu: '+ Gruppe …',
+      hauptgruppe: 'Hauptgruppe: bestimmt Farbe und Platz im Netz',
+      alsHauptgruppe: 'Als Hauptgruppe festlegen',
+      alsHauptgruppeLabel: '{name} als Hauptgruppe festlegen',
+      gruppeVerlassen: 'Aus {name} entfernen',
+      neueGruppe: '+ Neue Gruppe …',
+      neueGruppeName: 'Name der neuen Gruppe',
+      neueGruppeAnlegen: 'Anlegen',
       imNetz: 'im Netz',
       eigenesFeld: '+ Eigenes Feld',
+      leereFelder: 'Leere Planfelder zeigen ({n})',
       neuesFeld: 'Neues Feld',
+    },
+    /** F-16: Spitznamen als Chips mit Kontext (Spitznamen.tsx) */
+    spitznamen: {
+      kontextTitel: 'Wer nennt die Figur so, ab wann?',
+      mitKontext: 'mit Kontext',
+      entfernen: '{name} entfernen',
+      weitere: 'weiterer Spitzname, Enter',
+      kontextLabel: 'Kontext zu {name}',
+      werNennt: 'Wer sagt „{name}“?',
+      figurHinzu: '+ Figur …',
+      alle: 'alle bzw. die Erzählstimme',
+      abKapitel: 'ab',
+      vonAnfang: 'von Anfang an',
+      notiz: 'Notiz, z. B. Spott, Kosename',
     },
     feld: {
       feldname: 'Feldname',
@@ -80,6 +128,13 @@ export const figuren = {
       titel: 'Auftritte',
       keinText: 'noch kein Text',
       legende: 'Gefüllt: tritt auf · umrandet: nur per Nachricht · gestrichelt: nur erwähnt · hell: im Text, Art noch offen',
+      ruheLabel: 'Ruhe melden',
+      ruheStandard: 'nach {n} Kapiteln (Standard)',
+      ruheStandardNie: 'nie (Standard)',
+      ruheNach: 'nach {n} Kapiteln',
+      ruheNie: 'nie',
+      ruht: 'ruht',
+      ruhtLegende: 'gelb unterstrichen: {n} Kapitel oder länger nicht im Text',
     },
     bogen: {
       titel: 'Bogen',
@@ -145,10 +200,24 @@ export const figuren = {
         struktur: 'Struktur',
         zeitleiste: 'Zeitleiste',
         sprache: 'Sprache',
+        figuren: 'Figuren',
       },
     },
     loeschen: 'Figur löschen',
     loeschenFrage: 'Figur „{name}“ löschen? Vorher wird ein Schnappschuss angelegt.',
+    zusammenfuehren: {
+      knopf: 'Mit anderer Figur zusammenführen …',
+      label: 'Figur, die in {name} aufgeht',
+      waehlen: 'Figur wählen …',
+      gleicherName: 'gleicher Name',
+      ausfuehren: 'Zusammenführen',
+      hilfe:
+        '{name} bleibt. Die gewählte Figur wird gelöscht: Ihre Namen werden Spitznamen von {name}, Beziehungen, Planfelder und Notizen kommen dazu, und alle Verweise im Projekt zeigen auf {name}.',
+      frage: '„{andere}“ in „{name}“ zusammenführen? „{andere}“ wird gelöscht, vorher wird ein Schnappschuss angelegt.',
+      doppelt: 'Gleicher Name wie {namen}. Ist das dieselbe Person?',
+      pruefen: 'Zusammenführen …',
+      umgekehrt: 'Umgekehrt: Diese Figur geht in {andere} auf',
+    },
   },
 
   boegen: {
@@ -266,6 +335,20 @@ export const figuren = {
     nochNicht: 'Noch nicht geprüft.',
     nichtsOffen: 'Nichts mehr offen.',
     nichtsEntschieden: 'Noch nichts entschieden.',
+  },
+
+  /** F-17 Dialog „Figurenfakten“ (FaktenDialog.tsx) */
+  faktenDialog: {
+    titel: 'Fakten aus dem Text sammeln',
+    intro:
+      'Die KI liest das Buch und sammelt, was der Text über die Figuren als Tatsache sagt – Alter, Aussehen, Beruf, Wohnort, Auto … –, jede Angabe mit wörtlichem Zitat. Widersprüche und Abweichungen von deiner Planung findet danach die App. Die KI bewertet nichts und ändert keinen Text.',
+    alle: 'Alle Figuren (ohne Statisten)',
+    liestAlle: 'Die KI sammelt die Angaben über alle Figuren …',
+    liestEine: 'Die KI sammelt die Angaben über {name} …',
+    fertig: 'Fakten gesammelt',
+    angaben: { one: '1 Angabe', other: '{n} Angaben' },
+    widersprueche: 'Widersprüche und Abweichungen von der Planung stehen auf der Figurenkarte unter „Aus dem Text“ und als „Prüfen“ in den Hinweisen.',
+    starten: 'Sammeln',
   },
 
   stimmeDialog: {

@@ -107,6 +107,8 @@ const de = {
 
   // Figurenstimme (stimme.ts)
   nameStimme: 'Figurenstimme',
+  nameFakten: 'Figurenfakten',
+  faktZuLang: 'Merkmal (höchstens drei Wörter) oder Wert (höchstens acht Wörter) zu lang',
   vergleichGleicheStelle: 'Vergleich nennt dieselbe Stelle wie die Auffälligkeit',
   vageFigurNurDeutlich: 'bewusst vage Figur „{name}“: nur deutliche Auffälligkeiten',
 
@@ -219,6 +221,8 @@ const en: typeof de = {
   zustandUnbekannt: 'unknown state “{zustand}”',
 
   nameStimme: 'Character voice',
+  nameFakten: 'Character facts',
+  faktZuLang: 'trait (at most three words) or value (at most eight words) too long',
   vergleichGleicheStelle: 'Comparison cites the same passage as the observation',
   vageFigurNurDeutlich: 'deliberately vague character “{name}”: only clear observations',
 

@@ -19,6 +19,7 @@ export const DIALOGE: Record<DialogId, DialogKomponente> = {
   'zeit-vorschlaege': lazy(() => import('../features/zeitleiste/ZeitVorschlagDialog')),
   'stimme-pruefen': lazy(() => import('../features/figuren/StimmeDialog')),
   'straenge-vorschlagen': lazy(() => import('../features/faeden/StraengeDialog')),
+  figurenfakten: lazy(() => import('../features/figuren/FaktenDialog')),
   marken: lazy(() => import('../features/schreiben/werkzeuge/MarkenDialog')),
   fassung: lazy(() => import('../features/statistik/FassungDialog')),
   versionsvergleich: lazy(() => import('../features/statistik/VersionsvergleichDialog')),

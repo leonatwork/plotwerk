@@ -25,7 +25,9 @@ export const gruppen = {
   mitgliedEntfernen: '{name} entfernen',
   mitgliedHinzufuegen: 'Mitglied hinzufügen',
   plusMitglied: '+ Mitglied',
-  bisher: '(bisher {name})',
+  bisher: '(auch in {name})',
+  rollePlatzhalter: 'Rolle, z. B. Chef',
+  rolleLabel: 'Rolle von {name} in der Gruppe',
   praesenzKapitel: 'Präsenz pro Kapitel',
   legende: 'Gefüllt: Mitglied im Text · umrandet: Spur · schraffiert: nur im Plan',
   praesenzAkt: 'Präsenz pro Akt',
@@ -42,7 +44,7 @@ export const gruppen = {
   notizen: 'Notizen',
   nurFuerDich: '(nur für dich)',
   leerTitel: 'Antagonisten',
-  leerText: 'Noch keine Gruppen. Lege im Ordner „gruppen“ eine Datei an.',
+  leerText: 'Noch keine Gruppen. Lege im Beziehungsnetz mit „+ Gruppe“ eine an.',
   /** Präsenz pro Akt, aus dem Text abgeleitet (logik.ts) */
   praesenz: {
     imText: 'im Text: Kap. {liste}',

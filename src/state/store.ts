@@ -7,6 +7,7 @@
  * (300 ms entprellt). Fehler beim Schreiben werden geworfen und in `speichern.fehler` vermerkt.
  */
 import { create, type StateCreator, type StoreApi, type UseBoundStore } from 'zustand';
+import { figurenZusammenfuehren as zusammenfuehren } from '@core/figuren/zusammenfuehren';
 import { berechneIndex, LEERER_INDEX, type Index } from '@core/index/index';
 import type {
   Akt,
@@ -22,6 +23,7 @@ import type {
   Markenliste,
   Recherche,
   Schreibstatistik,
+  FigurFakt,
   StimmenBeobachtung,
   StrangVorschlag,
   Zeitleiste,
@@ -94,6 +96,7 @@ export type DialogId =
   | 'stimme-pruefen'
   /** G2: KI schlägt Erzählstränge, Zuordnungen und Rückfragen vor */
   | 'straenge-vorschlagen'
+  | 'figurenfakten'
   /** G4: Markennamen-Übersicht */
   | 'marken'
   /** G5: benannte Fassung anlegen */
@@ -215,6 +218,8 @@ export interface Basis {
   speichereKiZustandVorschlaege(a: KiAblage<ZustandVorschlag>): Promise<void>;
   /** G3 .plotwerk/stimmen.json */
   speichereKiStimmen(a: KiAblage<StimmenBeobachtung>): Promise<void>;
+  /** F-17 .plotwerk/figurenfakten.json */
+  speichereKiFakten(a: KiAblage<FigurFakt>): Promise<void>;
   /** G6 .plotwerk/leser.json */
   speichereKiLeser(a: KiAblage<LeserStand>): Promise<void>;
   /** G6 .plotwerk/fragen.json */
@@ -230,6 +235,8 @@ export interface Basis {
   /** Entfernen legt vorher Schnappschüsse an und räumt Verweise in anderen Dateien auf. */
   entferneKapitel(id: Id): Promise<void>;
   entferneFigur(id: Id): Promise<void>;
+  /** Führt `aufgeben` in `behalten` zusammen (Namen, Beziehungen, Plan, alle Verweise) und entfernt `aufgeben`. */
+  figurenZusammenfuehren(behalten: Id, aufgeben: Id): Promise<void>;
   entferneOrt(id: Id): Promise<void>;
   entferneGruppe(id: Id): Promise<void>;
   /** Schnappschuss nach core/versionen (sollSchnappschuss); Rückgabe: Versionspfad oder null. */
@@ -710,6 +717,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     speichereKiZustandVorschlaege: (a) =>
       speichereFeld('kiZustandVorschlaege', a, persistenz.PFADE.kiZustand, persistenz.speichereKiZustandVorschlaege),
     speichereKiStimmen: (a) => speichereFeld('kiStimmen', a, persistenz.PFADE.kiStimmen, persistenz.speichereKiStimmen),
+    speichereKiFakten: (a) => speichereFeld('kiFakten', a, persistenz.PFADE.kiFakten, persistenz.speichereKiFakten),
     speichereKiLeser: (a) => speichereFeld('kiLeser', a, persistenz.PFADE.kiLeser, persistenz.speichereKiLeser),
     speichereKiFragen: (a) => speichereFeld('kiFragen', a, persistenz.PFADE.kiFragen, persistenz.speichereKiFragen),
     speichereKiStrangVorschlaege: (a) =>
@@ -786,6 +794,46 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
         ...Object.keys(nachher.gruppen)
           .filter((g) => nachher.gruppen[g] !== vorher.gruppen[g])
           .map(speichereGruppeDatei),
+      ]);
+    },
+
+    async figurenZusammenfuehren(behalten, aufgeben) {
+      const vorher = daten();
+      if (!vorher.figuren[behalten] || !vorher.figuren[aufgeben] || behalten === aufgeben) return;
+      setzeDaten((d) => zusammenfuehren(d, behalten, aufgeben));
+      set((s) => ({
+        auswahl: s.auswahl.figur === aufgeben ? { ...s.auswahl, figur: behalten } : s.auswahl,
+        netzAuswahl: s.netzAuswahl?.typ === 'figur' && s.netzAuswahl.id === aufgeben ? { typ: 'figur', id: behalten } : s.netzAuswahl,
+      }));
+      const nachher = daten();
+      const geaendert = <T,>(alt: Record<Id, T>, neu: Record<Id, T>) => Object.keys(neu).filter((k) => neu[k] !== alt[k]);
+      // Dateien mit einem Wert für das ganze Projekt: nur, wenn sich etwas geändert hat
+      const felder: { [K in keyof ProjektDaten]?: (w: NonNullable<ProjektDaten[K]>) => Promise<void> } = {
+        akte: get().speichereAkte,
+        straenge: get().speichereStraenge,
+        ideen: get().speichereIdeen,
+        anmerkungen: get().speichereAnmerkungen,
+        entscheidungen: get().speichereEntscheidungen,
+        kiHinweise: get().speichereKiHinweise,
+        kiVorschlaege: get().speichereKiVorschlaege,
+        zeitleiste: get().speichereZeitleiste,
+        fadenplanung: get().speichereFadenplanung,
+        boegen: get().speichereBoegen,
+        recherche: get().speichereRecherche,
+        kiZustandVorschlaege: get().speichereKiZustandVorschlaege,
+        kiStimmen: get().speichereKiStimmen,
+        kiFakten: get().speichereKiFakten,
+      };
+      const einzeln = (Object.keys(felder) as (keyof ProjektDaten)[])
+        .filter((k) => nachher[k] !== vorher[k] && nachher[k] != null)
+        .map((k) => (felder[k] as (w: unknown) => Promise<void>)(nachher[k]));
+      await Promise.all([
+        entferneDatei(persistenz.figurPfad(aufgeben)),
+        ...geaendert(vorher.figuren, nachher.figuren).map(speichereFigurDatei),
+        ...geaendert(vorher.plaene, nachher.plaene).map(speicherePlanDatei),
+        ...geaendert(vorher.gruppen, nachher.gruppen).map(speichereGruppeDatei),
+        ...geaendert(vorher.orte, nachher.orte).map(speichereOrtDatei),
+        ...einzeln,
       ]);
     },
 

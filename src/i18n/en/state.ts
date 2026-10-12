@@ -65,7 +65,7 @@ export const state: Form<typeof de> = {
     aenderungFehlt: 'This change no longer exists.',
     schonImText: 'The change is already in the text. You’ll find the previous state under the chapter’s “Versions”.',
     kapitelFehlt: 'The chapter no longer exists.',
-    zusatz: { normseite: ' (standard pages)', expose: ' – Synopsis', mappe: ' – Editing packet' },
+    zusatz: { normseite: ' (standard pages)', expose: ' – Synopsis', mappe: ' – Editing packet', personen: ' – Characters' },
   },
   importexport: {
     keinNeuesProjekt: 'No new project was created.',

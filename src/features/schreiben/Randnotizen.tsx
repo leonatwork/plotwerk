@@ -3,6 +3,7 @@
  * Verweisen und Kapitel-Links; neue Notiz mit Ziel-Auswahl und `[[`-Vorschlägen; Sammelbox für
  * Notizen, deren Stelle nicht mehr gefunden wird. Ist der Rand zu schmal, stehen dort nur Punkte.
  */
+import { nachRolle } from '@core/figuren/namen';
 import type { Anmerkung, Id, ProjektDaten, TextAnker, Verweis } from '@core/model/types';
 import type { Editor } from '@tiptap/react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
@@ -49,7 +50,7 @@ function gleich(a: Record<string, number>, b: Record<string, number>): boolean {
 
 function ZielAuswahl({ daten, kapitelId, wert, onChange }: { daten: ProjektDaten; kapitelId: Id; wert: Verweis | null; onChange(v: Verweis | null): void }) {
   const T = useTexte().schreiben.notizen;
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => vergleich(a.name, b.name)));
   const orte = Object.values(daten.orte).sort((a, b) => vergleich(a.name, b.name));
   const kopf = notizKopf(daten, wert, kapitelId, true);
   return (

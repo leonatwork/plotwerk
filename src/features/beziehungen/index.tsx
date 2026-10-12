@@ -16,6 +16,8 @@ export default function Ansicht() {
   const index = useStore((s) => s.index);
   const stand = useStore((s) => s.netzStand);
   const filter = useStore((s) => s.netzFilter);
+  const statisten = useStore((s) => s.netzStatisten);
+  const umschalteNetzStatisten = useStore((s) => s.umschalteNetzStatisten);
   const verbinden = useStore((s) => s.netzVerbinden);
   const globaleFigur = useStore((s) => s.auswahl.figur);
   const globaleGruppe = useStore((s) => s.auswahl.gruppe);
@@ -64,8 +66,8 @@ export default function Ansicht() {
   // Beschriftungen aus logik.ts folgen der Oberflächensprache: beim Umschalten neu berechnen
   const stufen = useMemo(() => (daten ? aktStufen(daten) : []), [daten, sprache]);
   const ansicht = useMemo(
-    () => (daten ? netzBerechnen(daten, index, standIdx, filter) : null),
-    [daten, index, standIdx, filter, sprache],
+    () => (daten ? netzBerechnen(daten, index, standIdx, filter, statisten) : null),
+    [daten, index, standIdx, filter, statisten, sprache],
   );
   if (!daten || !ansicht) return null;
 
@@ -167,6 +169,11 @@ export default function Ansicht() {
                 {t.beziehungen.kategorie[k]}
               </Chip>
             ))}
+            {Object.values(daten.figuren).some((x) => x.rolle === 'statist') && (
+              <Chip variante="knopf" aktiv={statisten} onClick={umschalteNetzStatisten} title={ta.statistenTitel}>
+                {ta.statisten}
+              </Chip>
+            )}
           </div>
           {ablage.length > 0 && (
             <div className="pw-bz-ablage">
@@ -199,7 +206,15 @@ export function Titelaktionen() {
   const mitText = useStore((s) => !!s.daten && s.daten.projekt.kapitel.some((id) => s.daten!.kapitel[id]?.text.trim()));
   const laeuft = useStore((s) => s.vorschlagLaeuft);
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
+  const gruppeAnlegen = useStore((s) => s.gruppeAnlegen);
+  const waehleImNetz = useStore((s) => s.waehleImNetz);
   const ta = useTexte().beziehungen.ansicht;
+  const neueGruppe = async () => {
+    // eine ausgewählte Figur wird gleich Mitglied
+    const a = useStore.getState().netzAuswahl;
+    const id = await gruppeAnlegen(ta.neueGruppe, { mitglieder: a?.typ === 'figur' ? [a.id] : [] });
+    waehleImNetz({ typ: 'gruppe', id });
+  };
   return (
     <>
       <Button
@@ -208,6 +223,9 @@ export function Titelaktionen() {
         title={ta.vorschlagenTitel}
       >
         {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
+      </Button>
+      <Button disabled={!bereit} onClick={() => void neueGruppe()} title={ta.plusGruppeTitel}>
+        {ta.plusGruppe}
       </Button>
       <Button variante="primaer" aria-pressed={verbinden} disabled={!bereit} onClick={() => setzeNetzVerbinden(!verbinden)}>
         {verbinden ? ta.verbindenBeenden : ta.plusBeziehung}

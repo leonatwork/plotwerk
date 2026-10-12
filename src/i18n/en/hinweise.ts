@@ -10,6 +10,7 @@ export const hinweise: Form<typeof de> = {
     struktur: 'Structure',
     zeitleiste: 'Timeline',
     sprache: 'Language',
+    figuren: 'Characters',
   },
   typBeschreibung: {
     pruefen: 'details that might contradict each other',
@@ -19,6 +20,7 @@ export const hinweise: Form<typeof de> = {
     struktur: 'empty chapters, broken-off sentences, empty headings',
     zeitleiste: 'points in time that don’t fit together, and anchoring in time',
     sprache: 'language and character voice – only flagged, never corrected',
+    figuren: 'nicknames before the name, names easy to confuse, characters absent for a while',
   },
   status: { neu: 'New', absicht: 'Intentional', erledigt: 'Done' },
   titel: 'Notes',

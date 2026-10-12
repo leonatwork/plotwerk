@@ -127,6 +127,7 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
   const gruppeAendern = useStore((s) => s.gruppeAendern);
   const mitgliedHinzufuegen = useStore((s) => s.mitgliedHinzufuegen);
   const mitgliedEntfernen = useStore((s) => s.mitgliedEntfernen);
+  const gruppenRolleSetzen = useStore((s) => s.gruppenRolleSetzen);
   const spurStatusSetzen = useStore((s) => s.spurStatusSetzen);
   const spurHinzufuegen = useStore((s) => s.spurHinzufuegen);
   const markiere = useStore((s) => s.markiere);
@@ -272,17 +273,29 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
       </div>
       <div className="pw-gr-abschnitt">
         <span className="pw-gr-feldlabel">{t.mitglieder}</span>
-        <div className="pw-gr-chips">
+        <div className="pw-gr-mitglieder">
           {gruppe.mitglieder.map((m) => (
-            <span key={m} className="pw-gr-mitglied">
-              <button type="button" className="pw-gr-mitglied__name" onClick={() => zeigeFigur(m)}>
-                {daten.figuren[m]?.name ?? m}
-              </button>
-              <button type="button" aria-label={f(t.mitgliedEntfernen, { name: daten.figuren[m]?.name ?? m })} onClick={() => void mitgliedEntfernen(id, m)}>
-                ×
-              </button>
-            </span>
+            <div key={m} className="pw-gr-mitgliedzeile">
+              <span className="pw-gr-mitglied">
+                <button type="button" className="pw-gr-mitglied__name" onClick={() => zeigeFigur(m)}>
+                  {daten.figuren[m]?.name ?? m}
+                </button>
+                <button type="button" aria-label={f(t.mitgliedEntfernen, { name: daten.figuren[m]?.name ?? m })} onClick={() => void mitgliedEntfernen(id, m)}>
+                  ×
+                </button>
+              </span>
+              <EntwurfFeld
+                key={`rolle-${id}-${m}`}
+                className="pw-gr-rolle"
+                aria-label={f(t.rolleLabel, { name: daten.figuren[m]?.name ?? m })}
+                placeholder={t.rollePlatzhalter}
+                wert={gruppe.rollen?.[m] ?? ''}
+                onSpeichern={(r) => void gruppenRolleSetzen(id, m, r)}
+              />
+            </div>
           ))}
+        </div>
+        <div className="pw-gr-chips">
           {gruppe.mitglieder.length === 0 && <span className="pw-gr-legende">{t.keineFigur}</span>}
           {nichtMitglieder.length > 0 && (
             <select

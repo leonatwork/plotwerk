@@ -82,7 +82,7 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
         ...g,
         netz: { ...g.netz, breite: Math.max(120, g.netz.breite + zug.dx), hoehe: Math.max(80, g.netz.hoehe + zug.dy) },
       };
-    return netzBerechnen({ ...daten, figuren, gruppen }, index, standIdx, filter);
+    return netzBerechnen({ ...daten, figuren, gruppen }, index, standIdx, filter, useStore.getState().netzStatisten);
   }, [basis, zug, daten, index, standIdx, filter]);
 
   const punkt = (e: { clientX: number; clientY: number }) => {
@@ -282,6 +282,21 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
           {f.label}
         </div>
       ))}
+      {ansicht.flaechen
+        .filter((f) => f.aussen.length > 0)
+        .map((f) => (
+          <div
+            key={`a-${f.gruppe.id}`}
+            className="pw-bz-gruppe__aussen"
+            style={{ left: f.rechteck.x + 10, top: f.rechteck.y + f.rechteck.hoehe - 28, maxWidth: f.rechteck.breite - 20, color: f.farben.dunkel }}
+          >
+            {f.aussen.map((m) => (
+              <button key={m.id} type="button" title={tn.auchMitglied} onClick={() => waehleImNetz({ typ: 'figur', id: m.id })}>
+                {m.name}
+              </button>
+            ))}
+          </div>
+        ))}
 
       <svg className="pw-bz-linien" width={ansicht.breite} height={ansicht.hoehe} aria-hidden="true">
         {ansicht.linien
