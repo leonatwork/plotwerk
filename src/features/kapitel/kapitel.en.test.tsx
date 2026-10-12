@@ -15,7 +15,7 @@ beforeEach(async () => {
 });
 
 describe('Kapitel-Überblick auf Englisch', () => {
-  it('zeigt Kopf, Zusammenfassung, lose Enden und Realitätsebene auf Englisch', () => {
+  it('zeigt Kopf, Zusammenfassung, lose Enden und Gewissheit auf Englisch', () => {
     useStore.getState().waehle({ kapitel: 'bis-bald' });
     render(
       <>
@@ -35,7 +35,7 @@ describe('Kapitel-Überblick auf Englisch', () => {
     expect(screen.getByText('LOOSE ENDS SO FAR')).toBeInTheDocument();
     expect(screen.getByText(/^\d+ open$/)).toBeInTheDocument();
     expect(screen.getAllByText(/dormant for \d+ chapters?|in this chapter/).length).toBeGreaterThan(0);
-    expect(screen.getByText('REAL OR IMAGINED?')).toBeInTheDocument();
+    expect(screen.getByText('WHAT IS CERTAIN?')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Add event or passage …')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
     expect(screen.getByText(/^READER AFTER CH\. 8$/)).toBeInTheDocument();

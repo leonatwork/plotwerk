@@ -52,7 +52,7 @@ export const hinweise: Form<typeof de> = {
     kopf: '{typ} · {quelle}',
     quelleKi: 'AI check',
     quelleLokal: 'found locally',
-    offenTitel: 'Concerns something with the reality level “still open”',
+    offenTitel: 'Concerns something with certainty “open”',
     zitat: '“{text}”',
     stelleOeffnen: 'Show passage',
     weichtAb: 'Differs from the plan',

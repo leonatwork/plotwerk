@@ -54,8 +54,8 @@ export const kapitel: Form<typeof de> = {
     eroeffnetZuletzt: 'opened in Ch. {eroeffnet} · last in Ch. {zuletzt} · {seit}',
   },
   realitaet: {
-    label: 'Real or imagined?',
-    titel: 'REAL OR IMAGINED?',
+    label: 'What is certain?',
+    titel: 'WHAT IS CERTAIN?',
     nichtsMarkiert: 'Nothing marked in this chapter.',
     eintragEntfernen: 'Remove entry',
     stelleZeigen: 'Show passage in the text',

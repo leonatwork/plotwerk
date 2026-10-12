@@ -82,7 +82,7 @@ describe('Oberfläche auf Englisch', () => {
     expect(useStore.getState().dialog).toBeNull();
   });
 
-  it('Rückfrage, Dialog und Realitätsebenen', async () => {
+  it('Rückfrage, Dialog und Gewissheit', async () => {
     festeSprache('en');
     render(<BestaetigungHost />);
     let antwort: Promise<boolean> | undefined;
@@ -96,8 +96,8 @@ describe('Oberfläche auf Englisch', () => {
     await expect(antwort).resolves.toBe(true);
 
     render(<RealitaetsUmschalter wert="offen" onChange={() => {}} />);
-    const gruppe = screen.getByRole('group', { name: 'Reality level' });
-    expect(within(gruppe).getAllByRole('button').map((b) => b.textContent)).toEqual(['confirmed', 'still open', 'deliberately vague']);
+    const gruppe = screen.getByRole('group', { name: 'Certainty' });
+    expect(within(gruppe).getAllByRole('button').map((b) => b.textContent)).toEqual(['confirmed', 'open', 'deliberately vague']);
     expect(REALITAET_LABEL.bewusst_vage).toBe('deliberately vague');
   });
 });

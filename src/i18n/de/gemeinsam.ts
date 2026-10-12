@@ -34,7 +34,7 @@ export const gemeinsam = {
   keine: 'keine',
   alle: 'Alle',
   suchen: 'Suchen',
-  /** Realitätsebenen (Realitaet) – für alle Bereiche */
+  /** Stufen der Gewissheit (Datenmodell: Realitaet) – für alle Bereiche */
   realitaet: { gesichert: 'gesichert', offen: 'noch offen', bewusst_vage: 'bewusst vage' },
   einstellungenOeffnen: 'Einstellungen öffnen',
 };

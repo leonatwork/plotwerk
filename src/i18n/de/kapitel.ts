@@ -54,10 +54,10 @@ export const kapitel = {
     eroeffnetSeit: 'eröffnet in Kap. {eroeffnet} · {seit}',
     eroeffnetZuletzt: 'eröffnet in Kap. {eroeffnet} · zuletzt Kap. {zuletzt} · {seit}',
   },
-  /** Real oder eingebildet? */
+  /** Was ist sicher? (Gewissheit) */
   realitaet: {
-    label: 'Real oder eingebildet?',
-    titel: 'REAL ODER EINGEBILDET?',
+    label: 'Was ist sicher?',
+    titel: 'WAS IST SICHER?',
     nichtsMarkiert: 'In diesem Kapitel nichts markiert.',
     eintragEntfernen: 'Eintrag entfernen',
     stelleZeigen: 'Stelle im Text zeigen',

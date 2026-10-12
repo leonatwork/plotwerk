@@ -36,7 +36,7 @@ export const ki: Form<typeof de> = {
       'The key is stored in the macOS Keychain, with a separate entry for each provider. The app never shows it and never saves it in the project.',
     hinweisDemo: 'Browser demo: the key isn’t saved, and the check uses demo answers without network access.',
     datenschutz:
-      'Only chapter texts and titles, names and aliases of characters and places, group names, reality levels and the planning of characters and chapters are sent to {name} – never truth, notes, comments or ideas.',
+      'Only chapter texts and titles, names and aliases of characters and places, group names, the certainty of characters and passages and the planning of characters and chapters are sent to {name} – never truth, notes, comments or ideas.',
   },
   pruefen: {
     titel: 'Check',

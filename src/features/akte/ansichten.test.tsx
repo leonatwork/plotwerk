@@ -27,7 +27,7 @@ describe('Planungs-Ansichten rendern mit dem Demo-Projekt', () => {
     expect(screen.getByRole('button', { name: 'Mit dem Schreiben beginnen' })).toBeInTheDocument();
   });
 
-  it('Kapitel-Überblick: Zusammenfassung, lose Enden, Realitätsebene', () => {
+  it('Kapitel-Überblick: Zusammenfassung, lose Enden, Gewissheit', () => {
     useStore.getState().waehle({ kapitel: 'bis-bald' });
     render(<Kapitel />);
     expect(screen.getByText(/KAPITEL 8/)).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('Planungs-Ansichten rendern mit dem Demo-Projekt', () => {
   it('Figuren: Bereiche und Karte', () => {
     useStore.getState().waehle({ figur: 'lotte' });
     render(<Figuren />);
-    expect(screen.getByText('REALITÄT OFFEN')).toBeInTheDocument();
+    expect(screen.getByText('UNGEWISS')).toBeInTheDocument();
     expect(screen.getByText('Aus dem Text')).toBeInTheDocument();
     expect(screen.getByText('Wahrheit hinter den Kulissen')).toBeInTheDocument();
     expect(screen.getByText(/angeheftet an Kap\. 9/)).toBeInTheDocument();

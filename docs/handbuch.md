@@ -19,8 +19,8 @@ Abnahmestand `docs/abnahme.md` · Release `docs/release.md` · Mac-Verteilung `d
   Abweichungen vom Plan werden festgehalten, nicht korrigiert. Was die KI sehen darf, regelt eine Allowlist (E12):
   Kapiteltext, Titel, Namen, Plan-Felder. Die „Wahrheit hinter den Kulissen“, private Notizen und Anmerkungen gehen nie
   an das Modell.
-- **Mehrdeutigkeit ist ein Stilmittel.** Figuren und Textstellen können „gesichert“, „noch offen“ oder „bewusst vage“
-  sein. Bewusst Vages wird nie als Widerspruch gemeldet.
+- **Mehrdeutigkeit ist ein Stilmittel.** Für Figuren und Textstellen legst du die **Gewissheit** fest: „gesichert“,
+  „noch offen“ oder „bewusst vage“. Bewusst Vages wird nie als Widerspruch gemeldet.
 
 ## Funktionen nach Bereichen
 
@@ -32,7 +32,7 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 - **Kapitelliste** mit Status (geschrieben, Entwurf, geplant) und Wortzahl; Ziehen ändert die Reihenfolge,
   „+ Kapitel planen“ legt ein Kapitel an.
 - **Editor**: Text markieren → Blase mit **F** fett, **K** kursiv, **Ü** Überschrift/Absatz, **Notiz** (an Figur, Ort,
-  Kapitel oder Plan-Karte heften) und **Ebene** (Realitätsebene der Stelle). Kürzel ⌘B, ⌘I, ⌘⌥2, ⌘⌥0; ⌘⇧↩ setzt einen
+  Kapitel oder Plan-Karte heften) und **Gewissheit** (gesichert, noch offen oder bewusst vage). Kürzel ⌘B, ⌘I, ⌘⌥2, ⌘⌥0; ⌘⇧↩ setzt einen
   Szenentrenner `* * *`.
 - **Deutsche Typografie** beim Tippen („ “ ‚ ‘ – …); ⌘Z nimmt die Ersetzung zurück.
 - **Automatisches Speichern**: Jede Eingabe liegt nach höchstens 2 s auf der Platte; Schnappschüsse in `.versionen/`.
@@ -52,7 +52,7 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 ### Planen
 
 - **Kapitel-Überblick** (⌘2): Zusammenfassung, Wendung, Antagonisten, „Bis hierhin passiert“, Szenen als Kacheln, lose
-  Enden bis hier, „Leserin nach Kap. n“, Realitätsebene, Recherche zum Kapitel.
+  Enden bis hier, „Leserin nach Kap. n“, „Was ist sicher?“ (Gewissheit der Stellen), Recherche zum Kapitel.
 - **Akte planen** (⌘3): Akt-Board mit Kopfkarten (Quintessenz, Wendepunkt) und Ideen-Ablage; Umschalter „Nur Plan“,
   „Plan + Text“ und **„Stränge“** – das Strang-Raster zeigt, in welchen Kapiteln ein Strang fehlt oder verschwindet;
   Klick oder Leertaste nimmt ihn in den Kapitelplan auf.
@@ -65,8 +65,8 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 
 ### Figuren & Beziehungen
 
-- **Figuren** (⌘4): Liste nach Haupt-, Nebenfiguren, „Realität offen“ und „geplant“; Karte mit „Aus dem Text“ (Belege),
-  „Deine Planung“, Notizen, Wahrheit hinter den Kulissen (nur für dich), Beziehungen, Hinweisen und Recherche.
+- **Figuren** (⌘4): Liste nach Haupt-, Nebenfiguren, „Ungewiss“ und „geplant“; Karte mit „Aus dem Text“ (Belege),
+  „Deine Planung“ (mit Umschalter „Gewissheit“), Notizen, Wahrheit hinter den Kulissen (nur für dich), Beziehungen, Hinweisen und Recherche.
 - **Bögen** (Umschalter in der Titelleiste): Stufen je Kapitel oder Akt (z. B. „Alles im Lot“ → „Erste Risse“)
   mit wörtlichen Belegen; Auftritte als Linie darunter; „+ Figur vergleichen“ legt Bögen untereinander. Auf einer
   Stufe: ←/→ wechseln, ⌥←/⌥→ verschieben, Entf löschen.

@@ -43,10 +43,10 @@ export const schreiben: Form<typeof de> = {
     randLabel: 'Comments in the margin',
     ebeneMeldung: {
       gesichert: 'Passage marked as “confirmed”',
-      offen: 'Passage marked as “still open” – reminder in the chapter overview',
+      offen: 'Passage marked as “open” – reminder in the chapter overview',
       bewusst_vage: 'Passage marked as “deliberately vague” – the check won’t report contradictions here',
     },
-    ebeneFehler: 'Couldn’t save the reality level',
+    ebeneFehler: 'Couldn’t save the certainty',
     externBehalten: 'The file was changed elsewhere – your edits stay, the other version is in the version history',
     andereFassung: 'Other version saved in the version history',
     externNeuGeladen: 'The file was changed elsewhere – reloaded',
@@ -62,9 +62,9 @@ export const schreiben: Form<typeof de> = {
   deko: {
     figur: '{name} · ⌘-click opens the card',
     ebene: {
-      gesichert: 'Reality level: confirmed',
-      offen: 'Reality level: still open',
-      bewusst_vage: 'Reality level: deliberately vague – the check won’t report contradictions here',
+      gesichert: 'Certainty: confirmed',
+      offen: 'Certainty: open',
+      bewusst_vage: 'Certainty: deliberately vague – the check won’t report contradictions here',
     },
   },
   blase: {
@@ -80,9 +80,9 @@ export const schreiben: Form<typeof de> = {
     absatzTitel: 'Back to normal paragraph (⌘⌥0)',
     notiz: 'Comment',
     notizTitel: 'Comment on this passage',
-    ebene: 'Level',
-    ebeneTitel: 'Reality level of this passage: confirmed, still open or deliberately vague',
-    ebenenLabel: 'Reality level of the passage',
+    ebene: 'Certainty',
+    ebeneTitel: 'Certainty of this passage: confirmed, open or deliberately vague',
+    ebenenLabel: 'Certainty of the passage',
   },
   notizen: {
     notiz: 'Comment',
@@ -130,7 +130,7 @@ export const schreiben: Form<typeof de> = {
     erwaehnt: ' · mentioned',
     schreibweise: '· Spelling?',
     figurenOrteImText: 'Characters and places in the text',
-    erkanntHilfe: 'Dashed: only mentioned or existence uncertain. Underlined in the text; ⌘-click opens the card.',
+    erkanntHilfe: 'Dashed: only mentioned or uncertain. Underlined in the text; ⌘-click opens the card.',
     nichtImPlan: 'In the text, but not in the plan',
     zumPlan: 'Add to chapter plan',
     nichtImText: 'Planned, but not in the text',

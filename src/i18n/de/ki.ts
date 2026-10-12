@@ -34,7 +34,7 @@ export const ki = {
       'Der Schlüssel liegt im macOS-Schlüsselbund, je Anbieter ein eigener Eintrag. Die App zeigt ihn nie an und speichert ihn nicht im Projekt.',
     hinweisDemo: 'Browser-Demo: Der Schlüssel wird nicht gespeichert, die Prüfung nutzt Demo-Antworten ohne Netz.',
     datenschutz:
-      'An {name} gehen nur Kapiteltexte und -titel, Namen und Aliase von Figuren und Orten, Gruppennamen, Realitätsebenen und die Planung von Figuren und Kapiteln – nie Wahrheit, Notizen, Anmerkungen oder Ideen.',
+      'An {name} gehen nur Kapiteltexte und -titel, Namen und Aliase von Figuren und Orten, Gruppennamen, Gewissheit von Figuren und Stellen und die Planung von Figuren und Kapiteln – nie Wahrheit, Notizen, Anmerkungen oder Ideen.',
   },
   pruefen: {
     titel: 'Prüfen',

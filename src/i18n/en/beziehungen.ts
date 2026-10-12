@@ -61,7 +61,7 @@ export const beziehungen: Form<typeof de> = {
   inspektor: {
     label: 'Relationships inspector',
     legende: 'Legend',
-    legendeGestrichelt: 'Dashed card: existence not confirmed or only mentioned',
+    legendeGestrichelt: 'Dashed card: uncertain or only mentioned',
     flaeche: {
       blau: 'Blue area',
       rosa: 'Pink area',
@@ -80,7 +80,7 @@ export const beziehungen: Form<typeof de> = {
     bekannt: '{figuren} and {beziehungen} are known up to this point.',
     hilfe: 'Click a card, line or area. New relationship: drag from the dot on a card’s edge to another card, or use “+ Relationship”.',
     ausgewaehlt: 'Selected',
-    existenz: 'Existence',
+    existenz: 'Certainty',
     wahrheit: 'Truth behind the scenes',
     wahrheitZusatz: '(only for you, never appears in the text)',
     wahrheitPlatzhalter: 'What do only you know about this character?',

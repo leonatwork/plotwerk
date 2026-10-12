@@ -66,7 +66,7 @@ export const beziehungen = {
   inspektor: {
     label: 'Inspektor Beziehungen',
     legende: 'Legende',
-    legendeGestrichelt: 'Gestrichelte Karte: Existenz nicht gesichert oder nur erwähnt',
+    legendeGestrichelt: 'Gestrichelte Karte: ungewiss oder nur erwähnt',
     flaeche: {
       blau: 'Blaue Fläche',
       rosa: 'Rosa Fläche',
@@ -86,7 +86,7 @@ export const beziehungen = {
     hilfe:
       'Klicke eine Karte, Linie oder Fläche an. Neue Beziehung: vom Punkt am Kartenrand auf eine andere Karte ziehen oder „+ Beziehung“.',
     ausgewaehlt: 'Ausgewählt',
-    existenz: 'Existenz',
+    existenz: 'Gewissheit',
     wahrheit: 'Wahrheit hinter den Kulissen',
     wahrheitZusatz: '(nur für dich, erscheint nie im Text)',
     wahrheitPlatzhalter: 'Was weißt nur du über diese Figur?',

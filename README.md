@@ -36,8 +36,8 @@
   Beobachtung braucht ein wörtliches Zitat aus deinem Buch, sonst wird sie verworfen.
 - **Plan und Text sind getrennt.** Was du planst und was tatsächlich im Text steht, siehst du nebeneinander.
   Abweichungen werden festgehalten, nicht „korrigiert“.
-- **Mehrdeutigkeit ist erlaubt.** Figuren und Stellen können „gesichert“, „offen“ oder „bewusst vage“ sein.
-  Bewusst Vages meldet Plotwerk nie als Fehler.
+- **Mehrdeutigkeit ist erlaubt.** Für Figuren und Stellen legst du die Gewissheit fest: „gesichert“, „noch offen“
+  oder „bewusst vage“. Bewusst Vages meldet Plotwerk nie als Fehler.
 
 ## Ein Rundgang
 

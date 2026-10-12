@@ -150,7 +150,7 @@ describe('Editor (Integration)', () => {
     unmount();
   });
 
-  it('Blase: Überschrift/Absatz umschalten und Realitätsebene einer Stelle festlegen', async () => {
+  it('Blase: Überschrift/Absatz umschalten und Gewissheit einer Stelle festlegen', async () => {
     // jsdom kennt keine Layout-Koordinaten; die Blase misst im nächsten Frame
     vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
       cb(0);
@@ -171,7 +171,7 @@ describe('Editor (Integration)', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(BLASE_VERZOEGERUNG_MS);
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Ebene' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Gewissheit' }));
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /bewusst vage/ }));
       await vi.advanceTimersByTimeAsync(10);

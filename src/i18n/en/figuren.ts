@@ -28,7 +28,7 @@ export const figuren: Form<typeof de> = {
     label: 'Characters',
     haupt: 'MAIN CHARACTERS',
     neben: 'SUPPORTING CHARACTERS',
-    offen: 'REALITY OPEN',
+    offen: 'UNCERTAIN',
     geplant: 'PLANNED, NOT YET IN THE TEXT',
     kapitelAnzahl: { one: '{n} ch.', other: '{n} ch.' },
     leer: 'No characters yet.',
@@ -55,7 +55,7 @@ export const figuren: Form<typeof de> = {
     planung: {
       titel: 'Your plan',
       rechts: 'freely editable',
-      existenz: 'Existence',
+      existenz: 'Certainty',
       rolle: 'Role',
       auchGenannt: 'Also called',
       auchGenanntTitel: 'Other names by which the character is recognized in the text',

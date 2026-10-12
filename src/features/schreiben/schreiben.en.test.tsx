@@ -99,9 +99,9 @@ describe('Schreiben auf Englisch', () => {
     expect(knoepfe[1]!.getAttribute('title')).toBe('Italic (⌘I)');
     expect(within(blase).getByRole('button', { name: 'Heading' })).toBeTruthy();
     expect(within(blase).getByRole('button', { name: 'Comment' })).toBeTruthy();
-    fireEvent.click(within(blase).getByRole('button', { name: 'Level' }));
-    const ebenen = within(blase).getByRole('group', { name: 'Reality level of the passage' });
-    expect(within(ebenen).getAllByRole('button').map((k) => k.textContent)).toEqual(['confirmed', 'still open', 'deliberately vague']);
+    fireEvent.click(within(blase).getByRole('button', { name: 'Certainty' }));
+    const ebenen = within(blase).getByRole('group', { name: 'Certainty of the passage' });
+    expect(within(ebenen).getAllByRole('button').map((k) => k.textContent)).toEqual(['confirmed', 'open', 'deliberately vague']);
     expect(blase.textContent).not.toMatch(/Notiz|Ebene|gesichert|bewusst vage|Ü/);
     unmount();
     vi.unstubAllGlobals();

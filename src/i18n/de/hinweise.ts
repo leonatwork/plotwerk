@@ -55,7 +55,7 @@ export const hinweise = {
     kopf: '{typ} · {quelle}',
     quelleKi: 'KI-Prüfung',
     quelleLokal: 'lokal erkannt',
-    offenTitel: 'Betrifft etwas mit Realitätsebene „noch offen“',
+    offenTitel: 'Betrifft etwas mit Gewissheit „noch offen“',
     zitat: '»{text}«',
     stelleOeffnen: 'Stelle öffnen',
     weichtAb: 'Weicht von der Planung ab',

@@ -46,7 +46,7 @@ export const schreiben = {
       offen: 'Stelle als »noch offen« markiert – Erinnerung im Kapitel-Überblick',
       bewusst_vage: 'Stelle als »bewusst vage« markiert – die Prüfung meldet hier keinen Widerspruch',
     },
-    ebeneFehler: 'Realitätsebene konnte nicht gespeichert werden',
+    ebeneFehler: 'Gewissheit konnte nicht gespeichert werden',
     externBehalten: 'Datei wurde außerhalb geändert – deine Eingaben bleiben, die andere Fassung liegt im Versionsverlauf',
     andereFassung: 'Andere Fassung im Versionsverlauf gesichert',
     externNeuGeladen: 'Datei wurde außerhalb geändert – neu geladen',
@@ -63,9 +63,9 @@ export const schreiben = {
   deko: {
     figur: '{name} · ⌘-Klick öffnet die Karte',
     ebene: {
-      gesichert: 'Realitätsebene: gesichert',
-      offen: 'Realitätsebene: noch offen',
-      bewusst_vage: 'Realitätsebene: bewusst vage – die Prüfung meldet hier keinen Widerspruch',
+      gesichert: 'Gewissheit: gesichert',
+      offen: 'Gewissheit: noch offen',
+      bewusst_vage: 'Gewissheit: bewusst vage – die Prüfung meldet hier keinen Widerspruch',
     },
   },
   /** Formatierungsblase über markiertem Text. Die Buchstaben sind nur Anzeige (⌘B/⌘I bleiben). */
@@ -82,9 +82,9 @@ export const schreiben = {
     absatzTitel: 'Wieder normaler Absatz (⌘⌥0)',
     notiz: 'Notiz',
     notizTitel: 'Notiz an dieser Stelle',
-    ebene: 'Ebene',
-    ebeneTitel: 'Realitätsebene dieser Stelle: gesichert, noch offen oder bewusst vage',
-    ebenenLabel: 'Realitätsebene der Stelle',
+    ebene: 'Gewissheit',
+    ebeneTitel: 'Gewissheit dieser Stelle: gesichert, noch offen oder bewusst vage',
+    ebenenLabel: 'Gewissheit der Stelle',
   },
   /** Notizen am Rand (Randnotizen.tsx, ziele.ts) */
   notizen: {
@@ -136,7 +136,7 @@ export const schreiben = {
     erwaehnt: ' · erwähnt',
     schreibweise: '· Schreibweise?',
     figurenOrteImText: 'Figuren und Orte im Text',
-    erkanntHilfe: 'Gestrichelt: nur erwähnt oder Existenz unsicher. Im Text unterstrichen; ⌘-Klick öffnet die Karte.',
+    erkanntHilfe: 'Gestrichelt: nur erwähnt oder ungewiss. Im Text unterstrichen; ⌘-Klick öffnet die Karte.',
     nichtImPlan: 'Im Text, aber nicht im Plan',
     zumPlan: 'Zum Kapitelplan hinzufügen',
     nichtImText: 'Geplant, aber nicht im Text',

@@ -232,7 +232,7 @@ describe('Figuren, Orte, Realität', () => {
     expect(d.orte.lindenhof!.aliase).toEqual(['Linden Hof', 'Linden-Hof']);
   });
 
-  it('Realitätsebene: Eintrag anlegen, Stufe ändern, entfernen', async () => {
+  it('Gewissheit: Eintrag anlegen, Stufe ändern, entfernen', async () => {
     const { store } = await geladen();
     const p = () => store.getState().planung;
     const id = await p().realitaetHinzufuegen('regatta', 'Ob Paul wirklich dort war');

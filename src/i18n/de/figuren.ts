@@ -30,7 +30,7 @@ export const figuren = {
     label: 'Figuren',
     haupt: 'HAUPTFIGUREN',
     neben: 'NEBENFIGUREN',
-    offen: 'REALITÄT OFFEN',
+    offen: 'UNGEWISS',
     geplant: 'GEPLANT, NOCH NICHT IM TEXT',
     kapitelAnzahl: { one: '{n} Kap.', other: '{n} Kap.' },
     leer: 'Noch keine Figuren angelegt.',
@@ -57,7 +57,7 @@ export const figuren = {
     planung: {
       titel: 'Deine Planung',
       rechts: 'frei bearbeitbar',
-      existenz: 'Existenz',
+      existenz: 'Gewissheit',
       rolle: 'Rolle',
       auchGenannt: 'Auch genannt',
       auchGenanntTitel: 'Weitere Namen, unter denen die Figur im Text erkannt wird',

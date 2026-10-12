@@ -36,6 +36,6 @@ export const gemeinsam: Form<typeof de> = {
   keine: 'none',
   alle: 'All',
   suchen: 'Search',
-  realitaet: { gesichert: 'confirmed', offen: 'still open', bewusst_vage: 'deliberately vague' },
+  realitaet: { gesichert: 'confirmed', offen: 'open', bewusst_vage: 'deliberately vague' },
   einstellungenOeffnen: 'Open Settings',
 };
