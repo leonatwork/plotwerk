@@ -117,6 +117,13 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
         zuordnung.set(k, v.figur);
         continue;
       }
+      // F-10: Spitznamen für eine angelegte Figur
+      if (v.ziel) {
+        if (!d.figuren[v.ziel]) continue;
+        for (const n of [v.name, ...v.aliase]) await get().planung.spitznameHinzufuegen(v.ziel, n);
+        zuordnung.set(k, v.ziel);
+        continue;
+      }
       const vorhanden = figurMitNamen(d, v.name, ...v.aliase);
       if (vorhanden) {
         zuordnung.set(k, vorhanden);

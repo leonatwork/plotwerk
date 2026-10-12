@@ -186,6 +186,8 @@ export const beziehungen = {
     hauptfigur: 'Hauptfigur',
     nebenfigur: 'Nebenfigur',
     auch: 'auch: {namen}',
+    spitznamenFuer: 'Spitznamen für {name}',
+    alsSpitznamen: 'Als Spitznamen übernehmen',
     inOrt: 'in {name}',
     legtAuchAn: { one: 'Legt auch die Figur {namen} an', other: 'Legt auch die Figuren {namen} an' },
     abKap: ' · ab {kap}',

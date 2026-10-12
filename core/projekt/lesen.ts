@@ -657,6 +657,7 @@ export function parseKiVorschlaege(text: string): KiVorschlaegeT {
           belege: parseBelege(f.belege),
           status: eines(f.status, VORSCHLAGS_STATUS, 'neu'),
           figur: sOpt(f.figur),
+          ziel: sOpt(f.ziel),
         }),
       ),
     orte: liste(d.orte)

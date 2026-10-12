@@ -307,4 +307,21 @@ describe('Dialoge und Vorschläge (UI)', () => {
     expect(await screen.findByText('Keine offenen Vorschläge.')).toBeInTheDocument();
     expect(useStore.getState().daten!.entscheidungen.zuordnungen).toHaveLength(3);
   });
+
+  it('Erwähnungs-Vorschläge: „Als Spitznamen merken“ bestätigt und ergänzt den Spitznamen (ohne Artikel)', async () => {
+    render(<ErwaehnungsVorschlaege kapitel="funkstille" />);
+    fireEvent.click(screen.getByRole('button', { name: 'Vorschläge holen' }));
+    await screen.findByRole('list');
+    // Demo liefert keine indirekte Figuren-Erwähnung: den ersten Vorschlag auf „der Krabbenmann“ → Paul umbiegen
+    act(() => {
+      useStore.setState((st) => {
+        const e = st.kiVorschlaege['funkstille']!;
+        return { kiVorschlaege: { ...st.kiVorschlaege, funkstille: { ...e, liste: [{ ...e.liste[0]!, text: 'der Krabbenmann', ziel: { typ: 'figur', id: 'paul' } }] } } };
+      });
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Als Spitznamen merken' }));
+    expect(await screen.findByText(/„Krabbenmann“ ist jetzt ein Spitzname von Paul\./)).toBeInTheDocument();
+    expect(useStore.getState().daten!.figuren.paul!.aliase).toContain('Krabbenmann');
+    expect(useStore.getState().daten!.entscheidungen.zuordnungen.some((z) => z.ziel?.id === 'paul' && z.status === 'bestaetigt')).toBe(true);
+  });
 });

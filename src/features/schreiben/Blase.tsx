@@ -63,6 +63,8 @@ export interface BlasenPanel {
   titel: string;
   /** nicht bei ganzer Auswahl (⌘A) */
   nurStelle?: boolean;
+  /** Knopf nur zeigen, wenn die Auswahl passt (wird bei jeder Anzeige neu gefragt) */
+  zeigen?(): boolean;
   inhalt(schliessen: () => void): ReactNode;
 }
 
@@ -305,6 +307,13 @@ export function Blase({
     if (lage && b && Math.abs(b - lage.breite) > 1) neuMessen.current();
   }, [lage]);
 
+  // Panel mit Eingabefeld: Fokus hinein, sonst landet Getipptes im Text und ersetzt die Markierung
+  useEffect(() => {
+    if (!panel || panel === 'ebene') return;
+    const feld = panelRef.current?.querySelector<HTMLElement>('[data-autofocus]') ?? panelRef.current?.querySelector<HTMLElement>('input, select, textarea');
+    feld?.focus();
+  }, [panel]);
+
   // Panel im Papier halten (es ist oft breiter als die Leiste)
   useLayoutEffect(() => {
     const p = panelRef.current;
@@ -344,7 +353,7 @@ export function Blase({
   };
   const umschalten = (id: string) => setPanel((x) => (x === id ? null : id));
   const schliessen = () => setPanel(null);
-  const sichtbarePanels = panels.filter((p) => !(lage.alles && p.nurStelle));
+  const sichtbarePanels = panels.filter((p) => !(lage.alles && p.nurStelle) && (p.zeigen?.() ?? true));
   const zusatz = sichtbarePanels.find((p) => p.id === panel);
 
   return (

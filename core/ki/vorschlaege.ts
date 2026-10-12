@@ -394,6 +394,9 @@ export async function werteVorschlagsAntwortAus(
 // ---------------------------------------------------------------------------
 
 export const figurSchluessel = (name: string): string => `figur:${loseEndeId(name)}`;
+/** F-10: Spitznamen für eine angelegte Figur */
+export const spitznamenSchluessel = (figur: Id, namen: string[]): string =>
+  `spitzname:${figur}|${namen.map(loseEndeId).sort().join('+')}`;
 export const ortSchluessel = (name: string): string => `ort:${loseEndeId(name)}`;
 
 /** „beziehung:<slug a>|<slug b>@<abKapitel>“ – Paar alphabetisch, damit die Richtung keine Rolle spielt. */
@@ -559,9 +562,33 @@ export function pruefeVorschlaege(
     // auch über einen Alias: „der Alte“ mit Alias „Ole“ ist die angelegte Figur Ole, keine neue
     const angelegt = namen.map(bekannteFigur).find((x) => x);
     if (angelegt) {
-      bereitsAngelegt += 1;
       // Beziehungen dürfen die Figur unter den Namen dieses Vorschlags nennen
+      const bekannt = new Set(figurNamen(angelegt).map(namensForm));
+      const neueNamen = namen.filter((n) => !bekannt.has(namensForm(n)) && !figurNachForm.has(namensForm(n)));
       for (const n of namen) if (!figurNachForm.has(namensForm(n))) figurNachForm.set(namensForm(n), angelegt);
+      // F-10: Namen, die die angelegte Figur noch nicht kennt, als Spitznamen vorschlagen
+      const belege = neueNamen.length ? belegePruefen(f.belege) : [];
+      if (neueNamen.length === 0 || typeof belege === 'string') {
+        bereitsAngelegt += 1;
+        continue;
+      }
+      const schluessel = spitznamenSchluessel(angelegt.id, neueNamen);
+      if (figurEntschieden.has(schluessel)) {
+        bereitsEntschieden += 1;
+        continue;
+      }
+      const doppelt = figuren.find((x) => x.schluessel === schluessel);
+      if (doppelt) continue;
+      figuren.push({
+        schluessel,
+        name: neueNamen[0]!,
+        aliase: neueNamen.slice(1),
+        rolle: angelegt.rolle,
+        kurz: '',
+        belege,
+        status: 'neu',
+        ziel: angelegt.id,
+      });
       continue;
     }
     const belege = belegePruefen(f.belege);
@@ -831,6 +858,7 @@ export function figurVerweisAufloesen(
   const v = ablage.figuren.find((f) => f.schluessel === verweis.id);
   if (!v || v.status === 'verworfen') return null;
   if (v.status === 'uebernommen') return v.figur && daten.figuren[v.figur] ? { figur: v.figur } : null;
+  if (v.ziel) return daten.figuren[v.ziel] ? { figur: v.ziel } : null;
   const vorhanden = figurMitNamen(daten, v.name, ...v.aliase);
   return vorhanden ? { figur: vorhanden } : { vorschlag: v };
 }
@@ -848,7 +876,17 @@ export interface OffeneVorschlaege {
  */
 export function offeneVorschlaege(ablage: KiVorschlaege | undefined, daten: ProjektDaten): OffeneVorschlaege {
   if (!ablage) return { figuren: [], orte: [], beziehungen: [], anzahl: 0 };
-  const figuren = ablage.figuren.filter((f) => f.status === 'neu' && !figurMitNamen(daten, f.name, ...f.aliase));
+  const figuren = ablage.figuren.filter((f) => {
+    if (f.status !== 'neu') return false;
+    // Spitznamen-Vorschlag: offen, solange die Figur da ist und einen der Namen noch nicht trägt
+    if (f.ziel) {
+      const z = daten.figuren[f.ziel];
+      if (!z) return false;
+      const bekannt = new Set(figurNamen(z).map(namensForm));
+      return [f.name, ...f.aliase].some((n) => !bekannt.has(namensForm(n)));
+    }
+    return !figurMitNamen(daten, f.name, ...f.aliase);
+  });
   const orte = ablage.orte.filter((o) => o.status === 'neu' && !ortMitNamen(daten, o.name));
   const beziehungen = ablage.beziehungen.filter((b) => {
     if (b.status !== 'neu') return false;

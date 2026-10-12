@@ -5,6 +5,7 @@
  */
 import type { StateCreator } from 'zustand';
 import type { Index } from '@core/index/index';
+import { mitSpitzname } from '@core/figuren/namen';
 import type {
   AbweichungsEntscheidung,
   Akt,
@@ -350,6 +351,8 @@ export interface Planung {
   // Figuren
   figurAnlegen(name: string, rolle?: FigurRolle): Promise<Id>;
   figurAendern(id: Id, teil: Partial<Omit<Figur, 'id'>>): Promise<void>;
+  /** F-09/F-10: Spitznamen ergänzen (für die Erkennung); false, wenn die Figur ihn schon trägt */
+  spitznameHinzufuegen(figur: Id, name: string): Promise<boolean>;
   planFeldSetzen(figur: Id, feld: string, wert: string): Promise<void>;
   /** gibt den tatsächlichen (eindeutigen) Feldnamen zurück */
   planFeldHinzufuegen(figur: Id, feld: string): Promise<string>;
@@ -635,6 +638,13 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
 
     async figurAendern(id, teil) {
       await get().speichereFigur({ ...figur(id), ...teil, id });
+    },
+
+    async spitznameHinzufuegen(id, name) {
+      const neu = mitSpitzname(figur(id), name);
+      if (!neu) return false;
+      await get().speichereFigur(neu);
+      return true;
     },
 
     async planFeldSetzen(id, feld, wert) {

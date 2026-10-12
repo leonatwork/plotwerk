@@ -22,7 +22,8 @@ import { f, texte, useTexte } from '../../i18n';
 import { useBuchSprache } from '../../i18n/buch';
 import { klassen } from '../../ui';
 import { Autosave } from './autosave';
-import { Blase, BLASE_SCHLIESSEN } from './Blase';
+import { Blase, BLASE_SCHLIESSEN, type BlasenPanel } from './Blase';
+import { FigurPanel } from './FigurPanel';
 import { setzeBruecke, titelFokusAbholen } from './bruecke';
 import {
   Dekorationen,
@@ -574,6 +575,41 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     }
   };
 
+  /** F-09: markierter Text (ein Absatz, 2–60 Zeichen) und die dort schon erkannten Figuren */
+  const figurAuswahl = (): { text: string; erkannt: Id[] } | null => {
+    const ed = editorRef.current;
+    if (!ed) return null;
+    const { from, to, empty, $from, $to } = ed.state.selection;
+    if (empty || !$from.sameParent($to)) return null;
+    const text = ed.state.doc.textBetween(from, to, ' ').trim();
+    if (text.length < 2 || text.length > 60) return null;
+    const erkannt = [...new Set(figurenBei(ed.state, $from.start(), $from.end()).filter((x) => x.from < to && x.to > from).map((x) => x.figur))];
+    return { text, erkannt };
+  };
+  const figurPanel: BlasenPanel = {
+    id: 'figur',
+    knopf: t.schreiben.blase.figur,
+    titel: t.schreiben.blase.figurTitel,
+    nurStelle: true,
+    zeigen: () => figurAuswahl() !== null,
+    inhalt: (schliessen) => {
+      const m = figurAuswahl();
+      if (!m) return null;
+      return (
+        <FigurPanel
+          key={m.text}
+          markiert={m.text}
+          erkannt={m.erkannt}
+          onFertig={(text) => {
+            schliessen();
+            editorRef.current?.commands.focus();
+            meldungZeigen(text);
+          }}
+        />
+      );
+    },
+  };
+
   const zuStelle = (id: Id) => {
     const ed = editorRef.current;
     const b = ed ? notizBereiche(ed.state).get(id) : undefined;
@@ -622,7 +658,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
             )}
           </div>
         )}
-        {editor && <Blase editor={editor} papierRef={papierRef} onNotiz={notizBeginnen} onEbene={(stufe) => void ebeneSetzen(stufe)} />}
+        {editor && <Blase editor={editor} papierRef={papierRef} onNotiz={notizBeginnen} onEbene={(stufe) => void ebeneSetzen(stufe)} panels={[figurPanel]} />}
         <EditorWerkzeuge editor={editor} papierRef={papierRef} kapitelId={kapitelId} />
       </div>
       <Statusleiste kapitelId={kapitelId} ungespeichert={ungespeichert} meldung={meldung} />
