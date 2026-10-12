@@ -22,7 +22,7 @@ import { f, texte, useTexte } from '../../i18n';
 import { useBuchSprache } from '../../i18n/buch';
 import { klassen } from '../../ui';
 import { Autosave } from './autosave';
-import { Blase } from './Blase';
+import { Blase, BLASE_SCHLIESSEN } from './Blase';
 import { setzeBruecke, titelFokusAbholen } from './bruecke';
 import {
   Dekorationen,
@@ -381,6 +381,8 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
       karteCache.current = null;
       setEntwurf(null);
       setAktiveNotiz(null);
+      // updateState löst keine Transaktion aus: Auswahl-Leiste ausdrücklich schließen
+      papierRef.current?.dispatchEvent(new Event(BLASE_SCHLIESSEN));
       if (papierRef.current) papierRef.current.scrollTop = gemerkt?.scroll ?? 0;
       analysieren();
     },
@@ -539,6 +541,8 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     const kandidaten = figurenBei(ed.state, $from.start(), to).filter((f) => f.from < to);
     kandidaten.sort((a, b) => b.from - a.from);
     const figur = kandidaten[0]?.figur;
+    // Im Fokus-Modus gibt es keinen Rand: erst verlassen, sonst entstünde ein unsichtbarer Entwurf
+    if (useStore.getState().fokusModus) useStore.getState().umschalteFokus();
     setAktiveNotiz(null);
     setEntwurf({
       anker: ankerErzeugen(kapitelId, karte.text, start, ende),
