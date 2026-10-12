@@ -218,6 +218,8 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const [umbenennen, setUmbenennen] = useState<string | null>(null);
   /** Name der neuen Gruppe, solange das Eingabefeld offen ist */
   const [neueGruppe, setNeueGruppe] = useState<string | null>(null);
+  /** F-14: bei Statisten nur ausgefüllte Planfelder, die übrigen auf Klick */
+  const [leereZeigen, setLeereZeigen] = useState(false);
   const uid = useId();
   const t = useTexte();
   const tp = t.figuren.karte.planung;
@@ -229,6 +231,10 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
     else if (f.gruppe && daten.gruppen[f.gruppe]) void mitgliedEntfernen(f.gruppe, f.id);
     else void p.figurAendern(f.id, { gruppe: null });
   };
+  const alleFelder = Object.keys(f.plan);
+  const felder =
+    f.rolle === 'statist' && !leereZeigen ? alleFelder.filter((feld) => f.plan[feld]?.trim() || umbenennen === feld) : alleFelder;
+  const versteckt = alleFelder.length - felder.length;
   const gruppeAnlegenUndSetzen = async () => {
     const name = neueGruppe?.trim();
     if (!name) return;
@@ -250,6 +256,7 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
           optionen={[
             { wert: 'haupt', label: t.figuren.rolle.haupt },
             { wert: 'neben', label: t.figuren.rolle.neben },
+            { wert: 'statist', label: t.figuren.rolle.statist },
           ]}
         />
         <label htmlFor={`${uid}-aliase`} style={leise} title={tp.auchGenanntTitel}>
@@ -312,10 +319,15 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
             </LinkKnopf>
           )}
         </span>
-        {Object.keys(f.plan).map((feld) => (
+        {felder.map((feld) => (
           <FeldZeile key={feld} f={f} feld={feld} umbenennen={umbenennen === feld} setUmbenennen={setUmbenennen} />
         ))}
       </div>
+      {versteckt > 0 && (
+        <button type="button" className="pl-link" style={{ alignSelf: 'flex-start', ...leise }} onClick={() => setLeereZeigen(true)}>
+          {fmt(tp.leereFelder, { n: versteckt })}
+        </button>
+      )}
       <button
         type="button"
         className="pl-link"
@@ -899,7 +911,7 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
           <AusDemText daten={daten} index={index} nachKapitel={nachKapitel} />
           <DeinePlanung f={f} daten={daten} />
           <Auftritte f={f} daten={daten} index={index} nachKapitel={nachKapitel} farbe={farbe} />
-          <Bogen f={f} daten={daten} farbe={farbe} />
+          {(f.rolle !== 'statist' || bogenVon(daten.boegen, f.id).stufen.length > 0) && <Bogen f={f} daten={daten} farbe={farbe} />}
         </div>
         <div style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Zusammenfuehren f={f} daten={daten} zustand={zusammenfuehrung} setZustand={setZusammenfuehrung} />

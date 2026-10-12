@@ -87,7 +87,7 @@ export function stimmenSchluessel(figur: Id, zitate: Zitat[]): string {
 }
 
 function figurZeileEn(f: KontextFigur): string {
-  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'main character' : 'minor character'];
+  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'main character' : f.rolle === 'statist' ? 'walk-on character' : 'minor character'];
   if (f.aliase.length) teile.push(`also called: ${f.aliase.join(', ')}`);
   if (f.existenz === 'bewusst_vage') teile.push('deliberately vague');
   else if (f.existenz === 'offen') teile.push('existence still open');
@@ -95,7 +95,7 @@ function figurZeileEn(f: KontextFigur): string {
 }
 
 function figurZeile(f: KontextFigur): string {
-  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'Hauptfigur' : 'Nebenfigur'];
+  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'Hauptfigur' : f.rolle === 'statist' ? 'Statist' : 'Nebenfigur'];
   if (f.aliase.length) teile.push(`auch genannt: ${f.aliase.join(', ')}`);
   if (f.existenz === 'bewusst_vage') teile.push('bewusst vage');
   else if (f.existenz === 'offen') teile.push('Existenz noch offen');

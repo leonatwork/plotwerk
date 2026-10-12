@@ -7,7 +7,7 @@ export const figuren = {
   /** „Kap. 3 „Rot““ */
   kapitelMitTitel: 'Kap. {nr} „{titel}“',
   imTextZeigen: 'Im Text zeigen',
-  rolle: { haupt: 'Hauptfigur', neben: 'Nebenfigur' },
+  rolle: { haupt: 'Hauptfigur', neben: 'Nebenfigur', statist: 'Statist' },
   /** Art der Erwähnung je Kapitel (ErwaehnungsArt) */
   art: { auftritt: 'tritt auf', nachricht: 'per Nachricht', erwaehnt: 'erwähnt', unbestimmt: 'im Text' },
   /** Platz einer Bogen-Stufe bzw. Akt-Kopf im Raster */
@@ -30,6 +30,9 @@ export const figuren = {
     label: 'Figuren',
     haupt: 'HAUPTFIGUREN',
     neben: 'NEBENFIGUREN',
+    statisten: 'STATISTEN · {n}',
+    statistenZeigen: 'Statisten zeigen',
+    statistenVerbergen: 'Statisten verbergen',
     offen: 'UNGEWISS',
     geplant: 'GEPLANT, NOCH NICHT IM TEXT',
     kapitelAnzahl: { one: '{n} Kap.', other: '{n} Kap.' },
@@ -68,6 +71,7 @@ export const figuren = {
       neueGruppeAnlegen: 'Anlegen',
       imNetz: 'im Netz',
       eigenesFeld: '+ Eigenes Feld',
+      leereFelder: 'Leere Planfelder zeigen ({n})',
       neuesFeld: 'Neues Feld',
     },
     feld: {

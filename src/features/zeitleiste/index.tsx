@@ -1,4 +1,5 @@
 /** Bereich „Zeitleiste“ (G1 Zeit & Zustand): Kapitel/Szenen auf Tages- und Uhrzeit-Achse, Zustandsspuren. Besitzer: G1. */
+import { nachRolle } from '@core/figuren/namen';
 import { SICHERHEIT_FARBE } from '@core/zeit/index';
 import type { ZeitSicherheit } from '@core/model/types';
 import { f, texte, useTexte, vergleich } from '../../i18n';
@@ -18,7 +19,7 @@ function Werkzeugzeile({ figur }: { figur?: string }) {
   const setzeSpur = useStore((s) => s.zeit.setzeSpur);
   const setzeFigur = useStore((s) => s.zeit.setzeFigur);
   const t = useTexte().zeitleiste.ansicht;
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => vergleich(a.name, b.name)));
   const hatSzenen = Object.values(daten.plaene).some((p) => (p.szenen?.length ?? 0) >= 2);
   return (
     <div className="zl-werkzeuge">

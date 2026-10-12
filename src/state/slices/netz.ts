@@ -23,6 +23,9 @@ export interface NetzSlice {
   netzAuswahl: NetzAuswahl | null;
   /** „+ Beziehung“: Karten verbinden statt verschieben */
   netzVerbinden: boolean;
+  /** F-14: Statisten im Netz zeigen (Standard: aus) */
+  netzStatisten: boolean;
+  umschalteNetzStatisten(): void;
   setzeNetzStand(kapitel: Id | null): void;
   umschalteNetzFilter(k: BeziehungsKategorie): void;
   waehleImNetz(a: NetzAuswahl | null): void;
@@ -120,6 +123,8 @@ export const createNetzSlice: StateCreator<Store, [], [], NetzSlice> = (set, get
     netzFilter: { arbeit: true, dates: true, sonstige: true },
     netzAuswahl: null,
     netzVerbinden: false,
+    netzStatisten: false,
+    umschalteNetzStatisten: () => set((s) => ({ netzStatisten: !s.netzStatisten })),
 
     setzeNetzStand: (kapitel) => set({ netzStand: kapitel }),
     umschalteNetzFilter: (k) => set((s) => ({ netzFilter: { ...s.netzFilter, [k]: !s.netzFilter[k] } })),

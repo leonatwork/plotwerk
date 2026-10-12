@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { MemoryFs, parseFigur, parseGruppe, figurPfad, gruppePfad } from '@core/projekt';
 import { demoDateien } from '../../../fixtures/demoProjekt';
 import { erstelleDemoBackend } from '../../backend/demo';
-import { KARTE } from '../../features/beziehungen/logik';
+import { exposeGeruest } from '@core/abgabe/index';
+import { ALLE_KATEGORIEN, KARTE, netzBerechnen } from '../../features/beziehungen/logik';
+import { figurenBereiche } from './planung';
 import { erstelleStore } from '../store';
 
 async function laden() {
@@ -81,5 +83,37 @@ describe('KI-Vorschlag als Spitznamen übernehmen (F-10)', () => {
     expect(Object.keys(d.figuren)).toHaveLength(anzahl);
     expect(d.figuren.ole!.aliase).toEqual(expect.arrayContaining(['der Kollege', 'Fenster-Ole']));
     expect(d.kiVorschlaege!.figuren[0]).toMatchObject({ status: 'uebernommen', figur: 'ole' });
+  });
+});
+
+describe('Statisten (F-14)', () => {
+  it('eigener Bereich in der Liste, nicht im Netz (außer auf Wunsch), nicht im Exposé; Rolle übersteht Speichern', async () => {
+    const { store, fs } = await laden();
+    const s = store.getState();
+    await s.planung.figurAendern('malte', { rolle: 'statist' });
+    await store.getState().alleSpeichernAbwarten();
+    expect(parseFigur((await fs.lesen(figurPfad('malte')))!, 'malte').rolle).toBe('statist');
+    const d = store.getState().daten!;
+    store.getState().indexNeuBerechnen();
+    const index = store.getState().index;
+    const b = figurenBereiche(d, index);
+    expect(b.statisten.map((f) => f.id)).toEqual(['malte']);
+    expect(b.neben.concat(b.haupt).some((f) => f.id === 'malte')).toBe(false);
+    const ohne = netzBerechnen(d, index, d.projekt.kapitel.length - 1, ALLE_KATEGORIEN);
+    const mit = netzBerechnen(d, index, d.projekt.kapitel.length - 1, ALLE_KATEGORIEN, true);
+    expect(ohne.karten.some((k) => k.figur.id === 'malte')).toBe(false);
+    expect(mit.karten.some((k) => k.figur.id === 'malte')).toBe(true);
+    const expose = exposeGeruest(d, { kapitel: 'keine' });
+    expect(JSON.stringify(expose)).not.toContain('Malte');
+  });
+
+  it('„Alle Statisten übernehmen“ legt nur die Statisten-Vorschläge an', async () => {
+    const { store } = await laden();
+    const fig = (name: string, rolle: 'statist' | 'neben') => ({ schluessel: `figur:${name.toLowerCase()}`, name, aliase: [], rolle, kurz: '', belege: [], status: 'neu' as const });
+    await store.getState().speichereKiVorschlaege({ version: 1, figuren: [fig('Uta', 'statist'), fig('Ines', 'statist'), fig('Bernd', 'neben')], orte: [], beziehungen: [] });
+    expect(await store.getState().alleStatistenUebernehmen()).toBe(2);
+    const d = store.getState().daten!;
+    expect(Object.values(d.figuren).filter((f) => ['Uta', 'Ines'].includes(f.name)).map((f) => f.rolle)).toEqual(['statist', 'statist']);
+    expect(Object.values(d.figuren).some((f) => f.name === 'Bernd')).toBe(false);
   });
 });

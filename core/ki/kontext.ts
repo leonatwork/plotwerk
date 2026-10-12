@@ -11,7 +11,7 @@
  * Beschriftungen im Prefix englisch („Characters:“, „Existence: …“, „Planned scene: …“); Tags und Attribute
  * (<angaben>, <buch>, <kapitel nr id titel>, <text>, <realitaetsebene>, <plan>) bleiben gleich.
  */
-import type { GruppenTyp, Id, ProjektDaten, Realitaet, TextAnker } from '../model/types';
+import type { FigurRolle, GruppenTyp, Id, ProjektDaten, Realitaet, TextAnker } from '../model/types';
 import { klartext, textHash } from '../text';
 import { kiSprache, type Sprache } from './sprache';
 
@@ -32,7 +32,7 @@ export interface KontextFigur {
   id: Id;
   name: string;
   aliase: string[];
-  rolle: 'haupt' | 'neben';
+  rolle: FigurRolle;
   existenz: Realitaet;
   /** nur lokal für die Prüfung (Genitiv-/Wortformen), wird nicht gesendet */
   formen: string[];
@@ -99,6 +99,7 @@ const BESCHRIFTUNG = {
     auch: 'auch',
     haupt: 'Hauptfigur',
     neben: 'Nebenfigur',
+    statist: 'Statist',
     existenz: 'Existenz',
     planung: 'Planung',
     imText: 'im Text',
@@ -120,6 +121,7 @@ const BESCHRIFTUNG = {
     auch: 'also',
     haupt: 'main character',
     neben: 'minor character',
+    statist: 'walk-on character',
     existenz: 'Existence',
     planung: 'Plan',
     imText: 'in the text',
@@ -178,7 +180,7 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
       id: f.id,
       name: f.name,
       aliase: [...(f.aliase ?? [])],
-      rolle: f.rolle === 'haupt' ? ('haupt' as const) : ('neben' as const),
+      rolle: f.rolle,
       existenz: f.existenz,
       formen: [...(f.formen ?? [])],
       plan: Object.entries(f.plan ?? {})
@@ -229,7 +231,7 @@ function renderBuch(
   for (const f of figuren) {
     const teile = [`${f.name} (id: ${f.id})`];
     if (f.aliase.length) teile.push(`${B.auch}: ${f.aliase.join(', ')}`);
-    teile.push(f.rolle === 'haupt' ? B.haupt : B.neben);
+    teile.push(B[f.rolle]);
     teile.push(`${B.existenz}: ${B.stufe[f.existenz]}`);
     z.push(`- ${teile.join(' · ')}`);
     for (const p of f.plan) z.push(`  ${B.planung} · ${p.feld}: ${p.wert}`);

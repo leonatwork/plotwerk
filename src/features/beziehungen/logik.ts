@@ -260,10 +260,11 @@ function rechteckVon(f: Figur): Rechteck | null {
 
 const einWort = (s: string) => !/\s/.test(s.trim()) && s.trim().length > 0 && s.trim().length <= 24;
 
-export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: number, filter: NetzFilter): NetzAnsicht {
+export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: number, filter: NetzFilter, statisten = false): NetzAnsicht {
   const t = texte();
   const tl = t.beziehungen.logik;
-  const figuren = Object.values(daten.figuren);
+  // F-14: Statisten nur auf Wunsch
+  const figuren = Object.values(daten.figuren).filter((f) => statisten || f.rolle !== 'statist');
   const sichtbar = new Set(figuren.filter((f) => figurSichtbar(daten, index, f.id, standIdx)).map((f) => f.id));
 
   // Paare am Stand

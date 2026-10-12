@@ -59,6 +59,8 @@ export interface VorschlaegeSlice {
   vorschlagVerwerfen(art: VorschlagsArt, schluessel: string): Promise<void>;
   /** Figuren → Orte → Beziehungen */
   alleVorschlaegeUebernehmen(): Promise<{ figuren: number; orte: number; beziehungen: number }>;
+  /** F-14: alle offenen Figurvorschläge mit Rolle „statist“ auf einmal anlegen */
+  alleStatistenUebernehmen(): Promise<number>;
 }
 
 export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlice> = (set, get) => {
@@ -313,6 +315,13 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
       const danach = offeneVorschlaege(ablage(), daten());
       const beziehungen = danach.beziehungen.length ? await beziehungenUebernehmen(danach.beziehungen.map((b) => b.schluessel)) : 0;
       return { figuren, orte, beziehungen };
+    },
+
+    async alleStatistenUebernehmen() {
+      const schluessel = offeneVorschlaege(ablage(), daten())
+        .figuren.filter((f) => f.rolle === 'statist' && !f.ziel)
+        .map((f) => f.schluessel);
+      return schluessel.length ? (await figurenUebernehmen(schluessel)).size : 0;
     },
   };
 };

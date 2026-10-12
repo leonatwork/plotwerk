@@ -123,3 +123,21 @@ describe('F-13 ruhende Figuren', () => {
     expect(ruhendeStrecken(d, berechneIndex(d).erwaehnungen, f)).toEqual([]);
   });
 });
+
+describe('F-14 Statist in vielen Kapiteln', () => {
+  it('ab drei Kapiteln „zur Nebenfigur machen?“; nicht für Nebenfiguren', () => {
+    const texte = ['Die Kellnerin Uta kam.', 'Uta brachte Kaffee.', 'Uta lachte.'];
+    expect(hinweise(projekt(texte, [figur('uta', 'Uta', { rolle: 'statist' })]), 'aufsteigen').map((h) => h.schluessel)).toEqual(['figuren:aufsteigen:uta']);
+    expect(hinweise(projekt(texte.slice(0, 2), [figur('uta', 'Uta', { rolle: 'statist' })]), 'aufsteigen')).toEqual([]);
+    expect(hinweise(projekt(texte, [figur('uta', 'Uta')]), 'aufsteigen')).toEqual([]);
+  });
+
+  it('Statisten ruhen nie und zählen nicht als verwechselbar', () => {
+    const d = projekt(
+      ['Sabine kam.', 'a.', 'b.', 'c.', 'd.', 'e.', 'f.', 'Sabine ging. Sabina auch.'],
+      [figur('sabine', 'Sabine', { rolle: 'statist', ruheSchwelle: undefined }), figur('sabina', 'Sabina')],
+    );
+    expect(hinweise(d, 'ruht').filter((h) => h.schluessel.includes('sabine'))).toEqual([]);
+    expect(hinweise(d, 'aehnlich')).toEqual([]);
+  });
+});

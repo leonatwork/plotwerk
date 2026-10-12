@@ -40,6 +40,8 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
   const vorschlaege = useOffeneVorschlaege();
   const [neu, setNeu] = useState<string | null>(null);
+  /** F-14: Statisten eingeklappt; offen bei Suche oder wenn ein Statist gewählt ist */
+  const [statistenOffen, setStatistenOffen] = useState(false);
   const t = useTexte();
   const tl = t.figuren.liste;
 
@@ -69,7 +71,14 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
     );
   };
 
-  const leer = b.haupt.length + b.neben.length + b.offen.length + b.geplant.length === 0;
+  const leer = b.haupt.length + b.neben.length + b.statisten.length + b.offen.length + b.geplant.length === 0;
+  const statisten = b.statisten.filter(passt);
+  const statistenSichtbar = statistenOffen || !!suche || b.statisten.some((f) => f.id === gewaehlt);
+  // Statisten: Name, Kurzbeschreibung und die Kapitel als Nummern
+  const zeileStatist = (f: Figur) => {
+    const kap = kapitelDerFigur(f, daten, index).map(nr);
+    return [f.kurz, kap.length ? fmt(t.gemeinsam.kapitelKurz, { nr: kap.join(', ') }) : null].filter(Boolean).join(' · ');
+  };
 
   return (
     <nav
@@ -86,6 +95,22 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
     >
       {gruppe(tl.haupt, b.haupt, zeile, undefined, true)}
       {gruppe(tl.neben, b.neben, zeile, undefined, b.haupt.filter(passt).length === 0)}
+      {statisten.length > 0 && (
+        <>
+          <button
+            type="button"
+            aria-expanded={statistenSichtbar}
+            title={statistenSichtbar ? tl.statistenVerbergen : tl.statistenZeigen}
+            onClick={() => setStatistenOffen(!statistenSichtbar)}
+            style={{ ...kopf, padding: '12px 10px 4px', border: 0, background: 'none', textAlign: 'left', cursor: 'pointer', display: 'flex', gap: 6 }}
+          >
+            <span aria-hidden="true">{statistenSichtbar ? '▾' : '▸'}</span>
+            {fmt(tl.statisten, { n: statisten.length })}
+          </button>
+          {statistenSichtbar &&
+            statisten.map((f) => <Eintrag key={f.id} f={f} daten={daten} gewaehlt={gewaehlt === f.id} unterzeile={zeileStatist(f)} />)}
+        </>
+      )}
       {gruppe(tl.offen, b.offen, zeileOffen, 'var(--vage-dark)')}
       <span style={{ ...kopf, padding: '12px 10px 4px' }}>{tl.geplant}</span>
       {b.geplant.filter(passt).map((f) => (
