@@ -44,7 +44,7 @@ export const gruppen: Form<typeof de> = {
   notizen: 'Notes',
   nurFuerDich: '(only for you)',
   leerTitel: 'Antagonists',
-  leerText: 'No groups yet. Create a file in the “gruppen” folder.',
+  leerText: 'No groups yet. Create one on the relationship map with “+ Group”.',
   praesenz: {
     imText: 'in the text: Ch. {liste}',
     spur: 'trace: Ch. {liste}',

@@ -199,7 +199,15 @@ export function Titelaktionen() {
   const mitText = useStore((s) => !!s.daten && s.daten.projekt.kapitel.some((id) => s.daten!.kapitel[id]?.text.trim()));
   const laeuft = useStore((s) => s.vorschlagLaeuft);
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
+  const gruppeAnlegen = useStore((s) => s.gruppeAnlegen);
+  const waehleImNetz = useStore((s) => s.waehleImNetz);
   const ta = useTexte().beziehungen.ansicht;
+  const neueGruppe = async () => {
+    // eine ausgewählte Figur wird gleich Mitglied
+    const a = useStore.getState().netzAuswahl;
+    const id = await gruppeAnlegen(ta.neueGruppe, { mitglieder: a?.typ === 'figur' ? [a.id] : [] });
+    waehleImNetz({ typ: 'gruppe', id });
+  };
   return (
     <>
       <Button
@@ -208,6 +216,9 @@ export function Titelaktionen() {
         title={ta.vorschlagenTitel}
       >
         {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
+      </Button>
+      <Button disabled={!bereit} onClick={() => void neueGruppe()} title={ta.plusGruppeTitel}>
+        {ta.plusGruppe}
       </Button>
       <Button variante="primaer" aria-pressed={verbinden} disabled={!bereit} onClick={() => setzeNetzVerbinden(!verbinden)}>
         {verbinden ? ta.verbindenBeenden : ta.plusBeziehung}

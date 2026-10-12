@@ -207,14 +207,34 @@ function FeldZeile({ f, feld, umbenennen, setUmbenennen }: { f: Figur; feld: str
   );
 }
 
+const NEUE_GRUPPE = '\u0000neu';
+
 function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const p = useStore((s) => s.planung);
   const oeffne = useStore((s) => s.oeffne);
+  const mitgliedHinzufuegen = useStore((s) => s.mitgliedHinzufuegen);
+  const mitgliedEntfernen = useStore((s) => s.mitgliedEntfernen);
+  const gruppeAnlegen = useStore((s) => s.gruppeAnlegen);
   const [umbenennen, setUmbenennen] = useState<string | null>(null);
+  /** Name der neuen Gruppe, solange das Eingabefeld offen ist */
+  const [neueGruppe, setNeueGruppe] = useState<string | null>(null);
   const uid = useId();
   const t = useTexte();
   const tp = t.figuren.karte.planung;
   const gruppen = Object.values(daten.gruppen).sort((a, b) => vergleich(a.name, b.name));
+  // Mitgliedschaft immer über die Gruppe setzen: figur.gruppe und gruppe.mitglieder bleiben gleich
+  const gruppeSetzen = (wert: string) => {
+    if (wert === NEUE_GRUPPE) return setNeueGruppe('');
+    if (wert) void mitgliedHinzufuegen(wert, f.id);
+    else if (f.gruppe && daten.gruppen[f.gruppe]) void mitgliedEntfernen(f.gruppe, f.id);
+    else void p.figurAendern(f.id, { gruppe: null });
+  };
+  const gruppeAnlegenUndSetzen = async () => {
+    const name = neueGruppe?.trim();
+    if (!name) return;
+    setNeueGruppe(null);
+    await gruppeAnlegen(name, { mitglieder: [f.id] });
+  };
   return (
     <Abschnitt titel={tp.titel} rechts={<span style={{ fontSize: 11, ...leise }}>{tp.rechts}</span>} label={tp.titel}>
       <div style={grid2}>
@@ -252,21 +272,41 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
           {tp.gruppe}
         </label>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <select
-            id={`${uid}-gruppe`}
-            className="pl-select"
-            style={{ flex: 1 }}
-            value={f.gruppe ?? ''}
-            onChange={(e) => void p.figurAendern(f.id, { gruppe: e.target.value || null })}
-          >
-            <option value="">{t.gemeinsam.keine}</option>
-            {gruppen.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </select>
-          {f.gruppe && daten.gruppen[f.gruppe] && (
+          {neueGruppe === null ? (
+            <select id={`${uid}-gruppe`} className="pl-select" style={{ flex: 1 }} value={f.gruppe ?? ''} onChange={(e) => gruppeSetzen(e.target.value)}>
+              <option value="">{t.gemeinsam.keine}</option>
+              {gruppen.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+              <option value={NEUE_GRUPPE}>{tp.neueGruppe}</option>
+            </select>
+          ) : (
+            <>
+              <input
+                id={`${uid}-gruppe`}
+                className="pl-eingabe"
+                style={{ flex: 1, minWidth: 0 }}
+                autoFocus
+                aria-label={tp.neueGruppeName}
+                placeholder={tp.neueGruppeName}
+                value={neueGruppe}
+                onChange={(e) => setNeueGruppe(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void gruppeAnlegenUndSetzen();
+                  if (e.key === 'Escape') setNeueGruppe(null);
+                }}
+              />
+              <Button klein variante="primaer" disabled={!neueGruppe.trim()} onClick={() => void gruppeAnlegenUndSetzen()}>
+                {tp.neueGruppeAnlegen}
+              </Button>
+              <Button klein variante="text" onClick={() => setNeueGruppe(null)}>
+                {t.gemeinsam.abbrechen}
+              </Button>
+            </>
+          )}
+          {neueGruppe === null && f.gruppe && daten.gruppen[f.gruppe] && (
             <LinkKnopf fett onClick={() => oeffne('beziehungen', { gruppe: f.gruppe!, figur: f.id })}>
               {tp.imNetz}
             </LinkKnopf>
@@ -702,8 +742,91 @@ function Hinweise({ f, daten, index }: { f: Figur; daten: ProjektDaten; index: I
   );
 }
 
+const namensform = (n: string) => n.trim().toLocaleLowerCase('de');
+
+/** Andere Figuren, die einen Namen (Name, Spitzname, Form) mit `f` teilen – vermutlich dieselbe Person. */
+export function gleichnamigeFiguren(f: Figur, daten: ProjektDaten): Figur[] {
+  const formen = new Set(namenDerFigur(f).map(namensform));
+  return Object.values(daten.figuren)
+    .filter((x) => x.id !== f.id && namenDerFigur(x).some((n) => formen.has(namensform(n))))
+    .sort((a, b) => vergleich(a.name, b.name));
+}
+
+type Zusammenfuehrung = { figur: Id; wahl: Id } | null;
+
+/** Hinweis auf gleichnamige Figuren und Auswahl, welche Figur in dieser aufgeht. */
+function Zusammenfuehren({ f, daten, zustand, setZustand }: { f: Figur; daten: ProjektDaten; zustand: Zusammenfuehrung; setZustand(z: Zusammenfuehrung): void }) {
+  const zusammenfuehren = useStore((s) => s.figurenZusammenfuehren);
+  const uid = useId();
+  const t = useTexte();
+  const tz = t.figuren.karte.zusammenfuehren;
+  const doppelte = gleichnamigeFiguren(f, daten);
+  const offen = zustand?.figur === f.id ? zustand : null;
+  if (!offen) {
+    if (doppelte.length === 0) return null;
+    return (
+      <div role="note" style={{ border: '1px solid var(--accent-line)', background: 'var(--accent-flaeche)', borderRadius: 10, padding: '10px 12px', fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span>{fmt(tz.doppelt, { namen: doppelte.map((x) => `${fmt(t.figuren.zitat, { text: x.name })}${x.kurz ? ` (${x.kurz})` : ''}`).join(', ') })}</span>
+        <LinkKnopf fett onClick={() => setZustand({ figur: f.id, wahl: doppelte[0]!.id })}>
+          {tz.pruefen}
+        </LinkKnopf>
+      </div>
+    );
+  }
+  const doppelteIds = new Set(doppelte.map((x) => x.id));
+  const andere = Object.values(daten.figuren)
+    .filter((x) => x.id !== f.id && !doppelteIds.has(x.id))
+    .sort((a, b) => vergleich(a.name, b.name));
+  const option = (x: Figur, gleich: boolean) => (
+    <option key={x.id} value={x.id}>
+      {x.name}
+      {x.kurz ? ` – ${x.kurz}` : ''}
+      {gleich ? ` (${tz.gleicherName})` : ''}
+    </option>
+  );
+  const gewaehlt = daten.figuren[offen.wahl];
+  /** `bleibt` übernimmt `geht` (nach Rückfrage) */
+  const ausfuehren = async (bleibt: Figur, geht: Figur) => {
+    if (!(await rueckfrage(fmt(tz.frage, { andere: geht.name, name: bleibt.name }), { knopf: tz.ausfuehren }))) return;
+    setZustand(null);
+    await zusammenfuehren(bleibt.id, geht.id);
+  };
+  return (
+    <section aria-label={tz.knopf} style={{ border: '1px solid var(--line-soft)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+      <label htmlFor={`${uid}-wahl`} style={{ fontWeight: 600 }}>
+        {fmt(tz.label, { name: f.name })}
+      </label>
+      <select id={`${uid}-wahl`} className="pl-select" value={offen.wahl} onChange={(e) => setZustand({ figur: f.id, wahl: e.target.value })}>
+        <option value="">{tz.waehlen}</option>
+        {doppelte.map((x) => option(x, true))}
+        {andere.map((x) => option(x, false))}
+      </select>
+      <span style={leise}>{fmt(tz.hilfe, { name: f.name })}</span>
+      <span style={{ display: 'flex', gap: 8 }}>
+        <Button
+          klein
+          variante="primaer"
+          disabled={!gewaehlt}
+          onClick={() => gewaehlt && void ausfuehren(f, gewaehlt)}
+        >
+          {tz.ausfuehren}
+        </Button>
+        <Button klein variante="text" onClick={() => setZustand(null)}>
+          {t.gemeinsam.abbrechen}
+        </Button>
+      </span>
+      {gewaehlt && (
+        <LinkKnopf onClick={() => void ausfuehren(gewaehlt, f)}>
+          {fmt(tz.umgekehrt, { andere: gewaehlt.name })}
+        </LinkKnopf>
+      )}
+    </section>
+  );
+}
+
 export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten; index: Index }) {
   const entfernen = useStore((s) => s.entferneFigur);
+  const [zusammenfuehrung, setZusammenfuehrung] = useState<Zusammenfuehrung>(null);
   const t = useTexte();
   const f = daten.figuren[id];
   if (!f) return null;
@@ -731,11 +854,22 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
           <Bogen f={f} daten={daten} farbe={farbe} />
         </div>
         <div style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Zusammenfuehren f={f} daten={daten} zustand={zusammenfuehrung} setZustand={setZusammenfuehrung} />
           <Notizen f={f} daten={daten} />
           <Wahrheit f={f} />
           <Beziehungen f={f} daten={daten} />
           <Hinweise f={f} daten={daten} index={index} />
           <RechercheLeiste ziel={{ typ: 'figur', id: f.id }} />
+          {zusammenfuehrung?.figur !== f.id && Object.keys(daten.figuren).length > 1 && (
+            <button
+              type="button"
+              className="pl-link"
+              style={{ alignSelf: 'flex-start', color: 'var(--ink-quiet)' }}
+              onClick={() => setZusammenfuehrung({ figur: f.id, wahl: gleichnamigeFiguren(f, daten)[0]?.id ?? '' })}
+            >
+              {t.figuren.karte.zusammenfuehren.knopf}
+            </button>
+          )}
           <button
             type="button"
             className="pl-link"
