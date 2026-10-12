@@ -63,7 +63,7 @@ Figuren (figuren):
 - Schlage jede Person vor, die im Text handelt, spricht oder mit Namen bzw. fester Bezeichnung erwähnt wird (zum Beispiel „der Mann am Fischstand“), und die noch nicht unter den angelegten Figuren steht. Ein namenloser Ich-Erzähler ist keine eigene Figur, wenn er erkennbar eine angelegte oder vorgeschlagene Figur ist.
 - name: der Eigenname der Person (Vorname, Nachname oder beides), sobald der Text ihn irgendwo nennt, auch wenn sie meist anders genannt wird. Spitznamen, Titel und Bezeichnungen (zum Beispiel „die Chefin“, „der Alte“) gehören dann zu aliase. Nur wenn der Text keinen Eigennamen nennt, ist name die Bezeichnung, unter der die Person am häufigsten vorkommt. aliase: weitere Namen, Spitznamen und Bezeichnungen derselben Person, Zeichen für Zeichen wie im Text, ohne Genitivformen.
 - Eine Person ist genau ein Vorschlag: Schlage niemanden zweimal unter verschiedenen Namen vor.
-- rolle: haupt für Figuren, die das Buch tragen (Erzähler, wiederkehrende zentrale Figuren), sonst neben.
+- rolle: haupt für Figuren, die das Buch tragen (Erzähler, wiederkehrende zentrale Figuren); statist für benannte Figuren, die höchstens in zwei Szenen vorkommen und keine eigene Handlung tragen (zum Beispiel eine Kellnerin, die einmal bedient); sonst neben.
 - kurz: eine sachliche Zeile, höchstens vier Wörter, was der Text über die Figur sagt (zum Beispiel „Kollege der Hauptfigur“ oder „Jugendfreundin“); sie steht als Untertitel auf der Karte im Beziehungsnetz. Keine Deutung, keine Vermutung über Verborgenes.
 - belege: eine bis drei Stellen, an denen die Figur vorkommt.
 
@@ -99,7 +99,7 @@ Characters (figuren):
 - Suggest every person who acts, speaks or is mentioned by name or by a fixed designation in the text (for example “the man at the kiosk”) and who is not yet among the characters set up. A nameless first-person narrator is not a separate character if they are recognisably a character that is set up or suggested.
 - name: the person's proper name (first name, surname or both) as soon as the text gives it anywhere, even if they are mostly called something else. Nicknames, titles and designations (for example “the boss”, “the old man”) then belong in aliase. Only if the text gives no proper name is name the designation the person appears under most often. aliase: further names, nicknames and designations of the same person, character for character as in the text, without possessive forms (’s).
 - One person is exactly one suggestion: never suggest someone twice under different names.
-- rolle: haupt for characters who carry the book (narrators, recurring central characters), otherwise neben.
+- rolle: haupt for characters who carry the book (narrators, recurring central characters); statist for named characters who appear in at most two scenes and carry no plot of their own (for example a waitress who serves once); otherwise neben.
 - kurz: one factual line, at most four words, on what the text says about the character (for example “Paul's colleague” or “Kleinanzeigen match”); it appears as a subtitle on the card in the relationship web. No interpretation, no speculation about hidden things.
 - belege: one to three passages where the character appears.
 
@@ -151,7 +151,7 @@ export function vorschlagsSchema(kontext: BuchKontext): Record<string, unknown> 
       obj({
         name: str,
         aliase: liste(str),
-        rolle: { type: 'string', enum: ['haupt', 'neben'] },
+        rolle: { type: 'string', enum: ['haupt', 'neben', 'statist'] },
         kurz: str,
         belege,
       }),
@@ -619,7 +619,7 @@ export function pruefeVorschlaege(
       schluessel,
       name,
       aliase,
-      rolle: (f.rolle === 'haupt' ? 'haupt' : 'neben') satisfies FigurRolle,
+      rolle: (f.rolle === 'haupt' || f.rolle === 'statist' ? f.rolle : 'neben') satisfies FigurRolle,
       kurz,
       belege,
       status: 'neu',

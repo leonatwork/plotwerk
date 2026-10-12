@@ -284,6 +284,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
   const uebernehmen = useStore((s) => s.vorschlagUebernehmen);
   const verwerfen = useStore((s) => s.vorschlagVerwerfen);
   const alleUebernehmen = useStore((s) => s.alleVorschlaegeUebernehmen);
+  const statistenUebernehmen = useStore((s) => s.alleStatistenUebernehmen);
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [meldung, setMeldung] = useState<string | null>(null);
   const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
@@ -322,6 +323,10 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
         beziehungen: f(tv.beziehungenAnzahl, { n: r.beziehungen }),
       });
     });
+
+  const statisten = () =>
+    void ausfuehren('statisten', async () => f(tv.statistenUebernommen, { figuren: f(tv.figurenAnzahl, { n: await statistenUebernehmen() }) }));
+  const offeneStatisten = offen.figuren.filter((x) => x.rolle === 'statist' && !x.ziel).length;
 
   const a = ablage ?? { version: 1 as const, figuren: [], orte: [], beziehungen: [] };
 
@@ -371,6 +376,11 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
 
       <Abschnitt titel={tv.figuren} anzahl={offen.figuren.length}>
+        {offeneStatisten > 1 && (
+          <Button klein onClick={statisten} disabled={arbeitet !== null} style={{ alignSelf: 'flex-start' }}>
+            {f(tv.alleStatisten, { n: offeneStatisten })}
+          </Button>
+        )}
         {offen.figuren.map((fv: FigurVorschlag) =>
           fv.ziel ? (
             <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion} uebernehmenText={tv.alsSpitznamen}>
@@ -384,7 +394,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
             <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
               <div className="pw-vs-zeile">
                 <strong>{fv.name}</strong>
-                <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : tv.nebenfigur}</span>
+                <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : fv.rolle === 'statist' ? tv.statist : tv.nebenfigur}</span>
               </div>
               {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
               {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}

@@ -27,6 +27,9 @@ const T = texteJe(
       one: '{figur} kommt nach {nr} ein Kapitel lang nicht mehr vor ({von}).',
       other: '{figur} kommt nach {nr} {n} Kapitel lang nicht mehr vor ({von}–{bis}).',
     },
+    aufsteigen: 'Statist {figur} in {n} Kapiteln – zur Nebenfigur machen?',
+    aufsteigenErklaerung:
+      '{figur} ist als Statist angelegt, kommt aber in {n} Kapiteln vor ({liste}). Als Nebenfigur erscheint die Figur in Liste und Netz und wird bei ruhenden Strecken gemeldet.',
     zitat: '»{text}«',
   },
   {
@@ -42,9 +45,15 @@ const T = texteJe(
       one: 'After {nr}, {figur} does not appear for one chapter ({von}).',
       other: 'After {nr}, {figur} does not appear for {n} chapters ({von}–{bis}).',
     },
+    aufsteigen: 'Walk-on {figur} in {n} chapters – make a supporting character?',
+    aufsteigenErklaerung:
+      '{figur} is set up as a walk-on but appears in {n} chapters ({liste}). As a supporting character they show up in the list and the map and are reported when absent for a while.',
     zitat: '“{text}”',
   },
 );
+
+/** F-14: Ab so vielen Kapiteln wird ein Statist zum Aufstieg vorgeschlagen. */
+export const STATIST_AUFSTIEG = 3;
 
 /** Standard-Schwellen für ruhende Figuren (Kapitel ohne Vorkommen); Statisten nie. */
 export const RUHE_SCHWELLE = { haupt: 3, neben: 6 } as const;
@@ -166,7 +175,7 @@ export function figurenHinweise(daten: ProjektDaten, erwaehnungen: Erwaehnung[],
   }
 
   // F-12: verwechselbare Namen (beide Figuren im Text, keine Statisten)
-  const imText = figuren.filter((f) => nachFigur.has(f.id));
+  const imText = figuren.filter((f) => f.rolle !== 'statist' && nachFigur.has(f.id));
   for (let i = 0; i < imText.length; i++)
     for (let j = i + 1; j < imText.length; j++) {
       const a = imText[i]!;
@@ -196,6 +205,22 @@ export function figurenHinweise(daten: ProjektDaten, erwaehnungen: Erwaehnung[],
         ),
       );
     }
+
+  // F-14: Statist in vielen Kapiteln
+  for (const f of figuren) {
+    if (f.rolle !== 'statist') continue;
+    const liste = nachFigur.get(f.id) ?? [];
+    const kap = kapitel.filter((id) => liste.some((e) => e.kapitel === id));
+    if (kap.length < STATIST_AUFSTIEG) continue;
+    ergebnis.push(
+      hinweis(
+        `figuren:aufsteigen:${f.id}`,
+        fmt(t.aufsteigen, { figur: f.name, n: kap.length }),
+        fmt(t.aufsteigenErklaerung, { figur: f.name, n: kap.length, liste: kap.map(nr).join(', ') }),
+        [zitatVon(liste[0]!)],
+      ),
+    );
+  }
 
   // F-13: ruhende Figuren
   for (const f of figuren) {

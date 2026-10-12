@@ -182,7 +182,7 @@ export interface Beziehung {
   unsicher?: boolean;
 }
 
-export type FigurRolle = 'haupt' | 'neben';
+export type FigurRolle = 'haupt' | 'neben' | 'statist';
 
 /** figuren/<id>.md – Body-Abschnitte „## Wahrheit hinter den Kulissen“ und „## Notizen“ (beide privat) */
 export interface Figur {

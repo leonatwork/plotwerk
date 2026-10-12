@@ -198,6 +198,8 @@ export function notizAbsaetze(notizen: string): string[] {
 export interface FigurenBereiche {
   haupt: Figur[];
   neben: Figur[];
+  /** F-14: Statisten im Text (eingeklappt) */
+  statisten: Figur[];
   /** Existenz ≠ gesichert */
   offen: Figur[];
   /** noch kein Vorkommen im Text (nur, wenn der Index berechnet ist) */
@@ -211,12 +213,12 @@ export function indexBereit(index: Pick<Index, 'textHashes' | 'erwaehnungen'>): 
 /** F-01: Hauptfiguren, Nebenfiguren, Realität offen, geplant (noch nicht im Text). */
 export function figurenBereiche(daten: Pick<ProjektDaten, 'figuren'>, index: Pick<Index, 'textHashes' | 'erwaehnungen' | 'erstesVorkommen'>): FigurenBereiche {
   const bereit = indexBereit(index);
-  const b: FigurenBereiche = { haupt: [], neben: [], offen: [], geplant: [] };
+  const b: FigurenBereiche = { haupt: [], neben: [], statisten: [], offen: [], geplant: [] };
   const liste = Object.values(daten.figuren).sort((x, y) => x.name.localeCompare(y.name, 'de'));
   for (const f of liste) {
     if (f.existenz !== 'gesichert') b.offen.push(f);
     else if (bereit && !index.erstesVorkommen[f.id]) b.geplant.push(f);
-    else (f.rolle === 'haupt' ? b.haupt : b.neben).push(f);
+    else (f.rolle === 'haupt' ? b.haupt : f.rolle === 'statist' ? b.statisten : b.neben).push(f);
   }
   return b;
 }

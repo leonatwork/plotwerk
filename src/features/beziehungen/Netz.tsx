@@ -82,7 +82,7 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
         ...g,
         netz: { ...g.netz, breite: Math.max(120, g.netz.breite + zug.dx), hoehe: Math.max(80, g.netz.hoehe + zug.dy) },
       };
-    return netzBerechnen({ ...daten, figuren, gruppen }, index, standIdx, filter);
+    return netzBerechnen({ ...daten, figuren, gruppen }, index, standIdx, filter, useStore.getState().netzStatisten);
   }, [basis, zug, daten, index, standIdx, filter]);
 
   const punkt = (e: { clientX: number; clientY: number }) => {

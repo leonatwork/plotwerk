@@ -2,7 +2,7 @@
  * Namen und Spitznamen von Figuren: markierten Text in einen Spitznamen verwandeln, Spitznamen ergänzen,
  * Figuren zu einem Namen finden. Reine Funktionen ohne Store.
  */
-import type { Figur, Id, ProjektDaten } from '../model/types';
+import type { Figur, FigurRolle, Id, ProjektDaten } from '../model/types';
 
 /** Führende Artikel, die die Erkennung selbst ergänzt („dem Alten“ findet auch „der Alte“ nicht, „Alte“ schon). */
 const ARTIKEL = /^(der|die|das|den|dem|des|ein|eine|einen|einem|einer|eines|the|a|an)\s+/i;
@@ -62,4 +62,12 @@ export function figurenSuchen(daten: Pick<ProjektDaten, 'figuren'>, suche: strin
     .filter((x) => x.r < 99)
     .sort((a, b) => a.r - b.r || a.f.name.localeCompare(b.f.name, 'de'))
     .map((x) => x.f);
+}
+
+/** Reihenfolge der Rollen in Listen: Haupt-, Neben-, Statistenrollen. */
+export const ROLLEN: FigurRolle[] = ['haupt', 'neben', 'statist'];
+
+/** Vergleich für Listen: erst nach Rolle, dann mit `name` (z. B. nach Namen). */
+export function nachRolle<T extends { rolle: FigurRolle }>(name: (a: T, b: T) => number): (a: T, b: T) => number {
+  return (a, b) => ROLLEN.indexOf(a.rolle) - ROLLEN.indexOf(b.rolle) || name(a, b);
 }

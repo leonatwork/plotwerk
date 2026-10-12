@@ -7,7 +7,7 @@ export const figuren: Form<typeof de> = {
   zitatZu: '”',
   kapitelMitTitel: 'Ch. {nr} “{titel}”',
   imTextZeigen: 'Show in text',
-  rolle: { haupt: 'Main character', neben: 'Supporting character' },
+  rolle: { haupt: 'Main character', neben: 'Supporting character', statist: 'Walk-on' },
   art: { auftritt: 'appears', nachricht: 'by message', erwaehnt: 'mentioned', unbestimmt: 'in the text' },
   ort: { akt: 'Act {nr}', ohneKapitel: 'no chapter', ohneAkt: 'no act' },
 
@@ -28,6 +28,9 @@ export const figuren: Form<typeof de> = {
     label: 'Characters',
     haupt: 'MAIN CHARACTERS',
     neben: 'SUPPORTING CHARACTERS',
+    statisten: 'WALK-ONS · {n}',
+    statistenZeigen: 'Show walk-ons',
+    statistenVerbergen: 'Hide walk-ons',
     offen: 'UNCERTAIN',
     geplant: 'PLANNED, NOT YET IN THE TEXT',
     kapitelAnzahl: { one: '{n} ch.', other: '{n} ch.' },
@@ -66,6 +69,7 @@ export const figuren: Form<typeof de> = {
       neueGruppeAnlegen: 'Create',
       imNetz: 'in network',
       eigenesFeld: '+ Custom field',
+      leereFelder: 'Show empty plan fields ({n})',
       neuesFeld: 'New field',
     },
     feld: {

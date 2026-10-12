@@ -1,4 +1,5 @@
 /** Inspektor der Zeitleiste (G1): Zeitpunkt und Zustand der gewählten Karte festlegen; ohne Auswahl Beginn und Zustandsliste. */
+import { nachRolle } from '@core/figuren/namen';
 import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { Id, TextAnker, Zeitpunkt, ZeitSicherheit } from '@core/model/types';
 import {
@@ -465,7 +466,7 @@ function FigurWahl({ figur }: { figur: Id | undefined }) {
   const daten = useStore((s) => s.daten)!;
   const setzeFigur = useStore((s) => s.zeit.setzeFigur);
   const t = useTexte().zeitleiste.ansicht;
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort(nachRolle((a, b) => vergleich(a.name, b.name)));
   return (
     <select className="zl-select" aria-label={t.figurFuerSpur} value={figur ?? ''} onChange={(e) => setzeFigur(e.target.value || null)}>
       {figuren.map((f) => (
