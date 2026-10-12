@@ -27,6 +27,7 @@ import { f, texte, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button, Feld, Inspektor, Segment } from '../../ui';
 import { klassen } from '../../ui/klassen';
+import { NurMit } from '../../app/NurMit';
 import {
   belegFehlerText,
   datumKurz,
@@ -729,18 +730,20 @@ function Ueberblick({ zd }: { zd: ZeitDaten }) {
         </div>
       </Abschnitt>
 
-      <Abschnitt titel={t.vorschlaegeKi}>
-        <p className="zl-leise">
-          {zeitN + zustandN === 0
-            ? t.keineVorschlaege
-            : f(t.vorschlaegeOffen, { zeit: f(t.vorschlaegeOffenZeit, { n: zeitN }), zustand: f(t.vorschlaegeOffenZustand, { n: zustandN }) })}
-        </p>
-        <div className="zl-reihe">
-          <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
-            {zeitN + zustandN ? t.vorschlaegeAnsehen : texte().zeitleiste.ansicht.zeitpunkteVorschlagen}
-          </Button>
-        </div>
-      </Abschnitt>
+      <NurMit funktion="kiZeit">
+        <Abschnitt titel={t.vorschlaegeKi}>
+          <p className="zl-leise">
+            {zeitN + zustandN === 0
+              ? t.keineVorschlaege
+              : f(t.vorschlaegeOffen, { zeit: f(t.vorschlaegeOffenZeit, { n: zeitN }), zustand: f(t.vorschlaegeOffenZustand, { n: zustandN }) })}
+          </p>
+          <div className="zl-reihe">
+            <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
+              {zeitN + zustandN ? t.vorschlaegeAnsehen : texte().zeitleiste.ansicht.zeitpunkteVorschlagen}
+            </Button>
+          </div>
+        </Abschnitt>
+      </NurMit>
 
       <Abschnitt titel={t.notiz}>
         <NotizFeld label={t.notizZurZeitleiste} wert={zl.notiz} onCommit={(n) => void setzeNotiz(n)} />

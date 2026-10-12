@@ -18,6 +18,7 @@ import { Button, Dialog } from '../../ui';
 import '../statistik/statistik.css';
 import './schreiben.css';
 import { kapitelAnzeige } from './verweise';
+import { NurMit } from '../../app/NurMit';
 
 function wann(iso: string): { haupt: string; neben: string } {
   const d = new Date(iso);
@@ -99,16 +100,18 @@ export function VersionenDialog({ param, schliessen }: DialogKomponentenProps) {
       aktionen={
         <>
           {fehler && <span className="pw-s-status__fehler" style={{ marginRight: 'auto', fontSize: 12 }}>{fehler}</span>}
-          <Button onClick={() => kapitelId && oeffneDialog('fassung', { kapitel: kapitelId })} disabled={!kapitelId || laeuft} title={T.fassungSichernTitel}>
-            {T.fassungSichern}
-          </Button>
-          <Button
-            disabled={!auswahl || !kapitelId || laeuft}
-            title={T.nebeneinanderTitel}
-            onClick={() => auswahl && kapitelId && oeffneDialog('versionsvergleich', { links: versionsQuelle(auswahl.versionsPfad), rechts: AKTUELL, kapitel: kapitelId, pfad: auswahl.versionsPfad })}
-          >
-            {T.nebeneinander}
-          </Button>
+          <NurMit funktion="fassungen">
+            <Button onClick={() => kapitelId && oeffneDialog('fassung', { kapitel: kapitelId })} disabled={!kapitelId || laeuft} title={T.fassungSichernTitel}>
+              {T.fassungSichern}
+            </Button>
+            <Button
+              disabled={!auswahl || !kapitelId || laeuft}
+              title={T.nebeneinanderTitel}
+              onClick={() => auswahl && kapitelId && oeffneDialog('versionsvergleich', { links: versionsQuelle(auswahl.versionsPfad), rechts: AKTUELL, kapitel: kapitelId, pfad: auswahl.versionsPfad })}
+            >
+              {T.nebeneinander}
+            </Button>
+          </NurMit>
           <Button onClick={schliessen}>{t.gemeinsam.schliessen}</Button>
           <Button
             variante="primaer"

@@ -2,7 +2,9 @@ import type { Id, ProjektDaten } from '@core/model/types';
 import { f, sprache, texte, vergleich, woerterbuch, type Sprache, type Woerterbuch } from '../i18n';
 import type { Auswahl, Bereich } from '../state/store';
 import type { Befehl } from './befehle';
+import { funktionAktiv } from '../state/funktionen';
 import { BEREICHE, bereichSuchwoerter, bereichTitel } from './bereiche';
+import { bereichAktiv, funktionFuerBefehl } from './funktionen';
 
 export interface Treffer {
   art: 'kapitel' | 'figur' | 'ort' | 'bereich' | 'befehl';
@@ -75,7 +77,16 @@ function passt(anfrage: string, ...texte: string[]): number {
   return best;
 }
 
-/** Schnellsuche über Kapitel, Figuren, Orte, Werkzeug-Bereiche und Befehle (je höchstens `max` Treffer). */
+/** Befehl sichtbar (Funktion eingeblendet, E15)? */
+function befehlAktiv(b: Befehl): boolean {
+  const id = funktionFuerBefehl(b);
+  return !id || funktionAktiv(id);
+}
+
+/**
+ * Schnellsuche über Kapitel, Figuren, Orte, Werkzeug-Bereiche und Befehle (je höchstens `max` Treffer). Ausgeblendete
+ * Funktionen (E15) liefern keine Treffer.
+ */
 export function suche(daten: ProjektDaten, eingabe: string, max = 8): Treffer[] {
   const anfrage = eingabe.trim();
   const t = texte();
@@ -94,7 +105,7 @@ export function suche(daten: ProjektDaten, eingabe: string, max = 8): Treffer[] 
         rang: 0,
       });
   });
-  for (const fig of Object.values(daten.figuren)) {
+  for (const fig of bereichAktiv('figuren') ? Object.values(daten.figuren) : []) {
     const punkte = passt(anfrage, fig.name, ...fig.aliase);
     if (punkte)
       bewertet.push({
@@ -103,13 +114,13 @@ export function suche(daten: ProjektDaten, eingabe: string, max = 8): Treffer[] 
         rang: 1,
       });
   }
-  for (const o of Object.values(daten.orte)) {
+  for (const o of bereichAktiv('orte') ? Object.values(daten.orte) : []) {
     const punkte = passt(anfrage, o.name, ...o.aliase);
     if (punkte)
       bewertet.push({ t: { art: 'ort', id: o.id, titel: o.name, zusatz: t.app.trefferArt.ort, bereich: 'orte', auswahl: { ort: o.id } }, punkte, rang: 2 });
   }
   if (anfrage)
-    for (const b of BEREICHE.filter((x) => x.gruppe === 'werkzeuge')) {
+    for (const b of BEREICHE.filter((x) => x.gruppe === 'werkzeuge' && bereichAktiv(x.id))) {
       const begriffe = sprachen.flatMap((s) => [bereichTitel(b.id, s), ...bereichSuchwoerter(b.id, s)]);
       const punkte = passt(anfrage, ...begriffe);
       if (punkte)
@@ -120,7 +131,7 @@ export function suche(daten: ProjektDaten, eingabe: string, max = 8): Treffer[] 
         });
     }
   if (anfrage)
-    for (const b of BEFEHLE) {
+    for (const b of BEFEHLE.filter((x) => befehlAktiv(x.befehl))) {
       const text = t.app.befehle[b.text];
       const begriffe = sprachen.flatMap((s) => {
         const w = woerterbuch(s).app.befehle[b.text];

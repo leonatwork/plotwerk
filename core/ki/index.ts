@@ -43,7 +43,7 @@ export {
 export { KiFehler, type KiFehlerArt } from './antwort';
 export { kiMeldungen, type KiMeldung } from './meldungen';
 export { KI_HINWEIS_TYPEN, MAX_TOKENS, EFFORT, type KiRolle } from './anfrage';
-export { baueBuchKontext, leseBuchKontext, type BuchKontext, type GelesenerKontext } from './kontext';
+export { baueBuchKontext, leseBuchKontext, type BuchKontext, type GelesenerKontext, type KontextUmfang } from './kontext';
 export { ersatztextGrund, loseEndeId } from './pruefung';
 export { formatiereUsd, kostenUsd, preisFuer, PREISE } from './kosten';
 /** Vorschläge für Figuren, Orte, Beziehungen (Request-Form: README.md) */
@@ -76,6 +76,8 @@ export interface PruefAuftrag {
   tiefencheck?: boolean;
   /** Kapitel auch dann prüfen, wenn Text-Hash und Analyse unverändert sind */
   erzwingen?: boolean;
+  /** ohne Plan-Felder im Buchkontext (Funktion „Plan-Abgleich“ ausgeblendet, E15): weniger Tokens, kein F-05 */
+  ohnePlan?: boolean;
 }
 
 export interface PruefErgebnis {
@@ -173,7 +175,7 @@ interface Lauf {
 async function planeLauf(leser: ProjektLeser, auftrag: PruefAuftrag, einstellungen: KiEinstellungen, oberflaeche: Sprache): Promise<Lauf> {
   const m = meldungenIn(oberflaeche);
   const daten = await ladeProjekt(leser);
-  const kontext = baueBuchKontext(daten);
+  const kontext = baueBuchKontext(daten, undefined, { plan: !auftrag.ohnePlan });
   const rolle: KiRolle = auftrag.tiefencheck ? 'tiefencheck' : 'pruefung';
   let kandidaten: KontextKapitel[];
   if (auftrag.umfang === 'kapitel') {

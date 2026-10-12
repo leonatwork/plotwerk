@@ -15,14 +15,17 @@ import { Abschnittslabel, Button, Checkbox, Dialog, IconSchliessen, Inspektor, S
 import { ankerFuerZitat, kategorieFarbe, kapitelTitel, kapLabel } from './gemeinsam';
 import '../ki/ki.css';
 import './vorschlaege.css';
+import { useFunktion } from '../../state/funktionen';
 
 const zahl = (n: number) => zahlFormat(Math.round(n));
 const LEER: OffeneVorschlaege = { figuren: [], orte: [], beziehungen: [], anzahl: 0 };
 
 /** Offene KI-Vorschläge des geladenen Projekts (für Zähler in Netz und Figurenliste). */
+/** Offene KI-Vorschläge; bei ausgeblendeter KI-Erkennung (E15) keine. */
 export function useOffeneVorschlaege(): OffeneVorschlaege {
   const daten = useStore((s) => s.daten);
-  return useMemo(() => (daten ? offeneVorschlaege(daten.kiVorschlaege, daten) : LEER), [daten]);
+  const mitKi = useFunktion('kiErkennung');
+  return useMemo(() => (daten && mitKi ? offeneVorschlaege(daten.kiVorschlaege, daten) : LEER), [daten, mitKi]);
 }
 
 function FehlerKasten({ fehler }: { fehler: KiFehlerAnzeige }) {

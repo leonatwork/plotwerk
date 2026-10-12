@@ -8,6 +8,8 @@ import { FigurenBoegen } from './Boegen';
 import { Figurenkarte } from './Figurenkarte';
 import { FigurenListe } from './Liste';
 import { StimmeKnopf, StimmeSpalte } from './Stimme';
+import { NurMit } from '../../app/NurMit';
+import { useFunktion } from '../../state/funktionen';
 
 export default function Ansicht() {
   const daten = useStore((s) => s.daten);
@@ -16,6 +18,8 @@ export default function Ansicht() {
   const waehle = useStore((s) => s.waehle);
   const figurenAnsicht = useStore((s) => s.figurenbogen.figurenAnsicht);
   const stimmeSpalte = useStore((s) => s.figurenbogen.stimmeSpalte);
+  const mitBoegen = useFunktion('boegen');
+  const mitStimme = useFunktion('kiStimme');
   const t = useTexte();
   const figuren = daten ? Object.values(daten.figuren).sort((a, b) => vergleich(a.name, b.name)) : [];
   const id =
@@ -29,12 +33,12 @@ export default function Ansicht() {
   return (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', background: 'var(--surface)' }}>
       <FigurenListe daten={daten} index={index} />
-      {figurenAnsicht === 'boegen' ? (
+      {figurenAnsicht === 'boegen' && mitBoegen ? (
         <FigurenBoegen daten={daten} figur={id} />
       ) : id ? (
         <>
           <Figurenkarte key={id} id={id} daten={daten} index={index} />
-          {stimmeSpalte && <StimmeSpalte key={`stimme-${id}`} daten={daten} figur={id} />}
+          {stimmeSpalte && mitStimme && <StimmeSpalte key={`stimme-${id}`} daten={daten} figur={id} />}
         </>
       ) : (
         <div className="pw-leer">
@@ -53,22 +57,31 @@ export function Titelaktionen() {
   const [neu, setNeu] = useState<string | null>(null);
   const figurenAnsicht = useStore((s) => s.figurenbogen.figurenAnsicht);
   const setzeFigurenAnsicht = useStore((s) => s.figurenbogen.setzeFigurenAnsicht);
+  const mitBoegen = useFunktion('boegen');
   const t = useTexte();
+  // ohne Bögen (E15) gibt es nur die Karte
+  const ansicht = mitBoegen ? figurenAnsicht : 'karte';
   return (
     <>
-      <Segment<'karte' | 'boegen'>
-        rolle="group"
-        label={t.figuren.ansicht.ansicht}
-        hintergrund="selected"
-        groesse="klein"
-        wert={figurenAnsicht}
-        onChange={setzeFigurenAnsicht}
-        optionen={[
-          { wert: 'karte', label: t.figuren.ansicht.karte },
-          { wert: 'boegen', label: t.figuren.ansicht.boegen },
-        ]}
-      />
-      {figurenAnsicht === 'karte' && <StimmeKnopf />}
+      {mitBoegen && (
+        <Segment<'karte' | 'boegen'>
+          rolle="group"
+          label={t.figuren.ansicht.ansicht}
+          hintergrund="selected"
+          groesse="klein"
+          wert={figurenAnsicht}
+          onChange={setzeFigurenAnsicht}
+          optionen={[
+            { wert: 'karte', label: t.figuren.ansicht.karte },
+            { wert: 'boegen', label: t.figuren.ansicht.boegen },
+          ]}
+        />
+      )}
+      {ansicht === 'karte' && (
+        <NurMit funktion="kiStimme">
+          <StimmeKnopf />
+        </NurMit>
+      )}
       <label htmlFor="figuren-suche" className="pw-sr">
         {t.gemeinsam.suchen}
       </label>

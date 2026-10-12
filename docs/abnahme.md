@@ -16,6 +16,11 @@ Stand 9. Oktober 2026. Grundlage: `docs/anforderungen-v1.0.md`, Entscheidungen E
 
 **Nachtrag 10. Oktober 2026 (Werkzeuge G1–G8):** 31 weitere Punkte (Abschnitt „Werkzeuge“) – 29 erfüllt, 2 teilweise (EW-03 in der Mac-App nicht per Klick gehört, MAC-01 nur ad-hoc signiert). Gesamt: `npm test` 861 Tests in 74 Dateien grün, `cargo test --workspace` grün, `npx tauri build --debug --bundles app` gebaut und 10 s ohne Fehler gestartet.
 
+**Nachtrag 13. Oktober 2026 (Funktionsumfang FU-01 … FU-08):** alle 8 erfüllt. Nachweis: `core/funktionen/funktionen.test.ts`
+(Katalog, Presets, Abhängigkeiten, eigene Presets, Laden), `core/ki/ki.test.ts` („ohne Plan-Abgleich …“, FU-07),
+`src/features/funktionen/funktionen.test.tsx` (Assistent, Auswahl, Preset speichern, No-AI-Sperre, ausgeblendete
+Bereiche mit Rückfrage), Browser (Assistent im Demo durchgeklickt).
+
 Legende Nachweis: Testdatei (automatisch) · „Browser“ = im Browser-Demo bedient · „Code“ = im Quelltext geprüft.
 
 ## Akzeptanzkriterien

@@ -8,6 +8,7 @@ import { ANBIETER_NAME, CLAUDE_API_ENDPOINT, STANDARD_MODELLE } from '@core/ki/i
 import type { KiAnbieter, KiEinstellungen, KiModelle } from '@core/model/types';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { f, setzeSprachWahl, texte, useSprachWahl, useTexte, type SprachWahl } from '../../i18n';
+import { FunktionenEinstellungen } from '../funktionen/EinstellungenAbschnitt';
 import { kiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Dialog, Feld, Segment, StrangPunkt, Textfeld } from '../../ui';
@@ -216,6 +217,7 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
       }
     >
       <SprachWahlAbschnitt />
+      <FunktionenEinstellungen />
 
       <section className="pw-ki-abschnitt" aria-labelledby="ki-anbieter">
         <Abschnittslabel as="h3" id="ki-anbieter">

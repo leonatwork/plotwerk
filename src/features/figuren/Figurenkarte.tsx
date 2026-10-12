@@ -24,6 +24,7 @@ import {
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { VerweisFeld, VerweisText } from '../schreiben/VerweisFeld';
 import { kapKurz, stufenOrtText, zitat } from './texte';
+import { NurMit } from '../../app/NurMit';
 
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '8px 12px', alignItems: 'center', fontSize: 13 };
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
@@ -728,14 +729,18 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
           <AusDemText daten={daten} index={index} nachKapitel={nachKapitel} />
           <DeinePlanung f={f} daten={daten} />
           <Auftritte daten={daten} nachKapitel={nachKapitel} farbe={farbe} />
-          <Bogen f={f} daten={daten} farbe={farbe} />
+          <NurMit funktion="boegen">
+            <Bogen f={f} daten={daten} farbe={farbe} />
+          </NurMit>
         </div>
         <div style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Notizen f={f} daten={daten} />
           <Wahrheit f={f} />
           <Beziehungen f={f} daten={daten} />
           <Hinweise f={f} daten={daten} index={index} />
-          <RechercheLeiste ziel={{ typ: 'figur', id: f.id }} />
+          <NurMit funktion="recherche">
+            <RechercheLeiste ziel={{ typ: 'figur', id: f.id }} />
+          </NurMit>
           <button
             type="button"
             className="pl-link"

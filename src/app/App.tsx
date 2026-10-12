@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { istTauri } from '../backend';
 import { useTexte } from '../i18n';
 import { useStore } from '../state/store';
@@ -9,11 +9,15 @@ import { Fehlergrenze } from './Fehlergrenze';
 import { Rahmen } from './Rahmen';
 import { Startbildschirm } from './Startbildschirm';
 import { useTastenkuerzel } from './tastenkuerzel';
+import { useFunktionsStore } from '../state/funktionen';
+
+const Assistent = lazy(() => import('../features/funktionen/Assistent').then((m) => ({ default: m.Assistent })));
 
 export function App() {
   const ladeStatus = useStore((s) => s.ladeStatus);
   const fehler = useStore((s) => s.fehler);
   const initialisieren = useStore((s) => s.initialisieren);
+  const assistentOffen = useFunktionsStore((s) => s.assistentOffen);
   const t = useTexte();
   useTastenkuerzel();
   useEffect(() => {
@@ -38,6 +42,11 @@ export function App() {
         <div className="pw-laden" aria-busy="true" aria-label={t.app.laden.laedt} />
       )}
       <DialogHost />
+      {assistentOffen && (
+        <Suspense fallback={null}>
+          <Assistent />
+        </Suspense>
+      )}
       <BestaetigungHost />
     </div>
   );
