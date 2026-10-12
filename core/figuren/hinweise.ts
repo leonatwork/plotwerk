@@ -27,6 +27,8 @@ const T = texteJe(
       one: '{figur} kommt nach {nr} ein Kapitel lang nicht mehr vor ({von}).',
       other: '{figur} kommt nach {nr} {n} Kapitel lang nicht mehr vor ({von}–{bis}).',
     },
+    frueh: '{alias} schon in {nr}, geplant ab {ab}',
+    fruehErklaerung: '{figur} soll laut Planung erst ab {ab} {alias} heißen, wird aber schon in {nr} so genannt.',
     aufsteigen: 'Statist {figur} in {n} Kapiteln – zur Nebenfigur machen?',
     aufsteigenErklaerung:
       '{figur} ist als Statist angelegt, kommt aber in {n} Kapiteln vor ({liste}). Als Nebenfigur erscheint die Figur in Liste und Netz und wird bei ruhenden Strecken gemeldet.',
@@ -45,6 +47,8 @@ const T = texteJe(
       one: 'After {nr}, {figur} does not appear for one chapter ({von}).',
       other: 'After {nr}, {figur} does not appear for {n} chapters ({von}–{bis}).',
     },
+    frueh: '{alias} already in {nr}, planned from {ab}',
+    fruehErklaerung: 'According to the plan, {figur} is only called {alias} from {ab}, but is already called that in {nr}.',
     aufsteigen: 'Walk-on {figur} in {n} chapters – make a supporting character?',
     aufsteigenErklaerung:
       '{figur} is set up as a walk-on but appears in {n} chapters ({liste}). As a supporting character they show up in the list and the map and are reported when absent for a while.',
@@ -172,6 +176,28 @@ export function figurenHinweise(daten: ProjektDaten, erwaehnungen: Erwaehnung[],
         [zitatVon(ersterAlias), zitatVon(ersterName)],
       ),
     );
+  }
+
+  // F-16: Spitzname vor seinem geplanten Kapitel
+  for (const f of figuren) {
+    for (const k of f.spitznamen ?? []) {
+      const ab = k.abKapitel !== undefined ? pos.get(k.abKapitel) : undefined;
+      if (ab === undefined) continue;
+      const form = namensVergleich(k.name);
+      const frueh = (nachFigur.get(f.id) ?? []).find((e) => {
+        const t2 = namensVergleich(e.treffer);
+        return (pos.get(e.kapitel) ?? 0) < ab && (t2 === form || t2.replace(/[’']?s$/u, '') === form);
+      });
+      if (!frueh) continue;
+      ergebnis.push(
+        hinweis(
+          `figuren:frueh:${f.id}|${form}`,
+          fmt(t.frueh, { alias: q(k.name), nr: nr(frueh.kapitel), ab: nr(k.abKapitel!) }),
+          fmt(t.fruehErklaerung, { figur: f.name, alias: q(k.name), nr: nr(frueh.kapitel), ab: nr(k.abKapitel!) }),
+          [zitatVon(frueh)],
+        ),
+      );
+    }
   }
 
   // F-12: verwechselbare Namen (beide Figuren im Text, keine Statisten)

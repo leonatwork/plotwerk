@@ -2,7 +2,7 @@
  * Namen und Spitznamen von Figuren: markierten Text in einen Spitznamen verwandeln, Spitznamen ergänzen,
  * Figuren zu einem Namen finden. Reine Funktionen ohne Store.
  */
-import type { Figur, FigurRolle, Id, ProjektDaten } from '../model/types';
+import type { Figur, FigurRolle, Id, ProjektDaten, SpitznameKontext } from '../model/types';
 
 /** Führende Artikel, die die Erkennung selbst ergänzt („dem Alten“ findet auch „der Alte“ nicht, „Alte“ schon). */
 const ARTIKEL = /^(der|die|das|den|dem|des|ein|eine|einen|einem|einer|eines|the|a|an)\s+/i;
@@ -70,4 +70,45 @@ export const ROLLEN: FigurRolle[] = ['haupt', 'neben', 'statist'];
 /** Vergleich für Listen: erst nach Rolle, dann mit `name` (z. B. nach Namen). */
 export function nachRolle<T extends { rolle: FigurRolle }>(name: (a: T, b: T) => number): (a: T, b: T) => number {
   return (a, b) => ROLLEN.indexOf(a.rolle) - ROLLEN.indexOf(b.rolle) || name(a, b);
+}
+
+/** F-16: Spitznamen setzen (Reihenfolge, ohne Doppelte); Kontext zu entfernten Namen fällt weg. */
+export function mitAliasen(f: Figur, aliase: string[]): Figur {
+  const gesehen = new Set([namensVergleich(f.name)]);
+  const neu = aliase
+    .map((a) => a.replace(/\s+/g, ' ').trim())
+    .filter((a) => {
+      const k = namensVergleich(a);
+      if (!k || gesehen.has(k)) return false;
+      gesehen.add(k);
+      return true;
+    });
+  const formen = new Set(neu.map(namensVergleich));
+  const spitznamen = (f.spitznamen ?? []).filter((k) => formen.has(namensVergleich(k.name)));
+  const ergebnis: Figur = { ...f, aliase: neu };
+  if (spitznamen.length) ergebnis.spitznamen = spitznamen;
+  else delete ergebnis.spitznamen;
+  return ergebnis;
+}
+
+/** F-16: Kontext eines Spitznamens (undefined, wenn keiner eingetragen ist). */
+export function spitznameKontext(f: Figur, name: string): SpitznameKontext | undefined {
+  const k = namensVergleich(name);
+  return f.spitznamen?.find((x) => namensVergleich(x.name) === k);
+}
+
+/** F-16: Kontext setzen bzw. ersetzen; ohne Angaben fällt der Eintrag weg. */
+export function mitSpitznameKontext(f: Figur, kontext: SpitznameKontext): Figur {
+  const k = namensVergleich(kontext.name);
+  const rest = (f.spitznamen ?? []).filter((x) => namensVergleich(x.name) !== k);
+  const sauber: SpitznameKontext = { name: kontext.name };
+  if (kontext.von?.length) sauber.von = [...new Set(kontext.von)];
+  if (kontext.abKapitel) sauber.abKapitel = kontext.abKapitel;
+  if (kontext.notiz?.trim()) sauber.notiz = kontext.notiz.trim();
+  const leer = !sauber.von && !sauber.abKapitel && !sauber.notiz;
+  const liste = leer ? rest : [...rest, sauber];
+  const ergebnis: Figur = { ...f };
+  if (liste.length) ergebnis.spitznamen = liste;
+  else delete ergebnis.spitznamen;
+  return ergebnis;
 }

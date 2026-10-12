@@ -23,11 +23,11 @@ import {
 } from '../akte/gemeinsam';
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { VerweisFeld, VerweisText } from '../schreiben/VerweisFeld';
+import { SpitznamenFeld } from './Spitznamen';
 import { kapKurz, stufenOrtText, zitat } from './texte';
 
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '8px 12px', alignItems: 'center', fontSize: 13 };
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
-const eingabe: CSSProperties = { width: '100%' };
 
 function namenDerFigur(f: Figur): string[] {
   return [f.name, ...f.aliase, ...(f.formen ?? [])].filter((n) => n.trim().length >= 2);
@@ -262,19 +262,7 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
         <label htmlFor={`${uid}-aliase`} style={leise} title={tp.auchGenanntTitel}>
           {tp.auchGenannt}
         </label>
-        <EntwurfFeld
-          key={`${f.id}-aliase`}
-          id={`${uid}-aliase`}
-          className="pl-eingabe"
-          style={eingabe}
-          placeholder={tp.aliasePlatzhalter}
-          wert={f.aliase.join(', ')}
-          onSpeichern={(t) =>
-            void p.figurAendern(f.id, {
-              aliase: [...new Set(t.split(',').map((x) => x.trim()).filter(Boolean))],
-            })
-          }
-        />
+        <SpitznamenFeld key={`${f.id}-aliase`} f={f} daten={daten} id={`${uid}-aliase`} />
         <label htmlFor={`${uid}-gruppe`} style={leise}>
           {tp.gruppe}
         </label>

@@ -159,3 +159,28 @@ describe('F-15 Besetzung', () => {
     expect(ole.erste[0]?.treffer).toBe('Ole');
   });
 });
+
+describe('F-16 Spitzname vor seinem geplanten Kapitel', () => {
+  it('meldet die erste Stelle vor „ab Kapitel“; ab dort nicht', () => {
+    const d = projekt(['Der Alte kam.', 'Marian lachte.', 'Der Alte ging.'], [
+      figur('marian', 'Marian', { aliase: ['Alte'], spitznamen: [{ name: 'Alte', abKapitel: 'k3' }] }),
+    ]);
+    const h = hinweise(d, 'frueh');
+    expect(h.map((x) => x.schluessel)).toEqual(['figuren:frueh:marian|alte']);
+    expect(h[0]!.zitate).toEqual([{ kapitel: 'k1', text: 'Der Alte kam.' }]);
+    d.figuren.marian = { ...d.figuren.marian!, spitznamen: [{ name: 'Alte', abKapitel: 'k1' }] };
+    expect(hinweise(d, 'frueh')).toEqual([]);
+  });
+
+  it('Kontext: setzen, leeren, beim Entfernen des Namens weg; übersteht Speichern', async () => {
+    const { mitAliasen, mitSpitznameKontext } = await import('./namen');
+    const { parseFigur, serializeFigur } = await import('../projekt');
+    let f = figur('ole', 'Ole', { aliase: ['Olli'] });
+    f = mitSpitznameKontext(f, { name: 'Olli', von: ['paul', 'paul'], notiz: ' Kosename ' });
+    expect(f.spitznamen).toEqual([{ name: 'Olli', von: ['paul'], notiz: 'Kosename' }]);
+    expect(parseFigur(serializeFigur(f), 'ole').spitznamen).toEqual(f.spitznamen);
+    expect(mitSpitznameKontext(f, { name: 'Olli' }).spitznamen).toBeUndefined();
+    expect(mitAliasen(f, ['Fenster-Ole']).spitznamen).toBeUndefined();
+    expect(mitAliasen(f, ['Olli', 'olli', 'Ole', ' ']).aliase).toEqual(['Olli']);
+  });
+});

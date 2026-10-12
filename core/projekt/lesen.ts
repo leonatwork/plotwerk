@@ -50,6 +50,7 @@ import type {
   Projekt,
   ProjektDaten,
   RealitaetsEintrag,
+  SpitznameKontext,
   Spur,
   Strang,
   TextAnker,
@@ -429,6 +430,21 @@ function parsePlanFelder(v: unknown): Record<string, string> {
   return ergebnis;
 }
 
+function parseSpitznamen(v: unknown): SpitznameKontext[] | undefined {
+  const l = liste(v)
+    .filter(istObjekt)
+    .filter((x) => s(x.name))
+    .map((x) =>
+      ohneUndefined({
+        name: s(x.name),
+        von: x.von === undefined ? undefined : texte(x.von),
+        abKapitel: sOpt(x.abKapitel),
+        notiz: sOpt(x.notiz),
+      }),
+    );
+  return l.length ? l : undefined;
+}
+
 export const FIGUR_ABSCHNITTE = { wahrheit: 'Wahrheit hinter den Kulissen', notizen: 'Notizen' } as const;
 
 export function parseFigur(text: string, id?: Id): Figur {
@@ -454,6 +470,7 @@ export function parseFigur(text: string, id?: Id): Figur {
     notizen: verbinde(notizen, rest),
     netz,
     ruheSchwelle: daten.ruheSchwelle === null ? null : typeof daten.ruheSchwelle === 'number' ? Math.max(1, Math.round(daten.ruheSchwelle)) : undefined,
+    spitznamen: parseSpitznamen(daten.spitznamen),
   });
 }
 

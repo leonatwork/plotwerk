@@ -102,6 +102,8 @@ export function zusammengefuehrteFigur(a: Figur, b: Figur): Figur {
     wahrheit: textVerbinden(a.wahrheit, b.wahrheit),
     notizen: textVerbinden(a.notizen, b.notizen),
   };
+  const kontexte = eindeutig([...(a.spitznamen ?? []), ...(b.spitznamen ?? [])], (k) => vergleichsform(k.name));
+  if (kontexte.length) neu.spitznamen = kontexte;
   if (formen.length) neu.formen = formen;
   else delete neu.formen;
   const kurz = a.kurz?.trim() || b.kurz?.trim();

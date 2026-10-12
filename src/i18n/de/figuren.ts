@@ -90,6 +90,20 @@ export const figuren = {
       leereFelder: 'Leere Planfelder zeigen ({n})',
       neuesFeld: 'Neues Feld',
     },
+    /** F-16: Spitznamen als Chips mit Kontext (Spitznamen.tsx) */
+    spitznamen: {
+      kontextTitel: 'Wer nennt die Figur so, ab wann?',
+      mitKontext: 'mit Kontext',
+      entfernen: '{name} entfernen',
+      weitere: 'weiterer Spitzname, Enter',
+      kontextLabel: 'Kontext zu {name}',
+      werNennt: 'Wer sagt „{name}“?',
+      figurHinzu: '+ Figur …',
+      alle: 'alle bzw. die Erzählstimme',
+      abKapitel: 'ab',
+      vonAnfang: 'von Anfang an',
+      notiz: 'Notiz, z. B. Spott, Kosename',
+    },
     feld: {
       feldname: 'Feldname',
       umbenennenTitel: 'Doppelklick zum Umbenennen',
