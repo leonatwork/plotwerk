@@ -154,8 +154,12 @@ Apache-2.0 und werden per `git commit -s` bestätigt; einen extra Vertrag gibt e
 
 - **Englische Oberfläche:** seit v0.2.0 enthalten (Einstellungen → Sprache), mit englischem Demo-Roman
   „Harbour Lights“. Weitere Sprachen sind willkommen, siehe [CONTRIBUTING.md](CONTRIBUTING.md).
-- **Plotwerk KI:** ein optionales Abo, mit dem die KI ohne eigenen API-Schlüssel funktioniert. Die App
-  selbst bleibt kostenlos, der eigene Schlüssel bleibt weiterhin möglich.
+- **Kostenlos während der Beta.** Ab Version 1.0 kannst du Plotwerk in Ruhe ausprobieren und danach mit
+  einer einmaligen Zahlung freischalten, ohne Abo. Der Quellcode bleibt offen, selbst bauen bleibt kostenlos.
+- **KI nach deiner Wahl:** Mit eigenem Zugang in der Cloud (Claude API, Microsoft Foundry oder ein
+  OpenAI-kompatibler Dienst) oder lokal auf deinem Mac (Ollama, LM Studio) kostet die KI nichts extra.
+- **Plotwerk+ (geplant):** für alle, die sich aufs Schreiben konzentrieren möchten statt um API-Schlüssel.
+  Die KI ist dann direkt eingebaut, als optionales Abo.
 
 ## Lizenz
 
@@ -164,6 +168,8 @@ Plotwerk steht unter der **[Functional Source License 1.1](LICENSE.md)** (FSL-1.
 - ✅ Benutzen, auch für kommerziell veröffentlichte Bücher: Dein Text gehört dir.
 - ✅ Quellcode lesen, ändern, für dich selbst bauen und weitergeben.
 - ❌ Plotwerk oder einen Ableger als konkurrierendes kommerzielles Produkt anbieten.
+- ❌ Eigene Builds oder Ableger unter dem Namen „Plotwerk“ oder mit dem Plotwerk-Icon verteilen. Name und
+  Icon sind nicht Teil der Lizenz.
 - 🔓 Zwei Jahre nach Erscheinen wird jede Version automatisch **Apache-2.0**, also vollständig Open Source.
 
 © 2026 Leon Machnik

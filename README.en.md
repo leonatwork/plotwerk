@@ -163,8 +163,12 @@ licensed under Apache-2.0 and confirmed with `git commit -s`; there is no separa
 
 - **English interface:** included since v0.2.0 (Settings → Language), with the English demo novel
   “Harbour Lights”. More languages are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
-- **Plotwerk AI:** an optional subscription that lets the AI work without your own API key. The app
-  itself stays free, and using your own key remains possible.
+- **Free during the beta.** From version 1.0 you can try Plotwerk at your own pace and then unlock it with
+  a one-time payment, no subscription. The source code stays open, building it yourself stays free.
+- **AI your way:** With your own access in the cloud (Claude API, Microsoft Foundry or an
+  OpenAI-compatible service) or locally on your Mac (Ollama, LM Studio), the AI costs nothing extra.
+- **Plotwerk+ (planned):** for everyone who would rather focus on writing than on API keys. The AI is
+  built right in, as an optional subscription.
 
 ## License
 
@@ -173,6 +177,8 @@ Plotwerk is licensed under the **[Functional Source License 1.1](LICENSE.md)** (
 - ✅ Use it, including for commercially published books: your text belongs to you.
 - ✅ Read, change, build the source code for yourself and pass it on.
 - ❌ Offer Plotwerk or a derivative as a competing commercial product.
+- ❌ Distribute your own builds or derivatives under the name “Plotwerk” or with the Plotwerk icon. The
+  name and icon are not covered by the license.
 - 🔓 Two years after release every version automatically becomes **Apache-2.0**, i.e. fully open source.
 
 © 2026 Leon Machnik
