@@ -107,7 +107,7 @@ Artikelformen). Hinweis mit beiden Zitaten. Nicht für Figuren ohne Namensnennun
 „bewusst vage“.
 
 **F-12 Verwechselbare Namen.** Paare von Figuren (Name und Spitznamen), die sich leicht verwechseln lassen:
-Editierabstand 1 bei Namen ≥ 4 Zeichen (Marion/Marian-Typ), gleicher Anfang und gleiche Länge, gleicher
+Editierabstand 1 bei Namen ≥ 4 Zeichen (Hendrik/Henrik-Typ), gleicher Anfang und gleiche Länge, gleicher
 Anlaut bei Haupt- und Nebenfiguren in denselben Kapiteln. Nur Figuren, die beide im Text vorkommen; Statisten
 ausgenommen. Bewusst sparsam: lieber wenige Treffer.
 
