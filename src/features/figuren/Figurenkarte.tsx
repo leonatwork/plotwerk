@@ -224,12 +224,12 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const t = useTexte();
   const tp = t.figuren.karte.planung;
   const gruppen = Object.values(daten.gruppen).sort((a, b) => vergleich(a.name, b.name));
-  // Mitgliedschaft immer über die Gruppe setzen: figur.gruppe und gruppe.mitglieder bleiben gleich
-  const gruppeSetzen = (wert: string) => {
+  // A-05: Gruppen der Figur (Mitgliedschaft über gruppe.mitglieder; figur.gruppe = Hauptgruppe)
+  const meine = gruppen.filter((g) => g.mitglieder.includes(f.id) || g.id === f.gruppe);
+  const andere = gruppen.filter((g) => !meine.includes(g));
+  const gruppeHinzu = (wert: string) => {
     if (wert === NEUE_GRUPPE) return setNeueGruppe('');
     if (wert) void mitgliedHinzufuegen(wert, f.id);
-    else if (f.gruppe && daten.gruppen[f.gruppe]) void mitgliedEntfernen(f.gruppe, f.id);
-    else void p.figurAendern(f.id, { gruppe: null });
   };
   const alleFelder = Object.keys(f.plan);
   const felder =
@@ -280,15 +280,42 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
         </label>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           {neueGruppe === null ? (
-            <select id={`${uid}-gruppe`} className="pl-select" style={{ flex: 1 }} value={f.gruppe ?? ''} onChange={(e) => gruppeSetzen(e.target.value)}>
-              <option value="">{t.gemeinsam.keine}</option>
-              {gruppen.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-              <option value={NEUE_GRUPPE}>{tp.neueGruppe}</option>
-            </select>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+              {meine.map((g) => {
+                const haupt = g.id === f.gruppe;
+                const rolle = g.rollen?.[f.id];
+                return (
+                  <span key={g.id} className="pl-gruppenchip" data-haupt={haupt || undefined}>
+                    <button
+                      type="button"
+                      className="pl-gruppenchip__stern"
+                      aria-pressed={haupt}
+                      title={haupt ? tp.hauptgruppe : tp.alsHauptgruppe}
+                      aria-label={haupt ? tp.hauptgruppe : fmt(tp.alsHauptgruppeLabel, { name: g.name })}
+                      onClick={() => !haupt && void p.figurAendern(f.id, { gruppe: g.id })}
+                    >
+                      {haupt ? '★' : '☆'}
+                    </button>
+                    <button type="button" className="pl-gruppenchip__name" title={tp.imNetz} onClick={() => oeffne('beziehungen', { gruppe: g.id, figur: f.id })}>
+                      {g.name}
+                      {rolle && <span style={leise}> · {rolle}</span>}
+                    </button>
+                    <button type="button" className="pl-gruppenchip__weg" aria-label={fmt(tp.gruppeVerlassen, { name: g.name })} onClick={() => void mitgliedEntfernen(g.id, f.id)}>
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+              <select id={`${uid}-gruppe`} className="pl-select" aria-label={tp.gruppeHinzu} value="" onChange={(e) => gruppeHinzu(e.target.value)} style={{ flex: meine.length ? '0 1 auto' : 1 }}>
+                <option value="">{meine.length ? tp.gruppeHinzu : t.gemeinsam.keine}</option>
+                {andere.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+                <option value={NEUE_GRUPPE}>{tp.neueGruppe}</option>
+              </select>
+            </span>
           ) : (
             <>
               <input
@@ -312,11 +339,6 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
                 {t.gemeinsam.abbrechen}
               </Button>
             </>
-          )}
-          {neueGruppe === null && f.gruppe && daten.gruppen[f.gruppe] && (
-            <LinkKnopf fett onClick={() => oeffne('beziehungen', { gruppe: f.gruppe!, figur: f.id })}>
-              {tp.imNetz}
-            </LinkKnopf>
           )}
         </span>
         {felder.map((feld) => (

@@ -60,6 +60,7 @@ export const beziehungen: Form<typeof de> = {
   },
   netz: {
     gruppe: 'Group {name}',
+    auchMitglied: 'Also a member; the card sits in its main group',
     groesseAendern: 'Resize',
     ziehenZumVerbinden: 'Drag to create a relationship',
   },

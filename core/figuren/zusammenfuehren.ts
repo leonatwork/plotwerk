@@ -139,7 +139,12 @@ export function figurenZusammenfuehren(daten: ProjektDaten, behalten: Id, aufgeb
   const gruppen = Object.fromEntries(
     Object.entries(daten.gruppen).map(([id, g]) => {
       const mitglieder = idsErsetzen(g.mitglieder, aus, nach);
-      return [id, mitglieder === g.mitglieder ? g : { ...g, mitglieder }];
+      let rollen = g.rollen;
+      if (rollen && aus in rollen) {
+        const { [aus]: alt, ...rest } = rollen;
+        rollen = { ...rest, ...(rest[nach] ? {} : { [nach]: alt! }) };
+      }
+      return [id, mitglieder === g.mitglieder && rollen === g.rollen ? g : { ...g, mitglieder, ...(rollen ? { rollen } : {}) }];
     }),
   );
 

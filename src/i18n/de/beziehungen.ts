@@ -64,6 +64,7 @@ export const beziehungen = {
   /** Zeichenfläche (Netz.tsx) */
   netz: {
     gruppe: 'Gruppe {name}',
+    auchMitglied: 'Auch Mitglied; die Karte liegt in ihrer Hauptgruppe',
     groesseAendern: 'Größe ändern',
     ziehenZumVerbinden: 'Ziehen, um eine Beziehung anzulegen',
   },
