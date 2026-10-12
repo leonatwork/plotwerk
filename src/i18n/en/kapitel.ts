@@ -65,7 +65,7 @@ export const kapitel: Form<typeof de> = {
     neuLabel: 'New event or passage',
     neuPlatzhalter: 'Add event or passage …',
     erklaerung:
-      'Passages you mark as “deliberately vague” are never reported as contradictions. “Still open” reminds you that you still want to decide.',
+      'Passages you mark as “deliberately vague” are never reported as contradictions. “Open” reminds you that you still want to decide.',
   },
   leser: {
     label: 'Reader after chapter {nr}',

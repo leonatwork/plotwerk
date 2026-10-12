@@ -232,7 +232,8 @@ cargo test --workspace # Rust: Pfadwächter, atomares Schreiben, Binärdateien, 
 cargo clippy --workspace --all-targets -- -D warnings && cargo fmt --check
 ```
 
-Die Browser-Demo lädt `fixtures/demo-projekt` (Testdaten, siehe `fixtures/README.md`) und merkt sich Änderungen im
+Die Browser-Demo lädt `fixtures/demo-projekt` („Hafenlichter“, Testdaten, siehe `fixtures/README.md`), bei englischer
+Oberfläche die englische Fassung `fixtures/demo-projekt-en` („Harbour Lights“), und merkt sich Änderungen je Sprache im
 Browser; „Demo zurücksetzen“ (Startbildschirm oder ⌘K) stellt den Ausgangszustand her. Deep-Link für Screenshots:
 `http://localhost:5173/#bereich=schreiben&kapitel=9` (weitere Schlüssel in `src/app/deeplink.ts`).
 

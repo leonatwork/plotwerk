@@ -2,6 +2,8 @@
   <img src="src-tauri/icons/128x128@2x.png" width="112" alt="Plotwerk-Icon">
 </p>
 
+<p align="center"><strong>Deutsch</strong> · <a href="README.en.md">English</a></p>
+
 <h1 align="center">Plotwerk</h1>
 
 <p align="center">
@@ -94,10 +96,10 @@
   </tr>
 </table>
 
-Außerdem: deutsche Typografie beim Tippen, Typewriter- und Fokus-Modus, Vorlesen, Versionsverlauf
-mit benannten Fassungen, Fassungsvergleich, Markennamen-Liste fürs Lektorat, „Fragen an das Buch“ mit
-Belegstellen und eine Leser-Simulation. Alles ist auch über die Schnellsuche (⌘K) und das Mac-Menü
-erreichbar. Die vollständige Beschreibung steht im **[Handbuch](docs/handbuch.md)**.
+Außerdem: deutsche und englische Typografie beim Tippen (je nach Sprache des Buchs), Typewriter- und
+Fokus-Modus, Vorlesen, Versionsverlauf mit benannten Fassungen, Fassungsvergleich, Markennamen-Liste fürs
+Lektorat, „Fragen an das Buch“ mit Belegstellen und eine Leser-Simulation. Die Oberfläche gibt es auf
+Deutsch und Englisch. Alles ist auch über die Schnellsuche (⌘K) und das Mac-Menü erreichbar. Die vollständige Beschreibung steht im **[Handbuch](docs/handbuch.md)**.
 
 ## Installieren
 
@@ -150,7 +152,8 @@ Apache-2.0 und werden per `git commit -s` bestätigt; einen extra Vertrag gibt e
 
 ## Wie es weitergeht
 
-- **Englische Oberfläche:** in Arbeit.
+- **Englische Oberfläche:** seit v0.2.0 enthalten (Einstellungen → Sprache), mit englischem Demo-Roman
+  „Harbour Lights“. Weitere Sprachen sind willkommen, siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Plotwerk KI:** ein optionales Abo, mit dem die KI ohne eigenen API-Schlüssel funktioniert. Die App
   selbst bleibt kostenlos, der eigene Schlüssel bleibt weiterhin möglich.
 
