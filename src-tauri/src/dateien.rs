@@ -226,7 +226,12 @@ mod tests {
     fn schreiben_und_lesen() {
         let (_tmp, w) = projekt();
         assert_eq!(lesen(&w, "manuskript/lotte.md").unwrap(), None);
-        schreiben(&w, "manuskript/lotte.md", "---\nid: lotte\n---\nText „Zitat“").unwrap();
+        schreiben(
+            &w,
+            "manuskript/lotte.md",
+            "---\nid: lotte\n---\nText „Zitat“",
+        )
+        .unwrap();
         assert_eq!(
             lesen(&w, "manuskript/lotte.md").unwrap().as_deref(),
             Some("---\nid: lotte\n---\nText „Zitat“")
