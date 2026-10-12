@@ -1,0 +1,32 @@
+[
+  {
+    "id": "pencil-motif",
+    "anker": {
+      "kapitel": "high-tide",
+      "exakt": "pencils",
+      "davor": "hen I pay that I\"ve left all my ",
+      "danach": " at home today. At the boat hire"
+    },
+    "notiz": "Pencil motif: in Ch. 2 he tucks the pencil behind his ear.",
+    "ziel": {
+      "typ": "figur",
+      "id": "paul"
+    },
+    "erstellt": "2026-10-06T20:15:00.000Z"
+  },
+  {
+    "id": "table-lotte",
+    "anker": {
+      "kapitel": "high-tide",
+      "exakt": "look for a free table",
+      "davor": "hat you\"re here\" I say, while I ",
+      "danach": ""
+    },
+    "notiz": "Where do they sit? Scene still to be written.",
+    "ziel": {
+      "typ": "figur",
+      "id": "lotte"
+    },
+    "erstellt": "2026-10-07T21:40:00.000Z"
+  }
+]

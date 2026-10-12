@@ -36,4 +36,9 @@ export interface Backend {
   beimBeenden(cb: () => Promise<void>): void;
   /** Datei im Projektordner wurde außerhalb der App geändert (Pfad relativ zum Projekt). */
   aufExterneAenderung(cb: (pfad: string) => void): void;
+  /**
+   * Nur Browser-Demo: Ist `offen` ein Demo-Projekt in einer anderen Sprache als der aktuellen
+   * Oberflächensprache, das Demo-Projekt in der aktuellen Sprache; sonst null.
+   */
+  demoFuerSprache?(offen: ProjektDateisystem | null): ProjektDateisystem | null;
 }

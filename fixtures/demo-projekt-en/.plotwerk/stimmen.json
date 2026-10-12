@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "schluessel": "stimme:paul|dust/only says: \"Eighteen on each side.",
+      "figur": "paul",
+      "kapitel": "dust",
+      "titel": "Paul only answers with a number",
+      "erklaerung": "Otherwise Paul explains things at length and vividly, here he answers the security guard only with the number of windows.",
+      "zitate": [
+        {
+          "kapitel": "dust",
+          "text": "only says: “Eighteen on each side.”"
+        }
+      ],
+      "vergleich": [
+        {
+          "kapitel": "floor-plan",
+          "text": "Paul explains why he builds every building out of cardboard first"
+        }
+      ],
+      "status": "neu"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

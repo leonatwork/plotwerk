@@ -77,3 +77,26 @@ Realitätsebenen) passen zu den Screens. Private Felder (`wahrheit`, `notizen`) 
 
 `fixtures/demo-projekt.test.ts` prüft diese Fälle automatisch. `test-manuskript.docx` (Import-Tests) erzeugt
 `core/docx/testdaten/erzeugen.mjs` aus `core/docx/testdaten/testManuskript.ts`.
+
+## Englische Fassung „Harbour Lights“
+
+`demo-projekt-en/` ist dasselbe Projekt auf Englisch (`angaben.sprache: en`, englische Typografie “ ” ‘ ’). Die
+Browser-Demo lädt es, wenn die Oberfläche auf Englisch steht; Tests nutzen `demoDateienEn()`, `demoFsEn()`,
+`ladeDemoProjektEn()`. Struktur, Akte, Status, Zeitpunkte, Szenen, Beziehungen, Netzpositionen und alle Testfälle
+entsprechen dem deutschen Projekt; Eigennamen bleiben (Paul, Lotte, Vera, Ole, Konrad, Malte, Fiete, Lindenhof,
+Nordhaven, Kranich, Saab, Schwip Schwap, Kleinanzeigen …), übersetzt sind Texte und IDs:
+
+| Hafenlichter | Harbour Lights |
+| --- | --- |
+| grundriss, fassade, lotte, regatta, staub, weissraum, ebbe, bis-bald, flut, funkstille | floor-plan, facade, lotte, regatta, dust, white-space, low-tide, see-you-soon, high-tide, radio-silence |
+| Herr Kessler, Die Fremde, Alter Mann am Kai | Mr Kessler, The Stranger, Old Man on the Quay |
+| Büro, Teeküche, Zeichensaal, Pauls Wohnung, Fährhaus, Kornspeicher, Fischstand, Bootsverleih | Office, Kitchenette, Drawing Studio, Paul’s Flat, Ferry House, Granary, Fish Stall, Boat Hire (je mit kleingeschriebenem Alias) |
+| Konsortium; Stränge Begegnungen, Die Postkarten, Schlaflose Nächte | Consortium; Encounters, The Postcards, Sleepless Nights |
+| Motive Bleistifte, Postkarte | Pencils, Postcard |
+
+Englische Entsprechungen der Testfälle: „Lotte’s“ statt „Lottes“, „bascule bridge“ statt „Klappbrücke“, „oleander“
+(grundriss), „See you soon“ und „Why didn’t you come?“ auf den Postkarten, „Number withheld“, Spur „report about empty
+granaries changing hands overnight“, Wochentage „Monday“ (white-space) und „Thursday“ (radio-silence), Belege
+„On Monday“, „Around eleven“, „Today is Thursday“. Statt des großgeschriebenen „Sie“ steht in high-tide „I take Her in my
+arms“. Anker (`davor`/`danach`) und `textHash` sind aus dem englischen Text berechnet; Zitate stehen wörtlich darin.
+`fixtures/demo-projekt-en.test.ts` prüft Laden, Hashes, Zitate, Anker und die Struktur gegen das deutsche Projekt.

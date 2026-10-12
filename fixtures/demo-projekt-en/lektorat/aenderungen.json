@@ -1,0 +1,50 @@
+[
+  {
+    "id": "edit-1",
+    "anker": {
+      "kapitel": "lotte",
+      "exakt": "a second time",
+      "davor": "ening. He irons the light shirt ",
+      "danach": " and rolls the sleeves up to his"
+    },
+    "art": "ersetzen",
+    "alt": "a second time",
+    "neu": "once more",
+    "autor": "Editor",
+    "datum": "2026-10-08T09:00:00Z",
+    "quelle": "Harbour Lights_edited.docx",
+    "status": "offen"
+  },
+  {
+    "id": "edit-2",
+    "anker": {
+      "kapitel": "dust",
+      "exakt": "Paul doesn\"t look up from the folding rule",
+      "davor": " asks what he is doing up here. ",
+      "danach": " and only says: \"Eighteen on eac"
+    },
+    "art": "loeschen",
+    "alt": "Paul doesn’t look up from the folding rule",
+    "neu": "",
+    "autor": "Editor",
+    "datum": "2026-10-08T09:05:00Z",
+    "quelle": "Harbour Lights_edited.docx",
+    "status": "offen"
+  },
+  {
+    "id": "edit-3",
+    "anker": {
+      "kapitel": "low-tide",
+      "exakt": "Around eleven",
+      "davor": "s, Paul is only half listening. ",
+      "danach": " he says he has to go to Copenha"
+    },
+    "art": "einfuegen",
+    "alt": "",
+    "neu": " o’clock",
+    "autor": "Editor",
+    "datum": "2026-10-08T09:10:00Z",
+    "quelle": "Harbour Lights_edited.docx",
+    "status": "abgelehnt"
+  }
+]

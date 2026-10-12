@@ -1,0 +1,17 @@
+{
+  "kapitel": "lotte",
+  "textHash": "d3be6a0cbc70c565",
+  "zusammenfassung": "Paul gets ready for the meeting with Lotte, who sold him a drawing table on Kleinanzeigen, and drives the old Saab to the Lindenhof. At the bascule bridge he texts Lotte that he’ll be late.",
+  "kurz": "Getting ready to meet Lotte, Paul is late.",
+  "wendung": "None.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "meeting-with-lotte",
+      "name": "Meeting with Lotte",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

@@ -71,6 +71,83 @@ const PLAN: Record<string, { aussage: string; status: 'belegt' | 'teilweise' | '
   lotte: { aussage: 'Paul fährt selbst zum Lindenhof und kommt zu spät', status: 'belegt', erklaerung: 'Die Fahrt im Saab und die hochgeklappte Brücke stehen im Text.', zitat: 'fährt mit seinem alten Saab 900 zum Lindenhof' },
 };
 
+/** Englisches Demo-Projekt „Harbour Lights“ (fixtures/demo-projekt-en) */
+const WEISS_EN: Eintrag[] = [
+  { kapitel: 'floor-plan', text: 'Paul and Ole work in the same office, Paul builds every building as a cardboard model first.', zitat: 'Paul explains why he builds every building out of cardboard first' },
+  { kapitel: 'facade', text: 'The Nordhaven job is worth twelve million, Paul takes on the glass facade.', zitat: 'Paul says he’ll take care of it' },
+  { kapitel: 'lotte', text: 'Paul is meeting Lotte, who sold him a drawing table.', zitat: 'that he bought on Kleinanzeigen two weeks ago' },
+  { kapitel: 'dust', text: 'Paul leaves messages from Konrad and Nordhaven unanswered.', zitat: 'four of them from Konrad, one from Nordhaven with the subject “Facade, quick question”' },
+  { kapitel: 'white-space', text: 'The design for Nordhaven is still a blank sheet.', zitat: 'puts a blank sheet in front of him' },
+  { kapitel: 'low-tide', text: 'Paul lies to Vera: there is no appointment in Copenhagen.', zitat: 'At home he writes to Vera that there is no appointment in Copenhagen' },
+  { kapitel: 'see-you-soon', text: 'Paul wakes up in the ferry house and doesn’t know how he got there.', zitat: 'He doesn’t know how he got here' },
+  { kapitel: 'see-you-soon', text: 'In his coat pocket Paul finds a brass key and a postcard of the lighthouse.', zitat: 'he finds a brass key and a postcard in his coat pocket' },
+  { kapitel: 'high-tide', text: 'Paul meets Lotte, he is early and has forgotten his pencils.', zitat: 'see Lotte in front of me, laughing' },
+  { kapitel: 'radio-silence', text: 'Paul hasn’t slept for two nights.', zitat: 'He hasn’t slept for two nights' },
+];
+
+const FRAGEN_EN: DemoFrage[] = [
+  { kapitel: 'floor-plan', text: 'How far has Paul got with the design for Nordhaven?', zitat: 'And what does Nordhaven say to so many windows?', beantwortetIn: 'white-space' },
+  { kapitel: 'facade', text: 'Who bought the shipyard hall on the North Quay?', zitat: 'Shipyard hall on the North Quay sold' },
+  { kapitel: 'lotte', text: 'How does the meeting with Lotte go?', zitat: 'Go ahead and order something, I’ll hurry.', beantwortetIn: 'high-tide' },
+  { kapitel: 'dust', text: 'Why does Paul keep counting the windows?', zitat: 'Paul counts them once, then once more' },
+  { kapitel: 'low-tide', text: 'What is wrong with Paul on the quay?', zitat: 'The lamp on the bridge flickers, goes out, comes on again, and he doesn’t move' },
+  { kapitel: 'see-you-soon', text: 'Who is the Stranger?', zitat: 'The Stranger on the bench opposite is still asleep' },
+  { kapitel: 'see-you-soon', text: 'What does the brass key belong to?', zitat: 'a brass key' },
+  { kapitel: 'high-tide', text: 'Why doesn’t Paul have his pencils with him?', zitat: 'that I’ve left all my pencils at home today' },
+  { kapitel: 'radio-silence', text: 'Who keeps putting the postcards in Paul’s coat?', zitat: 'In his coat pocket there is a new postcard, one he didn’t put there' },
+  { kapitel: 'radio-silence', text: 'Who is Fiete?', zitat: 'whether the shrimps are for Fiete again' },
+];
+
+const VERMUTUNGEN_EN: Eintrag[] = [
+  { kapitel: 'white-space', text: 'Paul hasn’t started the design yet.', zitat: 'only Paul’s table is empty' },
+  { kapitel: 'dust', text: 'Paul dodges the pressure instead of reacting.', zitat: 'He turns the phone over without opening it' },
+  { kapitel: 'see-you-soon', text: 'Paul doesn’t remember the night.', zitat: 'Paul wakes up on a wooden bench in the ferry house' },
+  { kapitel: 'radio-silence', text: 'Someone is watching Paul.', zitat: 'Paul hears gulls and the slap of water, then the line goes dead' },
+];
+
+const SPANNUNG_EN: Eintrag[] = [
+  { kapitel: 'floor-plan', text: 'Paul dodges the question about Nordhaven.', zitat: 'Paul doesn’t answer straight away' },
+  { kapitel: 'facade', text: 'The time pressure on the Nordhaven job is high.', zitat: 'Konrad wants to see the new drawings by the end of the month' },
+  { kapitel: 'lotte', text: 'Paul is late for the first meeting.', zitat: 'that the bridge is up and he’ll be late' },
+  { kapitel: 'low-tide', text: 'Paul stands frozen on the quay.', zitat: 'and he doesn’t move' },
+  { kapitel: 'radio-silence', text: 'The postcards are coming closer: someone is waiting for Paul.', zitat: 'Why didn’t you come?' },
+];
+
+const PLAN_EN: typeof PLAN = {
+  'floor-plan': { aussage: 'At the end the question of what Nordhaven says to the windows', status: 'belegt', erklaerung: 'Ole asks the question at the end, Paul owes him the answer.', zitat: 'And what does Nordhaven say to so many windows?' },
+  facade: { aussage: 'the requirement comes from the supervisory board', status: 'belegt', erklaerung: 'Konrad explicitly names the supervisory board as the source.', zitat: 'The requirement comes from the supervisory board' },
+  lotte: { aussage: 'Paul drives to the Lindenhof himself and is late', status: 'belegt', erklaerung: 'The drive in the Saab and the raised bridge are in the text.', zitat: 'drives his old Saab 900 to the Lindenhof' },
+};
+
+const TABELLEN = {
+  de: {
+    weiss: WEISS,
+    fragen: FRAGEN,
+    vermutungen: VERMUTUNGEN,
+    spannung: SPANNUNG,
+    plan: PLAN,
+    weiter: (nr: number, titel: string) => `In Kap. ${nr} geht es weiter mit ${titel}.`,
+    erfunden: { text: 'Paul kennt Lotte schon länger.', zitat: 'Paul kennt Lotte seit der Schulzeit' },
+    dialog: 'Der Einstieg wäre besser mit einem Dialog.',
+    teilweise: 'Der Text deutet es an, sagt es aber nicht ausdrücklich.',
+    nichts: 'Im Text des Kapitels findet die Leserin dazu nichts.',
+    ohneText: 'Das Kapitel hat noch keinen Text.',
+  },
+  en: {
+    weiss: WEISS_EN,
+    fragen: FRAGEN_EN,
+    vermutungen: VERMUTUNGEN_EN,
+    spannung: SPANNUNG_EN,
+    plan: PLAN_EN,
+    weiter: (nr: number, titel: string) => `Ch. ${nr} continues with ${titel}.`,
+    erfunden: { text: 'Paul has known Lotte for longer.', zitat: 'Paul has known Lotte since school' },
+    dialog: 'Better: the opening with a dialogue.',
+    teilweise: 'The text hints at it but doesn’t say it explicitly.',
+    nichts: 'The reader finds nothing about this in the chapter’s text.',
+    ohneText: 'The chapter has no text yet.',
+  },
+};
+
 /** Sätze eines Kapiteltexts (wörtliche Ausschnitte) */
 export function saetze(text: string): string[] {
   const ergebnis: string[] = [];
@@ -95,36 +172,37 @@ function letztes(ctx: GelesenerKontext): Kap | undefined {
 }
 
 export const demoLeser: DemoAntwort = (ctx) => {
+  const T = TABELLEN[ctx.sprache === 'en' ? 'en' : 'de'];
   const ids = new Set(ctx.kapitel.map((k) => k.id));
   const bekannt = (e: Eintrag) => imKontext(ctx, e);
-  const weiss = WEISS.filter(bekannt).map((e) => ({ text: e.text, belege: beleg(e) }));
+  const weiss = T.weiss.filter(bekannt).map((e) => ({ text: e.text, belege: beleg(e) }));
   // Kapitel ohne Tabelleneintrag (z. B. neu geschriebene): erster Satz als Leserwissen
   for (const k of ctx.kapitel) {
-    if (WEISS.some((e) => e.kapitel === k.id) || !k.text.trim()) continue;
+    if (T.weiss.some((e) => e.kapitel === k.id) || !k.text.trim()) continue;
     const erster = saetze(k.text)[0];
-    if (erster) weiss.push({ text: `In Kap. ${k.nr} geht es weiter mit ${k.titel}.`, belege: [{ kapitel: k.id, text: erster }] });
+    if (erster) weiss.push({ text: T.weiter(k.nr, k.titel), belege: [{ kapitel: k.id, text: erster }] });
   }
-  const fragen = FRAGEN.filter(bekannt).map((e) => ({
+  const fragen = T.fragen.filter(bekannt).map((e) => ({
     frage: e.text,
     belege: beleg(e),
     beantwortetIn: e.beantwortetIn && ids.has(e.beantwortetIn) ? e.beantwortetIn : '',
   }));
-  const vermutungen = VERMUTUNGEN.filter(bekannt).map((e) => ({ text: e.text, belege: beleg(e) }));
-  const spannung = SPANNUNG.filter(bekannt).map((e) => ({ text: e.text, belege: beleg(e) }));
+  const vermutungen = T.vermutungen.filter(bekannt).map((e) => ({ text: e.text, belege: beleg(e) }));
+  const spannung = T.spannung.filter(bekannt).map((e) => ({ text: e.text, belege: beleg(e) }));
 
   const n = letztes(ctx);
   if (n) {
     // absichtlich ungültig: erfundenes Zitat und Formulierungsvorschlag (werden verworfen)
-    vermutungen.push({ text: 'Paul kennt Lotte schon länger.', belege: [{ kapitel: n.id, text: 'Paul kennt Lotte seit der Schulzeit' }] });
+    vermutungen.push({ text: T.erfunden.text, belege: [{ kapitel: n.id, text: T.erfunden.zitat }] });
     const s = saetze(n.text)[0];
-    if (s) spannung.push({ text: 'Der Einstieg wäre besser mit einem Dialog.', belege: [{ kapitel: n.id, text: s }] });
+    if (s) spannung.push({ text: T.dialog, belege: [{ kapitel: n.id, text: s }] });
   }
 
   const plan: unknown[] = [];
   for (const k of ctx.kapitel) {
     const planText = [k.plan.szene, k.plan.notiz].filter(Boolean).join(' ');
     if (!planText) continue;
-    const bekannterPlan = PLAN[k.id];
+    const bekannterPlan = T.plan[k.id];
     if (bekannterPlan && planText.includes(bekannterPlan.aussage) && (!bekannterPlan.zitat || k.text.includes(bekannterPlan.zitat))) {
       plan.push({
         kapitel: k.id,
@@ -141,8 +219,8 @@ export const demoLeser: DemoAntwort = (ctx) => {
     const satz = saetze(k.text).find((x) => woerter.some((w) => x.toLocaleLowerCase('de').includes(w.toLocaleLowerCase('de'))));
     plan.push(
       satz
-        ? { kapitel: k.id, aussage, status: 'teilweise', erklaerung: 'Der Text deutet es an, sagt es aber nicht ausdrücklich.', belege: [{ kapitel: k.id, text: satz }] }
-        : { kapitel: k.id, aussage, status: 'nicht_belegt', erklaerung: k.text.trim() ? 'Im Text des Kapitels findet die Leserin dazu nichts.' : 'Das Kapitel hat noch keinen Text.', belege: [] },
+        ? { kapitel: k.id, aussage, status: 'teilweise', erklaerung: T.teilweise, belege: [{ kapitel: k.id, text: satz }] }
+        : { kapitel: k.id, aussage, status: 'nicht_belegt', erklaerung: k.text.trim() ? T.nichts : T.ohneText, belege: [] },
     );
     if (plan.length >= 12) break;
   }

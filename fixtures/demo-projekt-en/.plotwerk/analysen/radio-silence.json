@@ -1,0 +1,27 @@
+{
+  "kapitel": "radio-silence",
+  "textHash": "5e969e80e288e4be",
+  "zusammenfassung": "Paul hasn’t slept for two nights and finds a new postcard in his coat pocket, which he only turns over at the fish stall: “Why didn’t you come?” At home a withheld number calls, nobody speaks. Today is Thursday.",
+  "kurz": "Second postcard, silent call.",
+  "wendung": "The second postcard and the silent call.",
+  "antagonistenBezug": "Consortium? Possible traces: “Kranich”, radio report about empty granaries.",
+  "loseEnden": [
+    {
+      "id": "the-stranger-and-the-postcards",
+      "name": "The Stranger and the postcards",
+      "eroeffnet": false
+    },
+    {
+      "id": "granaries-change-hands",
+      "name": "Granaries change hands",
+      "eroeffnet": true
+    },
+    {
+      "id": "fiete",
+      "name": "“Fiete”",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

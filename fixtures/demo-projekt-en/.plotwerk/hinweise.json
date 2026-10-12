@@ -1,0 +1,71 @@
+[
+  {
+    "schluessel": "pruefen:high-tide/I\"m half an hour early|lotte/drives his old Saab 900 to the Lindenhof",
+    "typ": "pruefen",
+    "titel": "Paul at the Lindenhof: late or early?",
+    "zitate": [
+      {
+        "kapitel": "lotte",
+        "text": "drives his old Saab 900 to the Lindenhof"
+      },
+      {
+        "kapitel": "high-tide",
+        "text": "I’m half an hour early"
+      }
+    ],
+    "erklaerung": "In Ch. 3 Paul drives himself and is late because of the bascule bridge, in Ch. 9 he gets out of someone else’s Volvo and is half an hour early. If both chapters mean the same meeting, the details contradict each other.",
+    "quelle": "ki",
+    "offen": true,
+    "status": "neu"
+  },
+  {
+    "schluessel": "offener_faden:radio-silence/In his coat pocket there is a new postcard|see-you-soon/he finds a brass key and a postcard in his coat pocket",
+    "typ": "offener_faden",
+    "titel": "Who put the second postcard in Paul’s coat?",
+    "zitate": [
+      {
+        "kapitel": "see-you-soon",
+        "text": "he finds a brass key and a postcard in his coat pocket"
+      },
+      {
+        "kapitel": "radio-silence",
+        "text": "In his coat pocket there is a new postcard"
+      }
+    ],
+    "erklaerung": "The first postcard turns up after the night in the ferry house in Ch. 8, the second in Ch. 10. Where the second one comes from is still unanswered.",
+    "quelle": "ki",
+    "status": "neu"
+  },
+  {
+    "schluessel": "unbekannt:radio-silence/whether the shrimps are for Fiete again",
+    "typ": "unbekannt",
+    "titel": "“Fiete” isn’t assigned to any character",
+    "zitate": [
+      {
+        "kapitel": "radio-silence",
+        "text": "whether the shrimps are for Fiete again"
+      }
+    ],
+    "erklaerung": "The name Fiete only appears here and doesn’t belong to any character you have created.",
+    "quelle": "ki",
+    "status": "neu"
+  },
+  {
+    "schluessel": "zeitleiste:radio-silence/Today is Thursday.|white-space/On Monday every drawing table in the office is covered in paper rolls and coffee cups",
+    "typ": "zeitleiste",
+    "titel": "Only Monday and Thursday are anchored",
+    "zitate": [
+      {
+        "kapitel": "white-space",
+        "text": "On Monday every drawing table in the office is covered in paper rolls and coffee cups"
+      },
+      {
+        "kapitel": "radio-silence",
+        "text": "Today is Thursday."
+      }
+    ],
+    "erklaerung": "Only Ch. 6 and Ch. 10 name a weekday. The gaps between the other chapters are open.",
+    "quelle": "ki",
+    "status": "neu"
+  }
+]

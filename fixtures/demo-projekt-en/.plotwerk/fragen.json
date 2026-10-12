@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "id": "question-pencils",
+      "frage": "Where do I mention Paul’s pencils?",
+      "datum": "2026-10-09T12:05:00.000Z",
+      "antwort": "In Ch. 2 Paul tucks the pencil behind his ear, in Ch. 9 he has left all his pencils at home.",
+      "belege": [
+        {
+          "kapitel": "facade",
+          "text": "tucks the pencil behind his ear"
+        },
+        {
+          "kapitel": "high-tide",
+          "text": "that I’ve left all my pencils at home today"
+        }
+      ],
+      "modell": "demo"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

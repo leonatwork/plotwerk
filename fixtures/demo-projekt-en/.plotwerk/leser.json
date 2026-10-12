@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "kapitel": "lotte",
+      "basisHash": "",
+      "weiss": [
+        {
+          "text": "Paul is meeting Lotte, who sold him a drawing table.",
+          "belege": [
+            {
+              "kapitel": "lotte",
+              "text": "that he bought on Kleinanzeigen two weeks ago"
+            }
+          ]
+        }
+      ],
+      "fragen": [
+        {
+          "id": "nordhaven-windows",
+          "frage": "What does Nordhaven say to Paul’s windows?",
+          "belege": [
+            {
+              "kapitel": "floor-plan",
+              "text": "And what does Nordhaven say to so many windows?"
+            }
+          ]
+        },
+        {
+          "id": "shipyard-hall-north-quay",
+          "frage": "Who bought the shipyard hall on the North Quay?",
+          "belege": [
+            {
+              "kapitel": "facade",
+              "text": "Shipyard hall on the North Quay sold"
+            }
+          ]
+        }
+      ],
+      "modell": "demo",
+      "datum": "2026-10-09T12:00:00.000Z"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

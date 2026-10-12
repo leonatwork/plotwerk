@@ -1,0 +1,22 @@
+{
+  "kapitel": "facade",
+  "textHash": "644f15ca51d17ee7",
+  "zusammenfassung": "Meeting in the drawing studio. Malte shows the elevations, Konrad reports: Mr Kessler wants the whole facade in glass, the requirement comes from the supervisory board. Twelve million is as good as certain, Paul takes it on.",
+  "kurz": "Nordhaven wants glass, Paul takes it on “by the end of the month”.",
+  "wendung": "The safe contract suddenly hinges on a glass facade.",
+  "antagonistenBezug": "Nordhaven: Mr Kessler and the supervisory board’s requirement.",
+  "loseEnden": [
+    {
+      "id": "glass-facade-by-the-end-of-the-month",
+      "name": "Glass facade “by the end of the month”",
+      "eroeffnet": false
+    },
+    {
+      "id": "headline-shipyard-hall-on-the-north-quay-sold",
+      "name": "Headline: Shipyard hall on the North Quay sold",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

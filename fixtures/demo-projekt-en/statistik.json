@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "ziel": {
+    "tagWoerter": 500,
+    "buchWoerter": 80000,
+    "abgabe": "2027-03-31"
+  },
+  "tage": {
+    "2026-10-05": {
+      "geschrieben": 420,
+      "stand": 1210
+    },
+    "2026-10-06": {
+      "geschrieben": 610,
+      "stand": 1820
+    },
+    "2026-10-07": {
+      "geschrieben": 0,
+      "stand": 1820
+    },
+    "2026-10-08": {
+      "geschrieben": 530,
+      "stand": 2350
+    },
+    "2026-10-09": {
+      "geschrieben": 75,
+      "stand": 2425
+    }
+  }
+}

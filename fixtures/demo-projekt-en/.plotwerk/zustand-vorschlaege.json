@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "schluessel": "zustand:paul@radio-silence",
+      "figur": "paul",
+      "kapitel": "radio-silence",
+      "zustand": "sleepless",
+      "belege": [
+        {
+          "kapitel": "radio-silence",
+          "text": "He hasn’t slept for two nights"
+        }
+      ],
+      "begruendung": "Paul hasn’t slept for two nights.",
+      "status": "neu"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

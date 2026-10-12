@@ -1,0 +1,17 @@
+{
+  "kapitel": "dust",
+  "textHash": "610db492deacf43b",
+  "zusammenfassung": "At night in the granary Paul measures the windows and turns his phone over when Konrad asks about the drawings. He counts the windows again and again while seven messages come in, four from Konrad. He answers the security guard only with the number.",
+  "kurz": "Granary, ignored messages, the windows.",
+  "wendung": "Paul answers the security guard only with the number of windows.",
+  "antagonistenBezug": "Nordhaven: “Facade, quick question”, unopened.",
+  "loseEnden": [
+    {
+      "id": "glass-facade-by-the-end-of-the-month",
+      "name": "Glass facade “by the end of the month”",
+      "eroeffnet": false
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

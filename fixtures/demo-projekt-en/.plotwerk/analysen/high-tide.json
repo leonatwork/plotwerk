@@ -1,0 +1,17 @@
+{
+  "kapitel": "high-tide",
+  "textHash": "cdeb13088e155d1a",
+  "zusammenfassung": "Paul gets a lift to the harbour in the Volvo, is half an hour early and has forgotten his pencils. He watches a father and daughter at the boat hire and notices that he is smiling. Then Lotte taps him on the shoulder.",
+  "kurz": "Waiting at the harbour, Lotte turns up.",
+  "wendung": "Suddenly Lotte is standing behind him.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "meeting-with-lotte",
+      "name": "Meeting with Lotte",
+      "eroeffnet": false
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

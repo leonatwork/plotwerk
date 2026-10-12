@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "id": "lindenhof-sketch",
+      "art": "bild",
+      "titel": "Lindenhof (sketch)",
+      "datei": "recherche/dateien/lindenhof.svg",
+      "text": "Placeholder sketch, not a real photo.",
+      "verweise": [
+        {
+          "typ": "ort",
+          "id": "lindenhof"
+        },
+        {
+          "typ": "kapitel",
+          "id": "lotte"
+        }
+      ],
+      "erstellt": "2026-10-09T10:00:00.000Z",
+      "schlagworte": [
+        "Harbour"
+      ]
+    },
+    {
+      "id": "saab-900",
+      "art": "link",
+      "titel": "Saab 900 (Wikipedia)",
+      "url": "https://en.wikipedia.org/wiki/Saab_900",
+      "text": "Paul’s car in Ch. 3.",
+      "verweise": [
+        {
+          "typ": "figur",
+          "id": "paul"
+        },
+        {
+          "typ": "kapitel",
+          "id": "lotte"
+        }
+      ],
+      "erstellt": "2026-10-09T10:05:00.000Z"
+    },
+    {
+      "id": "postcards-handwriting",
+      "art": "notiz",
+      "titel": "Handwriting on the postcards",
+      "text": "Both postcards in the same handwriting? See [[figur:the-stranger|The Stranger]].",
+      "verweise": [
+        {
+          "typ": "figur",
+          "id": "the-stranger"
+        },
+        {
+          "typ": "kapitel",
+          "id": "see-you-soon"
+        },
+        {
+          "typ": "kapitel",
+          "id": "radio-silence"
+        }
+      ],
+      "erstellt": "2026-10-09T10:10:00.000Z"
+    }
+  ]
+}

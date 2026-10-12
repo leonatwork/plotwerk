@@ -1,0 +1,14 @@
+[
+  {
+    "id": "first-draft",
+    "name": "First draft",
+    "datum": "2026-10-01T18:00:00.000Z",
+    "notiz": "Test data: the snapshot files are not part of the demo project.",
+    "dateien": [
+      {
+        "pfad": "manuskript/floor-plan.md",
+        "version": ".versionen/manuskript/floor-plan.md/2026-10-01T20-00-00.md"
+      }
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "kapitel": "floor-plan",
+  "textHash": "436495387e7b1900",
+  "zusammenfassung": "In the kitchenette Paul cuts the last window into a cardboard model and explains to Ole why he builds every building out of cardboard first. At the end Ole asks what Nordhaven says to so many windows.",
+  "kurz": "The cardboard model, Ole’s question about Nordhaven.",
+  "wendung": "None, entry into Paul’s world.",
+  "antagonistenBezug": "Nordhaven is introduced as the client.",
+  "loseEnden": [
+    {
+      "id": "glass-facade-by-the-end-of-the-month",
+      "name": "Glass facade “by the end of the month”",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

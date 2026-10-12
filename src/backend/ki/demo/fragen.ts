@@ -15,19 +15,50 @@ const STOPP = new Set(
   ),
 );
 
+const STOPP_EN = new Set(
+  'where when who what how why which do does did i my me mention mentions mentioned appear appears first time is are was were the a an and or of in on at to for from with by about book chapter passage passages there it its this that still not'.split(
+    ' ',
+  ),
+);
+
 /** grober Wortstamm (Wörter bis vier Buchstaben wie „Ole“ bleiben unverändert) */
-function stamm(w: string): string {
+function stamm(w: string, englisch = false): string {
   const klein = w.toLocaleLowerCase('de');
-  return klein.length <= 4 ? klein : klein.replace(/(es|en|er|e|n|s)$/u, '');
+  return klein.length <= 4 ? klein : klein.replace(englisch ? /(es|s)$/u : /(es|en|er|e|n|s)$/u, '');
 }
 
+const TEXTE = {
+  de: {
+    stopp: STOPP,
+    schreibauftrag: /^(bitte\s+)?(schreib|formulier)|\b(schreib|formulier)\w*\s+(mir|du)\b/iu,
+    keinText: 'Ich schreibe keinen Text für das Buch.',
+    nichts: 'Dazu steht im Buch nichts.',
+    kap: (nr: number, titel: string) => `Kap. ${nr} (${titel})`,
+    eine: (wo: string) => `Eine Stelle: ${wo}.`,
+    mehrere: (n: number, kapitel: number, wo: string) => `${n} Stellen in ${kapitel === 1 ? 'einem Kapitel' : `${kapitel} Kapiteln`}: ${wo}.`,
+    erfunden: 'eine Stelle, die es so nicht gibt',
+  },
+  en: {
+    stopp: STOPP_EN,
+    schreibauftrag: /^(please\s+)?(write|rewrite|phrase|rephrase|reword)\b|\b(write|rewrite)\w*\s+(me|for me)\b/iu,
+    keinText: 'I don’t write text for the book.',
+    nichts: 'There is nothing about this in the book.',
+    kap: (nr: number, titel: string) => `Ch. ${nr} (${titel})`,
+    eine: (wo: string) => `One passage: ${wo}.`,
+    mehrere: (n: number, kapitel: number, wo: string) => `${n} passages in ${kapitel === 1 ? 'one chapter' : `${kapitel} chapters`}: ${wo}.`,
+    erfunden: 'a passage that doesn’t exist',
+  },
+};
+
 export const demoFrage: DemoAntwort = (ctx, anfrage) => {
+  const englisch = ctx.sprache === 'en';
+  const T = TEXTE[englisch ? 'en' : 'de'];
   const f = anfrage.attribute.frage ?? '';
-  if (/^(bitte\s+)?(schreib|formulier)|\b(schreib|formulier)\w*\s+(mir|du)\b/iu.test(f)) {
-    return { imBuch: false, antwort: 'Ich schreibe keinen Text für das Buch.', belege: [] };
+  if (T.schreibauftrag.test(f)) {
+    return { imBuch: false, antwort: T.keinText, belege: [] };
   }
   const alle = ctx.kapitel.flatMap((k) => saetze(k.text).map((s) => ({ k, s, klein: s.toLocaleLowerCase('de') })));
-  const begriffe = [...new Set(f.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !STOPP.has(w.toLocaleLowerCase('de'))).map(stamm))].filter(
+  const begriffe = [...new Set(f.split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3 && !T.stopp.has(w.toLocaleLowerCase('de'))).map((w) => stamm(w, englisch)))].filter(
     (w) => w.length >= 3,
   );
   // häufige Wörter (z. B. Hauptfigur) tragen nichts zur Suche bei
@@ -40,16 +71,16 @@ export const demoFrage: DemoAntwort = (ctx, anfrage) => {
     return n > 0 && n <= grenze && basis <= grenze;
   });
   const treffer = alle.filter((x) => selten.some((w) => new RegExp(`(?<![\\p{L}])${w}`, 'u').test(x.klein))).slice(0, 6);
-  if (treffer.length === 0) return { imBuch: false, antwort: 'Dazu steht im Buch nichts.', belege: [] };
+  if (treffer.length === 0) return { imBuch: false, antwort: T.nichts, belege: [] };
   const kapitel = [...new Map(treffer.map((t) => [t.k.id, t.k])).values()];
-  const wo = kapitel.map((k) => `Kap. ${k.nr} (${k.titel})`).join(', ');
+  const wo = kapitel.map((k) => T.kap(k.nr, k.titel)).join(', ');
   return {
     imBuch: true,
-    antwort: treffer.length === 1 ? `Eine Stelle: ${wo}.` : `${treffer.length} Stellen in ${kapitel.length === 1 ? 'einem Kapitel' : `${kapitel.length} Kapiteln`}: ${wo}.`,
+    antwort: treffer.length === 1 ? T.eine(wo) : T.mehrere(treffer.length, kapitel.length, wo),
     belege: [
       ...treffer.map((t) => ({ kapitel: t.k.id, text: t.s })),
       // absichtlich ungültig: wird einzeln verworfen, die Antwort bleibt
-      { kapitel: treffer[0]!.k.id, text: 'eine Stelle, die es so nicht gibt' },
+      { kapitel: treffer[0]!.k.id, text: T.erfunden },
     ],
   };
 };

@@ -1,0 +1,22 @@
+{
+  "kapitel": "low-tide",
+  "textHash": "acec8237b7edba61",
+  "zusammenfassung": "Paul ends the evening with Vera with the lie that he has to go to Copenhagen early for Ole. At the quay he stands motionless at low tide, an old man speaks to him. Afterwards he writes Vera the truth.",
+  "kurz": "Evening with Vera ends, quay, old man.",
+  "wendung": "His “I’ll call you!” was a lie and still comes true.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "copenhagen-excuse",
+      "name": "Copenhagen excuse",
+      "eroeffnet": true
+    },
+    {
+      "id": "vera",
+      "name": "Vera",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

@@ -1,0 +1,22 @@
+{
+  "kapitel": "see-you-soon",
+  "textHash": "7c2860aaf3472229",
+  "zusammenfassung": "Paul wakes up in the ferry house with no memory, opposite him a stranger in a yellow raincoat is asleep. Paying for an Earl Grey, he finds a brass key and a postcard of the lighthouse in his coat pocket: “See you soon”.",
+  "kurz": "Memory gap, the Stranger, the first postcard.",
+  "wendung": "The postcard in his coat pocket.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "the-stranger-and-the-postcards",
+      "name": "The Stranger and the postcards",
+      "eroeffnet": true
+    },
+    {
+      "id": "the-brass-key",
+      "name": "The brass key",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

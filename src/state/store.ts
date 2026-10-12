@@ -430,9 +430,21 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
   }
 
   // Lokale Hinweise (Titel/Erklärung) entstehen in der Oberflächensprache: beim Umschalten neu berechnen.
+  // Browser-Demo: das Demo-Projekt folgt der Oberflächensprache („Hafenlichter“ bzw. „Harbour Lights“).
   useSprachStore.subscribe((jetzt, vorher) => {
-    if (jetzt.sprache !== vorher.sprache && get().daten) indexBerechnen();
+    if (jetzt.sprache === vorher.sprache) return;
+    const demo = get().backend?.demoFuerSprache?.(get().fs);
+    if (demo) void demoWechseln(demo);
+    else if (get().daten) indexBerechnen();
   });
+
+  async function demoWechseln(fs: ProjektDateisystem): Promise<void> {
+    await get()
+      .editorSichern()
+      .catch((e: unknown) => console.error('Sichern vor dem Sprachwechsel fehlgeschlagen:', e));
+    await alleSpeichernAbwarten();
+    await get().projektLaden(fs);
+  }
 
   function indexAnstossen(): void {
     if (indexTimer) clearTimeout(indexTimer);

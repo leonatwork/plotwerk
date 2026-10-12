@@ -291,6 +291,8 @@ export interface GelesenerKontext {
   figuren: { id: Id; name: string; aliase: string[]; existenz: string; plan: { feld: string; wert: string }[] }[];
   orte: { id: Id; name: string; aliase: string[] }[];
   gruppen: { id: Id; name: string }[];
+  /** 'en', wenn der Prefix englische Beschriftungen hat (englisches Buch); fehlt = Deutsch */
+  sprache?: Sprache;
 }
 
 /** Englische Stufen-Beschriftung → deutsche (GelesenerKontext nennt Stufen immer deutsch, z. B. „bewusst vage …“). */
@@ -313,6 +315,7 @@ export function leseBuchKontext(prefix: string): GelesenerKontext {
   for (const zeile of angaben.split('\n')) {
     if (/^(Figuren|Orte|Gruppen|Characters|Places|Groups):$/.test(zeile)) {
       const name = zeile.slice(0, -1);
+      if (ABSCHNITT[name]) ergebnis.sprache = 'en';
       abschnitt = ABSCHNITT[name] ?? name;
       continue;
     }

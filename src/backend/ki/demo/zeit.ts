@@ -159,13 +159,133 @@ const ZUSTAENDE: Record<string, ZustandEintrag[]> = {
   ],
 };
 
-/** Kapitel-IDs und Szenen-Teilung aus dem Aufgabentext („- Kap. 7 (id: ebbe) · 3 Szenen …“) */
+/** Englisches Demo-Projekt „Harbour Lights“ (fixtures/demo-projekt-en) */
+const ZEITPUNKTE_EN: ZeitEintrag[] = [
+  {
+    kapitel: 'floor-plan',
+    tag: '1',
+    tageszeit: 'vormittags',
+    sicherheit: 'ungefaehr',
+    belege: [z('floor-plan', 'Paul cuts out the last window with the scalpel.')],
+    begruendung: 'Ch. 1 opens the action in the office kitchenette, the working day has just begun.',
+  },
+  {
+    kapitel: 'facade',
+    tag: '1',
+    tageszeit: 'vormittags',
+    sicherheit: 'ungefaehr',
+    belege: [z('facade', 'In the drawing studio the plans are already hanging on the glass wall when Paul comes in.')],
+    begruendung: 'The meeting at the office follows on from Ole’s question about Nordhaven in Ch. 1, no change of day is mentioned.',
+  },
+  {
+    kapitel: 'lotte',
+    tageszeit: 'abends',
+    sicherheit: 'ungefaehr',
+    belege: [z('lotte', 'half past seven at the Lindenhof')],
+    begruendung: 'Paul is meeting Lotte at half past seven.',
+  },
+  {
+    kapitel: 'dust',
+    tag: '5',
+    wochentag: 'samstag',
+    sicherheit: 'fest',
+    belege: [z('dust', 'It is Saturday morning in the granary.')],
+    begruendung: 'The text names the Saturday.',
+    ungueltig: true,
+  },
+  {
+    kapitel: 'low-tide',
+    szene: 1,
+    tag: '8',
+    tageszeit: 'nachts',
+    uhrzeit: '23:00',
+    sicherheit: 'fest',
+    belege: [z('low-tide', 'Around eleven he says he has to go to Copenhagen for Ole early tomorrow morning.')],
+    begruendung: 'The text names the time, the dinner is on the evening after the office day from Ch. 6.',
+  },
+  {
+    kapitel: 'low-tide',
+    szene: 2,
+    tag: '8',
+    tageszeit: 'nachts',
+    sicherheit: 'ungefaehr',
+    belege: [z('low-tide', 'Around eleven he says'), z('low-tide', 'At the quay the tide is out, the boats lie lopsided in the mud.')],
+    begruendung: 'The scene on the quay follows immediately after the end of dinner around eleven.',
+  },
+  {
+    kapitel: 'low-tide',
+    szene: 3,
+    tageszeit: 'morgens',
+    uhrzeit: '23:30',
+    sicherheit: 'ungefaehr',
+    belege: [z('low-tide', 'At home he writes to Vera that there is no appointment in Copenhagen.')],
+    begruendung: 'Paul is at home after the quay.',
+    ungueltig: true,
+  },
+  {
+    kapitel: 'see-you-soon',
+    tag: '9',
+    tageszeit: 'morgens',
+    sicherheit: 'ungefaehr',
+    belege: [z('see-you-soon', 'Paul wakes up on a wooden bench in the ferry house, his head against the cold window.'), z('see-you-soon', 'At the counter he orders an Earl Grey.')],
+    begruendung: 'Paul wakes up after the night from Ch. 7, the first ferry is leaving – the morning after.',
+  },
+  {
+    kapitel: 'radio-silence',
+    tag: '11',
+    wochentag: 'donnerstag',
+    sicherheit: 'fest',
+    belege: [z('radio-silence', 'Today is Thursday.'), z('white-space', 'On Monday every drawing table in the office is covered in paper rolls and coffee cups')],
+    begruendung: 'The text names the Thursday. If Ch. 6 takes place on a Monday (day 8), the following Thursday is day 11.',
+  },
+  {
+    kapitel: 'high-tide',
+    tageszeit: 'nachmittags',
+    sicherheit: 'ungefaehr',
+    belege: [z('high-tide', 'At the boat hire opposite, a father is negotiating with his daughter')],
+    begruendung: 'Better: a sentence with a time here, such as “It is three in the afternoon.”',
+    ungueltig: true,
+  },
+];
+
+const ZUSTAENDE_EN: Record<string, ZustandEintrag[]> = {
+  paul: [
+    {
+      kapitel: 'floor-plan',
+      zustand: 'rested',
+      belege: [z('floor-plan', 'Paul explains why he builds every building out of cardboard first.')],
+      begruendung: 'Paul explains calmly and vividly in the kitchenette how he works.',
+    },
+    {
+      kapitel: 'low-tide',
+      szene: 1,
+      zustand: 'exhausted',
+      belege: [z('low-tide', 'Paul yawns for the third time.')],
+      begruendung: 'Paul is tired at the restaurant.',
+      ungueltig: true,
+    },
+    {
+      kapitel: 'see-you-soon',
+      zustand: 'confused',
+      belege: [z('see-you-soon', 'He doesn’t know how he got here.'), z('see-you-soon', 'somewhere the first ferry sounds its horn')],
+      begruendung: 'Paul wakes up in an unfamiliar place and doesn’t know how he got there.',
+    },
+    {
+      kapitel: 'radio-silence',
+      zustand: 'sleepless',
+      belege: [z('radio-silence', 'He hasn’t slept for two nights.')],
+      begruendung: 'Paul hasn’t slept for two nights.',
+    },
+  ],
+};
+
+/** Kapitel-IDs und Szenen-Teilung aus dem Aufgabentext („- Kap. 7 (id: ebbe) · 3 Szenen …“ / „- Ch. 7 (id: low-tide) · 3 scenes …“) */
 function auftragAus(anfrage: DemoAnfrage): { kapitel: Set<string>; geteilt: Set<string> } {
   const kapitel = new Set<string>();
   const geteilt = new Set<string>();
-  for (const m of anfrage.aufgabe.matchAll(/^- Kap\. \d+ \(id: ([^)]+)\) · (.*)$/gm)) {
+  for (const m of anfrage.aufgabe.matchAll(/^- (?:Kap|Ch)\. \d+ \(id: ([^)]+)\) · (.*)$/gm)) {
     kapitel.add(m[1]!);
-    if (/Szenen/.test(m[2] ?? '')) geteilt.add(m[1]!);
+    if (/Szenen|scenes/.test(m[2] ?? '')) geteilt.add(m[1]!);
   }
   return { kapitel, geteilt };
 }
@@ -183,7 +303,7 @@ function passend<T extends { kapitel: string; szene?: number; belege: Zitat[]; u
 }
 
 export const demoZeit: DemoAntwort = (ctx, anfrage) => ({
-  zeitpunkte: passend(ZEITPUNKTE, ctx, anfrage).map((e) => ({
+  zeitpunkte: passend(ctx.sprache === 'en' ? ZEITPUNKTE_EN : ZEITPUNKTE, ctx, anfrage).map((e) => ({
     kapitel: e.kapitel,
     szene: e.szene ?? 0,
     tag: e.tag ?? '',
@@ -199,7 +319,7 @@ export const demoZeit: DemoAntwort = (ctx, anfrage) => ({
 });
 
 export const demoZustand: DemoAntwort = (ctx, anfrage) => ({
-  zustaende: passend(ZUSTAENDE[anfrage.attribute.figur ?? ''] ?? [], ctx, anfrage).map((e) => ({
+  zustaende: passend((ctx.sprache === 'en' ? ZUSTAENDE_EN : ZUSTAENDE)[anfrage.attribute.figur ?? ''] ?? [], ctx, anfrage).map((e) => ({
     kapitel: e.kapitel,
     szene: e.szene ?? 0,
     zustand: e.zustand,

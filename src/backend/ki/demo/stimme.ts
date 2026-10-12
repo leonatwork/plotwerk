@@ -89,10 +89,76 @@ const BEOBACHTUNGEN: Record<string, Beobachtung[]> = {
   ],
 };
 
+/** Englisches Demo-Projekt „Harbour Lights“ (fixtures/demo-projekt-en) */
+const BEOBACHTUNGEN_EN: Record<string, Beobachtung[]> = {
+  paul: [
+    {
+      titel: 'Paul only answers with a number',
+      erklaerung:
+        'Otherwise Paul explains at length and vividly what he is doing. In the granary he answers the security guard only with the number of windows, without looking up, the tone seems absent and mechanical.',
+      deutlich: true,
+      zitate: [z('dust', 'Paul doesn’t look up from the folding rule and only says: “Eighteen on each side.”')],
+      vergleich: [z('floor-plan', 'You have to be able to hold a house in your hand, he says.')],
+    },
+    {
+      titel: 'An exclamation towards Vera',
+      erklaerung:
+        'Towards Vera, Paul ends with an exclamation, unusually emphatic for him. In his message to Lotte the tone is short and casual.',
+      deutlich: false,
+      zitate: [z('low-tide', 'he promises: “I’ll call you!”')],
+      vergleich: [z('lotte', '“Go ahead and order something, I’ll hurry.”')],
+    },
+    {
+      titel: 'Paul promises a call',
+      erklaerung: 'Paul sounds unusually committed here.',
+      deutlich: true,
+      zitate: [z('radio-silence', 'Paul says: “I’ll call you tomorrow, I promise.”')],
+      vergleich: [z('floor-plan', 'You have to be able to hold a house in your hand, he says.')],
+      ungueltig: true,
+    },
+    {
+      titel: 'Short sentence at the bridge',
+      erklaerung: 'Better: a complete sentence here, the way Paul usually speaks.',
+      deutlich: false,
+      zitate: [z('lotte', '“Go ahead and order something, I’ll hurry.”')],
+      vergleich: [z('floor-plan', 'You have to be able to hold a house in your hand, he says.')],
+      ungueltig: true,
+    },
+  ],
+  'the-stranger': [
+    {
+      titel: 'From greeting to reproach',
+      erklaerung:
+        'The first postcard sounds friendly and leaves everything open, the second addresses Paul directly and reproachfully. The text leaves open whether both postcards come from the same person.',
+      deutlich: true,
+      zitate: [z('radio-silence', '“Why didn’t you come?”')],
+      vergleich: [z('see-you-soon', 'The front of the postcard shows the old lighthouse, on the back it says “See you soon” in blue ink.')],
+    },
+    {
+      titel: 'Shorter sentences on the second postcard',
+      erklaerung: 'Slight tendency towards shorter sentences.',
+      deutlich: false,
+      zitate: [z('radio-silence', '“Why didn’t you come?”')],
+      vergleich: [z('see-you-soon', 'The front of the postcard shows the old lighthouse, on the back it says “See you soon” in blue ink.')],
+      ungueltig: true,
+    },
+  ],
+  konrad: [
+    {
+      titel: 'Konrad becomes short and firm',
+      erklaerung:
+        'In the meeting Konrad otherwise only passes on what others want, cautiously and in reported speech. At the end he sets a deadline himself, the tone becomes short and firm.',
+      deutlich: false,
+      zitate: [z('facade', 'Konrad wants to see the new drawings by the end of the month.')],
+      vergleich: [z('facade', 'Twelve million is as good as signed, Konrad says, but only with the glass facade.')],
+    },
+  ],
+};
+
 export const demoStimme: DemoAntwort = (ctx, anfrage) => {
   const figur = anfrage.attribute.figur ?? '';
   const steht = (q: Zitat) => !!ctx.kapitel.find((k) => k.id === q.kapitel)?.text.includes(q.text);
-  const liste = (BEOBACHTUNGEN[figur] ?? []).filter((b) => b.ungueltig || [...b.zitate, ...b.vergleich].every(steht));
+  const liste = ((ctx.sprache === 'en' ? BEOBACHTUNGEN_EN : BEOBACHTUNGEN)[figur] ?? []).filter((b) => b.ungueltig || [...b.zitate, ...b.vergleich].every(steht));
   return {
     zuWenigRede: liste.length === 0,
     beobachtungen: liste.map(({ titel, erklaerung, deutlich, zitate, vergleich }) => ({ titel, erklaerung, deutlich, zitate, vergleich })),
