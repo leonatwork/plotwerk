@@ -9,7 +9,7 @@ Sie sind die verbindliche Design-Vorlage für die Umsetzung (siehe Anforderung, 
 | `Schreiben.dc.html` | Editor mit Kapitelliste, Anmerkungen am Rand, Plan-Panel, „Ich weiche hier ab“ |
 | `Kapitel.dc.html` | Kapitel-Überblick: Zusammenfassung, Wendung, lose Enden, Realitätsebene |
 | `Akte.dc.html` | Akt-Board mit Quintessenz pro Akt, Ideen-Ablage, Kapitel-Inspektor |
-| `Figur.dc.html` | Figurenkarte: „Aus dem Text“ vs. „Deine Planung“, Existenz, Notizen |
+| `Figur.dc.html` | Figurenkarte: „Aus dem Text“ vs. „Deine Planung“, Gewissheit, Notizen |
 | `Beziehungen.dc.html` | Beziehungsnetz mit Zeitregler und Antagonisten-Gruppen |
 
 ## So lesen
