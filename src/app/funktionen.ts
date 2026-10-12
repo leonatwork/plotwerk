@@ -29,6 +29,7 @@ const BEFEHL_FUNKTION: Partial<Record<Befehl, FunktionId>> = {
   'buch-pruefen': 'kiPruefung',
   'zeit-vorschlaege': 'kiZeit',
   'stimme-pruefen': 'kiStimme',
+  'straenge-vorschlagen': 'kiErkennung',
   marken: 'editorWerkzeuge',
   typewriter: 'editorWerkzeuge',
   wiederholungen: 'editorWerkzeuge',

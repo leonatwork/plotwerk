@@ -143,7 +143,9 @@ function Fakten({ f, daten }: { f: Figur; daten: ProjektDaten }) {
       })}
       <span />
       <span>
-        <LinkKnopf onClick={() => oeffneDialog('figurenfakten', { figur: f.id })}>{laeuft ? tf.laeuft : gruppen.length ? tf.erneut : tf.sammeln}</LinkKnopf>
+        <NurMit funktion="kiErkennung">
+          <LinkKnopf onClick={() => oeffneDialog('figurenfakten', { figur: f.id })}>{laeuft ? tf.laeuft : gruppen.length ? tf.erneut : tf.sammeln}</LinkKnopf>
+        </NurMit>
       </span>
       <span />
     </>

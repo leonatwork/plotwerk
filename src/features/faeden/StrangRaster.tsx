@@ -15,6 +15,7 @@ import { strangFarbe, strangGeplant } from '../akte/gemeinsam';
 import { kapitelVoll, roemisch } from './gemeinsam';
 import { f, texte, useTexte } from '../../i18n';
 import './faeden.css';
+import { NurMit } from '../../app/NurMit';
 
 
 function strangInfo(z: RasterZeile): { text: string; warn: boolean } {
@@ -127,9 +128,11 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
           <>
             <Button onClick={() => setNeu(true)}>{tr.plusStrang}</Button>
             {n > 0 && (
-              <Button disabled={kiLauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
-                {tr.kiVorschlagen}
-              </Button>
+              <NurMit funktion="kiErkennung">
+                <Button disabled={kiLauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
+                  {tr.kiVorschlagen}
+                </Button>
+              </NurMit>
             )}
           </>
         }
@@ -304,9 +307,11 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
               {f(tr.vorschlaegeOffen, { n: offeneVorschlaege })}
             </button>
           )}
-          <Button klein variante="leise" disabled={kiLauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
-            {tr.kiVorschlagen}
-          </Button>
+          <NurMit funktion="kiErkennung">
+            <Button klein variante="leise" disabled={kiLauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
+              {tr.kiVorschlagen}
+            </Button>
+          </NurMit>
           {!neu && (
             <Button klein variante="leise" onClick={() => setNeu(true)}>
               {tr.plusStrang}
