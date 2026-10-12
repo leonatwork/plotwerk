@@ -9,12 +9,18 @@ import {
   aufgabenAnfrage,
   ausLeserStand,
   fadenAbgleich,
+  frageKapitel,
   fuehreAufgabeAus,
   leserBasisHash,
   leserSimulationAufgabe,
   leserStandVeraltet,
+  aktuellerStand,
   offeneFragen,
+  ordneStaende,
   schaetzeAufgabe,
+  staendeFuer,
+  standId,
+  uebernahmenMitnehmen,
   werteAufgabenAntwortAus,
   type LeserSimulation,
 } from './index';
@@ -197,7 +203,8 @@ describe('Leser-Simulation: Speicherform und Stand', () => {
   it('übersteht LeserStand und .plotwerk/leser.json verlustfrei', () => {
     const stand = alsLeserStand(sim);
     const datei = serializeKiLeser({ version: 1, eintraege: [stand] });
-    expect(ausLeserStand(parseKiLeser(datei).eintraege[0]!)).toEqual(sim);
+    // ohne gespeicherte id leitet ausLeserStand sie aus Kapitel und Datum ab
+    expect(ausLeserStand(parseKiLeser(datei).eintraege[0]!)).toEqual({ ...sim, id: 'lotte@2026-10-10T10:00:00.000Z' });
     expect(offeneFragen(sim).map((f) => f.id)).toEqual(['weissraum']);
   });
 
@@ -234,5 +241,79 @@ describe('Fäden-Planung neben den Leserfragen (lokal)', () => {
     expect(r[1]).toMatchObject({ soll: 'aufgeloest', passt: true, frage: { id: 'postkarten' } });
     expect(r[2]!.frage).toBeUndefined();
     expect(fadenAbgleich(reihe, 'b', faeden, fragen)[1]).toMatchObject({ soll: 'offen', passt: false });
+  });
+});
+
+describe('Übernahmen aus der Leser-Simulation', () => {
+  const stand = (fragen: { id: string; frage: string; faden?: string; anmerkung?: string }[]) => ({
+    kapitel: 'c',
+    basisHash: 'x',
+    weiss: [],
+    fragen: fragen.map((f) => ({ ...f, belege: [] })),
+    modell: 'm',
+    datum: '2026-10-12T10:00:00.000Z',
+  });
+
+  it('nimmt Faden und Notiz gleicher Fragen in den neuen Stand mit', () => {
+    const alt = stand([
+      { id: 'wer-kauft', frage: 'Wer kauft?', faden: 'wer-kauft' },
+      { id: 'wer-spricht', frage: 'Wer spricht?', anmerkung: 'wer-spricht-hier' },
+      { id: 'weg', frage: 'Weg?', faden: 'weg' },
+    ]);
+    const neu = uebernahmenMitnehmen(alt, stand([{ id: 'wer-kauft', frage: 'Wer kauft?' }, { id: 'wer-spricht', frage: 'Wer spricht?' }, { id: 'neu', frage: 'Neu?' }]));
+    expect(neu.fragen).toEqual([
+      { id: 'wer-kauft', frage: 'Wer kauft?', belege: [], faden: 'wer-kauft' },
+      { id: 'wer-spricht', frage: 'Wer spricht?', belege: [], anmerkung: 'wer-spricht-hier' },
+      { id: 'neu', frage: 'Neu?', belege: [] },
+    ]);
+    expect(uebernahmenMitnehmen(undefined, neu)).toBe(neu);
+  });
+
+  it('Faden und Notiz überstehen Speichern und Laden', () => {
+    const s = stand([{ id: 'wer-kauft', frage: 'Wer kauft?', faden: 'wer-kauft', anmerkung: 'notiz-1' }]);
+    expect(parseKiLeser(serializeKiLeser({ version: 1, eintraege: [s] })).eintraege[0]!.fragen[0]).toEqual(s.fragen[0]);
+  });
+
+  it('eine Frage kommt im frühesten Belegkapitel auf', () => {
+    const reihe = ['a', 'b', 'c'];
+    const z = (kapitel: string) => ({ kapitel, text: 'x' });
+    expect(frageKapitel({ belege: [z('c'), z('b')] }, reihe, 'c')).toBe('b');
+    expect(frageKapitel({ belege: [] }, reihe, 'c')).toBe('c');
+    expect(frageKapitel({ belege: [z('fremd')] }, reihe, 'c')).toBe('c');
+  });
+});
+
+describe('Mehrere Simulationen je Kapitel', () => {
+  const st = (kapitel: string, datum: string, extra: { id?: string; erledigt?: string } = {}) => ({
+    ...extra,
+    kapitel,
+    basisHash: 'x',
+    weiss: [],
+    fragen: [],
+    modell: 'm',
+    datum,
+  });
+
+  it('ID: gespeichert oder aus Kapitel und Datum abgeleitet', () => {
+    expect(standId(st('a', '2026-10-01T10:00:00.000Z', { id: 'a-1' }))).toBe('a-1');
+    expect(standId(st('a', '2026-10-01T10:00:00.000Z'))).toBe('a@2026-10-01T10:00:00.000Z');
+  });
+
+  it('neueste zuerst; aktuell ist die neueste nicht erledigte; gespeichert nach Kapitel und Datum', () => {
+    const alt = st('b', '2026-10-01T10:00:00.000Z', { id: 'b-alt' });
+    const neu = st('b', '2026-10-05T10:00:00.000Z', { id: 'b-neu', erledigt: '2026-10-06T10:00:00.000Z' });
+    const a = st('a', '2026-10-03T10:00:00.000Z', { id: 'a' });
+    expect(staendeFuer([alt, a, neu], 'b').map((e) => e.id)).toEqual(['b-neu', 'b-alt']);
+    expect(aktuellerStand([alt, a, neu], 'b')?.id).toBe('b-alt');
+    expect(aktuellerStand([neu], 'b')).toBeUndefined();
+    expect(ordneStaende([neu, a, alt], ['a', 'b']).map((e) => e.id)).toEqual(['a', 'b-alt', 'b-neu']);
+  });
+
+  it('id und erledigt überstehen Speichern und Laden; ältere Dateien bleiben unverändert', () => {
+    const s = st('a', '2026-10-01T10:00:00.000Z', { id: 'a-1', erledigt: '2026-10-02T10:00:00.000Z' });
+    expect(parseKiLeser(serializeKiLeser({ version: 1, eintraege: [s] })).eintraege[0]).toEqual(s);
+    const ohne = serializeKiLeser({ version: 1, eintraege: [st('a', '2026-10-01T10:00:00.000Z')] });
+    expect(serializeKiLeser(parseKiLeser(ohne))).toBe(ohne);
+    expect(ohne).not.toContain('"id"');
   });
 });

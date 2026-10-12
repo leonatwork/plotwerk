@@ -387,10 +387,10 @@ const SW = {
   zustandVorschlag: ['schluessel', 'figur', 'kapitel', 'szene', 'zustand', 'belege', 'begruendung', 'status'],
   stimme: ['schluessel', 'figur', 'kapitel', 'titel', 'erklaerung', 'zitate', 'vergleich', 'status'],
   fakt: ['schluessel', 'figur', 'merkmal', 'wert', 'kapitel', 'zitat', 'status'],
-  leser: ['kapitel', 'basisHash', 'weiss', 'fragen', 'vermutungen', 'spannung', 'plan', 'modell', 'datum'],
+  leser: ['id', 'kapitel', 'basisHash', 'weiss', 'fragen', 'vermutungen', 'spannung', 'plan', 'modell', 'datum', 'erledigt'],
   leserPlan: ['kapitel', 'aussage', 'status', 'erklaerung', 'belege'],
   leserAussage: ['text', 'belege'],
-  leserFrage: ['id', 'frage', 'belege', 'beantwortetIn'],
+  leserFrage: ['id', 'frage', 'belege', 'beantwortetIn', 'faden', 'anmerkung'],
   buchFrage: ['id', 'frage', 'datum', 'antwort', 'belege', 'imBuch', 'modell', 'kostenUsd'],
   strangVorschlag: ['schluessel', 'art', 'strang', 'name', 'rolle', 'beschreibung', 'kapitel', 'frage', 'antwort', 'begruendung', 'belege', 'status', 'angelegt'],
 } as const;

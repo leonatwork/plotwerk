@@ -91,5 +91,6 @@ export const kapitel = {
     frageTitel: 'Leser-Simulation mit Belegen öffnen',
     alleAnsehen: 'Alle {n} ansehen',
     ansehen: 'Ansehen',
+    erledigt: { one: 'Die letzte Simulation ist erledigt.', other: '{n} Simulationen erledigt.' },
   },
 };

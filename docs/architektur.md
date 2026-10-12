@@ -69,7 +69,7 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 ├── .plotwerk/zeit-vorschlaege.json     G1 KiAblage<ZeitVorschlag>
 ├── .plotwerk/zustand-vorschlaege.json  G1 KiAblage<ZustandVorschlag>
 ├── .plotwerk/stimmen.json              G3 KiAblage<StimmenBeobachtung>
-├── .plotwerk/leser.json                G6 KiAblage<LeserStand> (weiss, fragen, vermutungen, spannung, plan)
+├── .plotwerk/leser.json                G6 KiAblage<LeserStand> (mehrere je Kapitel: id, erledigt; Frage → faden/anmerkung)
 ├── .plotwerk/fragen.json               G6 KiAblage<BuchFrage> (imBuch: false = „steht nicht im Buch“)
 ├── .plotwerk/strang-vorschlaege.json   G2 KiAblage<StrangVorschlag> (zuordnung, neu, frage; Antworten auf Rückfragen)
 └── .versionen/…               Schnappschüsse (Binärdateien: .versionen/recherche/…/<Zeitstempel>.<endung>)
@@ -90,7 +90,11 @@ beim Beenden und beim Projektwechsel.
 
 **LeserStand** (G6): Ältere Stände legten Vermutungen, Spannung und Plan-Abgleich als `LeserFrage` mit Präfix in der
 `id` ab (`vermutung|…`, `spannung|…`, `plan|status|kapitel|…`); `ausLeserStand` liest beides, eigene Felder haben
-Vorrang, neu gespeichert wird nur die Form mit eigenen Feldern.
+Vorrang, neu gespeichert wird nur die Form mit eigenen Feldern. Jede Simulation bleibt erhalten (mehrere Stände je
+Kapitel, sortiert nach Kapitel und Datum); neue bekommen eine `id`, ältere ohne `id` heißen `kapitel@datum`
+(`standId`). `erledigt` (ISO-Datum) blendet eine Simulation aus der Kapitelkarte aus (`aktuellerStand`). Übernimmt Leon eine offene Frage als Faden oder
+Notiz, merkt sich die `LeserFrage` die ID (`faden`, `anmerkung`); eine erneute Simulation nimmt diese Zuordnungen für
+Fragen mit gleicher `id` (gleicher Wortlaut) aus der vorigen Simulation des Kapitels mit (`uebernahmenMitnehmen`).
 
 YAML-Frontmatter mit `yaml` (Paket), Schlüssel in der Reihenfolge der Typdefinition, 2 Leerzeichen Einrückung. Unbekannte Frontmatter-Felder beim Speichern erhalten (Obsidian-Kompatibilität).
 

@@ -1128,6 +1128,7 @@ export function parseKiLeser(text: string): KiAblage<LeserStand> {
   return parseKiAblage(text, (v) => {
     if (!s(v.kapitel)) return null;
     return {
+      ...ohneUndefined({ id: sOpt(v.id) }),
       kapitel: s(v.kapitel),
       basisHash: s(v.basisHash),
       weiss: liste(v.weiss)
@@ -1135,7 +1136,14 @@ export function parseKiLeser(text: string): KiAblage<LeserStand> {
         .map((a) => ({ text: s(a.text), belege: parseZitate(a.belege) })),
       fragen: liste(v.fragen)
         .filter(istObjekt)
-        .map((f, i) => ohneUndefined({ id: s(f.id) || `frage-${i + 1}`, frage: s(f.frage), belege: parseZitate(f.belege), beantwortetIn: sOpt(f.beantwortetIn) })),
+        .map((f, i) => ohneUndefined({
+            id: s(f.id) || `frage-${i + 1}`,
+            frage: s(f.frage),
+            belege: parseZitate(f.belege),
+            beantwortetIn: sOpt(f.beantwortetIn),
+            faden: sOpt(f.faden),
+            anmerkung: sOpt(f.anmerkung),
+          })),
       modell: s(v.modell),
       datum: s(v.datum),
       ...ohneUndefined({
@@ -1149,6 +1157,7 @@ export function parseKiLeser(text: string): KiAblage<LeserStand> {
                 : [];
             })
           : undefined,
+        erledigt: sOpt(v.erledigt),
       }),
     };
   });

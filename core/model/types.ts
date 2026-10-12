@@ -912,6 +912,10 @@ export interface LeserFrage {
   belege: Zitat[];
   /** im Text (bis zu diesem Kapitel) schon beantwortet in Kapitel … */
   beantwortetIn?: Id;
+  /** von Leon als Faden übernommen (FadenPlan-ID in plan/faeden.md) */
+  faden?: Id;
+  /** von Leon als Notiz an die Belegstelle geheftet (Anmerkung-ID in anmerkungen.json) */
+  anmerkung?: Id;
 }
 
 /** Plan-Abgleich der Leser-Simulation: „Plan sagt: … – belegt / nur angedeutet / nicht belegt“. */
@@ -927,8 +931,13 @@ export interface LeserPlanAbgleich {
   belege: Zitat[];
 }
 
-/** Leser-Simulation: Was weiß der Leser nach Kapitel n, welche Fragen hat er offen? */
+/**
+ * Leser-Simulation: Was weiß der Leser nach Kapitel n, welche Fragen hat er offen? Jede Simulation bleibt erhalten
+ * (mehrere je Kapitel), bis Leon sie löscht.
+ */
 export interface LeserStand {
+  /** eindeutig je Simulation; ältere Stände ohne id: `standId()` leitet sie aus Kapitel und Datum ab */
+  id?: Id;
   kapitel: Id;
   /** Hash der Kapiteltexte bis einschließlich `kapitel` (veraltet, wenn sich etwas ändert) */
   basisHash: string;
@@ -942,6 +951,8 @@ export interface LeserStand {
   spannung?: LeserAussage[];
   /** Abgleich mit Leons Kapitelplänen (ältere Stände: „plan|status|kapitel|…“) */
   plan?: LeserPlanAbgleich[];
+  /** von Leon als erledigt markiert (ISO-Datum) */
+  erledigt?: string;
 }
 
 /** Frage an das Buch (Chat) – Antworten nur mit Belegstellen. */

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { SimulationStatus } from '../features/fragen/SimulationStatus';
 import { VorschauEbene } from '../features/vorschau';
 import { useSprache } from '../i18n';
 import { useFunktionsStore } from '../state/funktionen';
@@ -69,6 +70,7 @@ export function Rahmen() {
         </main>
       </div>
       <VorschauEbene />
+      <SimulationStatus />
     </>
   );
 }

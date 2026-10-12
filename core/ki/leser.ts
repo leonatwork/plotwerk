@@ -33,6 +33,8 @@ export type PlanAbgleich = LeserPlanAbgleich;
 
 /** Ausführliche Form eines Leser-Stands (gespeichert als LeserStand, siehe alsLeserStand). */
 export interface LeserSimulation {
+  /** gespeicherte Simulation (siehe standId) */
+  id?: Id;
   kapitel: Id;
   basisHash: string;
   weiss: LeserAussage[];
@@ -43,6 +45,8 @@ export interface LeserSimulation {
   plan: PlanAbgleich[];
   modell: string;
   datum: string;
+  /** von Leon als erledigt markiert (ISO-Datum) */
+  erledigt?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -57,6 +61,7 @@ const P_PLAN = 'plan|';
 
 export function alsLeserStand(s: LeserSimulation): LeserStand {
   return {
+    ...(s.id ? { id: s.id } : {}),
     kapitel: s.kapitel,
     basisHash: s.basisHash,
     weiss: s.weiss,
@@ -66,6 +71,7 @@ export function alsLeserStand(s: LeserSimulation): LeserStand {
     vermutungen: s.vermutungen,
     spannung: s.spannung,
     plan: s.plan,
+    ...(s.erledigt ? { erledigt: s.erledigt } : {}),
   };
 }
 
@@ -75,6 +81,7 @@ function istStatus(s: unknown): s is PlanBelegStatus {
 
 export function ausLeserStand(stand: LeserStand): LeserSimulation {
   const sim: LeserSimulation = {
+    id: standId(stand),
     kapitel: stand.kapitel,
     basisHash: stand.basisHash,
     weiss: stand.weiss,
@@ -84,6 +91,7 @@ export function ausLeserStand(stand: LeserStand): LeserSimulation {
     plan: [],
     modell: stand.modell,
     datum: stand.datum,
+    ...(stand.erledigt ? { erledigt: stand.erledigt } : {}),
   };
   for (const f of stand.fragen) {
     if (f.id.startsWith(P_VERMUTUNG)) sim.vermutungen.push({ text: f.frage, belege: f.belege });
@@ -105,6 +113,62 @@ export function ausLeserStand(stand: LeserStand): LeserSimulation {
 /** Offene (noch nicht beantwortete) Leserfragen */
 export function offeneFragen(s: Pick<LeserSimulation, 'fragen'>): LeserFrage[] {
   return s.fragen.filter((f) => !f.beantwortetIn);
+}
+
+// ---------------------------------------------------------------------------
+// Mehrere Simulationen je Kapitel: jede bleibt erhalten, bis Leon sie löscht; „erledigt“ blendet sie aus.
+// ---------------------------------------------------------------------------
+
+/** ID einer gespeicherten Simulation; ältere Stände ohne id: aus Kapitel und Datum (stabil, eindeutig je Kapitel). */
+export function standId(stand: Pick<LeserStand, 'id' | 'kapitel' | 'datum'>): Id {
+  return stand.id || `${stand.kapitel}@${stand.datum}`;
+}
+
+/** Simulationen eines Kapitels, neueste zuerst. */
+export function staendeFuer(eintraege: readonly LeserStand[], kapitel: Id): LeserStand[] {
+  return eintraege.filter((e) => e.kapitel === kapitel).sort((a, b) => b.datum.localeCompare(a.datum));
+}
+
+/** Neueste nicht erledigte Simulation eines Kapitels. */
+export function aktuellerStand(eintraege: readonly LeserStand[], kapitel: Id): LeserStand | undefined {
+  return staendeFuer(eintraege, kapitel).find((e) => !e.erledigt);
+}
+
+/** Speicherreihenfolge: nach Kapitel (Lesereihenfolge), je Kapitel älteste zuerst. */
+export function ordneStaende(eintraege: readonly LeserStand[], reihenfolge: Id[]): LeserStand[] {
+  const pos = (id: Id) => {
+    const i = reihenfolge.indexOf(id);
+    return i < 0 ? reihenfolge.length : i;
+  };
+  return [...eintraege].sort((a, b) => pos(a.kapitel) - pos(b.kapitel) || a.datum.localeCompare(b.datum));
+}
+
+/**
+ * Neuer Stand nach erneuter Simulation: Übernahmen (Faden, Notiz) gleicher Fragen (gleiche ID = gleicher Wortlaut)
+ * aus dem alten Stand mitnehmen, damit Leons Zuordnungen nicht verloren gehen.
+ */
+export function uebernahmenMitnehmen(alt: LeserStand | undefined, neu: LeserStand): LeserStand {
+  if (!alt) return neu;
+  const bisher = new Map(alt.fragen.filter((f) => f.faden || f.anmerkung).map((f) => [f.id, f]));
+  if (bisher.size === 0) return neu;
+  return {
+    ...neu,
+    fragen: neu.fragen.map((f) => {
+      const a = bisher.get(f.id);
+      if (!a) return f;
+      return { ...f, ...(a.faden && !f.faden ? { faden: a.faden } : {}), ...(a.anmerkung && !f.anmerkung ? { anmerkung: a.anmerkung } : {}) };
+    }),
+  };
+}
+
+/** Kapitel, in dem eine Leserfrage aufkommt: frühester Beleg in Lesereihenfolge, sonst `ersatz`. */
+export function frageKapitel(frage: Pick<LeserFrage, 'belege'>, reihenfolge: Id[], ersatz: Id): Id {
+  let beste: Id | undefined;
+  for (const b of frage.belege) {
+    const i = reihenfolge.indexOf(b.kapitel);
+    if (i >= 0 && (beste === undefined || i < reihenfolge.indexOf(beste))) beste = b.kapitel;
+  }
+  return beste ?? ersatz;
 }
 
 // ---------------------------------------------------------------------------

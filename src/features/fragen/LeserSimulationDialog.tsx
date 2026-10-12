@@ -5,12 +5,15 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
+  aktuellerStand,
   ausLeserStand,
   EFFORT,
   fadenAbgleich,
  
   leserStandVeraltet,
   offeneFragen,
+  staendeFuer,
+  standId,
   type FadenAbgleich,
   type LeserSimulation,
   type PlanAbgleich,
@@ -25,15 +28,20 @@ import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button, Checkbox, Dialog, Segment } from '../../ui';
 import { Belege, Etikett, formatiereDatum, kapitelTitel, kapNr, KiFehlerKasten, PlanStatus } from './gemeinsam';
+import { FrageUebernahme } from './Uebernahme';
 
 const zahl = (n: number) => zahlFormat(Math.round(n));
 
 type Reiter = 'weiss' | 'fragen' | 'vermutungen' | 'spannung' | 'plan';
 
-function leseParam(param: unknown): { kapitel?: Id; tiefencheck?: boolean } {
+function leseParam(param: unknown): { kapitel?: Id; stand?: Id; tiefencheck?: boolean } {
   if (!param || typeof param !== 'object') return {};
   const p = param as Record<string, unknown>;
-  return { kapitel: typeof p.kapitel === 'string' ? p.kapitel : undefined, tiefencheck: p.tiefencheck === true };
+  return {
+    kapitel: typeof p.kapitel === 'string' ? p.kapitel : undefined,
+    stand: typeof p.stand === 'string' ? p.stand : undefined,
+    tiefencheck: p.tiefencheck === true,
+  };
 }
 
 /** Standard: gewähltes Kapitel, sonst das letzte Kapitel mit Text. */
@@ -153,9 +161,11 @@ function Ergebnis({ daten, sim, schliessen }: { daten: ProjektDaten; sim: LeserS
                       <span>{fr.frage}</span>
                     </div>
                     <Belege daten={daten} belege={fr.belege} nachOeffnen={schliessen} kompakt />
+                    <FrageUebernahme daten={daten} stand={sim.id ?? ''} standKapitel={sim.kapitel} frage={fr} schliessen={schliessen} />
                   </li>
                 ))}
               </ul>
+              {offen.length > 0 && <p className="pw-kl-klein">{t.uebernahmeHinweis}</p>}
             </Abschnitt>
             {beantwortet.length > 0 && (
               <Abschnitt titel={t.beantwortetTitel} anzahl={beantwortet.length}>
@@ -213,9 +223,12 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
   const [kapitel, setKapitel] = useState<Id | undefined>(() => (daten ? startKapitel(daten, p.kapitel ?? useStore.getState().auswahl.kapitel) : undefined));
   const [tiefencheck, setTiefencheck] = useState(p.tiefencheck ?? false);
   const [neu, setNeu] = useState(false);
+  /** gewählte Simulation des Kapitels; sonst die neueste offene, sonst die neueste */
+  const [standWahl, setStandWahl] = useState<Id | undefined>(p.stand);
   const [schaetzung, setSchaetzung] = useState<{ wert?: Schaetzung; fehler?: KiFehlerAnzeige; laedt: boolean }>({ laedt: true });
 
-  const stand = kapitel ? daten?.kiLeser?.eintraege.find((e) => e.kapitel === kapitel) : undefined;
+  const staende = useMemo(() => (kapitel ? staendeFuer(daten?.kiLeser?.eintraege ?? [], kapitel) : []), [daten?.kiLeser, kapitel]);
+  const stand = staende.find((e) => standId(e) === standWahl) ?? (kapitel ? aktuellerStand(staende, kapitel) : undefined) ?? staende[0];
   const sim = useMemo(() => (stand ? ausLeserStand(stand) : null), [stand]);
   const phase: 'laeuft' | 'ergebnis' | 'start' = k.simLauf ? 'laeuft' : sim && !neu ? 'ergebnis' : 'start';
   const schaetzen = k.schaetzen;
@@ -245,7 +258,7 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
 
   const nr = daten.projekt.kapitel.indexOf(kapitel) + 1;
   const fehler = k.simFehler && k.simFehler.kapitel === kapitel ? k.simFehler.fehler : null;
-  const verworfen = k.simVerworfen[kapitel] ?? [];
+  const verworfen = (stand && k.simVerworfen[standId(stand)]) || [];
   const veraltet = stand ? leserStandVeraltet(daten, stand) : false;
   const gespeichert = new Set((daten.kiLeser?.eintraege ?? []).map((e) => e.kapitel));
   const textBisN = daten.projekt.kapitel.slice(0, nr).some((id) => daten.kapitel[id]?.text.trim());
@@ -262,6 +275,7 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
         disabled={phase === 'laeuft'}
         onChange={(e) => {
           setKapitel(e.target.value);
+          setStandWahl(undefined);
           setNeu(false);
         }}
       >
@@ -272,10 +286,31 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
           </option>
         ))}
       </select>
-      {phase === 'ergebnis' && stand && (
+      {phase === 'ergebnis' && stand && staende.length > 1 && (
+        <select
+          className="pw-kl-auswahl"
+          aria-label={t.standLabel}
+          value={standId(stand)}
+          onChange={(e) => {
+            setStandWahl(e.target.value);
+          }}
+        >
+          {staende.map((e) => (
+            <option key={standId(e)} value={standId(e)}>
+              {f(e.erledigt ? t.standOptionErledigt : t.standOption, { datum: formatiereDatum(e.datum), modell: e.modell })}
+            </option>
+          ))}
+        </select>
+      )}
+      {phase === 'ergebnis' && stand && staende.length <= 1 && (
         <span className="pw-kl-klein">
           {formatiereDatum(stand.datum)} · {stand.modell}
         </span>
+      )}
+      {phase === 'ergebnis' && stand?.erledigt && (
+        <Etikett art="accent" title={f(t.erledigtTitel, { datum: formatiereDatum(stand.erledigt) })}>
+          {t.erledigt}
+        </Etikett>
       )}
       {phase === 'ergebnis' && veraltet && (
         <Etikett art="warn" title={t.veraltetTitel}>
@@ -325,10 +360,16 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
             <Button
               variante="leise"
               style={{ marginRight: 'auto' }}
-              onClick={async () => (await bestaetigen(f(t.entfernenFrage, { nr }), { knopf: tt.gemeinsam.entfernen })) && void k.standEntfernen(kapitel)}
+              onClick={async () => {
+                const id = standId(stand!);
+                if (!(await bestaetigen(f(t.entfernenFrage, { nr, datum: formatiereDatum(stand!.datum) }), { knopf: tt.gemeinsam.loeschen }))) return;
+                setStandWahl(undefined);
+                await k.standEntfernen(id);
+              }}
             >
-              {tt.gemeinsam.entfernen}
+              {tt.gemeinsam.loeschen}
             </Button>
+            <Button onClick={() => void k.standErledigt(standId(stand!), !stand!.erledigt)}>{stand?.erledigt ? t.wiederOffen : t.alsErledigt}</Button>
             <Button onClick={() => setNeu(true)}>{veraltet ? t.neuSimulieren : t.erneutSimulieren}</Button>
             <Button variante="primaer" onClick={schliessen}>
               {tt.gemeinsam.schliessen}
@@ -370,8 +411,11 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
             variante="primaer"
             disabled={!s || schaetzung.laedt || !!schaetzung.fehler || !textBisN}
             onClick={async () => {
-              const ok = await k.simulieren(kapitel, tiefencheck);
-              if (ok) setNeu(false);
+              const id = await k.simulieren(kapitel, tiefencheck);
+              if (id) {
+                setStandWahl(id);
+                setNeu(false);
+              }
             }}
           >
             {t.starten}
@@ -381,6 +425,28 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
     >
       <p className="pw-kl-text">{f(t.erklaerung, { nr })}</p>
       {kopf}
+      {!sim && gespeichert.size > 0 && (
+        <div className="pw-kl-gespeichert">
+          <span className="pw-kl-klein">{t.gespeichertListe}</span>
+          {daten.projekt.kapitel
+            .filter((id) => gespeichert.has(id))
+            .map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="pw-kl-gespeichert__kap"
+                title={f(t.gespeichertTitel, { kap: kapNr(daten, id) })}
+                onClick={() => {
+                  setKapitel(id);
+                  setStandWahl(undefined);
+                  setNeu(false);
+                }}
+              >
+                {kapNr(daten, id)}
+              </button>
+            ))}
+        </div>
+      )}
       {fehler && <KiFehlerKasten fehler={fehler} onSchliessen={k.fehlerZuruecksetzen} />}
       <Checkbox checked={tiefencheck} onChange={(e) => setTiefencheck(e.target.checked)}>
         {t.tiefencheck}
