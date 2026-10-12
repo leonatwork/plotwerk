@@ -5,9 +5,10 @@
  * Die KI legt nichts an; angelegt wird nur auf Klick über den Store.
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { EFFORT, figurVerweisAufloesen, formatiereUsd, offeneVorschlaege, type OffeneVorschlaege, type Schaetzung } from '@core/ki/index';
+import { EFFORT, figurVerweisAufloesen, offeneVorschlaege, type OffeneVorschlaege, type Schaetzung } from '@core/ki/index';
 import type { BeziehungsVorschlag, FigurVorschlag, KiVorschlaege, OrtVorschlag, ProjektDaten, VorschlagsVerweis, Zitat } from '@core/model/types';
-import { f, liste, useTexte, zahl as zahlFormat, sprache } from '../../i18n';
+import { f, liste, useTexte, zahl as zahlFormat } from '../../i18n';
+import { kostenBetrag, kostenWert } from '../ki/kosten';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import type { VorschlagsArt } from '../../state/slices/vorschlaege';
 import { useStore } from '../../state/store';
@@ -132,7 +133,7 @@ function VorschlagDialogInhalt() {
               eingabe: zahl(tok.eingabe),
               cache: zahl(tok.cacheGelesen),
               ausgabe: zahl(tok.ausgabe),
-              kosten: formatiereUsd(ergebnis.kostenUsd, sprache()),
+              kosten: kostenBetrag(ergebnis),
             })}
           </dd>
         </dl>
@@ -187,7 +188,7 @@ function VorschlagDialogInhalt() {
               <dt>{tv.ausgabe}</dt>
               <dd>{f(tv.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
               <dt>{tv.kosten}</dt>
-              <dd>{f(tv.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, tv.kostenWert, 'kosten')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-ki-klein">{tv.nichtGezaehlt}</p>}
           </>
@@ -362,7 +363,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
       {ergebnis && !laeuft && (
         <span className="pw-vs-klein">
-          {f(tv.letzterLauf, { neu: ergebnis.neu, verworfen: ergebnis.verworfen.length, kosten: formatiereUsd(ergebnis.kostenUsd, sprache()) })}
+          {f(tv.letzterLauf, { neu: ergebnis.neu, verworfen: ergebnis.verworfen.length, kosten: kostenBetrag(ergebnis) })}
         </span>
       )}
 

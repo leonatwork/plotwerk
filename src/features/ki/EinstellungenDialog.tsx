@@ -1,11 +1,11 @@
 /**
- * Dialog „Einstellungen“: KI-Anbieter (Microsoft Foundry oder Claude API), Endpoint und Modelle je
- * Anbieter, API-Schlüssel je Anbieter (Schlüsselbund). Beim Umschalten bleiben die Einstellungen
- * des anderen Anbieters erhalten und werden mitgespeichert.
+ * Dialog „Einstellungen“: KI-Anbieter (Microsoft Foundry, Claude API oder ein OpenAI-kompatibler
+ * Dienst), Endpoint und Modelle je Anbieter, API-Schlüssel je Anbieter (Schlüsselbund). Beim
+ * Umschalten bleiben die Einstellungen der anderen Anbieter erhalten und werden mitgespeichert.
  */
 import { useEffect, useState, type FormEvent } from 'react';
-import { ANBIETER_NAME, CLAUDE_API_ENDPOINT, STANDARD_MODELLE } from '@core/ki/index';
-import type { KiAnbieter, KiEinstellungen, KiModelle } from '@core/model/types';
+import { ANBIETER_NAME, CLAUDE_API_ENDPOINT, KI_VORLAGEN, kiMitStandards, STANDARD_MODELLE, VORLAGEN } from '@core/ki/index';
+import type { KiAnbieter, KiEinstellungen, KiModelle, KiOpenAiEinstellungen, KiVorlage } from '@core/model/types';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { f, setzeSprachWahl, texte, useSprachWahl, useTexte, type SprachWahl } from '../../i18n';
 import { kiFehlerAnzeige } from '../../state/slices/ki';
@@ -22,8 +22,20 @@ export function endpointNormalisieren(wert: string): string {
     .replace(/\/+$/, '');
 }
 
-export function endpointFehler(wert: string): string | null {
-  const e = endpointNormalisieren(wert);
+/** OpenAI-kompatibel: Basis-URL samt /v1, ohne „/“ und ohne „/chat/completions“ am Ende. */
+export function openAiEndpointNormalisieren(wert: string): string {
+  return wert
+    .trim()
+    .replace(/\/+$/, '')
+    .replace(/\/chat\/completions$/i, '')
+    .replace(/\/+$/, '');
+}
+
+const LOKALE_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** `httpLokal`: http:// ist für localhost erlaubt (lokale Server wie Ollama und LM Studio). */
+export function endpointFehler(wert: string, httpLokal = false): string | null {
+  const e = httpLokal ? openAiEndpointNormalisieren(wert) : endpointNormalisieren(wert);
   if (!e) return null;
   let url: URL;
   try {
@@ -31,20 +43,23 @@ export function endpointFehler(wert: string): string | null {
   } catch {
     return texte().ki.einstellungen.ungueltig;
   }
-  if (url.protocol !== 'https:') return texte().ki.einstellungen.https;
-  return null;
+  if (url.protocol === 'https:') return null;
+  if (httpLokal) return url.protocol === 'http:' && LOKALE_HOSTS.has(url.hostname) ? null : texte().ki.einstellungen.httpsLokal;
+  return texte().ki.einstellungen.https;
 }
 
-/** Modellrollen; Beschriftung aus t.ki.einstellungen.rollen */
+/** Kontextlänge aus dem Feld: leer = keine Angabe, sonst ganze Zahl > 0 (Tausenderpunkte erlaubt); NaN = ungültig. */
+export function kontextAusText(wert: string): number | undefined {
+  const t = wert.replace(/[\s.,'’_]/g, '');
+  if (!t) return undefined;
+  return /^\d+$/.test(t) && Number(t) > 0 ? Number(t) : NaN;
+}
+
+/** Modellrollen; Beschriftung aus t.ki.einstellungen.rollen bzw. rollenAllgemein */
 const ROLLEN = ['erkennung', 'pruefung', 'tiefencheck'] as const;
 
-const ANBIETER_OPTIONEN = [
-  { wert: 'foundry' as const, label: ANBIETER_NAME.foundry },
-  { wert: 'claude' as const, label: ANBIETER_NAME.claude },
-];
-
-/** Bearbeitungsstand beider Anbieter (Rohwerte der Felder). */
-export type EinstellungsWerte = Required<KiEinstellungen>;
+/** Bearbeitungsstand aller Anbieter (Rohwerte der Felder; Kontextlänge als Text). */
+export type EinstellungsWerte = Required<KiEinstellungen> & { kontextText: string };
 
 function modelleSauber(m: KiModelle): KiModelle {
   return {
@@ -54,8 +69,24 @@ function modelleSauber(m: KiModelle): KiModelle {
   };
 }
 
-/** Was in projekt.md landet: beide Anbieter, normalisiert, leere Modelle = Standard. */
-export function einstellungenAusWerten(w: EinstellungsWerte): Required<KiEinstellungen> {
+function openAiSauber(w: EinstellungsWerte): KiOpenAiEinstellungen {
+  const o = w.openai;
+  const kontext = kontextAusText(w.kontextText);
+  return {
+    vorlage: o.vorlage,
+    endpoint: openAiEndpointNormalisieren(o.endpoint) || VORLAGEN[o.vorlage].endpoint,
+    modelle: { erkennung: o.modelle.erkennung.trim(), pruefung: o.modelle.pruefung.trim(), tiefencheck: o.modelle.tiefencheck.trim() },
+    ...(kontext && Number.isFinite(kontext) ? { kontextTokens: kontext } : {}),
+  };
+}
+
+/**
+ * Was in projekt.md landet: Foundry und Claude API normalisiert (leere Modelle = Standard); den
+ * OpenAI-kompatiblen Block nur, wenn er gewählt oder bearbeitet ist (sonst bleibt ein vorhandener erhalten).
+ */
+export function einstellungenAusWerten(w: EinstellungsWerte): KiEinstellungen {
+  const openai = openAiSauber(w);
+  const unberuehrt = JSON.stringify(openai) === JSON.stringify(kiMitStandards(undefined).openai);
   return {
     endpoint: endpointNormalisieren(w.endpoint),
     deployments: modelleSauber(w.deployments),
@@ -64,29 +95,33 @@ export function einstellungenAusWerten(w: EinstellungsWerte): Required<KiEinstel
       endpoint: endpointNormalisieren(w.claude.endpoint) || CLAUDE_API_ENDPOINT,
       modelle: modelleSauber(w.claude.modelle),
     },
+    ...(w.anbieter === 'openai' || !unberuehrt ? { openai } : {}),
   };
 }
 
 function ModellFelder({
   modelle,
   deaktiviert,
+  beschriftung,
+  platzhalter,
   onChange,
 }: {
   modelle: KiModelle;
   deaktiviert: boolean;
+  beschriftung: Record<(typeof ROLLEN)[number], string>;
+  platzhalter: Readonly<KiModelle>;
   onChange(m: KiModelle): void;
 }) {
-  const t = useTexte();
   return (
     <div className="pw-ki-felder pw-ki-felder--drei">
       {ROLLEN.map((r) => (
-        <Feld key={r} label={t.ki.einstellungen.rollen[r]}>
+        <Feld key={r} label={beschriftung[r]}>
           {(id) => (
             <Textfeld
               id={id}
               value={modelle[r]}
               disabled={deaktiviert}
-              placeholder={STANDARD_MODELLE[r]}
+              placeholder={platzhalter[r]}
               spellCheck={false}
               autoComplete="off"
               onChange={(e) => onChange({ ...modelle, [r]: e.target.value })}
@@ -118,6 +153,14 @@ export function SprachWahlAbschnitt() {
   );
 }
 
+function Hilfe({ fehler, children }: { fehler: string | null; children: string }) {
+  return (
+    <p className="pw-ki-klein" style={fehler ? { color: 'var(--accent-dark)' } : undefined}>
+      {fehler ?? children}
+    </p>
+  );
+}
+
 export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
   const projekt = useStore((s) => s.daten?.projekt);
   const backendArt = useStore((s) => s.backend?.art);
@@ -128,7 +171,10 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
   const schluesselSetzen = useStore((s) => s.kiSchluesselSetzen);
   const schluesselLoeschen = useStore((s) => s.kiSchluesselLoeschen);
 
-  const [anfang] = useState<EinstellungsWerte>(() => kiEinstellungen());
+  const [anfang] = useState<EinstellungsWerte>(() => {
+    const ki = kiEinstellungen();
+    return { ...ki, kontextText: ki.openai.kontextTokens ? String(ki.openai.kontextTokens) : '' };
+  });
   const [werte, setWerte] = useState<EinstellungsWerte>(anfang);
   const [neuerSchluessel, setNeuerSchluessel] = useState('');
   const [schluesselMeldung, setSchluesselMeldung] = useState<string | null>(null);
@@ -139,7 +185,8 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
   const T = t.ki.einstellungen;
 
   const anbieter = werte.anbieter;
-  const name = ANBIETER_NAME[anbieter];
+  const vorlage = VORLAGEN[werte.openai.vorlage];
+  const name = anbieter === 'openai' ? vorlage.name : ANBIETER_NAME[anbieter];
   const schluesselStatus = schluesselJe[anbieter];
 
   useEffect(() => {
@@ -147,8 +194,28 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
   }, [schluesselPruefen, anbieter]);
 
   const ohneProjekt = !projekt;
-  const fehler = endpointFehler(anbieter === 'claude' ? werte.claude.endpoint : werte.endpoint);
+  const endpointFalsch =
+    anbieter === 'openai'
+      ? endpointFehler(werte.openai.endpoint, true)
+      : endpointFehler(anbieter === 'claude' ? werte.claude.endpoint : werte.endpoint);
+  const openAiFehler =
+    anbieter !== 'openai'
+      ? null
+      : !openAiEndpointNormalisieren(werte.openai.endpoint) && !vorlage.endpoint
+        ? T.openAiBasisUrlEigen
+        : !ROLLEN.some((r) => werte.openai.modelle[r].trim())
+          ? T.keinModell
+          : Number.isNaN(kontextAusText(werte.kontextText))
+            ? T.kontextFalsch
+            : null;
+  const fehler = endpointFalsch ?? openAiFehler;
   const geaendert = JSON.stringify(einstellungenAusWerten(werte)) !== JSON.stringify(einstellungenAusWerten(anfang));
+
+  const anbieterOptionen: { wert: KiAnbieter; label: string }[] = [
+    { wert: 'foundry', label: ANBIETER_NAME.foundry },
+    { wert: 'claude', label: ANBIETER_NAME.claude },
+    { wert: 'openai', label: T.anbieterOpenAi },
+  ];
 
   function anbieterWaehlen(a: KiAnbieter) {
     if (a === anbieter) return;
@@ -156,6 +223,11 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
     setNeuerSchluessel('');
     setSchluesselMeldung(null);
     setSchluesselFehler(null);
+  }
+
+  /** Neuer Dienst: dessen Standard-URL; Modellnamen bleiben stehen. */
+  function vorlageWaehlen(v: KiVorlage) {
+    setWerte({ ...werte, openai: { ...werte.openai, vorlage: v, endpoint: VORLAGEN[v].endpoint } });
   }
 
   async function sichern() {
@@ -201,6 +273,22 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
     }
   }
 
+  const platzhalterSchluessel =
+    schluesselStatus === 'vorhanden'
+      ? T.platzhalterErsetzen
+      : anbieter === 'claude'
+        ? T.platzhalterClaude
+        : anbieter === 'openai'
+          ? f(T.platzhalterOpenAi, { name })
+          : T.platzhalterFoundry;
+
+  const datenschutz =
+    anbieter === 'openai' && vorlage.lokal
+      ? T.datenschutzLokal
+      : anbieter === 'openai' && werte.openai.vorlage === 'openrouter'
+        ? `${f(T.datenschutz, { name })} ${T.datenschutzOpenRouter}`
+        : f(T.datenschutz, { name });
+
   return (
     <Dialog
       titel={T.titel}
@@ -221,10 +309,10 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
         <Abschnittslabel as="h3" id="ki-anbieter">
           {T.anbieterAbschnitt}
         </Abschnittslabel>
-        <Segment label={T.anbieterLabel} rolle="group" voll groesse="hoch" wert={anbieter} onChange={anbieterWaehlen} optionen={ANBIETER_OPTIONEN} />
+        <Segment label={T.anbieterLabel} rolle="group" voll groesse="hoch" wert={anbieter} onChange={anbieterWaehlen} optionen={anbieterOptionen} />
         {ohneProjekt && <p className="pw-ki-klein">{T.ohneProjekt}</p>}
 
-        {anbieter === 'foundry' ? (
+        {anbieter === 'foundry' && (
           <>
             <Feld label={T.endpoint}>
               {(id) => (
@@ -235,18 +323,24 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
                   placeholder="https://<resource>.services.ai.azure.com/anthropic"
                   spellCheck={false}
                   autoComplete="off"
-                  aria-invalid={!!fehler}
+                  aria-invalid={!!endpointFalsch}
                   onChange={(e) => setWerte({ ...werte, endpoint: e.target.value })}
                 />
               )}
             </Feld>
-            <p className="pw-ki-klein" style={fehler ? { color: 'var(--accent-dark)' } : undefined}>
-              {fehler ?? T.endpointHilfe}
-            </p>
-            <ModellFelder modelle={werte.deployments} deaktiviert={ohneProjekt} onChange={(deployments) => setWerte({ ...werte, deployments })} />
+            <Hilfe fehler={endpointFalsch}>{T.endpointHilfe}</Hilfe>
+            <ModellFelder
+              modelle={werte.deployments}
+              deaktiviert={ohneProjekt}
+              beschriftung={T.rollen}
+              platzhalter={STANDARD_MODELLE}
+              onChange={(deployments) => setWerte({ ...werte, deployments })}
+            />
             <p className="pw-ki-klein">{T.foundryModelle}</p>
           </>
-        ) : (
+        )}
+
+        {anbieter === 'claude' && (
           <>
             <Feld label={T.basisUrl}>
               {(id) => (
@@ -257,20 +351,87 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
                   placeholder={CLAUDE_API_ENDPOINT}
                   spellCheck={false}
                   autoComplete="off"
-                  aria-invalid={!!fehler}
+                  aria-invalid={!!endpointFalsch}
                   onChange={(e) => setWerte({ ...werte, claude: { ...werte.claude, endpoint: e.target.value } })}
                 />
               )}
             </Feld>
-            <p className="pw-ki-klein" style={fehler ? { color: 'var(--accent-dark)' } : undefined}>
-              {fehler ?? f(T.basisUrlHilfe, { url: CLAUDE_API_ENDPOINT })}
-            </p>
+            <Hilfe fehler={endpointFalsch}>{f(T.basisUrlHilfe, { url: CLAUDE_API_ENDPOINT })}</Hilfe>
             <ModellFelder
               modelle={werte.claude.modelle}
               deaktiviert={ohneProjekt}
+              beschriftung={T.rollen}
+              platzhalter={STANDARD_MODELLE}
               onChange={(modelle) => setWerte({ ...werte, claude: { ...werte.claude, modelle } })}
             />
             <p className="pw-ki-klein">{T.claudeModelle}</p>
+          </>
+        )}
+
+        {anbieter === 'openai' && (
+          <>
+            <div className="pw-ki-felder pw-ki-felder--url">
+              <Feld label={T.dienst}>
+                {(id) => (
+                  <select
+                    id={id}
+                    className="pw-ki-select"
+                    value={werte.openai.vorlage}
+                    disabled={ohneProjekt}
+                    onChange={(e) => vorlageWaehlen(e.target.value as KiVorlage)}
+                  >
+                    {KI_VORLAGEN.map((v) => (
+                      <option key={v} value={v}>
+                        {VORLAGEN[v].name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Feld>
+              <Feld label={T.openAiBasisUrl}>
+                {(id) => (
+                  <Textfeld
+                    id={id}
+                    value={werte.openai.endpoint}
+                    disabled={ohneProjekt}
+                    placeholder={vorlage.endpoint || 'https://…/v1'}
+                    spellCheck={false}
+                    autoComplete="off"
+                    aria-invalid={!!endpointFalsch}
+                    onChange={(e) => setWerte({ ...werte, openai: { ...werte.openai, endpoint: e.target.value } })}
+                  />
+                )}
+              </Feld>
+            </div>
+            <Hilfe fehler={endpointFalsch}>
+              {vorlage.endpoint ? f(T.openAiBasisUrlHilfe, { name: vorlage.name, url: vorlage.endpoint }) : T.openAiBasisUrlEigen}
+            </Hilfe>
+            <ModellFelder
+              modelle={werte.openai.modelle}
+              deaktiviert={ohneProjekt}
+              beschriftung={T.rollenAllgemein}
+              platzhalter={vorlage.beispiele}
+              onChange={(modelle) => setWerte({ ...werte, openai: { ...werte.openai, modelle } })}
+            />
+            <Hilfe fehler={openAiFehler === T.keinModell ? openAiFehler : null}>{T.openAiModelle}</Hilfe>
+            <div className="pw-ki-felder pw-ki-felder--drei">
+              <Feld label={T.kontext}>
+                {(id) => (
+                  <Textfeld
+                    id={id}
+                    value={werte.kontextText}
+                    disabled={ohneProjekt}
+                    placeholder={T.kontextPlatzhalter}
+                    inputMode="numeric"
+                    spellCheck={false}
+                    autoComplete="off"
+                    aria-invalid={Number.isNaN(kontextAusText(werte.kontextText))}
+                    onChange={(e) => setWerte({ ...werte, kontextText: e.target.value })}
+                  />
+                )}
+              </Feld>
+            </div>
+            <Hilfe fehler={openAiFehler === T.kontextFalsch ? openAiFehler : null}>{vorlage.lokal ? T.kontextLokal : T.kontextCloud}</Hilfe>
           </>
         )}
         {speicherFehler && <div className="pw-ki-hinweis" role="alert">{speicherFehler}</div>}
@@ -289,13 +450,12 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
             </Button>
           )}
         </div>
+        {anbieter === 'openai' && vorlage.ohneSchluessel && <p className="pw-ki-klein">{f(T.schluesselOptional, { name })}</p>}
         <form className="pw-ki-reihe" onSubmit={(e) => void schluesselHinterlegen(e)}>
           <Textfeld
             type="password"
             aria-label={schluesselStatus === 'vorhanden' ? T.neuerSchluessel : T.schluesselEingeben}
-            placeholder={
-              schluesselStatus === 'vorhanden' ? T.platzhalterErsetzen : anbieter === 'claude' ? T.platzhalterClaude : T.platzhalterFoundry
-            }
+            placeholder={platzhalterSchluessel}
             value={neuerSchluessel}
             autoComplete="off"
             spellCheck={false}
@@ -310,7 +470,7 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
         <p className="pw-ki-klein">{backendArt === 'tauri' ? T.hinweisTauri : T.hinweisDemo}</p>
       </section>
 
-      <p className="pw-ki-klein">{f(T.datenschutz, { name })}</p>
+      <p className="pw-ki-klein">{datenschutz}</p>
     </Dialog>
   );
 }

@@ -114,3 +114,71 @@ describe('Tauri-KI-Transport je Anbieter', () => {
     expect(argumente.some((a) => /schluessel"|apiKey|x-api-key|sk-ant/i.test(a))).toBe(false);
   });
 });
+
+describe('Tauri-KI-Transport: OpenAI-kompatibel', () => {
+  const ANFRAGE = {
+    model: 'qwen3:32b',
+    max_tokens: 16000,
+    system: [{ type: 'text', text: 'System' }],
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'Buch', cache_control: { type: 'ephemeral' } }, { type: 'text', text: 'Aufgabe' }] }],
+    output_config: { effort: 'medium', format: { type: 'json_schema', schema: { type: 'object' } } },
+  };
+
+  function openAiTransport(ziel: KiZiel, antwort: unknown, schluessel: Partial<Record<KiAnbieter, boolean>> = {}) {
+    mocks.invoke.mockImplementation(async (cmd: string, args: Record<string, unknown> = {}) => {
+      if (cmd === 'schluessel_vorhanden') return schluessel[args.anbieter as KiAnbieter] ?? false;
+      if (cmd === 'ki_anfrage') return antwort;
+      throw `Unbekanntes Kommando ${cmd}`;
+    });
+    return erstelleTauriKiTransport(async () => ziel);
+  }
+
+  const OLLAMA: KiZiel = { anbieter: 'openai', endpoint: 'http://localhost:11434/v1', openai: { vorlage: 'ollama' } };
+
+  it('übersetzt Body und Antwort; lokal ohne Schlüssel bereit', async () => {
+    const t = openAiTransport(OLLAMA, {
+      model: 'qwen3:32b',
+      choices: [{ index: 0, message: { role: 'assistant', content: '<think>…</think>{"ok":true}' }, finish_reason: 'stop' }],
+      usage: { prompt_tokens: 10, completion_tokens: 2 },
+    });
+    expect(await t.bereit()).toBe(true);
+    expect(mocks.invoke.mock.calls.some((c) => c[0] === 'schluessel_vorhanden')).toBe(false);
+
+    const antwort = await t.senden(ANFRAGE);
+    expect(antwort).toMatchObject({ type: 'message', stop_reason: 'end_turn', content: [{ type: 'text', text: '{"ok":true}' }] });
+    expect(antwort.usage).toEqual({ input_tokens: 10, output_tokens: 2, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 });
+    const args = letzteArgs('ki_anfrage');
+    expect(args.anbieter).toBe('openai');
+    expect(args.endpoint).toBe('http://localhost:11434/v1');
+    expect(args.body).toEqual({
+      model: 'qwen3:32b',
+      messages: [
+        { role: 'system', content: 'System' },
+        { role: 'user', content: 'Buch\n\nAufgabe' },
+      ],
+      max_tokens: 16000,
+      stream: false,
+      response_format: { type: 'json_schema', json_schema: { name: 'antwort', strict: true, schema: { type: 'object' } } },
+    });
+  });
+
+  it('Cloud-Dienste brauchen einen Schlüssel; Tokens zählen gibt es nicht (core/ki schätzt)', async () => {
+    const t = openAiTransport({ anbieter: 'openai', endpoint: 'https://openrouter.ai/api/v1', openai: { vorlage: 'openrouter' } }, {});
+    expect(await t.bereit()).toBe(false);
+    expect(letzteArgs('schluessel_vorhanden')).toEqual({ anbieter: 'openai' });
+    await expect(t.tokenZaehlen(ANFRAGE)).rejects.toThrow('Tokens');
+    expect(mocks.invoke.mock.calls.some((c) => c[0] === 'ki_tokens')).toBe(false);
+  });
+
+  it('ohne Modell oder zu groß für den Kontext: kein Aufruf, verständliche Meldung', async () => {
+    const t = openAiTransport({ ...OLLAMA, openai: { vorlage: 'ollama', kontextTokens: 4100 } }, {});
+    await expect(t.senden({ ...ANFRAGE, model: '' })).rejects.toThrow('Kein Modell');
+    const gross = { ...ANFRAGE, messages: [{ role: 'user', content: [{ type: 'text', text: 'x'.repeat(3000) }] }] };
+    await expect(t.senden(gross)).rejects.toThrow(/Kontextlänge von 4\.100 Tokens/);
+    expect(mocks.invoke.mock.calls.some((c) => c[0] === 'ki_anfrage')).toBe(false);
+    // ohne Kontextangabe wird nicht geprüft
+    const ohne = openAiTransport(OLLAMA, { choices: [{ message: { content: '{}' }, finish_reason: 'stop' }] });
+    await expect(ohne.senden(gross)).resolves.toMatchObject({ stop_reason: 'end_turn' });
+  });
+});
+

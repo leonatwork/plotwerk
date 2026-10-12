@@ -1,9 +1,10 @@
 /** Dialog „Prüfen“: Umfang, Tiefencheck, Schätzung vor dem Start, Fortschritt, Ergebnis. */
 import { useEffect, useMemo, useState } from 'react';
-import { EFFORT, formatiereUsd, kiEndpoint, type PruefAuftrag, type Schaetzung } from '@core/ki/index';
+import { EFFORT, kiEndpoint, type PruefAuftrag, type Schaetzung } from '@core/ki/index';
 import type { Id } from '@core/model/types';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
-import { f, useTexte, zahl as zahlFormat, sprache } from '../../i18n';
+import { f, useTexte, zahl as zahlFormat } from '../../i18n';
+import { kostenBetrag, kostenWert } from './kosten';
 import { kiFehlerAnzeige, type KiErgebnis, type KiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { Button, Checkbox, Dialog, Segment } from '../../ui';
@@ -221,7 +222,7 @@ export function PruefDialog({ param, schliessen }: DialogKomponentenProps) {
               <dt>{T.ausgabe}</dt>
               <dd>{f(T.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
               <dt>{T.kosten}</dt>
-              <dd>{f(T.kostenWert, { betrag: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, T.kostenWert, 'betrag')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-ki-klein">{T.nichtGezaehlt}</p>}
           </>
@@ -278,7 +279,7 @@ function ErgebnisAnsicht({ ergebnis, schliessen, hinweiseAnsehen }: { ergebnis: 
             eingabe: zahl(tokens.eingabe),
             cache: zahl(tokens.cacheGelesen),
             ausgabe: zahl(tokens.ausgabe),
-            kosten: formatiereUsd(ergebnis.kostenUsd ?? 0, sprache()),
+            kosten: kostenBetrag(ergebnis),
           })}
         </dd>
       </dl>

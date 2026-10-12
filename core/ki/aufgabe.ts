@@ -12,7 +12,7 @@ import type { Sprache } from '../i18n';
 import type { Id, KiEinstellungen, ProjektDaten, Zitat } from '../model/types';
 import type { ProjektLeser } from '../projekt/fs';
 import { ladeProjekt } from '../projekt/lesen';
-import { kiModell } from './anbieter';
+import { kiModell, mitKosten } from './anbieter';
 import { baueAnfrage, EFFORT, MAX_TOKENS, prefixZaehlBody, zaehlBody, type KiRolle } from './anfrage';
 import { KiFehler, LEERE_NUTZUNG, leseAntwort, type Nutzung } from './antwort';
 import type { KiTransport, Schaetzung } from './index';
@@ -86,6 +86,8 @@ export interface AufgabenErgebnis<T> {
   tokens: { eingabe: number; ausgabe: number; cacheGelesen: number };
   modell: string;
   kostenUsd: number;
+  /** false = kein Listenpreis bekannt (OpenAI-kompatible Dienste); kostenUsd ist dann 0 */
+  kostenBekannt?: false;
   /** ISO-Zeitpunkt */
   datum: string;
 }
@@ -137,6 +139,7 @@ interface AufgabenLauf {
   kontext: BuchKontext;
   modell: string;
   body: Record<string, unknown>;
+  einstellungen: KiEinstellungen | undefined;
 }
 
 function planeAufgabe<T>(
@@ -154,7 +157,7 @@ function planeAufgabe<T>(
     ...baueAnfrage({ modell, system, kontext, aufgabe, schema: d.schema(kontext), effort: EFFORT[d.rolle] }),
     max_tokens: d.maxTokens ?? MAX_TOKENS,
   };
-  return { kontext, modell, body };
+  return { kontext, modell, body, einstellungen };
 }
 
 /** Der vollständige Messages-API-Body der Aufgabe (z. B. für Tests oder vorbereitete Antworten). */
@@ -251,7 +254,7 @@ function ergebnisAus<T>(
     verworfen: [...p.verworfen],
     tokens: { eingabe: nutzung.eingabe + nutzung.cacheGeschrieben, ausgabe: nutzung.ausgabe, cacheGelesen: nutzung.cacheGelesen },
     modell: lauf.modell,
-    kostenUsd: kostenUsd(nutzung, preisFuer(lauf.modell, d.rolle, lauf.kontext.text.length / 3)),
+    ...mitKosten(lauf.einstellungen, kostenUsd(nutzung, preisFuer(lauf.modell, d.rolle, lauf.kontext.text.length / 3))),
     datum: jetzt().toISOString(),
   };
 }
@@ -347,7 +350,7 @@ export async function schaetzeAufgabe<T>(
     eingabeTokens: voll.tokens,
     prefixTokens,
     ausgabeTokens: ausgabe,
-    kostenUsd: kostenUsd({ eingabe: voll.tokens - prefixTokens, ausgabe, cacheGelesen: 0, cacheGeschrieben: prefixTokens }, preis),
+    ...mitKosten(einstellungen, kostenUsd({ eingabe: voll.tokens - prefixTokens, ausgabe, cacheGelesen: 0, cacheGeschrieben: prefixTokens }, preis)),
     gezaehlt: voll.gezaehlt && prefix.gezaehlt,
   };
 }

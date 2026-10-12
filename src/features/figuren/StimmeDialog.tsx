@@ -5,11 +5,12 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { redeDerFigur } from '@core/figuren/index';
-import { EFFORT, formatiereUsd, kiEndpoint, STIMME_MIN_REDE, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
+import { EFFORT, kiEndpoint, STIMME_MIN_REDE, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
 import type { Id } from '@core/model/types';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
-import { f as fmt, useTexte, vergleich, sprache } from '../../i18n';
+import { f as fmt, useTexte, vergleich } from '../../i18n';
+import { kostenBetrag, kostenWert } from '../ki/kosten';
 import { useStore } from '../../state/store';
 import { Button, Checkbox, Dialog } from '../../ui';
 import '../ki/ki.css';
@@ -150,7 +151,7 @@ export default function StimmeDialog({ param, schliessen }: DialogKomponentenPro
           <dt>{td.modell}</dt>
           <dd>{ergebnis.modell}</dd>
           <dt>{td.kosten}</dt>
-          <dd>{formatiereUsd(ergebnis.kostenUsd, sprache())}</dd>
+          <dd>{kostenBetrag(ergebnis)}</dd>
         </dl>
         {ergebnis.verworfen.length > 0 && (
           <details className="pw-ki-details">
@@ -230,7 +231,7 @@ export default function StimmeDialog({ param, schliessen }: DialogKomponentenPro
               <dt>{td.ausgabe}</dt>
               <dd>{fmt(td.ausgabeWert, { n: Math.round(s.ausgabeTokens) })}</dd>
               <dt>{td.kosten}</dt>
-              <dd>{fmt(td.kostenWert, { usd: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, td.kostenWert, 'usd')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-ki-klein">{td.nichtGezaehlt}</p>}
           </>

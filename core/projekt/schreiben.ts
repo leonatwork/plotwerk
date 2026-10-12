@@ -63,9 +63,10 @@ import {
 const S = {
   projekt: ['version', 'titel', 'kapitel', 'ki', 'angaben'],
   angaben: ['autor', 'untertitel', 'genre', 'sprache'],
-  ki: ['endpoint', 'deployments', 'anbieter', 'claude'],
+  ki: ['endpoint', 'deployments', 'anbieter', 'claude', 'openai'],
   deployments: ['erkennung', 'pruefung', 'tiefencheck'],
   claude: ['endpoint', 'modelle'],
+  openai: ['vorlage', 'endpoint', 'modelle', 'kontextTokens'],
   kapitel: ['id', 'titel'],
   plan: ['id', 'titel', 'akt', 'status', 'szene', 'funktion', 'straenge', 'figuren', 'orte', 'abweichungen', 'realitaet', 'zeit', 'szenen'],
   zeitpunkt: ['tag', 'wochentag', 'datum', 'tageszeit', 'uhrzeit', 'dauer', 'sicherheit', 'beleg', 'notiz'],
@@ -151,9 +152,20 @@ export function serializeProjekt(p: Projekt, vorhanden?: string | null): string 
   const claude = p.ki?.claude
     ? ordne({ endpoint: p.ki.claude.endpoint, modelle: ordne(p.ki.claude.modelle, S.deployments, altClaude?.modelle) }, S.claude, altClaude)
     : altClaude;
+  // Ebenso die Einstellungen des OpenAI-kompatiblen Dienstes.
+  const altOpenAi = altKi && istObjekt(altKi.openai) ? altKi.openai : undefined;
+  const openai = p.ki?.openai
+    ? ordne({ ...p.ki.openai, modelle: ordne(p.ki.openai.modelle, S.deployments, altOpenAi?.modelle) }, S.openai, altOpenAi)
+    : altOpenAi;
   const ki = p.ki
     ? ordne(
-        { endpoint: p.ki.endpoint, deployments: ordne(p.ki.deployments, S.deployments, altKi?.deployments), anbieter: p.ki.anbieter, claude },
+        {
+          endpoint: p.ki.endpoint,
+          deployments: ordne(p.ki.deployments, S.deployments, altKi?.deployments),
+          anbieter: p.ki.anbieter,
+          claude,
+          openai,
+        },
         S.ki,
         altKi,
       )

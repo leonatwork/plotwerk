@@ -56,7 +56,7 @@ export interface KiSlice {
   kiSchluesselJe: Record<KiAnbieter, SchluesselStatus>;
   kiVorschlaege: Record<Id, KiVorschlagsListe>;
 
-  /** projekt.ki mit Standardwerten beider Anbieter ergänzt (fehlt der Anbieter: Foundry) */
+  /** projekt.ki mit Standardwerten aller Anbieter ergänzt (fehlt der Anbieter: Foundry) */
   kiEinstellungen(): Required<KiEinstellungen>;
   kiEinstellungenSpeichern(ki: KiEinstellungen): Promise<void>;
   kiSchaetzen(auftrag: PruefAuftrag): Promise<Schaetzung>;
@@ -151,7 +151,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
     kiErgebnis: null,
     kiFehler: null,
     kiSchluessel: 'unbekannt',
-    kiSchluesselJe: { foundry: 'unbekannt', claude: 'unbekannt' },
+    kiSchluesselJe: { foundry: 'unbekannt', claude: 'unbekannt', openai: 'unbekannt' },
     kiVorschlaege: {},
 
     kiEinstellungen() {
@@ -161,10 +161,11 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
     async kiEinstellungenSpeichern(ki) {
       const projekt = get().daten?.projekt;
       if (!projekt) throw new Error(texte().state.fehler.keinProjekt);
-      // Die Einstellungen des anderen Anbieters bleiben erhalten, auch wenn `ki` sie nicht enthält.
+      // Die Einstellungen der anderen Anbieter bleiben erhalten, auch wenn `ki` sie nicht enthält.
       const alt = projekt.ki;
       const claude = ki.claude ?? alt?.claude;
-      await get().speichereProjekt({ ...projekt, ki: { ...ki, ...(claude ? { claude } : {}) } });
+      const openai = ki.openai ?? alt?.openai;
+      await get().speichereProjekt({ ...projekt, ki: { ...ki, ...(claude ? { claude } : {}), ...(openai ? { openai } : {}) } });
       // kiSchluessel zeigt den Status des (ggf. neu) gewählten Anbieters
       if (kiAnbieter(ki) !== kiAnbieter(alt)) await get().kiSchluesselPruefen(kiAnbieter(ki));
     },
