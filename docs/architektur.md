@@ -23,6 +23,8 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 | E13 | **Ganzes Buch als gecachter Prefix** (Prompt Caching) + Aufgaben pro Kapitel; Ergebnis-Cache pro Kapitel-Text-Hash. Token-Schätzung über `count_tokens`. | einfacher, findet kapitelübergreifende Widersprüche |
 | E14 | **Zwei KI-Anbieter, Wahl in den Einstellungen** (`projekt.ki.anbieter`, fehlt = Foundry): **Microsoft Foundry** (Endpoint `https://<resource>.services.ai.azure.com/anthropic`, eingetragen werden Deployment-Namen; Schlüsselbund-Konto `azure-foundry`) oder **Claude API** von Anthropic (Basis-URL `https://api.anthropic.com`, überschreibbar; Modell-IDs; Konto `anthropic-api`). Die Einstellungen des anderen Anbieters bleiben beim Umschalten erhalten. Modelle: `claude-haiku-5-5` (Erkennung), `claude-sonnet-5-5` (Prüfung), `claude-opus-5-5` (Tiefencheck). Nur Claude API: bei Sonnet/Opus 5.5 serverseitiger Fallback `fallbacks: "default"` (Beta `server-side-fallback-2026-07-01`), gesetzt in der Transportschicht. Hosting/Region egal (Leon akzeptiert Verarbeitung in den USA). | Leons Vorgabe |
 | E15 | **Dritter Anbieter: OpenAI-kompatibel** (`projekt.ki.anbieter: openai`, Block `ki.openai{vorlage, endpoint, modelle, kontextTokens?}`). Vorlagen Ollama (Standard, `http://localhost:11434/v1`), LM Studio (`:1234/v1`), OpenAI, OpenRouter, Qwen (Alibaba Cloud), eigene URL (`core/ki/anbieter.ts`, `VORLAGEN`). `core/ki` baut weiter Messages-API-Bodys; der Transport übersetzt nach Chat Completions und zurück (`core/ki/openai.ts`: `nachOpenAi`/`vonOpenAi`, Schema als `response_format` json_schema strict, bei Qwen json_object mit Schema im System-Prompt), der Rust-Kern schickt an `{endpoint}/chat/completions` mit `Authorization: Bearer` (Schlüssel optional, Konto `openai-kompatibel`, http nur für localhost, Zeitlimit 30 min). Modelle ohne Claude-Standard (leere Rolle = Prüfmodell). Kein `count_tokens` (Schätzung Zeichen/3), keine Listenpreise (Kosten „keine Angabe“, Ablagen ohne `kostenUsd`). Ist `kontextTokens` gesetzt, lehnt der Transport Anfragen ab, die samt 4 000 Tokens Reserve nicht hineinpassen – lokale Server kürzen sonst still. Andere Modelle als Claude sind nicht abgestimmt; die Zitatprüfung (E6) verwirft, was nicht wörtlich zitiert. | Leons Vorgabe: lokale und andere Modelle |
+| E16 | **Funktionsumfang als App-Einstellung** `funktionen` in `einstellungen.json` (Browser-Demo: `localStorage` `plotwerk:funktionen`), nie im Projektordner. Katalog, Presets (Anfänger/Mittel/Profi/Schriftsteller), Abhängigkeiten und eigene Presets in `core/funktionen`. Ausgeblendet ≠ gelöscht: Daten ausgeblendeter Funktionen bleiben im Projekt und im Export. Was ein gespeichertes Profil noch nicht kannte (`bekannt`), wird nach seiner Basis entschieden. Ohne „Plan-Abgleich“ setzt die Prüfung `PruefAuftrag.ohnePlan` (keine Plan-Felder im Kontext). | Einstieg für neue Nutzer, weniger Tokens (2026-10-13) |
+| E17 | **No-AI-Modus** (`profil.kiAus`): alle KI-Funktionen ausgeblendet; `mitKiSperre` (src/state/funktionen.ts) umhüllt den KI-Transport des Backends und lehnt `senden` und `tokenZaehlen` ab. | Datenschutz, Arbeiten ohne Zugang (2026-10-13) |
 
 ## Phasen
 
@@ -121,6 +123,8 @@ Jedes Verzeichnis hat genau einen Besitzer. Fremde Dateien nur lesen. Braucht ei
 | `src-tauri/` | Rust-Kern, Tauri-Konfiguration | Tauri |
 | `fixtures/` | Demo-Projekt „Hafenlichter“ (frei erfundener Roman, Testdaten) | Fundament |
 | `abnahme/` | Akzeptanztests AK-1 … AK-10 über alle Module (`docs/abnahme.md`) | Abnahme |
+| `core/funktionen/` | Funktionskatalog, Presets, Abhängigkeiten, KI-Last, Profil laden (E16/E17) | Fundament |
+| `src/state/funktionen.ts`, `src/app/funktionen.ts`, `src/app/NurMit.tsx`, `src/features/funktionen/` | Profil-Zustand und Speicherung, KI-Sperre, Zuordnung Bereich/Befehl → Funktion, Assistent, Funktionsauswahl, Dialog „Funktionen“ | Fundament |
 
 ### Werkzeuge G1–G8 (ab 2026-10-10)
 
@@ -160,6 +164,25 @@ Zeitpunkte, Zustände, Bögen, Marken, Recherche und Lektorat gehören nicht daz
 - Store: `useStore` (zustand). Slices bekommen `(set, get)` und lesen `get().daten` (ProjektDaten) und `get().fs`.
 - Rust-Kommandos (camelCase-Argumente via Tauri): `projekt_oeffnen(pfad)`, `fs_lesen(pfad)`, `fs_schreiben(pfad, inhalt)`, `fs_auflisten(ordner)`, `fs_existiert(pfad)`, `fs_entfernen(pfad)`, `vorlesen_stimmen()`, `vorlesen_sagen(text, stimme?, tempo?)` → `"fertig"`/`"abgebrochen"`, `vorlesen_stopp()` (macOS `say`, Text über stdin; in der Mac-App immer statt der Web Speech API), `link_oeffnen(url)` (nur http/https), `schluessel_setzen(wert, anbieter?)`, `schluessel_vorhanden(anbieter?)`, `schluessel_loeschen(anbieter?)`, `ki_anfrage(endpoint, body, anbieter?)`, `ki_tokens(endpoint, body, anbieter?)` (`anbieter`: `"foundry"` (Standard), `"claude"` oder `"openai"`; bei `"openai"` geht `ki_anfrage` an `/chat/completions`, `ki_tokens` gibt es nicht). Alle `fs_*` arbeiten relativ zum geöffneten Projekt und lehnen `..`/absolute Pfade ab.
 - Binärdateien (G8): `fs_lesen_binaer(kennung?, pfad)` → rohe Bytes (`ipc::Response`, in TS `ArrayBuffer`), `fs_schreiben_binaer` mit rohem Body und Kopfzeilen `plotwerk-pfad` (URI-kodiert) und `plotwerk-kennung`. Nur unter `recherche/` und `.versionen/recherche/` (`dateien::binaer_erlaubt` = `binaerPfadErlaubt` in TS), atomar, gleicher Pfadwächter. TS: optionale Methoden `lesenBinaer`/`schreibenBinaer` an `ProjektDateisystem` (TauriFs, MemoryFs), Aufruf über `leseBinaer`/`schreibeBinaer`/`entferneBinaerMitSchnappschuss` (core/projekt) bzw. Store `leseBinaerDatei`/`speichereBinaerDatei`/`entferneBinaerDatei`.
+
+## Funktionsumfang (E16/E17, ab 2026-10-13)
+
+- **Katalog** (`core/funktionen`): 22 Funktionen in vier Gruppen (Schreiben, Planen, Figuren & Welt, Prüfen & KI),
+  `editor` ist Pflicht. KI-Funktionen haben eine Last (1–3) und eine Modellrolle; die Summe ergibt die Anzeige
+  „KI-Nutzung: gering (≤ 3) / mittel (≤ 8) / hoch“. Abhängigkeiten (`braucht`) löst `einschalten`/`ausschalten` auf.
+- **Zuordnung** (`src/app/funktionen.ts`): `BEREICH_FUNKTION` (jeder Bereich), `funktionFuerBefehl` (Befehle aus Menü,
+  Tastenkürzeln, Schnellsuche). `befehlAusfuehren` und der Rahmen fragen bei ausgeblendeten Funktionen nach
+  (`funktionSicherstellen`); wird der aktive Bereich in den Einstellungen ausgeblendet, geht es still zum Schreiben.
+  Das native Menü bleibt vollständig.
+- **Einhängen in Ansichten**: `<NurMit funktion="…">` bzw. `useFunktion(id)`. Unterfunktionen: Typewriter und
+  Statusleisten-Werkzeuge, Tab „Stil“ (`editorWerkzeuge`), Schreibziel (`statistik`), Szenen-Karte/-Übersicht
+  (`faeden`), Recherche-Leiste (`recherche`), Bögen (`boegen`), Stimme (`kiStimme`), Leser-Karte (`kiLeser`),
+  KI-Vorschläge (`kiErkennung`, über `useOffeneVorschlaege`), Prüfen-Knöpfe (`kiPruefung`), Tiefencheck im
+  Prüf-Dialog (`kiTiefencheck`), Zeitvorschläge (`kiZeit`), Fassungen in Statistik und Versionsverlauf (`fassungen`),
+  Abgabe- und Rückimport-Verweise (`abgabe`), Tab „Hinweise“ im Schreiben-Inspektor (`hinweise`).
+- **Laden** vor dem ersten Rendern (`initialisiereFunktionen` in `main.tsx`): gespeichertes Profil → so; keins, aber
+  `letztesProjekt` gesetzt → Bestandsprofil (alles, ohne Assistent); sonst Assistent. Tests laufen mit allen
+  Funktionen und ohne Assistent (`src/test/setup.ts`).
 
 ## Sprachen (i18n, ab 2026-10-12)
 

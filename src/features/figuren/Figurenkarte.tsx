@@ -25,6 +25,7 @@ import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { VerweisFeld, VerweisText } from '../schreiben/VerweisFeld';
 import { SpitznamenFeld } from './Spitznamen';
 import { kapKurz, stufenOrtText, zitat } from './texte';
+import { NurMit } from '../../app/NurMit';
 
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '8px 12px', alignItems: 'center', fontSize: 13 };
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
@@ -973,7 +974,11 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
           <AusDemText f={f} daten={daten} index={index} nachKapitel={nachKapitel} />
           <DeinePlanung f={f} daten={daten} />
           <Auftritte f={f} daten={daten} index={index} nachKapitel={nachKapitel} farbe={farbe} />
-          {(f.rolle !== 'statist' || bogenVon(daten.boegen, f.id).stufen.length > 0) && <Bogen f={f} daten={daten} farbe={farbe} />}
+          {(f.rolle !== 'statist' || bogenVon(daten.boegen, f.id).stufen.length > 0) && (
+            <NurMit funktion="boegen">
+              <Bogen f={f} daten={daten} farbe={farbe} />
+            </NurMit>
+          )}
         </div>
         <div style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Zusammenfuehren f={f} daten={daten} zustand={zusammenfuehrung} setZustand={setZusammenfuehrung} />
@@ -981,7 +986,9 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
           <Wahrheit f={f} />
           <Beziehungen f={f} daten={daten} />
           <Hinweise f={f} daten={daten} index={index} />
-          <RechercheLeiste ziel={{ typ: 'figur', id: f.id }} />
+          <NurMit funktion="recherche">
+            <RechercheLeiste ziel={{ typ: 'figur', id: f.id }} />
+          </NurMit>
           {zusammenfuehrung?.figur !== f.id && Object.keys(daten.figuren).length > 1 && (
             <button
               type="button"

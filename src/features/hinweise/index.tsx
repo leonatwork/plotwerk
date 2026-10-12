@@ -25,6 +25,7 @@ import {
   type HinweisStatus,
 } from './logik';
 import './hinweise.css';
+import { NurMit } from '../../app/NurMit';
 
 export { HINWEIS_TYPEN, STATUS_LABEL, TYP_LABEL, hinweisStatus } from './logik';
 
@@ -123,9 +124,11 @@ export default function Ansicht() {
           <LeerZustand
             titel={th.keine}
             aktionen={
-              <Button variante="primaer" onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>
-                {th.buchPruefen}
-              </Button>
+              <NurMit funktion="kiPruefung">
+                <Button variante="primaer" onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>
+                  {th.buchPruefen}
+                </Button>
+              </NurMit>
             }
           >
             {th.leerText}
@@ -456,9 +459,11 @@ export function Titelaktionen() {
   const bereit = useStore((s) => !!s.daten);
   const t = useTexte();
   return (
-    <Button variante="primaer" disabled={!bereit} onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>
-      {t.hinweise.buchPruefen}
-    </Button>
+    <NurMit funktion="kiPruefung">
+      <Button variante="primaer" disabled={!bereit} onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>
+        {t.hinweise.buchPruefen}
+      </Button>
+    </NurMit>
   );
 }
 

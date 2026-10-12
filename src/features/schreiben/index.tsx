@@ -10,6 +10,7 @@ import { oeffneVorschau } from '../vorschau';
 import { TypewriterKnopf } from './werkzeuge';
 import { f, texte, useTexte } from '../../i18n';
 import './schreiben.css';
+import { NurMit } from '../../app/NurMit';
 
 export default function Ansicht() {
   const reihenfolge = useStore((s) => s.daten?.projekt.kapitel);
@@ -66,7 +67,9 @@ export function Titelaktionen() {
       <Button onClick={umschalteFokus} aria-pressed={fokus} title={T.fokusTitel}>
         {fokus ? T.fokusBeenden : T.fokusModus}
       </Button>
-      <TypewriterKnopf />
+      <NurMit funktion="editorWerkzeuge">
+        <TypewriterKnopf />
+      </NurMit>
       <Button title={T.vorschauTitel} onClick={() => oeffneVorschau(kapitel)}>
         {T.vorschau}
       </Button>
@@ -79,16 +82,18 @@ export function Titelaktionen() {
       >
         {T.exportieren}
       </Button>
-      <Button
-        variante="primaer"
-        disabled={!kapitel}
-        onClick={async () => {
-          await editorSichern();
-          oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel });
-        }}
-      >
-        {T.kapitelPruefen}
-      </Button>
+      <NurMit funktion="kiPruefung">
+        <Button
+          variante="primaer"
+          disabled={!kapitel}
+          onClick={async () => {
+            await editorSichern();
+            oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel });
+          }}
+        >
+          {T.kapitelPruefen}
+        </Button>
+      </NurMit>
     </>
   );
 }

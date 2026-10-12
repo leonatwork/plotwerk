@@ -23,6 +23,7 @@ import { fragen } from './fragen';
 import { recherche } from './recherche';
 import { vorschau } from './vorschau';
 import { abgabe } from './abgabe';
+import { funktionen } from './funktionen';
 
 export const de = {
   gemeinsam,
@@ -49,4 +50,5 @@ export const de = {
   recherche,
   vorschau,
   abgabe,
+  funktionen,
 };

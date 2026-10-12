@@ -5,6 +5,7 @@
 import { oeffneVorschau, schliesseVorschau, vorschauOffen } from '../features/vorschau';
 import { useStore, type Bereich } from '../state/store';
 import { BEREICHE } from './bereiche';
+import { funktionFuerBefehl, funktionSicherstellen } from './funktionen';
 
 export type Befehl =
   | Bereich
@@ -36,8 +37,13 @@ export type Befehl =
 
 export const BEFEHL_EREIGNIS = 'plotwerk:befehl';
 
-/** Führt einen Befehl aus. Vor Export, Prüfung und Versionsverlauf werden ausstehende Eingaben gesichert. */
+/**
+ * Führt einen Befehl aus. Vor Export, Prüfung und Versionsverlauf werden ausstehende Eingaben gesichert. Gehört der
+ * Befehl zu einer ausgeblendeten Funktion (E16), fragt die App zuerst, ob sie sie einblenden soll.
+ */
 export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
+  const funktion = funktionFuerBefehl(befehl);
+  if (funktion && useStore.getState().daten && !(await funktionSicherstellen(funktion))) return;
   const s = useStore.getState();
   if (BEREICHE.some((b) => b.id === befehl)) {
     if (s.daten) s.setzeBereich(befehl as Bereich);

@@ -49,6 +49,7 @@ import * as persistenz from '@core/projekt';
 import type { ProjektDateisystem } from '@core/projekt';
 import { aufbewahrungAnwenden, sollSchnappschuss, standGesichert, type SchnappschussAnlass } from '@core/versionen/index';
 import { waehleBackend, type Backend } from '../backend';
+import { mitKiSperre } from './funktionen';
 import { f, sprache, texte, useSprachStore } from '../i18n';
 import { neueId as erzeugeId } from './neueId';
 import { createHinweiseSlice, type HinweiseSlice } from './slices/hinweise';
@@ -89,6 +90,8 @@ export type DialogId =
   | 'ki-pruefen'
   | 'ki-einstellungen'
   | 'schnellsuche'
+  /** E16: Funktionsumfang anpassen (aus den Einstellungen) */
+  | 'funktionen'
   // Werkzeuge G1–G8 (Komponenten in src/features/<bereich>/, Zuordnung in src/app/dialoge.tsx)
   /** G1: KI schlägt Zeitpunkte/Zustände vor */
   | 'zeit-vorschlaege'
@@ -527,7 +530,9 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
       initialisierung ??= (async () => {
         set({ ladeStatus: 'laedt', fehler: null });
         try {
-          const backend = await waehleBackend();
+          const gewaehlt = await waehleBackend();
+          // No-AI-Modus (E17): Sperre direkt am Transport, damit keine Aufgabe sie umgehen kann
+          const backend: Backend = { ...gewaehlt, ki: mitKiSperre(gewaehlt.ki) };
           set({ backend });
           backend.beimBeenden(async () => {
             await get()

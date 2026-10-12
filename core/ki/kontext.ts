@@ -63,6 +63,12 @@ export interface KontextRealitaet {
   anker?: TextAnker;
 }
 
+/** Was neben Text, Namen und Gewissheit in den Kontext geht (E16). Fehlt = alles laut Allowlist E12. */
+export interface KontextUmfang {
+  /** Plan-Felder von Figuren und Kapitelplänen (F-05); false = weglassen */
+  plan: boolean;
+}
+
 export interface BuchKontext {
   kapitel: KontextKapitel[];
   figuren: KontextFigur[];
@@ -161,8 +167,16 @@ export function planText(s: string | undefined): string {
     .trim();
 }
 
-/** `sprache`: Buchsprache (Standard: projekt.angaben.sprache, leer = Deutsch). */
-export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprache(daten.projekt.angaben)): BuchKontext {
+/**
+ * `sprache`: Buchsprache (Standard: projekt.angaben.sprache, leer = Deutsch). `umfang.plan = false` lässt die
+ * Plan-Felder weg (Funktion „Plan-Abgleich“ ausgeblendet).
+ */
+export function baueBuchKontext(
+  daten: ProjektDaten,
+  sprache: Sprache = kiSprache(daten.projekt.angaben),
+  umfang: KontextUmfang = { plan: true },
+): BuchKontext {
+  const mitPlan = umfang.plan;
   const kapitel: KontextKapitel[] = daten.projekt.kapitel
     .map((id, i) => {
       const k = daten.kapitel[id];
@@ -172,7 +186,7 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
         titel: k?.titel ?? id,
         text: k ? klartext(k.text) : '',
         hash: textHash(k?.text ?? ''),
-        plan: { szene: planText(daten.plaene[id]?.szene), notiz: planText(daten.plaene[id]?.notiz) },
+        plan: mitPlan ? { szene: planText(daten.plaene[id]?.szene), notiz: planText(daten.plaene[id]?.notiz) } : { szene: '', notiz: '' },
       };
     });
 
@@ -184,7 +198,7 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
       rolle: f.rolle,
       existenz: f.existenz,
       formen: [...(f.formen ?? [])],
-      plan: Object.entries(f.plan ?? {})
+      plan: Object.entries(mitPlan ? (f.plan ?? {}) : {})
         .map(([feld, wert]) => ({ feld: planText(feld), wert: planText(wert) }))
         .filter((p) => p.feld && p.wert),
     }))
@@ -209,7 +223,7 @@ export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprach
     realitaet.push({ kapitel: r.anker.kapitel, stufe: r.stufe, text: '', anker: r.anker });
   }
 
-  const text = renderBuch(kapitel, figuren, orte, gruppen, realitaet, sprache);
+  const text = renderBuch(kapitel, figuren, orte, gruppen, realitaet, sprache, mitPlan);
   return { kapitel, figuren, orte, gruppen, realitaet, text, sprache };
 }
 
@@ -220,12 +234,13 @@ function renderBuch(
   gruppen: KontextGruppe[],
   realitaet: KontextRealitaet[],
   sprache: Sprache,
+  mitPlan: boolean,
 ): string {
   const B = BESCHRIFTUNG[sprache];
   const z: string[] = [];
   z.push('<angaben>');
   z.push(B.einleitung);
-  z.push(B.planHinweis);
+  if (mitPlan) z.push(B.planHinweis);
   z.push('');
   z.push(B.figuren);
   if (figuren.length === 0) z.push(B.keine);

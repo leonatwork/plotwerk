@@ -8,7 +8,9 @@
     "build": "tsc --noEmit -p . && vite build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p .",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "sperrliste": "node scripts/sperrliste.mjs --alles"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

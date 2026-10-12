@@ -10,6 +10,8 @@ import { Netz } from './Netz';
 import { NetzInspektor } from './NetzInspektor';
 import { useOffeneVorschlaege, VorschlagDialog, VorschlaegePanel } from './Vorschlaege';
 import './beziehungen.css';
+import { NurMit } from '../../app/NurMit';
+import { useFunktion } from '../../state/funktionen';
 
 export default function Ansicht() {
   const daten = useStore((s) => s.daten);
@@ -30,6 +32,7 @@ export default function Ansicht() {
   const vorschlagLaeuft = useStore((s) => s.vorschlagLaeuft);
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
   const offeneVorschlaege = useOffeneVorschlaege();
+  const mitKi = useFunktion('kiErkennung');
   const netzAuswahl = useStore((s) => s.netzAuswahl);
   const schliesseVorschlagsPanel = useStore((s) => s.schliesseVorschlagsPanel);
   const flaeche = useRef<HTMLDivElement>(null);
@@ -82,7 +85,7 @@ export default function Ansicht() {
         <LeerZustand
           titel={ta.titel}
           aktionen={
-            anzahl > 0 && mitText && offeneVorschlaege.anzahl === 0 ? (
+            mitKi && anzahl > 0 && mitText && offeneVorschlaege.anzahl === 0 ? (
               <Button variante="primaer" onClick={() => oeffneVorschlaege({ dialog: true })} disabled={vorschlagLaeuft}>
                 {ta.vorschlagen}
               </Button>
@@ -217,13 +220,11 @@ export function Titelaktionen() {
   };
   return (
     <>
-      <Button
-        disabled={!bereit || !mitText}
-        onClick={() => oeffneVorschlaege({ dialog: true })}
-        title={ta.vorschlagenTitel}
-      >
-        {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
-      </Button>
+      <NurMit funktion="kiErkennung">
+        <Button disabled={!bereit || !mitText} onClick={() => oeffneVorschlaege({ dialog: true })} title={ta.vorschlagenTitel}>
+          {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
+        </Button>
+      </NurMit>
       <Button disabled={!bereit} onClick={() => void neueGruppe()} title={ta.plusGruppeTitel}>
         {ta.plusGruppe}
       </Button>

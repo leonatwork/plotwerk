@@ -687,6 +687,24 @@ describe('Lose Enden', () => {
 });
 
 describe('F-05: Planung gegen Text', () => {
+  it('ohne Plan-Abgleich (E16) gehen keine Plan-Felder an das Modell und die Anfrage wird kleiner', async () => {
+    const mit = aufzeichnend();
+    const ohne = aufzeichnend();
+    const sMit = await schaetzeLauf(frischFs(), { umfang: 'buch' }, mit.transport, STANDARD_KI);
+    const sOhne = await schaetzeLauf(frischFs(), { umfang: 'buch', ohnePlan: true }, ohne.transport, STANDARD_KI);
+    await pruefe(frischFs(), { umfang: 'kapitel', kapitel: 'flut', ohnePlan: true }, ohne.transport, STANDARD_KI);
+    expect(sOhne.prefixTokens).toBeLessThan(sMit.prefixTokens);
+    expect(ohne.bodies.length).toBeGreaterThan(0);
+    for (const body of [...ohne.bodies, ...ohne.zaehlBodies]) {
+      // der System-Prompt erklärt <plan> weiterhin; im Buchkontext (messages) steht nichts davon
+      const kontext = JSON.stringify(body.messages);
+      expect(kontext).not.toContain('Alkohol');
+      expect(kontext).not.toContain('<plan>');
+      expect(kontext).not.toContain('Planung ·');
+    }
+    expect(JSON.stringify(mit.zaehlBodies)).toContain('Alkohol');
+  });
+
   it('Demo-KI meldet den Plan-Widerspruch bei Paul mit Plan-Bezug', async () => {
     const e = await pruefe(frischFs(), { umfang: 'buch' }, erstelleDemoKiTransport({ verzoegerungMs: 0 }), STANDARD_KI);
     const h = e.hinweise.find((x) => x.plan?.figur === 'paul');

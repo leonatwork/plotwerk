@@ -175,7 +175,7 @@ describe('Tauri-Backend', () => {
         version: 1,
         titel: 'x',
         kapitel: [],
-        ki: { ...STANDARD_KI, endpoint: 'https://flamingo.services.ai.azure.com/anthropic' },
+        ki: { ...STANDARD_KI, endpoint: 'https://beispiel.services.ai.azure.com/anthropic' },
         notiz: '',
       }),
     });
@@ -191,7 +191,7 @@ describe('Tauri-Backend', () => {
     expect(await backend.ki.bereit()).toBe(true);
     const antwort = await backend.ki.senden({ model: 'claude-sonnet-5-5', messages: [] });
     expect(antwort).toEqual({
-      echo: 'https://flamingo.services.ai.azure.com/anthropic',
+      echo: 'https://beispiel.services.ai.azure.com/anthropic',
       body: { model: 'claude-sonnet-5-5', messages: [] },
     });
     expect(await backend.ki.tokenZaehlen({ model: 'm', messages: [] })).toBe(4321);
@@ -250,7 +250,7 @@ describe('Tauri-Backend', () => {
   it('KI-Transport: Claude API aus projekt.md (Standard-Basis-URL, Modell-IDs, Fallback)', async () => {
     const ki = {
       ...STANDARD_KI,
-      endpoint: 'https://flamingo.services.ai.azure.com/anthropic',
+      endpoint: 'https://beispiel.services.ai.azure.com/anthropic',
       anbieter: 'claude' as const,
       claude: { endpoint: '', modelle: { ...STANDARD_KI.deployments } },
     };
