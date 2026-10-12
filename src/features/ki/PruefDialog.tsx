@@ -9,6 +9,7 @@ import { kiFehlerAnzeige, type KiErgebnis, type KiFehlerAnzeige } from '../../st
 import { useStore } from '../../state/store';
 import { Button, Checkbox, Dialog, Segment } from '../../ui';
 import './ki.css';
+import { useFunktion } from '../../state/funktionen';
 
 /** Ganze Zahl im Format der Oberflächensprache (Tokens, Zähler). */
 const zahl = (n: number) => zahlFormat(Math.round(n));
@@ -60,7 +61,11 @@ export function PruefDialog({ param, schliessen }: DialogKomponentenProps) {
   const titel = kapitelId ? (daten?.kapitel[kapitelId]?.titel ?? kapitelId) : '';
 
   const [umfang, setUmfang] = useState<'kapitel' | 'buch'>(p.umfang === 'buch' || !kapitelId ? 'buch' : 'kapitel');
-  const [tiefencheck, setTiefencheck] = useState(p.tiefencheck ?? false);
+  const [tiefencheckGewaehlt, setTiefencheck] = useState(p.tiefencheck ?? false);
+  // Funktionsumfang (E16): Tiefencheck nur, wenn eingeblendet; ohne Plan-Abgleich gehen keine Plan-Felder mit
+  const mitTiefencheck = useFunktion('kiTiefencheck');
+  const mitPlan = useFunktion('kiPlanAbgleich');
+  const tiefencheck = tiefencheckGewaehlt && mitTiefencheck;
   const [erzwingen, setErzwingen] = useState(false);
   const [schaetzung, setSchaetzung] = useState<{ wert?: Schaetzung; fehler?: KiFehlerAnzeige; laedt: boolean }>({ laedt: true });
 
@@ -70,8 +75,9 @@ export function PruefDialog({ param, schliessen }: DialogKomponentenProps) {
       ...(umfang === 'kapitel' && kapitelId ? { kapitel: kapitelId } : {}),
       ...(tiefencheck ? { tiefencheck: true } : {}),
       ...(erzwingen && !tiefencheck ? { erzwingen: true } : {}),
+      ...(mitPlan ? {} : { ohnePlan: true }),
     }),
-    [umfang, kapitelId, tiefencheck, erzwingen],
+    [umfang, kapitelId, tiefencheck, erzwingen, mitPlan],
   );
 
   useEffect(() => {
@@ -185,9 +191,11 @@ export function PruefDialog({ param, schliessen }: DialogKomponentenProps) {
         ]}
       />
       <div className="pw-ki-abschnitt" style={{ gap: 2 }}>
-        <Checkbox checked={tiefencheck} onChange={(e) => setTiefencheck(e.target.checked)}>
-          {T.tiefencheck}
-        </Checkbox>
+        {mitTiefencheck && (
+          <Checkbox checked={tiefencheck} onChange={(e) => setTiefencheck(e.target.checked)}>
+            {T.tiefencheck}
+          </Checkbox>
+        )}
         {!tiefencheck && ((s?.uebersprungen.length ?? 0) > 0 || erzwingen) && (
           <Checkbox checked={erzwingen} onChange={(e) => setErzwingen(e.target.checked)}>
             {T.erzwingen}

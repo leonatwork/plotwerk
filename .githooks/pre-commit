@@ -1,0 +1,3 @@
+#!/bin/sh
+# Sperrliste: keine Begriffe aus privaten Manuskripten committen (scripts/sperrliste.mjs).
+exec node scripts/sperrliste.mjs

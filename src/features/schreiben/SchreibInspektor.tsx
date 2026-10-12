@@ -15,6 +15,8 @@ import { VerweisFeld, VerweisText } from './VerweisFeld';
 import { StilTab } from './werkzeuge';
 import { verweiseAlsText } from './verweise';
 import { fokusFiguren } from './ziele';
+import { NurMit } from '../../app/NurMit';
+import { useFunktion } from '../../state/funktionen';
 
 type Tab = 'plan' | 'erkannt' | 'hinweise' | 'stil';
 let gemerkterTab: Tab = 'plan';
@@ -391,8 +393,12 @@ function PlanTab({ kapitelId }: { kapitelId: Id }) {
       <>
         <span className="pw-s-leise">{T.keinPlan}</span>
         {/* Szenen lassen sich auch ohne Plan anlegen; der Store legt den Plan beim ersten Speichern an. */}
-        <SzenenKarte kapitelId={kapitelId} />
-        <RechercheLeiste ziel={{ typ: 'kapitel', id: kapitelId }} />
+        <NurMit funktion="faeden">
+          <SzenenKarte kapitelId={kapitelId} />
+        </NurMit>
+        <NurMit funktion="recherche">
+          <RechercheLeiste ziel={{ typ: 'kapitel', id: kapitelId }} />
+        </NurMit>
       </>
     );
   const fokus = fokusFiguren(plan, daten.figuren);
@@ -425,8 +431,12 @@ function PlanTab({ kapitelId }: { kapitelId: Id }) {
         )}
         <PlanNotiz kapitelId={kapitelId} notiz={plan.notiz} />
       </Karte>
-      <SzenenKarte kapitelId={kapitelId} />
-      <RechercheLeiste ziel={{ typ: 'kapitel', id: kapitelId }} />
+      <NurMit funktion="faeden">
+        <SzenenKarte kapitelId={kapitelId} />
+      </NurMit>
+      <NurMit funktion="recherche">
+        <RechercheLeiste ziel={{ typ: 'kapitel', id: kapitelId }} />
+      </NurMit>
       <Abweichungen kapitelId={kapitelId} />
       <AbweichungFormular kapitelId={kapitelId} />
       <section className="pw-s-abschnitt">
@@ -493,7 +503,9 @@ function ErkanntTab({ kapitelId }: { kapitelId: Id }) {
         </section>
       )}
       <Suspense fallback={null}>
-        <KiVorschlaege kapitel={kapitelId} />
+        <NurMit funktion="kiErkennung">
+          <KiVorschlaege kapitel={kapitelId} />
+        </NurMit>
       </Suspense>
     </>
   );
@@ -619,7 +631,11 @@ function HinweiseTab({ kapitelId }: { kapitelId: Id }) {
 // ---------------------------------------------------------------------------
 
 export function SchreibInspektor({ kapitelId }: { kapitelId: Id }) {
-  const [tab, setTab] = useState<Tab>(gemerkterTab);
+  const [gewaehlt, setTab] = useState<Tab>(gemerkterTab);
+  const mitHinweisen = useFunktion('hinweise');
+  const mitStil = useFunktion('editorWerkzeuge');
+  // ausgeblendete Tabs (E16) fallen auf „Plan“ zurück
+  const tab: Tab = (gewaehlt === 'hinweise' && !mitHinweisen) || (gewaehlt === 'stil' && !mitStil) ? 'plan' : gewaehlt;
   const anzahl = useKapitelHinweise(kapitelId).length;
   const tabId = useId();
   const T = useTexte().schreiben.inspektor;
@@ -636,8 +652,10 @@ export function SchreibInspektor({ kapitelId }: { kapitelId: Id }) {
         optionen={[
           { wert: 'plan', label: T.tabs.plan, steuert: `${tabId}-plan` },
           { wert: 'erkannt', label: T.tabs.erkannt, steuert: `${tabId}-erkannt` },
-          { wert: 'hinweise', label: anzahl ? f(T.tabs.hinweiseAnzahl, { n: anzahl }) : T.tabs.hinweise, steuert: `${tabId}-hinweise` },
-          { wert: 'stil', label: T.tabs.stil, steuert: `${tabId}-stil` },
+          ...(mitHinweisen
+            ? [{ wert: 'hinweise' as const, label: anzahl ? f(T.tabs.hinweiseAnzahl, { n: anzahl }) : T.tabs.hinweise, steuert: `${tabId}-hinweise` }]
+            : []),
+          ...(mitStil ? [{ wert: 'stil' as const, label: T.tabs.stil, steuert: `${tabId}-stil` }] : []),
         ]}
       />
       <div id={`${tabId}-${tab}`} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

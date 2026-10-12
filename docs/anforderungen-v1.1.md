@@ -19,6 +19,12 @@ Oct 9, 2026 · @Leon Machnik · fortgeschrieben aus v1.0
 - Hinweis-Typ „Zeitleiste“ entsteht jetzt auch lokal (Zeitprüfung), „Sprache“ auch aus der Figurenstimme.
 - Tastenkürzel ergänzt (⌘8, ⌘9, ⌘0, ⌘⇧T, ⌘⇧S). Nicht-Ziele präzisiert (Abgabeformate statt Buchsatz, kein iPhone-Begleiter).
 
+**Nachtrag 13. Oktober 2026 – Funktionsumfang und Einrichtung**
+
+- Neuer Abschnitt „Funktionsumfang und Einrichtung“ mit den IDs FU-01 … FU-08: Einrichtungs-Assistent beim ersten Start,
+  Presets je Schreibertyp, eigene Presets, Funktionen ein- und ausblenden, KI-Umfang, No-AI-Modus.
+- Neue Entscheidungen E15 (dritter KI-Anbieter „OpenAI-kompatibel“), E16 (Funktionsumfang als App-Einstellung, ausgeblendet ≠ gelöscht) und E17 (No-AI-Modus).
+
 ## Ziel und Leitprinzipien
 
 Plotwerk (Arbeitstitel) ist eine lokale Mac-App, in der Leon seinen Roman schreibt, plant und auf Stimmigkeit prüfen lässt. Die KI liest dabei nur mit und verändert nie den Text.
@@ -53,7 +59,7 @@ Nutzer ist eine Person. Zum Start verwaltet die App ein Projekt; die Ordnerstruk
 
 **Datenschutz:** Nur beim Start einer Analyse gehen Daten an den gewählten KI-Anbieter (Microsoft Foundry oder Claude API), und nur, was auf der Allowlist steht (E12): Kapiteltext, Kapiteltitel, Namen und Aliase von Figuren und Orten, Existenz und Realitätsebene, Gruppennamen, Plan-Felder von Figuren und Kapitelplänen (Szene, „Was soll hier passieren?“). Nie: „Wahrheit hinter den Kulissen“, Notizen, Anmerkungen, Ideen, Abweichungen. Hosting und Region des Deployments sind egal; Leon akzeptiert die Verarbeitung in den USA. Ohne Netz funktioniert alles außer der KI-Prüfung.
 
-## Grundsatzentscheidungen (E1–E14)
+## Grundsatzentscheidungen (E1–E17)
 
 | # | Entscheidung | Grund |
 | --- | --- | --- |
@@ -71,6 +77,9 @@ Nutzer ist eine Person. Zum Start verwaltet die App ein Projekt; die Ordnerstruk
 | E12 | Allowlist für alles, was an das Modell geht (siehe Datenschutz). Plan-Felder freigegeben am 2026-10-09 (F-05). | private Felder können nicht durchrutschen |
 | E13 | Ganzes Buch als gecachter Prefix (Prompt Caching) plus Aufgaben pro Kapitel; Ergebnis-Cache pro Kapitel-Text-Hash; Token-Schätzung über `count_tokens`. | findet kapitelübergreifende Widersprüche |
 | E14 | Zwei Anbieter zur Wahl: Microsoft Foundry (Deployment-Namen) oder Claude API (Modell-IDs, serverseitiger Fallback bei Sonnet/Opus 5.5). Hosting/Region egal. Modelle Haiku/Sonnet/Opus 5.5. | Leons Vorgabe |
+| E15 | Dritter Anbieter „OpenAI-kompatibel“ (Ollama, LM Studio, OpenAI, OpenRouter, Qwen, eigene URL): Übersetzung nach Chat Completions im Transport, keine Listenpreise, optionale Kontextlänge. | lokale und andere Modelle |
+| E16 | Funktionsumfang als App-Einstellung (nie im Projektordner): Presets je Schreibertyp, eigene Presets, freie Auswahl. Ausgeblendet heißt nicht gelöscht – Daten bleiben im Projekt und im Export. Ohne Plan-Abgleich gehen keine Plan-Felder an die KI. | Einstieg für neue Nutzer, weniger Tokens |
+| E17 | No-AI-Modus: alle KI-Funktionen ausgeblendet, der KI-Transport ist gesperrt (auch `count_tokens`). | Datenschutz, Arbeiten ohne Zugang |
 
 ## Datenmodell und Projektordner
 
@@ -271,6 +280,22 @@ Seit 10. Oktober 2026. Alles, was Leon festlegt, liegt als Markdown oder JSON im
 | RC-03 | Recherche | Filter nach Art, Ziel, Schlagwort, Suche; Raster oder Liste | Soll |
 | MAC-01 | Mac | Ad-hoc-Signatur im Build; Skript für Developer-ID-Signatur und Notarisierung (`scripts/notarisieren.sh`), Anleitung `docs/mac-verteilung.md` | Soll |
 | MAC-02 | Mac | Updater-Vorlage (nicht aktiv) | Kann |
+
+## Funktionsumfang und Einrichtung (E16/E17)
+
+Seit 13. Oktober 2026. Plotwerk hat alle Funktionen an Bord, zeigt aber nur, was zum Schreibertyp passt. Die Auswahl
+gilt für die App (alle Projekte), nicht für ein Projekt. Logik: `core/funktionen`.
+
+| ID | Anforderung | Prio |
+| --- | --- | --- |
+| FU-01 | Beim ersten Start führt ein Assistent durch die Einrichtung: Schreibertyp → Funktionen → mit oder ohne KI → Fertig. Überspringen zeigt alles. Bestehende Nutzer (schon ein Projekt geöffnet) sehen ihn nicht und behalten alles. | Soll |
+| FU-02 | Schreibertypen als Presets: Anfänger („Ich schreibe meine erste Geschichte“), Mittel („ein paar Geschichten geschrieben“), Profi („viele Geschichten veröffentlicht, z. B. auf Wattpad“), Schriftsteller („verkaufe bereits Bücher“) sowie „Alles selbst einstellen“. Jede Stufe enthält die vorige. | Soll |
+| FU-03 | Die Funktionsauswahl zeigt jede Funktion mit Kurzbeschreibung, Abhängigkeiten („braucht Figuren“), KI-Kennzeichen mit Modellgröße und einem Beispiel aus dem Demo-Roman; Abhängigkeiten werden beim Ein- und Ausschalten aufgelöst. | Soll |
+| FU-04 | Die aktuelle Auswahl lässt sich unter einem Namen als eigenes Preset speichern, später wählen und löschen. | Soll |
+| FU-05 | Ausgeblendete Funktionen fehlen in Seitenleiste, Schnellsuche, Titelleisten und Inspektoren. Ruft man sie über Menü, Tastenkürzel oder Verweis auf, fragt die App, ob sie sie einblenden soll. Daten bleiben erhalten. | Soll |
+| FU-06 | Einstellungen (⌘,) → Funktionen: aktueller Umfang, „Funktionen anpassen …“ (Ausgangspunkt, Auswahl, KI) und „Einrichtung erneut starten“. | Soll |
+| FU-07 | KI-Umfang: Ausgeblendete KI-Funktionen laufen nie; ohne Plan-Abgleich enthält der Buchkontext der Prüfung keine Plan-Felder (weniger Tokens). Anzeige der KI-Nutzung als gering/mittel/hoch. | Soll |
+| FU-08 | No-AI-Modus: blendet alle KI-Funktionen aus und sperrt den Transport. Vor dem Einschalten nennt die App konkret, welche gewählten Funktionen wegfallen; lokale Hinweise (Struktur, Zeit, Schreibweisen) bleiben. | Soll |
 
 ## Erkennung und KI-Prüfung
 

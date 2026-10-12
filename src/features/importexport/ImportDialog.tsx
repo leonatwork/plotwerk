@@ -9,6 +9,7 @@ import { ImportAbgebrochen, type ImportBericht } from '../../state/slices/import
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Dialog, Radio, StatusPunkt, Textfeld } from '../../ui';
 import './importexport.css';
+import { useFunktion } from '../../state/funktionen';
 
 type Phase =
   | { art: 'start' }
@@ -81,6 +82,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const t = useTexte();
   const T = t.importexport.import;
+  const mitAbgabe = useFunktion('abgabe');
 
   const [phase, setPhase] = useState<Phase>({ art: 'start' });
   const [ziel, setZiel] = useState<'aktuell' | 'neu'>(daten ? 'aktuell' : 'neu');
@@ -142,7 +144,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
     inhalt = (
       <>
         <p className="pw-ie-text">{T.erklaerung}</p>
-        {daten && phase.art !== 'liest' && (
+        {daten && mitAbgabe && phase.art !== 'liest' && (
           <p className="pw-ie-text" style={{ fontSize: 12 }}>
             {T.lektoratFrage}{' '}
             <Button variante="text" klein onClick={() => oeffneDialog('rueckimport')} style={{ height: 'auto', padding: 0 }}>

@@ -22,6 +22,21 @@ Abnahmestand `docs/abnahme.md` · Release `docs/release.md` · Mac-Verteilung `d
 - **Mehrdeutigkeit ist ein Stilmittel.** Für Figuren und Textstellen legst du die **Gewissheit** fest: „gesichert“,
   „noch offen“ oder „bewusst vage“. Bewusst Vages wird nie als Widerspruch gemeldet.
 
+## Einrichtung und Funktionsumfang
+
+Beim ersten Start fragt ein Assistent, was für ein Schreiber du bist – Anfänger, Mittel, Profi oder Schriftsteller –
+und blendet passend dazu Funktionen ein. Jede Funktion hat eine kurze Erklärung und ein Beispiel aus „Hafenlichter“;
+du kannst einzelne Funktionen dazu- oder abwählen, die Auswahl als eigenes Preset speichern und festlegen, ob du mit
+oder ohne KI arbeitest. „Überspringen“ zeigt alles.
+
+- **Ausgeblendet heißt nicht gelöscht.** Die Daten bleiben im Projekt. Rufst du eine ausgeblendete Funktion über
+  Menü oder Tastenkürzel auf, fragt Plotwerk, ob sie eingeblendet werden soll.
+- **Einstellungen (⌘,) → Funktionen**: Umfang anpassen, Preset wechseln, Einrichtung erneut starten.
+- **KI-Umfang**: Ausgeblendete KI-Funktionen laufen nie. Ohne „Plan-Abgleich“ gehen keine Plan-Felder an die KI,
+  jede Prüfung wird kleiner.
+- **No-AI-Modus**: Alle KI-Funktionen sind aus, kein Text verlässt den Mac. Vorher zeigt Plotwerk, welche Funktionen
+  wegfallen; Hinweise ohne KI (Struktur, Zeit, Schreibweisen) bleiben.
+
 ## Funktionen nach Bereichen
 
 Bereiche stehen in der Seitenleiste; die Werkzeuge in der einklappbaren Gruppe „Werkzeuge“ (eingeklappt bleibt das

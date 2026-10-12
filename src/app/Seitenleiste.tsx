@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { f, useTexte } from '../i18n';
+import { useFunktionsStore } from '../state/funktionen';
 import { useStore } from '../state/store';
 import { klassen, Zaehler } from '../ui';
 import { BEREICHE, type BereichDefinition, type BereichModul } from './bereiche';
 import { Fehlergrenze } from './Fehlergrenze';
+import { BEREICH_FUNKTION } from './funktionen';
 
 const WERKZEUGE_OFFEN = 'plotwerk:seitenleiste:werkzeuge';
 
@@ -31,6 +33,7 @@ export function Seitenleiste({ modul }: { modul: BereichModul | null }) {
     const entschieden = new Set(s.daten?.entscheidungen.hinweise.map((e) => e.schluessel));
     return s.index.hinweise.filter((h) => h.status === 'neu' && !entschieden.has(h.schluessel)).length;
   });
+  const aktiv = useFunktionsStore((s) => s.aktiv);
   const [werkzeugeOffen, setWerkzeugeOffen] = useState(gemerktOffen);
   const t = useTexte();
   const Inhalt = modul?.Seitenleiste;
@@ -51,7 +54,9 @@ export function Seitenleiste({ modul }: { modul: BereichModul | null }) {
       </button>
     );
   };
-  const werkzeuge = BEREICHE.filter((b) => b.gruppe === 'werkzeuge');
+  // ausgeblendete Funktionen (E16) erscheinen nicht
+  const sichtbare = BEREICHE.filter((b) => aktiv.has(BEREICH_FUNKTION[b.id]));
+  const werkzeuge = sichtbare.filter((b) => b.gruppe === 'werkzeuge');
   // eingeklappt: nur das gerade aktive Werkzeug bleibt sichtbar
   const sichtbar = werkzeugeOffen ? werkzeuge : werkzeuge.filter((b) => b.id === bereich);
   const umschalten = () => {
@@ -61,7 +66,7 @@ export function Seitenleiste({ modul }: { modul: BereichModul | null }) {
   return (
     <aside className="pw-seitenleiste" aria-label={t.app.seitenleiste.label}>
       <nav aria-label={t.app.seitenleiste.bereiche} className="pw-nav">
-        {BEREICHE.filter((b) => !b.gruppe).map(eintrag)}
+        {sichtbare.filter((b) => !b.gruppe).map(eintrag)}
         {werkzeuge.length > 0 && (
           <>
             <button

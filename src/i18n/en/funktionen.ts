@@ -1,0 +1,215 @@
+import type { Form } from '@core/i18n';
+import type { funktionen as de } from '../de/funktionen';
+
+export const funktionen: Form<typeof de> = {
+  gruppen: {
+    schreiben: 'Writing',
+    planen: 'Planning',
+    figuren: 'Characters & world',
+    pruefen: 'Checks & AI',
+  },
+  liste: {
+    editor: {
+      name: 'Writing & chapters',
+      kurz: 'Editor with smart typography, chapter list, autosave, version history, preview, import and export.',
+      beispiel: '“Harbour Lights” has ten chapters from “Floor Plan” to “Radio Silence”. Every keystroke is on disk within two seconds.',
+    },
+    editorWerkzeuge: {
+      name: 'Writing tools',
+      kurz: 'Typewriter mode, repetitions, read aloud, style analysis and brand names.',
+      beispiel: 'The brand list finds “Saab”, “Volvo” and “Aperol” and notices that “Carl Hansen” also appears as “Karl Hansen”.',
+    },
+    statistik: {
+      name: 'Statistics & daily goal',
+      kurz: 'Words per day, streak, progress towards your target length and a daily-goal ring in the status bar.',
+      beispiel: 'The demo book has a daily goal of 500 words; the ring shows how far you have got today.',
+    },
+    fassungen: {
+      name: 'Drafts & comparison',
+      kurz: 'Save named versions of the book and compare two of them side by side.',
+      beispiel: 'Save “First draft” before you rework Act II and compare both versions side by side later.',
+    },
+    abgabe: {
+      name: 'Submission & editing',
+      kurz: 'Standard manuscript, synopsis template, EPUB, editor’s pack and changes imported back from Word.',
+      beispiel: 'The editor’s three changes come back from Word; you accept or reject each one.',
+    },
+    kapitelUeberblick: {
+      name: 'Chapter overview',
+      kurz: 'Summary, scenes, loose ends and “What has happened so far” for each chapter.',
+      beispiel: 'For “Low Tide” you see the three scenes – fish restaurant, quay, at home – and what has happened up to that point.',
+    },
+    akte: {
+      name: 'Acts & chapter planning',
+      kurz: 'Act board with an ideas tray and a storyline grid.',
+      beispiel: 'Act III: someone knows Paul’s movements better than he does. The grid shows which chapters lack “The Postcards”.',
+    },
+    faeden: {
+      name: 'Threads & scenes',
+      kurz: 'Open threads with planned resolutions, and scenes within chapters.',
+      beispiel: '“The Stranger and the postcards” should resolve in “Radio Silence”; the brass key speaks up when it rests too long.',
+    },
+    zeitleiste: {
+      name: 'Timeline',
+      kurz: 'Chapters and scenes on a day axis, character states and a time check without AI.',
+      beispiel: '“Radio Silence” is Thursday, day 9 – the timeline says that would be a Tuesday. Plotwerk reports the conflict.',
+    },
+    recherche: {
+      name: 'Research',
+      kurz: 'Images, links and notes, attached to characters, places, chapters and scenes.',
+      beispiel: 'The sketch of the Lindenhof is attached to the place and also shows up in the chapter “Lotte”.',
+    },
+    figuren: {
+      name: 'Characters',
+      kurz: 'Character cards with evidence from the text, your plan and private notes.',
+      beispiel: 'Paul’s card separates “From the text” (with evidence) from “Your plan”, such as “Job: architect”.',
+    },
+    boegen: {
+      name: 'Character arcs',
+      kurz: 'A character’s development in stages across chapters or acts.',
+      beispiel: 'Paul’s arc has three stages, each with a verbatim quote from the text.',
+    },
+    beziehungen: {
+      name: 'Relationships & groups',
+      kurz: 'Relationship map with groups and a time slider that only shows what readers know by then.',
+      beispiel: 'With the slider on Act I, Vera and the Stranger are not on the map yet.',
+    },
+    orte: {
+      name: 'Places',
+      kurz: 'Places with chapters, evidence, sub-places and spellings.',
+      beispiel: '“Lindenhof”, “Linden Hof” and “Linden-Hof”: Plotwerk finds the three spellings and merges them.',
+    },
+    hinweise: {
+      name: 'Findings',
+      kurz: 'All findings in one place, with filters and decisions; structure and time findings need no AI.',
+      beispiel: '“High Tide” ends mid-sentence – a structure finding without any AI. Decided findings do not come back.',
+    },
+    kiPruefung: {
+      name: 'AI check',
+      kurz: 'The AI reads a chapter or the book and reports contradictions, open threads and unknown names – always with a verbatim quote.',
+      beispiel: 'In “Lotte” Paul arrives late in his Saab, in “High Tide” he gets out of a stranger’s Volvo and is early – the AI shows both passages.',
+    },
+    kiPlanAbgleich: {
+      name: 'Plan comparison',
+      kurz: 'The AI compares the text with your plan. Without this feature no plan fields are sent to the AI.',
+      beispiel: 'Paul’s plan says “Alcohol: no, doesn’t drink”, in “High Tide” he orders an Aperol Spritz.',
+    },
+    kiTiefencheck: {
+      name: 'Deep check',
+      kurz: 'A more thorough check with the largest model – much more expensive, useful before submission.',
+      beispiel: 'Have the whole of “Harbour Lights” checked thoroughly once before you submit it.',
+    },
+    kiErkennung: {
+      name: 'AI recognition',
+      kurz: 'The AI suggests characters, places, relationships and mentions; only what you confirm is created.',
+      beispiel: '“Fiete” turns up in “Radio Silence” and no character knows him yet. The AI suggests adding him.',
+    },
+    kiZeit: {
+      name: 'Suggest times',
+      kurz: 'The AI suggests points in time and states with evidence for the timeline.',
+      beispiel: 'From “Around eleven” in “Low Tide” the AI suggests 11 pm; only what you confirm is taken over.',
+    },
+    kiStimme: {
+      name: 'Character voice',
+      kurz: 'The AI shows passages where a character sounds different from usual.',
+      beispiel: 'For each unusual passage of Lotte the AI shows a typical one for comparison – both verbatim.',
+    },
+    kiLeser: {
+      name: 'AI reader',
+      kurz: 'Questions to the book with evidence, and a reader simulation up to a chapter.',
+      beispiel: '“Where do I mention Paul’s pencils?” – the answer only names passages that are really in the book.',
+    },
+  },
+  presets: {
+    einsteiger: { name: 'Beginner', frage: 'I am writing my first story.' },
+    fortgeschritten: { name: 'Intermediate', frage: 'I have written a few stories.' },
+    profi: { name: 'Pro', frage: 'I have published many stories, e.g. on Wattpad.' },
+    autor: { name: 'Author', frage: 'I already sell books.' },
+  },
+  eigen: 'Custom selection',
+  eigenAngepasst: '{name} (adjusted)',
+  kiStufe: {
+    aus: 'AI off',
+    keine: 'no AI features',
+    gering: 'AI usage: low',
+    mittel: 'AI usage: medium',
+    hoch: 'AI usage: high',
+  },
+  modell: {
+    erkennung: 'small model',
+    pruefung: 'medium model',
+    tiefencheck: 'large model',
+  },
+  kiMarke: 'AI · {modell}',
+  zaehler: '{an} of {gesamt} features visible',
+  pflicht: 'always on',
+  braucht: 'needs {liste}',
+  beispielZeigen: 'Example',
+  beispielTitel: 'Example from “Harbour Lights”',
+  ausgeblendetHinweis:
+    'Hidden features are not deleted: their data stays in the project, and you can show them again at any time in Settings.',
+  tokenHinweis:
+    'AI features only run when you start them and show the estimated cost first. Hidden AI features never run; without plan comparison every check gets smaller.',
+  presetSpeichern: {
+    label: 'Save as your own preset',
+    platzhalter: 'Name, e.g. “Crime novel”',
+    knopf: 'Save',
+    gespeichert: 'Preset “{name}” saved.',
+    eigene: 'Your presets',
+    loeschen: 'Delete preset “{name}”',
+  },
+  kiAus: {
+    schalter: 'Work without AI (no-AI mode)',
+    kurz: 'No text leaves your Mac. All AI features are hidden.',
+    warnungTitel: 'Work without AI?',
+    warnung: {
+      one: 'This feature will not be available: {liste}. Findings without AI (structure, time, spellings) stay. You can switch the AI back on at any time.',
+      other:
+        'These {n} features will not be available: {liste}. Findings without AI (structure, time, spellings) stay. You can switch the AI back on at any time.',
+    },
+    warnungLeer: 'No AI feature is switched on right now. No-AI mode keeps it that way until you turn it off.',
+    bestaetigen: 'Work without AI',
+    gesperrt: 'The AI is switched off (no-AI mode). Turn it on under Settings → Features.',
+    aktiv: 'No-AI mode: no data is sent to an AI.',
+  },
+  assistent: {
+    titel: 'Welcome to Plotwerk',
+    schritt: 'Step {nr} of {gesamt}',
+    schritte: { typ: 'Writer type', funktionen: 'Features', ki: 'AI', fertig: 'Done' },
+    typFrage: 'What kind of writer are you?',
+    typText: 'We set up what you see accordingly. All features are still there – you can show more at any time.',
+    eigenText: 'Set up everything myself',
+    eigenKurz: 'Start with all features and deselect what you do not need.',
+    eigenePresets: 'Your presets',
+    funktionenFrage: 'This is what you get',
+    funktionenText: 'Preselected for your writer type. Click “Example” to see what the feature looks like in the demo novel.',
+    kiFrage: 'Would you like to work with AI?',
+    kiText:
+      'If you want, the AI reads along and reports observations with a verbatim quote. It never writes text for your book. You need your own access (Claude API or Microsoft Foundry), which you can add later in Settings.',
+    mitKi: 'With AI',
+    mitKiKurz: 'The selected AI features are visible and run when you start them.',
+    ohneKi: 'Without AI',
+    fertigTitel: 'All set',
+    fertigText: 'You can change this at any time under Settings (⌘,) → Features, or run the assistant again.',
+    zusammenfassung: '{typ} · {zaehler} · {ki}',
+    weiter: 'Next',
+    zurueck: 'Back',
+    ueberspringen: 'Skip – show everything',
+    los: 'Let’s go',
+  },
+  einstellungen: {
+    abschnitt: 'Features',
+    aktuell: 'Current: {zusammenfassung}',
+    anpassen: 'Adjust features …',
+    assistent: 'Run setup again',
+    dialogTitel: 'Features',
+    presetLabel: 'Starting point',
+    fertig: 'Done',
+  },
+  ausgeblendet: {
+    titel: '“{name}” is hidden',
+    text: 'This feature is not visible in your current selection. Show it now?',
+    textKi: 'This feature needs the AI, and no-AI mode is on. Switch the AI back on and show the feature?',
+    einblenden: 'Show',
+  },
+};

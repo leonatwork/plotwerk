@@ -224,7 +224,7 @@ describe('Dialoge und Vorschläge (UI)', () => {
     expect(screen.getByRole('button', { name: 'Sichern' })).toBeDisabled();
 
     // Foundry-Endpoint eintragen, dann zur Claude API wechseln
-    fireEvent.change(screen.getByLabelText('Endpoint'), { target: { value: 'https://flamingo.services.ai.azure.com/anthropic' } });
+    fireEvent.change(screen.getByLabelText('Endpoint'), { target: { value: 'https://beispiel.services.ai.azure.com/anthropic' } });
     fireEvent.click(claude);
     expect(claude).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByLabelText('Endpoint')).toBeNull();
@@ -248,7 +248,7 @@ describe('Dialoge und Vorschläge (UI)', () => {
 
     // zurück zu Foundry: Endpoint ist noch da, Status zeigt den Foundry-Schlüssel
     fireEvent.click(foundry);
-    expect(screen.getByLabelText('Endpoint')).toHaveValue('https://flamingo.services.ai.azure.com/anthropic');
+    expect(screen.getByLabelText('Endpoint')).toHaveValue('https://beispiel.services.ai.azure.com/anthropic');
     expect(await screen.findByText('Kein Schlüssel hinterlegt')).toBeInTheDocument();
     // und wieder zur Claude API: die Änderungen sind noch da
     fireEvent.click(claude);
@@ -259,7 +259,7 @@ describe('Dialoge und Vorschläge (UI)', () => {
     await waitFor(() => expect(schliessen).toHaveBeenCalled());
     const ki = useStore.getState().daten!.projekt.ki!;
     expect(ki).toEqual({
-      endpoint: 'https://flamingo.services.ai.azure.com/anthropic',
+      endpoint: 'https://beispiel.services.ai.azure.com/anthropic',
       deployments: { erkennung: 'claude-haiku-5-5', pruefung: 'claude-sonnet-5-5', tiefencheck: 'claude-opus-5-5' },
       anbieter: 'claude',
       claude: {

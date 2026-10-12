@@ -603,7 +603,7 @@ mod tests {
 
     #[test]
     fn basis_url_normalisiert() {
-        let b = "https://flamingo.services.ai.azure.com/anthropic";
+        let b = "https://beispiel.services.ai.azure.com/anthropic";
         assert_eq!(basis_url(F, b).unwrap(), b);
         assert_eq!(basis_url(F, &format!(" {b}/ ")).unwrap(), b);
         assert_eq!(basis_url(F, &format!("{b}/v1/messages")).unwrap(), b);
@@ -630,14 +630,14 @@ mod tests {
 
     #[test]
     fn urls_je_anbieter() {
-        let foundry = "https://flamingo.services.ai.azure.com/anthropic";
+        let foundry = "https://beispiel.services.ai.azure.com/anthropic";
         assert_eq!(
             nachrichten_url(F, foundry).unwrap(),
-            "https://flamingo.services.ai.azure.com/anthropic/v1/messages"
+            "https://beispiel.services.ai.azure.com/anthropic/v1/messages"
         );
         assert_eq!(
             tokens_url(F, &format!("{foundry}/")).unwrap(),
-            "https://flamingo.services.ai.azure.com/anthropic/v1/messages/count_tokens"
+            "https://beispiel.services.ai.azure.com/anthropic/v1/messages/count_tokens"
         );
         // Claude API: leer = Standard-Basis-URL, eigene Basis-URL überschreibt
         assert_eq!(

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Sperrliste: Branch-Namen und alle neuen Commits vor dem Push prüfen (scripts/sperrliste.mjs).
+exec node scripts/sperrliste.mjs --push

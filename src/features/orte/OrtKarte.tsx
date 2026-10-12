@@ -9,6 +9,7 @@ import { Abschnitt, alleTexte, AngehefteteNotizen, ausschnitt, EntwurfBereich, E
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { kapitelDesOrts, nachfahren, ortVarianten, variantenAusHinweis, zielFuerVarianten } from './logik';
 import { f, useTexte, vergleich } from '../../i18n';
+import { NurMit } from '../../app/NurMit';
 
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '8px 12px', alignItems: 'center', fontSize: 13 };
@@ -451,7 +452,9 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
               onSpeichern={(notizen) => void p.ortAendern(o.id, { notizen })}
             />
           </Abschnitt>
-          <RechercheLeiste ziel={{ typ: 'ort', id: o.id }} />
+          <NurMit funktion="recherche">
+            <RechercheLeiste ziel={{ typ: 'ort', id: o.id }} />
+          </NurMit>
           <button
             type="button"
             className="pl-link"
