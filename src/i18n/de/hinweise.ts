@@ -9,6 +9,7 @@ export const hinweise = {
     struktur: 'Struktur',
     zeitleiste: 'Zeitleiste',
     sprache: 'Sprache',
+    figuren: 'Figuren',
   },
   /** Kurzbeschreibung je Typ (Gruppenkopf) */
   typBeschreibung: {
@@ -19,6 +20,7 @@ export const hinweise = {
     struktur: 'leere Kapitel, Satzabbrüche, leere Überschriften',
     zeitleiste: 'Zeitpunkte, die nicht zusammenpassen, und zeitliche Verankerung',
     sprache: 'Sprache und Figurenstimme – nur markiert, nie korrigiert',
+    figuren: 'Spitznamen vor dem Namen, verwechselbare Namen, ruhende Figuren',
   },
   /** Status (neu / Entscheidung) */
   status: { neu: 'Neu', absicht: 'Ist Absicht', erledigt: 'Erledigt' },

@@ -3,6 +3,7 @@
  * Gedacht für den Tab „Erkannt“ im Editor. Bestätigen/Verwerfen → entscheidungen.zuordnungen.
  */
 import { useState } from 'react';
+import { spitznameAusText } from '@core/figuren/namen';
 import type { ErwaehnungsVorschlag } from '@core/ki/index';
 import type { Id, Verweis } from '@core/model/types';
 import { f, texte, useTexte } from '../../i18n';
@@ -26,6 +27,7 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
   const holen = useStore((s) => s.kiVorschlaegeHolen);
   const entscheiden = useStore((s) => s.kiVorschlagEntscheiden);
   const anlegen = useStore((s) => s.kiVorschlagAnlegen);
+  const spitznameHinzufuegen = useStore((s) => s.planung.spitznameHinzufuegen);
   const markiere = useStore((s) => s.markiere);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const oeffne = useStore((s) => s.oeffne);
@@ -44,7 +46,7 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
     return z.id;
   }
 
-  async function aktion(v: ErwaehnungsVorschlag, was: 'bestaetigt' | 'verworfen' | 'anlegen') {
+  async function aktion(v: ErwaehnungsVorschlag, was: 'bestaetigt' | 'verworfen' | 'anlegen' | 'spitzname') {
     setArbeitet(schluessel(v));
     setFehler(null);
     setMeldung(null);
@@ -55,7 +57,13 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
         const name = zielName(ziel, { figuren: aktuell?.figuren, orte: aktuell?.orte });
         const vorlagen = texte().ki.vorschlaege;
         setMeldung({ text: f(ziel.typ === 'ort' ? vorlagen.ortAngelegt : vorlagen.figurAngelegt, { name }), ziel });
-      } else {
+      } else if (was === 'spitzname' && v.ziel?.typ === 'figur') {
+        // F-10: diese Stelle bestätigen und den Wortlaut künftig immer erkennen
+        const name = spitznameAusText(v.text);
+        await spitznameHinzufuegen(v.ziel.id, name);
+        await entscheiden(v, 'bestaetigt');
+        setMeldung({ text: f(texte().ki.vorschlaege.spitznameGemerkt, { name, figur: zielName(v.ziel) }), ziel: v.ziel });
+      } else if (was !== 'spitzname') {
         await entscheiden(v, was);
       }
     } catch (e) {
@@ -140,9 +148,22 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
                 {v.begruendung && <p className="pw-ki-klein">{v.begruendung}</p>}
                 <div className="pw-ki-vorschlag__knoepfe">
                   {v.ziel ? (
-                    <Button klein onClick={() => void aktion(v, 'bestaetigt')} disabled={beschaeftigt}>
-                      {T.bestaetigen}
-                    </Button>
+                    <>
+                      <Button klein onClick={() => void aktion(v, 'bestaetigt')} disabled={beschaeftigt}>
+                        {T.bestaetigen}
+                      </Button>
+                      {v.ziel.typ === 'figur' && (
+                        <Button
+                          klein
+                          variante="leise"
+                          onClick={() => void aktion(v, 'spitzname')}
+                          disabled={beschaeftigt}
+                          title={f(T.spitznameTitel, { name: spitznameAusText(v.text), figur: zielName(v.ziel) })}
+                        >
+                          {T.spitzname}
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <Button klein onClick={() => void aktion(v, 'anlegen')} disabled={beschaeftigt}>
                       {v.zielTyp === 'ort' ? T.ortAnlegen : T.figurAnlegen}

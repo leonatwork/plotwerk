@@ -85,6 +85,26 @@
   white-space: nowrap;
   pointer-events: none;
 }
+.pw-bz-gruppe__aussen {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow: hidden;
+  max-height: 22px;
+}
+.pw-bz-gruppe__aussen button {
+  height: 20px;
+  padding: 0 8px;
+  border: 1px dashed currentColor;
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
 .pw-bz-gruppe__groesse {
   position: absolute;
   right: -1px;

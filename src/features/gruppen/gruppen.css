@@ -109,6 +109,36 @@ button.pw-gr-karte {
   flex-wrap: wrap;
   gap: 6px;
 }
+.pw-gr-mitglieder {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pw-gr-mitgliedzeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pw-gr-mitgliedzeile .pw-gr-mitglied {
+  flex: 0 0 auto;
+}
+.pw-gr-rolle {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+.pw-gr-rolle:hover,
+.pw-gr-rolle:focus {
+  border-color: var(--line);
+  background: var(--surface);
+}
 .pw-gr-mitglied {
   display: inline-flex;
   align-items: center;

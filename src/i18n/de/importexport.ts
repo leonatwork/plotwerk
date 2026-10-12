@@ -30,7 +30,7 @@ export const importexport = {
     dateiname: 'Dateiname',
     nichtExportiert: 'Anmerkungen, Markierungen und Planungsnotizen werden nicht exportiert.',
     abgabeVor: 'Für Verlag, Agentur oder Lektorat:',
-    abgabeLink: 'Normseite, Exposé, EPUB oder Lektoratsmappe …',
+    abgabeLink: 'Normseite, Exposé, EPUB, Lektoratsmappe oder Personen …',
     schriftFehler: 'Schrift für den PDF-Export nicht ladbar ({status})',
   },
   import: {

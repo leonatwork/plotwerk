@@ -72,6 +72,17 @@ Legende Nachweis: Testdatei (automatisch) · „Browser“ = im Browser-Demo bed
 | F-04 | Notizen, Auftritte als Kapitelstreifen, Beziehungen | erfüllt | Browser | |
 | F-05 | Hinweis, wenn ein Plan-Feld dem Text widerspricht (Soll) | erfüllt | `core/ki/ki.test.ts` (F-05), `Figurenkarte.tsx` (`hinweiseFuerFigur`) | Plan-Felder von Figuren und Kapitelplänen gehen an das Modell (Leon, 2026-10-09). Hinweise mit Plan-Bezug (Figur/Kapitel, Feld) werden geprüft; bei bewusst vagen Figuren verworfen. Demo: Paul „Alkohol: nein, trinkt keinen“ ↔ Aperol Spritz in Kap. 9. Live nur mit Demo-KI belegt. |
 | F-06 | Figur vorab anlegen | erfüllt | `planung.test.ts` | |
+| F-07 | Figuren zusammenführen | erfüllt | `core/figuren/zusammenfuehren.test.ts`, `gruppenFiguren.test.ts`, Browser | |
+| F-08 | Spitznamen-Feld | erfüllt | `core/ki/vorschlaege.test.ts`, Browser | Feld gab es als „Auch genannt“; neu beschriftet, KI-Vorschläge gleichen Aliase ab. |
+| F-09 | Blase „Figur“ (neue Figur / Spitzname) | erfüllt | `Editor.test.tsx`, Browser | |
+| F-10 | KI-Vorschläge als Spitznamen | erfüllt | `core/ki/vorschlaege.test.ts`, `ki.test.tsx`, `gruppenFiguren.test.ts` | Mit Demo-KI belegt. |
+| F-11 | Spitzname vor dem Namen | erfüllt | `core/figuren/hinweise.test.ts` | |
+| F-12 | Verwechselbare Namen | erfüllt | `core/figuren/hinweise.test.ts` | |
+| F-13 | Ruhende Figuren | erfüllt | `core/figuren/hinweise.test.ts`, Browser | |
+| F-14 | Statisten | erfüllt | `gruppenFiguren.test.ts`, `core/figuren/hinweise.test.ts`, Browser | |
+| F-15 | Besetzungsübersicht | erfüllt | `core/figuren/hinweise.test.ts`, Browser | |
+| F-16 | Spitznamen mit Kontext | erfüllt | `Figurenkarte.test.tsx`, `core/figuren/hinweise.test.ts`, Browser | |
+| F-17 | Figurenfakten | erfüllt | `core/ki/fakten.test.ts`, `core/figuren/fakten.test.ts`, `gruppenFiguren.test.ts`, `Figurenkarte.test.tsx`, Browser | Mit Demo-KI belegt; Live-Test mit echtem Modell steht aus. |
 | O-01 | Ortsliste mit Kapiteln, Text-Belegen, Notizen, Unterorten | erfüllt | `ansichten.test.tsx`; Browser | |
 | O-02 | Schreibweisen zusammenführen, gültige festlegen | erfüllt | `planung.test.ts`, `hinweise.test.tsx` | |
 | O-03 | Weg einer Figur (Soll) | erfüllt | `core/index/index.test.ts`, `ansichten.test.tsx` | |
@@ -82,6 +93,9 @@ Legende Nachweis: Testdatei (automatisch) · „Browser“ = im Browser-Demo bed
 | A-01 | Zwei Antagonisten-Gruppen (Demo: Nordhaven und Konsortium) | erfüllt | `src/features/gruppen/gruppen.test.tsx` | |
 | A-02 | Mitglieder, Präsenz, Spuren als Vorschlag | erfüllt | `gruppen.test.tsx` | |
 | A-03 | Antagonisten als Stränge in Board und Überblick | erfüllt | Browser | |
+| A-04 | Gruppen in der App anlegen und löschen | erfüllt | `gruppenFiguren.test.ts`, Browser | |
+| A-05 | Mehrere Gruppen pro Figur | erfüllt | `gruppen.test.tsx`, `gruppenFiguren.test.ts`, Browser | |
+| A-06 | Rollen in Gruppen | erfüllt | `gruppen.test.tsx`, `gruppenFiguren.test.ts` | |
 
 ## Erkennung, KI-Prüfung, Hinweis-Typen
 
@@ -164,6 +178,7 @@ Browser-Durchlauf mit dem Demo-Projekt bei 1440 × 900 und 1100 × 700, hell und
 | AB-03 | EPUB 3 | erfüllt | `core/epub/epub.test.ts` | Satz gemeinsam mit der Vorschau (`core/satz`). Nicht mit epubcheck geprüft. |
 | AB-04 | Lektoratsmappe | erfüllt | `abgabe.test.ts` | |
 | AB-05 | Rückimport aus Word | erfüllt | `core/docx/rueckimport.test.ts`, `abgabe.test.tsx`; Browser | Offene Änderungen im Editor gepunktet unterstrichen. |
+| AB-06 | Personenverzeichnis | erfüllt | `core/abgabe/personen.test.ts`, `gruppenFiguren.test.ts`, Browser | |
 | RC-01 | Recherche ablegen | erfüllt | `core/recherche/recherche.test.ts`, `src/features/recherche/recherche.test.tsx`, `src-tauri/src/recherche.rs`; Browser | AK-4 erlaubt Mediendateien unter `recherche/dateien/`. |
 | RC-02 | Heften und Recherche-Leiste | erfüllt | `recherche.test.tsx`; Browser | Figurenkarte, Ortskarte, Kapitel-Überblick, Schreiben-Inspektor, Szenen-Formular. |
 | RC-03 | Filter, Raster/Liste | erfüllt | `recherche.test.tsx`; Browser | |

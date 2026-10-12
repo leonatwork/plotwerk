@@ -458,11 +458,11 @@ export function schaetzeZeitpunkte(
 
 function figurZeile(f: KontextFigur, sprache?: Sprache): string {
   if (sprache === 'en') {
-    const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'main character' : 'minor character'];
+    const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'main character' : f.rolle === 'statist' ? 'walk-on character' : 'minor character'];
     if (f.aliase.length) teile.push(`also called: ${f.aliase.join(', ')}`);
     return teile.join(' · ');
   }
-  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'Hauptfigur' : 'Nebenfigur'];
+  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'Hauptfigur' : f.rolle === 'statist' ? 'Statist' : 'Nebenfigur'];
   if (f.aliase.length) teile.push(`auch genannt: ${f.aliase.join(', ')}`);
   return teile.join(' · ');
 }

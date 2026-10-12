@@ -54,13 +54,21 @@ describe('Antagonisten (A-01, A-02)', () => {
     expect(spur).toMatchObject({ id: 'nummer-unterdrueckt', status: 'bestaetigt', anker: { exakt: 'Nummer unterdrückt' } });
   });
 
-  it('Mitglieder: Hinzufügen setzt figur.gruppe und entfernt aus der alten Gruppe', async () => {
+  it('Mitglieder (A-05): mehrere Gruppen; Hauptgruppe bleibt, rückt beim Entfernen nach; Rollen (A-06)', async () => {
     await s().mitgliedHinzufuegen('konsortium', 'herr-kessler');
     expect(s().daten!.gruppen.konsortium!.mitglieder).toEqual(['herr-kessler']);
-    expect(s().daten!.gruppen.nordhaven!.mitglieder).toEqual([]);
+    // bleibt in Nordhaven, Nordhaven bleibt Hauptgruppe
+    expect(s().daten!.gruppen.nordhaven!.mitglieder).toContain('herr-kessler');
+    expect(s().daten!.figuren['herr-kessler']!.gruppe).toBe('nordhaven');
+    await s().gruppenRolleSetzen('konsortium', 'herr-kessler', 'Strohmann');
+    expect(s().daten!.gruppen.konsortium!.rollen).toEqual({ 'herr-kessler': 'Strohmann' });
+    // Hauptgruppe verlassen: Konsortium rückt nach
+    await s().mitgliedEntfernen('nordhaven', 'herr-kessler');
     expect(s().daten!.figuren['herr-kessler']!.gruppe).toBe('konsortium');
+    // letzte Gruppe verlassen: keine Hauptgruppe, Rolle weg
     await s().mitgliedEntfernen('konsortium', 'herr-kessler');
     expect(s().daten!.figuren['herr-kessler']!.gruppe).toBeNull();
+    expect(s().daten!.gruppen.konsortium!.rollen).toBeUndefined();
   });
 
   it('Inspektor: Vorschlag verwerfen, Karte zeigt Mitglieder', async () => {

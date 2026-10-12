@@ -191,7 +191,18 @@ export interface Beziehung {
   unsicher?: boolean;
 }
 
-export type FigurRolle = 'haupt' | 'neben';
+export type FigurRolle = 'haupt' | 'neben' | 'statist';
+
+/** F-16: Kontext zu einem Spitznamen (der Name selbst steht in `Figur.aliase`, das die Erkennung speist). */
+export interface SpitznameKontext {
+  /** wie in `aliase` */
+  name: string;
+  /** Figuren, die die Figur so nennen */
+  von?: Id[];
+  /** gilt ab diesem Kapitel (früher im Text → Hinweis) */
+  abKapitel?: Id;
+  notiz?: string;
+}
 
 /** figuren/<id>.md – Body-Abschnitte „## Wahrheit hinter den Kulissen“ und „## Notizen“ (beide privat) */
 export interface Figur {
@@ -204,6 +215,7 @@ export interface Figur {
   /** Kurzbeschreibung für Listen und Netzkarten, z. B. „Jugendfreundin“, „Ich-Erzähler“ (Plan, nicht an die KI) */
   kurz?: string;
   existenz: Realitaet;
+  /** Hauptgruppe (Farbe, Platz im Netz); maßgeblich für die Mitgliedschaft ist Gruppe.mitglieder (A-05: mehrere Gruppen) */
   gruppe: Id | null;
   beziehungen: Beziehung[];
   /** Freie Planungsfelder („Deine Planung“), Reihenfolge = Anzeige-Reihenfolge */
@@ -214,6 +226,13 @@ export interface Figur {
   notizen: string;
   /** Position der Karte im Beziehungsnetz */
   netz?: { x: number; y: number };
+  /**
+   * F-13: nach so vielen Kapiteln ohne Vorkommen melden; null = nie; fehlt = nach Rolle
+   * (Hauptfigur 3, Nebenfigur 6, Statist nie)
+   */
+  ruheSchwelle?: number | null;
+  /** F-16: Kontext je Spitzname (nur für Namen in `aliase`) */
+  spitznamen?: SpitznameKontext[];
 }
 
 export type GruppenTyp = 'antagonist' | 'firma' | 'familie' | 'sonstige';
@@ -241,6 +260,8 @@ export interface Gruppe {
   notizen: string;
   /** Fläche im Beziehungsnetz */
   netz?: { x: number; y: number; breite: number; hoehe: number };
+  /** A-06: Rolle eines Mitglieds in der Gruppe (Figur-ID → z. B. „Chef“, „Praktikant“) */
+  rollen?: Record<Id, string>;
 }
 
 /** orte/<id>.md – Body = Beschreibung (Plan), Abschnitt „## Notizen“ privat */
@@ -358,7 +379,9 @@ export type HinweisTyp =
   | 'unbekannt'
   | 'struktur'
   | 'zeitleiste'
-  | 'sprache';
+  | 'sprache'
+  /** lokal: Namen und Vorkommen von Figuren (F-11–F-13) */
+  | 'figuren';
 
 export interface Zitat {
   kapitel: Id;
@@ -460,6 +483,8 @@ export interface ProjektDaten {
   kiZustandVorschlaege?: KiAblage<ZustandVorschlag>;
   /** G3 .plotwerk/stimmen.json */
   kiStimmen?: KiAblage<StimmenBeobachtung>;
+  /** F-17 .plotwerk/figurenfakten.json */
+  kiFakten?: KiAblage<FigurFakt>;
   /** G6 .plotwerk/leser.json */
   kiLeser?: KiAblage<LeserStand>;
   /** G6 .plotwerk/fragen.json */
@@ -498,6 +523,11 @@ export interface FigurVorschlag {
   status: VorschlagsStatus;
   /** nach der Übernahme: ID der angelegten Figur */
   figur?: Id;
+  /**
+   * F-10: keine neue Figur, sondern Spitznamen (`name` und `aliase`) für diese angelegte Figur;
+   * Schlüssel „spitzname:<figur>|<slug der Namen>“
+   */
+  ziel?: Id;
 }
 
 export interface OrtVorschlag {
@@ -768,6 +798,25 @@ export interface StimmenBeobachtung {
   /** typische Stellen zum Vergleich (wörtlich, E6) */
   vergleich: Zitat[];
   status: KiBeobachtungsStatus;
+}
+
+/**
+ * F-17: Angabe über eine Figur, wie sie im Text steht (KI, wörtlich belegt). Widersprüche (gleiches Merkmal,
+ * verschiedene Werte) und Abweichungen von der Planung findet die App selbst (core/figuren/fakten.ts).
+ */
+export interface FigurFakt {
+  /** stabiler Schlüssel „fakt:<figur>|<merkmal>|<kapitel>/<zitatkern>“ */
+  schluessel: string;
+  figur: Id;
+  /** Merkmal, z. B. „Alter“, „Beruf“, „Auto“ (möglichst wie ein Planfeld der Figur benannt) */
+  merkmal: string;
+  /** Wert laut Text, kurz, z. B. „34“, „alter Saab 900“ */
+  wert: string;
+  kapitel: Id;
+  /** Beleg (wörtlich, E6) */
+  zitat: Zitat;
+  /** „verworfen“: Leon hält die Angabe für falsch erkannt; kommt nicht wieder */
+  status: 'neu' | 'verworfen';
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { Button, Segment } from '../../ui';
 import { FigurenBoegen } from './Boegen';
+import { Besetzung } from './Besetzung';
 import { Figurenkarte } from './Figurenkarte';
 import { FigurenListe } from './Liste';
 import { StimmeKnopf, StimmeSpalte } from './Stimme';
@@ -28,8 +29,10 @@ export default function Ansicht() {
   if (!daten) return null;
   return (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', background: 'var(--surface)' }}>
-      <FigurenListe daten={daten} index={index} />
-      {figurenAnsicht === 'boegen' ? (
+      {figurenAnsicht !== 'besetzung' && <FigurenListe daten={daten} index={index} />}
+      {figurenAnsicht === 'besetzung' ? (
+        <Besetzung daten={daten} index={index} />
+      ) : figurenAnsicht === 'boegen' ? (
         <FigurenBoegen daten={daten} figur={id} />
       ) : id ? (
         <>
@@ -56,7 +59,7 @@ export function Titelaktionen() {
   const t = useTexte();
   return (
     <>
-      <Segment<'karte' | 'boegen'>
+      <Segment<'karte' | 'boegen' | 'besetzung'>
         rolle="group"
         label={t.figuren.ansicht.ansicht}
         hintergrund="selected"
@@ -66,6 +69,7 @@ export function Titelaktionen() {
         optionen={[
           { wert: 'karte', label: t.figuren.ansicht.karte },
           { wert: 'boegen', label: t.figuren.ansicht.boegen },
+          { wert: 'besetzung', label: t.figuren.ansicht.besetzung },
         ]}
       />
       {figurenAnsicht === 'karte' && <StimmeKnopf />}

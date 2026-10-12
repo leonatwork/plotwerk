@@ -13,7 +13,7 @@ export type DemoBeleg = [kapitel: string, zitat: string];
 export interface DemoFigur {
   name: string;
   aliase: string[];
-  rolle: 'haupt' | 'neben';
+  rolle: 'haupt' | 'neben' | 'statist';
   kurz: string;
   belege: DemoBeleg[];
 }

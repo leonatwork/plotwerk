@@ -68,3 +68,52 @@ describe('Figurenkarte – Abschnitt „Bogen“', () => {
     expect(screen.getByRole('button', { name: /Erste Stufe planen/ })).toBeInTheDocument();
   });
 });
+
+describe('Figurenkarte – Spitznamen als Chips (F-08/F-16)', () => {
+  it('Enter und Komma fügen hinzu, × entfernt; Klick öffnet den Kontext (wer, ab wann)', async () => {
+    useStore.getState().waehle({ figur: 'ole' });
+    render(<Figuren />);
+    const feld = screen.getByLabelText('Auch genannt / Spitzname');
+    fireEvent.change(feld, { target: { value: 'Fenster-Ole' } });
+    fireEvent.keyDown(feld, { key: 'Enter' });
+    fireEvent.change(feld, { target: { value: 'der Kollege, Olli,' } });
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.figuren.ole!.aliase).toEqual(['Fenster-Ole', 'der Kollege', 'Olli']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Olli' }));
+    const kontext = screen.getByRole('group', { name: 'Kontext zu Olli' });
+    fireEvent.change(within(kontext).getAllByRole('combobox')[0]!, { target: { value: 'paul' } });
+    fireEvent.change(within(kontext).getAllByRole('combobox')[1]!, { target: { value: 'ebbe' } });
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.figuren.ole!.spitznamen).toEqual([{ name: 'Olli', von: ['paul'], abKapitel: 'ebbe' }]);
+
+    // Entfernen nimmt den Kontext mit
+    fireEvent.click(screen.getByRole('button', { name: 'Olli entfernen' }));
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.figuren.ole!.aliase).toEqual(['Fenster-Ole', 'der Kollege']);
+    expect(useStore.getState().daten!.figuren.ole!.spitznamen).toBeUndefined();
+  });
+});
+
+describe('Figurenkarte – Angaben aus dem Text (F-17)', () => {
+  it('zeigt Merkmale mit Werten und Kapitel, markiert Widersprüche, × verwirft', async () => {
+    const SAAB = 'Dann nimmt er den Schlüssel und fährt mit seinem alten Saab 900 zum Lindenhof.';
+    const VOLVO = 'Ich steige aus dem Volvo, schlage die Tür zu und sehe ihm nach, bis er hinter den Lagerhallen verschwunden ist.';
+    await useStore.getState().speichereKiFakten({
+      version: 1,
+      eintraege: [
+        { schluessel: 'a', figur: 'paul', merkmal: 'Auto', wert: 'alter Saab 900', kapitel: 'lotte', zitat: { kapitel: 'lotte', text: SAAB }, status: 'neu' },
+        { schluessel: 'b', figur: 'paul', merkmal: 'Auto', wert: 'Volvo', kapitel: 'flut', zitat: { kapitel: 'flut', text: VOLVO }, status: 'neu' },
+      ],
+    });
+    useStore.getState().indexNeuBerechnen();
+    useStore.getState().waehle({ figur: 'paul' });
+    render(<Figuren />);
+    expect(screen.getByText(/^Auto ⚠$/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^alter Saab 900 · Kap\. 3/ }).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Volvo verwerfen' }));
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.kiFakten!.eintraege.find((f) => f.schluessel === 'b')!.status).toBe('verworfen');
+    expect(await screen.findByText(/^Auto$/)).toBeInTheDocument();
+  });
+});

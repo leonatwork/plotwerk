@@ -17,7 +17,8 @@ import {
   setzeStimmenStatus,
   stimmenStatus,
 } from '@core/figuren/index';
-import { KiFehler, pruefeStimme, schaetzeStimme, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
+import { mischeFakten, setzeFaktStatus } from '@core/figuren/fakten';
+import { KiFehler, pruefeStimme, sammleFakten, schaetzeFakten, schaetzeStimme, type FaktenAuftrag, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
 import type { BogenStufe, Figurenbogen as BogenDaten, HinweisEntscheidung, Id, ProjektDaten, TextAnker } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
 import { sprache, texte } from '../../i18n';
@@ -42,10 +43,23 @@ export interface StimmenLaufErgebnis {
   zeit: number;
 }
 
+/** F-17: Ergebnis eines Laufs „Figurenfakten“ */
+export interface FaktenLaufErgebnis {
+  figur?: Id;
+  /** gültige Angaben aus der Antwort */
+  angaben: number;
+  /** neu in der Ablage */
+  neu: number;
+  /** verworfene Teile der Antwort */
+  verworfen: { grund: string }[];
+  modell: string;
+  kostenUsd: number;
+}
+
 export interface Figurenbogen {
   /** Bereich „Figuren“: Figurenkarte oder Figuren-Bögen */
-  figurenAnsicht: 'karte' | 'boegen';
-  setzeFigurenAnsicht(a: 'karte' | 'boegen'): void;
+  figurenAnsicht: 'karte' | 'boegen' | 'besetzung';
+  setzeFigurenAnsicht(a: 'karte' | 'boegen' | 'besetzung'): void;
 
   /** Figurenkarte: Spalte „Stimme“ neben der Karte sichtbar */
   stimmeSpalte: boolean;
@@ -80,6 +94,18 @@ export interface Figurenbogen {
   stimmeZuruecksetzen(): void;
   /** „Ist Absicht“ / „Erledigt“; null setzt zurück */
   stimmeEntscheiden(schluessel: string, entscheidung: HinweisEntscheidung | null): Promise<void>;
+
+  /** F-17 Figurenfakten: laufender Lauf (figur: nur diese Figur, sonst alle) */
+  faktenLauf: FaktenAuftrag | null;
+  faktenFehler: KiFehlerAnzeige | null;
+  faktenErgebnis: FaktenLaufErgebnis | null;
+  faktenSchaetzen(auftrag: FaktenAuftrag): Promise<Schaetzung>;
+  /** Ergebnis wird in .plotwerk/figurenfakten.json gemischt */
+  faktenSammeln(auftrag: FaktenAuftrag): Promise<void>;
+  faktenAbbrechen(): void;
+  faktenZuruecksetzen(): void;
+  /** falsch erkannte Angabe verwerfen (kommt nicht wieder) bzw. wiederherstellen */
+  faktVerwerfen(schluessel: string, verworfen?: boolean): Promise<void>;
 }
 
 export interface FigurenbogenSlice {
@@ -235,6 +261,55 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
       stimmeZuruecksetzen() {
         if (get().figurenbogen.stimmeLauf) return;
         setze({ stimmeErgebnis: null, stimmeFehler: null });
+      },
+
+      faktenLauf: null,
+      faktenFehler: null,
+      faktenErgebnis: null,
+
+      async faktenSchaetzen(auftrag) {
+        return schaetzeFakten(await leser(), transport(), get().kiEinstellungen(), auftrag, sprache());
+      },
+
+      async faktenSammeln(auftrag) {
+        if (get().figurenbogen.faktenLauf) return;
+        const steuerung = new AbortController();
+        abbruch = steuerung;
+        setze({ faktenLauf: auftrag, faktenFehler: null, faktenErgebnis: null });
+        try {
+          const r = await sammleFakten(await leser(), transport(), get().kiEinstellungen(), auftrag, { signal: steuerung.signal, oberflaeche: sprache() });
+          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', texte().state.ki.pruefungAbgebrochen);
+          const gemischt = mischeFakten(daten().kiFakten, r.ergebnis.figuren, r.ergebnis.fakten, { datum: r.datum, modell: r.modell, kostenUsd: r.kostenUsd });
+          await get().speichereKiFakten(gemischt.ablage);
+          setze({
+            faktenErgebnis: {
+              figur: auftrag.figur,
+              angaben: r.ergebnis.fakten.length,
+              neu: gemischt.neu,
+              verworfen: r.verworfen.map((v) => ({ grund: v.grund })),
+              modell: r.modell,
+              kostenUsd: r.kostenUsd,
+            },
+          });
+        } catch (e) {
+          setze({ faktenFehler: kiFehlerAnzeige(e) });
+        } finally {
+          if (abbruch === steuerung) abbruch = null;
+          setze({ faktenLauf: null });
+        }
+      },
+
+      faktenAbbrechen() {
+        abbruch?.abort();
+      },
+
+      faktenZuruecksetzen() {
+        if (get().figurenbogen.faktenLauf) return;
+        setze({ faktenErgebnis: null, faktenFehler: null });
+      },
+
+      async faktVerwerfen(schluessel, verworfen = true) {
+        await get().speichereKiFakten(setzeFaktStatus(get().daten?.kiFakten, schluessel, verworfen ? 'verworfen' : 'neu'));
       },
 
       async stimmeEntscheiden(schluessel, entscheidung) {

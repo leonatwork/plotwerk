@@ -3,7 +3,7 @@
  * Alle Dateien gehen über backend.dateiSpeichern (wie der normale Export). Keine KI.
  */
 import { useId, useMemo, useState } from 'react';
-import { exposeGeruest, exposePlatzhalter, normseitenZaehlen, offeneHinweise, type ExposeKapitelQuelle } from '@core/abgabe/index';
+import { exposeGeruest, exposePlatzhalter, normseitenZaehlen, offeneHinweise, personenAuswahl, type ExposeKapitelQuelle, type PersonenOptionen } from '@core/abgabe/index';
 import { epubKapitel } from '@core/epub/index';
 import type { Id, KapitelStatus, ProjektAngaben } from '@core/model/types';
 import { wortzahl } from '@core/text/index';
@@ -22,7 +22,7 @@ import { Abschnittslabel, Button, Checkbox, Dialog, Radio, Segment, StatusPunkt,
 import '../importexport/importexport.css';
 import './abgabe.css';
 
-const FORMATE: AbgabeFormat[] = ['normseite', 'expose', 'epub', 'mappe'];
+const FORMATE: AbgabeFormat[] = ['normseite', 'expose', 'epub', 'mappe', 'personen'];
 
 /** Formate mit Beschriftung in der Oberflächensprache */
 function formate(t: Woerterbuch): { wert: AbgabeFormat; label: string }[] {
@@ -154,6 +154,7 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
   const daten = useStore((s) => s.daten);
   const backend = useStore((s) => s.backend);
   const hinweise = useStore((s) => s.index.hinweise);
+  const index = useStore((s) => s.index);
   const auswahlKapitel = useStore((s) => s.auswahl.kapitel);
   const abgabe = useStore((s) => s.abgabe);
   const e = abgabe.einstellungen;
@@ -170,6 +171,10 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
   const [nebenfiguren, setNebenfiguren] = useState(e.exposeNebenfiguren);
   const [epubSchrift, setEpubSchrift] = useState(e.epubSchrift);
   const [mappeKapitel, setMappeKapitel] = useState<Id | null>(() => e.mappeKapitel ?? null);
+  const [personen, setPersonen] = useState<PersonenOptionen>(e.personen);
+  const [personenFormat, setPersonenFormat] = useState<ExposeDateiformat>(e.personenFormat);
+  const [personenVorspann, setPersonenVorspann] = useState(e.personenVorspann);
+  const personenId = useId();
   const [angaben, setAngaben] = useState<ProjektAngaben>(() => daten?.projekt.angaben ?? {});
   const [dateinamen, setDateinamen] = useState<Partial<Record<AbgabeFormat, string>>>({});
   const [status, setStatus] = useState<Status>({ art: 'bereit' });
@@ -226,7 +231,11 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
   }
 
   const titel = daten.projekt.titel;
-  const dateiname = dateinamen[format] ?? abgabeDateiname(titel, format, exposeFormat);
+  const dateiformat = format === 'personen' ? personenFormat : exposeFormat;
+  const dateiname = dateinamen[format] ?? abgabeDateiname(titel, format, dateiformat);
+  const personenAnzahl = format === 'personen' ? personenAuswahl(daten, index.erstesVorkommen, personen).length : 0;
+  const setzePersonen = (teil: Partial<PersonenOptionen>) => setPersonen((p) => ({ ...p, ...teil }));
+  const vorspannOption = personenVorspann ? personen : undefined;
   const setzeDateiname = (n: string) => setDateinamen((alt) => ({ ...alt, [format]: n }));
   const laeuft = status.art === 'laeuft';
 
@@ -240,7 +249,7 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
   let fussText = '';
   switch (format) {
     case 'normseite':
-      auftrag = { format, kapitel: gewaehlt, titelseite };
+      auftrag = { format, kapitel: gewaehlt, titelseite, personen: vorspannOption };
       bereit = gewaehlt.length > 0;
       fussText = normseiten ? `${f(t.abgabe.kapitelAnzahl, { n: gewaehlt.length })} · ${f(te.normseiten, { n: normseiten.seiten })}` : '';
       break;
@@ -249,7 +258,7 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
       fussText = expose ? f(te.platzhalter, { n: expose.platzhalter }) : '';
       break;
     case 'epub':
-      auftrag = { format, kapitel: gewaehlt, titelseite, schrift: epubSchrift };
+      auftrag = { format, kapitel: gewaehlt, titelseite, schrift: epubSchrift, personen: vorspannOption };
       bereit = gewaehlt.length > 0;
       fussText = `${f(t.abgabe.kapitelAnzahl, { n: gewaehlt.length })} · ${f(t.gemeinsam.woerter, { n: zeilen.filter((z) => gewaehlt.includes(z.id)).reduce((s, z) => s + z.woerter, 0) })}`;
       break;
@@ -258,10 +267,14 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
       bereit = offen.length > 0;
       fussText = f(te.offeneHinweise, { n: offen.length });
       break;
+    case 'personen':
+      auftrag = { format, ziel: personenFormat, optionen: personen };
+      fussText = f(te.personen.anzahl, { n: personenAnzahl });
+      break;
   }
 
   async function starten() {
-    const name = mitAbgabeEndung(dateiname, format, exposeFormat);
+    const name = mitAbgabeEndung(dateiname, format, dateiformat);
     setzeDateiname(name);
     const einstellungen: Partial<AbgabeEinstellungen> = {
       format,
@@ -273,6 +286,9 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
       exposeNebenfiguren: nebenfiguren,
       epubSchrift,
       mappeKapitel,
+      personen,
+      personenFormat,
+      personenVorspann,
     };
     abgabe.setzeEinstellungen(einstellungen);
     setStatus({ art: 'laeuft' });
@@ -367,6 +383,9 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
                   <Checkbox checked={titelseite} onChange={(ev) => setTitelseite(ev.target.checked)}>
                     {te.normseite.titelseite}
                   </Checkbox>
+                  <Checkbox checked={personenVorspann} onChange={(ev) => setPersonenVorspann(ev.target.checked)}>
+                    {te.vorspann}
+                  </Checkbox>
                 </>
               )}
             </div>
@@ -431,6 +450,9 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
                   <Checkbox checked={epubSchrift} onChange={(ev) => setEpubSchrift(ev.target.checked)}>
                     {te.epub.schrift}
                   </Checkbox>
+                  <Checkbox checked={personenVorspann} onChange={(ev) => setPersonenVorspann(ev.target.checked)}>
+                    {te.vorspann}
+                  </Checkbox>
                 </>
               )}
             </div>
@@ -460,6 +482,60 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
                   {mappeKapitel ? te.mappe.keineImKapitel : te.mappe.keine}
                 </p>
               )}
+            </div>
+          )}
+
+          {format === 'personen' && (
+            <div className="pw-ab-panel">
+              <p className="pw-ie-text">{te.personen.text}</p>
+              <section className="pw-ie-abschnitt" aria-label={te.personen.gliederung}>
+                <Abschnittslabel>{te.personen.gliederung}</Abschnittslabel>
+                <div className="pw-ie-optionen" role="radiogroup" aria-label={te.personen.gliederung}>
+                  <Radio name="pw-abgabe-personen" checked={personen.gliederung === 'gruppen'} onChange={() => setzePersonen({ gliederung: 'gruppen' })}>
+                    {te.personen.nachGruppen}
+                  </Radio>
+                  <Radio name="pw-abgabe-personen" checked={personen.gliederung === 'rolle'} onChange={() => setzePersonen({ gliederung: 'rolle' })}>
+                    {te.personen.nachRolle}
+                  </Radio>
+                </div>
+              </section>
+              <Checkbox checked={personen.spitznamen !== false} onChange={(ev) => setzePersonen({ spitznamen: ev.target.checked })}>
+                {te.personen.spitznamen}
+              </Checkbox>
+              <Checkbox checked={!!personen.statisten} onChange={(ev) => setzePersonen({ statisten: ev.target.checked })}>
+                {te.personen.statisten}
+              </Checkbox>
+              <Checkbox checked={!!personen.geplante} onChange={(ev) => setzePersonen({ geplante: ev.target.checked })}>
+                {te.personen.geplante}
+              </Checkbox>
+              <div className="pw-ie-feldreihe">
+                <label htmlFor={personenId}>{te.personen.bisKapitel}</label>
+                <select id={personenId} className="pw-ab-select" value={personen.bisKapitel ?? ''} onChange={(ev) => setzePersonen({ bisKapitel: ev.target.value || undefined })}>
+                  <option value="">{te.personen.alleKapitel}</option>
+                  {daten.projekt.kapitel.map((id, i) => (
+                    <option key={id} value={id}>
+                      {i + 1}. {daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel ?? id}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <section className="pw-ie-abschnitt" aria-label={te.expose.dateiformat}>
+                <Abschnittslabel>{te.expose.dateiformat}</Abschnittslabel>
+                <Segment<ExposeDateiformat>
+                  label={te.expose.dateiformatLabel}
+                  rolle="group"
+                  voll
+                  optionen={[
+                    { wert: 'docx', label: te.expose.word },
+                    { wert: 'md', label: te.expose.markdown },
+                  ]}
+                  wert={personenFormat}
+                  onChange={(fm) => {
+                    setPersonenFormat(fm);
+                    if (dateinamen.personen) setDateinamen((alt) => ({ ...alt, personen: mitAbgabeEndung(alt.personen!, 'personen', fm) }));
+                  }}
+                />
+              </section>
             </div>
           )}
 
