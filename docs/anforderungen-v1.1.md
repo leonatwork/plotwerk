@@ -208,6 +208,8 @@ Die Planung ist die zweite Ebene neben dem Text. Referenz-Screens: `Akte.dc.html
 | F-04 | Figuren | Notizen, Auftritte als Kapitelstreifen (tritt auf, nur erwähnt oder per Nachricht), Beziehungen | Muss |
 | F-05 | Figuren | Hinweis, wenn ein Plan-Feld dem Text widerspricht, außer die Figur oder Stelle ist bewusst vage. Umgesetzt: Die Prüfung vergleicht Plan-Felder von Figuren und Kapitelplänen mit dem Text und meldet Widersprüche als „Prüfen“ mit Plan-Bezug (Figur/Kapitel, Feld); die Figurenkarte zeigt sie mit Etikett „Plan“ | Soll |
 | F-06 | Figuren | Figur vorab anlegen, bevor sie im Text vorkommt | Muss |
+| F-07 | Figuren | Zwei Figuren zusammenführen (Richtung wählbar): Namen werden Spitznamen, Beziehungen, Planfelder und Notizen kommen dazu, alle Verweise im Projekt zeigen auf die bleibende Figur; Hinweis auf der Figurenkarte bei gleichem Namen | Soll |
+| F-08 | Figuren | Feld „Auch genannt / Spitzname“: mehrere Namen mit Komma, sofort in der Erkennung und bei KI-Vorschlägen berücksichtigt | Muss |
 | O-01 | Orte | Liste mit Kapiteln, Belegen aus dem Text, Beschreibung, Notizen; Unterorte (Zeichensaal im Büro) | Muss |
 | O-02 | Orte | Schreibweisen zusammenführen und die gültige festlegen | Muss |
 | O-03 | Orte | Weg einer Figur (z. B. „Pauls Weg“): Ortsfolge über alle Kapitel | Soll |
@@ -218,6 +220,7 @@ Die Planung ist die zweite Ebene neben dem Text. Referenz-Screens: `Akte.dc.html
 | A-01 | Antagonisten | Zwei Antagonisten als Gruppen: Nordhaven (im Text über Herrn Kessler und den Aufsichtsrat) und das Konsortium (geplant) | Muss |
 | A-02 | Antagonisten | Pro Gruppe Mitglieder, Präsenz pro Akt und Kapitel und mögliche Spuren im Text als Vorschlag (z. B. »Kranich«), die Leon bestätigt oder verwirft | Muss |
 | A-03 | Antagonisten | Antagonisten erscheinen als eigene Stränge im Akt-Board und im Kapitel-Überblick | Muss |
+| A-04 | Gruppen | Gruppen in der App anlegen („+ Gruppe“ im Beziehungsnetz, „+ Neue Gruppe …“ auf der Figurenkarte) und löschen; eine neue Gruppe bekommt sofort eine Fläche im Netz um ihre Mitglieder | Muss |
 
 ## Funktionen: Werkzeuge (G1–G8)
 

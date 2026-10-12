@@ -51,6 +51,9 @@ export const beziehungen: Form<typeof de> = {
     beziehungenVorschlagen: 'Suggest relationships',
     verbindenBeenden: 'Stop connecting',
     plusBeziehung: '+ Relationship',
+    plusGruppe: '+ Group',
+    plusGruppeTitel: 'Create a new group (family, company, antagonist …) as an area on the map',
+    neueGruppe: 'New group',
     kontext: 'Relationships',
   },
   netz: {
@@ -114,6 +117,8 @@ export const beziehungen: Form<typeof de> = {
     bezeichnungEntfernen: 'Remove this label',
     beziehungEntfernen: 'Remove relationship',
     flaecheAusDemNetz: 'Remove area from map',
+    gruppeLoeschen: 'Delete group',
+    gruppeLoeschenFrage: 'Delete group “{name}”? The characters remain and no longer belong to any group.',
   },
   vorschlaege: {
     dialogTitel: 'Suggest characters and relationships',

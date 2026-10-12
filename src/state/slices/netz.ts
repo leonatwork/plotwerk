@@ -3,9 +3,10 @@
  * Persistenz ausschließlich über get().speichereFigur / speichereGruppe.
  */
 import type { StateCreator } from 'zustand';
-import type { Beziehung, BeziehungsKategorie, Figur, Gruppe, Id, Spur } from '@core/model/types';
+import type { Beziehung, BeziehungsKategorie, Figur, Gruppe, GruppenTyp, Id, ProjektDaten, Spur } from '@core/model/types';
 import { findeStelle, kapitelIndex } from '../../features/beziehungen/gemeinsam';
-import { paarSchluessel } from '../../features/beziehungen/logik';
+import { freiePosition, KARTE, paarSchluessel, STANDARD_FLAECHE } from '../../features/beziehungen/logik';
+import { belegteFlaechen } from '../../features/beziehungen/vorschlagLogik';
 import { f as fmt, texte } from '../../i18n';
 import type { Store } from '../store';
 
@@ -37,6 +38,11 @@ export interface NetzSlice {
   figurImNetzSetzen(id: Id, pos: { x: number; y: number } | null): Promise<void>;
   gruppeImNetzSetzen(id: Id, netz: Gruppe['netz'] | null): Promise<void>;
 
+  /**
+   * Legt eine Gruppe an (Status „im Text“) und gibt ihr gleich eine Fläche im Netz: um die Karten der
+   * Mitglieder, sonst an einer freien Stelle. Mitglieder wechseln aus ihrer bisherigen Gruppe.
+   */
+  gruppeAnlegen(name: string, teil?: { typ?: GruppenTyp; mitglieder?: Id[] }): Promise<Id>;
   /** undefined-Werte im Teil entfernen das Feld. */
   gruppeAendern(id: Id, teil: Partial<Gruppe>): Promise<void>;
   /** setzt auch figur.gruppe (eine Figur gehört zu höchstens einer Gruppe) */
@@ -45,6 +51,45 @@ export interface NetzSlice {
   /** beim Bestätigen wird der Textanker der Spur gesetzt (E4) */
   spurStatusSetzen(gruppe: Id, spur: Id, status: Spur['status']): Promise<void>;
   spurHinzufuegen(gruppe: Id, spur: { text: string; kapitel: Id }): Promise<Spur | null>;
+}
+
+/** Abstand der Gruppenfläche um die Karten ihrer Mitglieder (oben Platz für die Beschriftung). */
+const RAND = { seite: 20, oben: 34, unten: 20 } as const;
+
+/**
+ * Fläche einer neuen Gruppe und Positionen für Mitglieder ohne Platz im Netz: Liegen Mitglieder schon im Netz,
+ * umschließt die Fläche ihre Karten; sonst kommt sie an eine freie Stelle innerhalb der bisherigen Netzbreite
+ * und die Mitglieder untereinander hinein.
+ */
+export function gruppeImNetzPlanen(
+  daten: ProjektDaten,
+  mitglieder: Id[],
+): { netz: NonNullable<Gruppe['netz']>; positionen: Record<Id, { x: number; y: number }> } {
+  const karten = mitglieder.map((m) => daten.figuren[m]?.netz).filter((n): n is { x: number; y: number } => !!n);
+  if (karten.length > 0) {
+    const links = Math.min(...karten.map((k) => k.x));
+    const oben = Math.min(...karten.map((k) => k.y));
+    const rechts = Math.max(...karten.map((k) => k.x + KARTE.breite));
+    const unten = Math.max(...karten.map((k) => k.y + KARTE.hoehe));
+    const x = Math.max(0, links - RAND.seite);
+    const y = Math.max(0, oben - RAND.oben);
+    const netz = {
+      x,
+      y,
+      breite: Math.max(STANDARD_FLAECHE.breite, rechts + RAND.seite - x),
+      hoehe: Math.max(STANDARD_FLAECHE.hoehe, unten + RAND.unten - y),
+    };
+    return { netz, positionen: {} };
+  }
+  const ohne = mitglieder.filter((m) => daten.figuren[m]);
+  const breite = Math.max(STANDARD_FLAECHE.breite, KARTE.breite + 2 * RAND.seite);
+  const hoehe = Math.max(STANDARD_FLAECHE.hoehe, RAND.oben + ohne.length * (KARTE.hoehe + 12) - 12 + RAND.unten);
+  const belegt = belegteFlaechen(daten);
+  const netzBreite = Math.max(880, ...belegt.map((r) => r.x + r.breite));
+  const pos = freiePosition(belegt, breite, hoehe, netzBreite);
+  const positionen: Record<Id, { x: number; y: number }> = {};
+  ohne.forEach((m, i) => (positionen[m] = { x: pos.x + RAND.seite, y: pos.y + RAND.oben + i * (KARTE.hoehe + 12) }));
+  return { netz: { ...pos, breite, hoehe }, positionen };
 }
 
 function ohneUndefined<T extends object>(o: T): T {
@@ -179,6 +224,28 @@ export const createNetzSlice: StateCreator<Store, [], [], NetzSlice> = (set, get
         void _weg;
         await get().speichereGruppe(rest);
       }
+    },
+
+    async gruppeAnlegen(name, teil = {}) {
+      const d = daten();
+      const id = get().neueId(name, [...Object.keys(d.gruppen), ...Object.keys(d.figuren)]);
+      const mitglieder = (teil.mitglieder ?? []).filter((m) => d.figuren[m]);
+      const g: Gruppe = {
+        id,
+        name: name.trim(),
+        typ: teil.typ ?? 'sonstige',
+        status: 'im_text',
+        mitglieder: [],
+        spuren: [],
+        praesenz: {},
+        notizen: '',
+      };
+      const { netz, positionen } = gruppeImNetzPlanen(d, mitglieder);
+      g.netz = netz;
+      await get().speichereGruppe(g);
+      for (const [m, p] of Object.entries(positionen)) await get().figurImNetzSetzen(m, p);
+      for (const m of mitglieder) await get().mitgliedHinzufuegen(id, m);
+      return id;
     },
 
     async gruppeAendern(id, teil) {

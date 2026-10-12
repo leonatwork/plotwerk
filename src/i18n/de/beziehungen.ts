@@ -54,6 +54,9 @@ export const beziehungen = {
     beziehungenVorschlagen: 'Beziehungen vorschlagen',
     verbindenBeenden: 'Verbinden beenden',
     plusBeziehung: '+ Beziehung',
+    plusGruppe: '+ Gruppe',
+    plusGruppeTitel: 'Neue Gruppe (Familie, Firma, Antagonist …) als Fläche im Netz anlegen',
+    neueGruppe: 'Neue Gruppe',
     kontext: 'Beziehungen',
   },
   /** Zeichenfläche (Netz.tsx) */
@@ -120,6 +123,8 @@ export const beziehungen = {
     bezeichnungEntfernen: 'Diese Bezeichnung entfernen',
     beziehungEntfernen: 'Beziehung entfernen',
     flaecheAusDemNetz: 'Fläche aus dem Netz nehmen',
+    gruppeLoeschen: 'Gruppe löschen',
+    gruppeLoeschenFrage: 'Gruppe „{name}“ löschen? Die Figuren bleiben erhalten und gehören danach keiner Gruppe mehr an.',
   },
   /** KI-Vorschläge (Vorschlaege.tsx) */
   vorschlaege: {
