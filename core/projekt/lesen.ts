@@ -497,6 +497,7 @@ export function parseGruppe(text: string, id?: Id): Gruppe {
     praesenz,
     notizen: verbinde(notizen, rest),
     netz,
+    rollen: istObjekt(daten.rollen) && Object.keys(daten.rollen).length ? parsePlanFelder(daten.rollen) : undefined,
   });
 }
 

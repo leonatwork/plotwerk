@@ -77,7 +77,7 @@ const S = {
   motiv: ['id', 'name', 'aliase'],
   figur: ['id', 'name', 'aliase', 'formen', 'rolle', 'kurz', 'existenz', 'gruppe', 'beziehungen', 'plan', 'netz', 'ruheSchwelle'],
   beziehung: ['zu', 'art', 'abKapitel', 'kategorie', 'strang', 'notiz', 'unsicher'],
-  gruppe: ['id', 'name', 'typ', 'status', 'mitglieder', 'strang', 'spuren', 'praesenz', 'netz'],
+  gruppe: ['id', 'name', 'typ', 'status', 'mitglieder', 'strang', 'spuren', 'praesenz', 'netz', 'rollen'],
   spur: ['id', 'text', 'kapitel', 'anker', 'status'],
   ort: ['id', 'name', 'aliase', 'in'],
   hinweis: ['schluessel', 'typ', 'titel', 'zitate', 'erklaerung', 'quelle', 'offen', 'status'],

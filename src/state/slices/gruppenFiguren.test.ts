@@ -117,3 +117,47 @@ describe('Statisten (F-14)', () => {
     expect(Object.values(d.figuren).some((f) => f.name === 'Bernd')).toBe(false);
   });
 });
+
+describe('Mehrere Gruppen und Rollen (A-05, A-06)', () => {
+  it('Rollen werden gespeichert, stehen im Netz auf der Karte; Mitglied außerhalb der Fläche wird als Verweis gezeigt', async () => {
+    const { store, fs } = await laden();
+    const s = store.getState();
+    const id = await s.gruppeAnlegen('Büro', { mitglieder: ['ole', 'malte'] });
+    await store.getState().gruppenRolleSetzen(id, 'ole', 'Bauleiter');
+    // Paul zusätzlich in die Gruppe – seine Karte liegt woanders
+    await store.getState().mitgliedHinzufuegen(id, 'paul');
+    await store.getState().alleSpeichernAbwarten();
+    expect(parseGruppe((await fs.lesen(gruppePfad(id)))!, id).rollen).toEqual({ ole: 'Bauleiter' });
+    const d = store.getState().daten!;
+    // Hauptgruppe von Ole ist das Büro (vorher keine) → Rolle als Untertitel
+    expect(d.figuren.ole!.gruppe).toBe(id);
+    store.getState().indexNeuBerechnen();
+    const ansicht = netzBerechnen(d, store.getState().index, d.projekt.kapitel.length - 1, ALLE_KATEGORIEN);
+    expect(ansicht.karten.find((k) => k.figur.id === 'ole')!.untertitel).toBe('Bauleiter');
+    const flaeche = ansicht.flaechen.find((f) => f.gruppe.id === id)!;
+    expect(flaeche.aussen.map((m) => m.id)).toEqual(['paul']);
+  });
+
+  it('Mitglied mit Karte in anderer Hauptgruppe: Verweis in der Fläche, Spur-Platzhalter bleibt', async () => {
+    const { store } = await laden();
+    await store.getState().mitgliedHinzufuegen('konsortium', 'herr-kessler');
+    const d = store.getState().daten!;
+    expect(d.figuren['herr-kessler']!.gruppe).toBe('nordhaven');
+    store.getState().indexNeuBerechnen();
+    const ansicht = netzBerechnen(d, store.getState().index, d.projekt.kapitel.length - 1, ALLE_KATEGORIEN);
+    expect(ansicht.flaechen.find((f) => f.gruppe.id === 'konsortium')!.aussen.map((m) => m.id)).toEqual(['herr-kessler']);
+    expect(ansicht.platzhalter.some((p) => p.gruppe.id === 'konsortium')).toBe(true);
+  });
+
+  it('Zusammenführen hängt Rollen um', async () => {
+    const { store } = await laden();
+    const s = store.getState();
+    const doppelt = await s.planung.figurAnlegen('Ole');
+    const id = await store.getState().gruppeAnlegen('Büro', { mitglieder: [doppelt] });
+    await store.getState().gruppenRolleSetzen(id, doppelt, 'Bauleiter');
+    await store.getState().figurenZusammenfuehren('ole', doppelt);
+    const g = store.getState().daten!.gruppen[id]!;
+    expect(g.mitglieder).toEqual(['ole']);
+    expect(g.rollen).toEqual({ ole: 'Bauleiter' });
+  });
+});

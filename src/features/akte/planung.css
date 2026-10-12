@@ -275,6 +275,44 @@ button.pl-chip__text:hover {
   min-width: 0;
 }
 
+/* Gruppen einer Figur (A-05): Chip mit Hauptgruppen-Stern, Name/Rolle, Entfernen */
+.pl-gruppenchip {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 12px;
+}
+.pl-gruppenchip[data-haupt] {
+  border-color: var(--accent-line);
+  background: var(--accent-flaeche);
+}
+.pl-gruppenchip button {
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.pl-gruppenchip__stern {
+  padding: 0 2px 0 9px;
+  color: var(--accent-dark);
+}
+.pl-gruppenchip__name {
+  padding: 0 4px;
+  font-weight: 600;
+}
+.pl-gruppenchip__weg {
+  padding: 0 9px 0 4px;
+  color: var(--ink-quiet);
+}
+.pl-gruppenchip button:hover {
+  color: var(--link-hover);
+}
+
 /* Listen (Figuren, Orte) ---------------------------------------------------- */
 .pl-listeneintrag {
   display: flex;

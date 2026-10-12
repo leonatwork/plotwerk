@@ -195,6 +195,7 @@ export interface Figur {
   /** Kurzbeschreibung für Listen und Netzkarten, z. B. „Jugendfreundin“, „Ich-Erzähler“ (Plan, nicht an die KI) */
   kurz?: string;
   existenz: Realitaet;
+  /** Hauptgruppe (Farbe, Platz im Netz); maßgeblich für die Mitgliedschaft ist Gruppe.mitglieder (A-05: mehrere Gruppen) */
   gruppe: Id | null;
   beziehungen: Beziehung[];
   /** Freie Planungsfelder („Deine Planung“), Reihenfolge = Anzeige-Reihenfolge */
@@ -237,6 +238,8 @@ export interface Gruppe {
   notizen: string;
   /** Fläche im Beziehungsnetz */
   netz?: { x: number; y: number; breite: number; hoehe: number };
+  /** A-06: Rolle eines Mitglieds in der Gruppe (Figur-ID → z. B. „Chef“, „Praktikant“) */
+  rollen?: Record<Id, string>;
 }
 
 /** orte/<id>.md – Body = Beschreibung (Plan), Abschnitt „## Notizen“ privat */

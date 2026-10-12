@@ -48,9 +48,12 @@ export interface NetzSlice {
   gruppeAnlegen(name: string, teil?: { typ?: GruppenTyp; mitglieder?: Id[] }): Promise<Id>;
   /** undefined-Werte im Teil entfernen das Feld. */
   gruppeAendern(id: Id, teil: Partial<Gruppe>): Promise<void>;
-  /** setzt auch figur.gruppe (eine Figur gehört zu höchstens einer Gruppe) */
+  /** A-05: Figur kann in mehreren Gruppen sein; ohne Hauptgruppe wird diese ihre Hauptgruppe */
   mitgliedHinzufuegen(gruppe: Id, figur: Id): Promise<void>;
+  /** entfernt auch die Rolle; war es die Hauptgruppe, rückt die nächste Gruppe der Figur nach */
   mitgliedEntfernen(gruppe: Id, figur: Id): Promise<void>;
+  /** A-06: Rolle in der Gruppe; leer entfernt sie */
+  gruppenRolleSetzen(gruppe: Id, figur: Id, rolle: string): Promise<void>;
   /** beim Bestätigen wird der Textanker der Spur gesetzt (E4) */
   spurStatusSetzen(gruppe: Id, spur: Id, status: Spur['status']): Promise<void>;
   spurHinzufuegen(gruppe: Id, spur: { text: string; kapitel: Id }): Promise<Spur | null>;
@@ -260,26 +263,33 @@ export const createNetzSlice: StateCreator<Store, [], [], NetzSlice> = (set, get
     async mitgliedHinzufuegen(gid, fid) {
       const g = gruppe(gid);
       const f = figur(fid);
-      const auftraege: Promise<void>[] = [];
-      if (f.gruppe && f.gruppe !== gid) {
-        const alt = daten().gruppen[f.gruppe];
-        if (alt?.mitglieder.includes(fid))
-          auftraege.push(get().speichereGruppe({ ...alt, mitglieder: alt.mitglieder.filter((m) => m !== fid) }));
-      }
-      if (!g.mitglieder.includes(fid)) auftraege.push(get().speichereGruppe({ ...g, mitglieder: [...g.mitglieder, fid] }));
-      if (f.gruppe !== gid) auftraege.push(get().speichereFigur({ ...f, gruppe: gid }));
-      await Promise.all(auftraege);
+      const hauptgruppeFehlt = !f.gruppe || !daten().gruppen[f.gruppe];
+      await Promise.all([
+        g.mitglieder.includes(fid) ? undefined : get().speichereGruppe({ ...g, mitglieder: [...g.mitglieder, fid] }),
+        hauptgruppeFehlt ? get().speichereFigur({ ...f, gruppe: gid }) : undefined,
+      ]);
     },
 
     async mitgliedEntfernen(gid, fid) {
       const g = gruppe(gid);
       const f = daten().figuren[fid];
+      const rollen = g.rollen && fid in g.rollen ? Object.fromEntries(Object.entries(g.rollen).filter(([k]) => k !== fid)) : g.rollen;
+      const naechste = Object.values(daten().gruppen).find((x) => x.id !== gid && x.mitglieder.includes(fid));
       await Promise.all([
-        g.mitglieder.includes(fid)
-          ? get().speichereGruppe({ ...g, mitglieder: g.mitglieder.filter((m) => m !== fid) })
+        g.mitglieder.includes(fid) || rollen !== g.rollen
+          ? get().speichereGruppe(ohneUndefined({ ...g, mitglieder: g.mitglieder.filter((m) => m !== fid), rollen: rollen && Object.keys(rollen).length ? rollen : undefined }))
           : undefined,
-        f && f.gruppe === gid ? get().speichereFigur({ ...f, gruppe: null }) : undefined,
+        f && f.gruppe === gid ? get().speichereFigur({ ...f, gruppe: naechste?.id ?? null }) : undefined,
       ]);
+    },
+
+    async gruppenRolleSetzen(gid, fid, rolle) {
+      const g = gruppe(gid);
+      const r = rolle.trim();
+      const rollen = { ...(g.rollen ?? {}) };
+      if (r) rollen[fid] = r;
+      else delete rollen[fid];
+      await get().speichereGruppe(ohneUndefined({ ...g, rollen: Object.keys(rollen).length ? rollen : undefined }));
     },
 
     async spurStatusSetzen(gid, sid, status) {
