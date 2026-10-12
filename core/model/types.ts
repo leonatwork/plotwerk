@@ -184,6 +184,17 @@ export interface Beziehung {
 
 export type FigurRolle = 'haupt' | 'neben' | 'statist';
 
+/** F-16: Kontext zu einem Spitznamen (der Name selbst steht in `Figur.aliase`, das die Erkennung speist). */
+export interface SpitznameKontext {
+  /** wie in `aliase` */
+  name: string;
+  /** Figuren, die die Figur so nennen */
+  von?: Id[];
+  /** gilt ab diesem Kapitel (früher im Text → Hinweis) */
+  abKapitel?: Id;
+  notiz?: string;
+}
+
 /** figuren/<id>.md – Body-Abschnitte „## Wahrheit hinter den Kulissen“ und „## Notizen“ (beide privat) */
 export interface Figur {
   id: Id;
@@ -211,6 +222,8 @@ export interface Figur {
    * (Hauptfigur 3, Nebenfigur 6, Statist nie)
    */
   ruheSchwelle?: number | null;
+  /** F-16: Kontext je Spitzname (nur für Namen in `aliase`) */
+  spitznamen?: SpitznameKontext[];
 }
 
 export type GruppenTyp = 'antagonist' | 'firma' | 'familie' | 'sonstige';

@@ -68,3 +68,29 @@ describe('Figurenkarte – Abschnitt „Bogen“', () => {
     expect(screen.getByRole('button', { name: /Erste Stufe planen/ })).toBeInTheDocument();
   });
 });
+
+describe('Figurenkarte – Spitznamen als Chips (F-08/F-16)', () => {
+  it('Enter und Komma fügen hinzu, × entfernt; Klick öffnet den Kontext (wer, ab wann)', async () => {
+    useStore.getState().waehle({ figur: 'ole' });
+    render(<Figuren />);
+    const feld = screen.getByLabelText('Auch genannt / Spitzname');
+    fireEvent.change(feld, { target: { value: 'Fenster-Ole' } });
+    fireEvent.keyDown(feld, { key: 'Enter' });
+    fireEvent.change(feld, { target: { value: 'der Kollege, Olli,' } });
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.figuren.ole!.aliase).toEqual(['Fenster-Ole', 'der Kollege', 'Olli']);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Olli' }));
+    const kontext = screen.getByRole('group', { name: 'Kontext zu Olli' });
+    fireEvent.change(within(kontext).getAllByRole('combobox')[0]!, { target: { value: 'paul' } });
+    fireEvent.change(within(kontext).getAllByRole('combobox')[1]!, { target: { value: 'ebbe' } });
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.figuren.ole!.spitznamen).toEqual([{ name: 'Olli', von: ['paul'], abKapitel: 'ebbe' }]);
+
+    // Entfernen nimmt den Kontext mit
+    fireEvent.click(screen.getByRole('button', { name: 'Olli entfernen' }));
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.figuren.ole!.aliase).toEqual(['Fenster-Ole', 'der Kollege']);
+    expect(useStore.getState().daten!.figuren.ole!.spitznamen).toBeUndefined();
+  });
+});
