@@ -19,7 +19,7 @@ beforeEach(async () => {
 describe('Threads, plot line grid and scenes in English', () => {
   it('thread board with columns, idle warnings and inspector', () => {
     const { container } = render(<Faeden />);
-    expect(screen.getByRole('heading', { name: 'Threads' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Loose ends' })).toBeInTheDocument();
     const geplant = screen.getByRole('region', { name: /^Resolution planned/ });
     expect(within(geplant).getByText('Resolution Ch. 10')).toBeInTheDocument();
     expect(screen.getAllByText(/idle for \d+ chapters/).length).toBeGreaterThan(0);

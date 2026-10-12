@@ -8,6 +8,8 @@ import { IdeeInspektor, KapitelPlanInspektor } from './KapitelInspektor';
 import { strangFarbe, strangGeplant } from './gemeinsam';
 import { Inspektor } from '../../ui';
 import { StrangRaster } from '../faeden/StrangRaster';
+import { StrangInspektor } from '../faeden/StrangInspektor';
+import { straengeSortiert } from '@core/struktur/straenge';
 import { texte, useTexte } from '../../i18n';
 
 /** Segment in der Titelleiste: zwei Board-Ansichten (Planung) und das Strang-Raster (G2). */
@@ -21,6 +23,8 @@ export default function Ansicht() {
   const ideeId = useStore((s) => s.planung.ideeAuswahl);
   const aktHinzufuegen = useStore((s) => s.planung.aktHinzufuegen);
   const darstellung = useStore((s) => s.struktur.akteDarstellung);
+  const rasterKapitel = useStore((s) => s.struktur.rasterKapitel);
+  const waehleStrang = useStore((s) => s.struktur.waehleStrang);
   const t = useTexte();
   if (!daten) return null;
   const idee = ideeId ? daten.ideen.find((i) => i.id === ideeId) : undefined;
@@ -55,7 +59,11 @@ export default function Ansicht() {
           <Board daten={daten} index={index} ansicht={ansicht} />
         )}
       </div>
-      {idee ? (
+      {darstellung === 'straenge' && !(rasterKapitel && planId && daten.plaene[planId]) ? (
+        <StrangInspektor daten={daten} />
+      ) : darstellung === 'straenge' && planId ? (
+        <KapitelPlanInspektor key={planId} id={planId} daten={daten} index={index} zurueck={() => waehleStrang(null)} />
+      ) : idee ? (
         <IdeeInspektor idee={idee} daten={daten} />
       ) : planId && daten.plaene[planId] ? (
         <KapitelPlanInspektor key={planId} id={planId} daten={daten} index={index} />
@@ -81,12 +89,13 @@ export function Seitenleiste() {
       {daten.straenge.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px', fontSize: 12 }}>
           <span style={kopf}>{t.akte.legende.straenge}</span>
-          {daten.straenge.map((s) => {
+          {straengeSortiert(daten.straenge).map((s) => {
             const geplant = strangGeplant(s, daten);
             return (
-              <span key={s.id} style={zeile}>
+              <span key={s.id} style={zeile} title={s.beschreibung}>
                 <StrangPunkt farbe={strangFarbe(s.farbe)} groesse={10} geplant={geplant} />
-                {s.name}
+                <span style={s.rolle === 'haupt' ? { fontWeight: 600 } : undefined}>{s.name}</span>
+                {s.rolle && <span style={{ fontSize: 10, color: 'var(--ink-quiet)' }}>{t.faeden.raster.rolle[s.rolle]}</span>}
                 {geplant && <span style={{ fontSize: 10, color: 'var(--ink-quiet)' }}>{t.akte.legende.geplant}</span>}
               </span>
             );

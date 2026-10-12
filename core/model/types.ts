@@ -111,8 +111,10 @@ export interface KapitelPlan {
   /** Aktnummer; null = noch keinem Akt zugeordnet */
   akt: number | null;
   status: KapitelStatus;
-  /** Titel der geplanten Szene, z. B. „Paul trifft Lotte am Lindenhof“ */
+  /** Kurzbeschreibung in einer Zeile (Oberfläche „Kurzbeschreibung“, früher „Geplante Szene“), z. B. „Paul trifft Lotte am Lindenhof“ */
   szene: string;
+  /** Funktion des Kapitels im Buch, z. B. „Opening“, „Wendepunkt“ (Vorschläge in der Oberfläche oder frei). Nicht an die KI. */
+  funktion?: string;
   straenge: Id[];
   figuren: Id[];
   orte: Id[];
@@ -135,6 +137,9 @@ export interface Akt {
   antagonisten: Id[];
 }
 
+/** Haupthandlung oder Nebenhandlung */
+export type StrangRolle = 'haupt' | 'neben';
+
 /** plan/straenge.md – Frontmatter {straenge: Strang[]} */
 export interface Strang {
   id: Id;
@@ -143,6 +148,10 @@ export interface Strang {
   farbe: string;
   /** Wenn der Strang zu einer Gruppe (Antagonist) gehört */
   gruppe?: Id;
+  /** Haupthandlung oder Nebenhandlung; fehlt = nicht festgelegt */
+  rolle?: StrangRolle;
+  /** „Wofür steht der Strang?“ – Zweck des Erzählstrangs in Leons Worten */
+  beschreibung?: string;
 }
 
 /** plan/ideen.md – Frontmatter {ideen: Idee[]} */
@@ -455,6 +464,8 @@ export interface ProjektDaten {
   kiLeser?: KiAblage<LeserStand>;
   /** G6 .plotwerk/fragen.json */
   kiFragen?: KiAblage<BuchFrage>;
+  /** G2 .plotwerk/strang-vorschlaege.json */
+  kiStrangVorschlaege?: KiAblage<StrangVorschlag>;
 }
 
 // ---------------------------------------------------------------------------
@@ -682,6 +693,37 @@ export interface FadenPlan {
   /** Warnung, wenn der Faden länger als so viele Kapitel ruht (überschreibt den Standard) */
   ruheSchwelle?: number;
   strang?: Id;
+}
+
+/**
+ * KI-Vorschlag zu Erzählsträngen (.plotwerk/strang-vorschlaege.json). Leon übernimmt oder verwirft jeden Vorschlag;
+ * Verworfenes wird nie erneut vorgeschlagen (Abgleich über `schluessel`).
+ * - zuordnung: Kapitel `kapitel[0]` gehört zum angelegten Strang `strang` (Schlüssel „zuordnung:<strang>|<kapitel>“)
+ * - neu: ein noch nicht angelegter Strang mit Name, Rolle, Zweck und Kapiteln (Schlüssel „strang:<slug des Namens>“)
+ * - frage: Rückfrage an Leon (Schlüssel „frage:<slug der Frage>“); seine Antwort geht beim nächsten Lauf mit
+ */
+export interface StrangVorschlag {
+  schluessel: string;
+  art: 'zuordnung' | 'neu' | 'frage';
+  /** zuordnung: ID des angelegten Strangs · frage: betroffener Strang, falls einer */
+  strang?: Id;
+  /** neu: Name des vorgeschlagenen Strangs */
+  name?: string;
+  rolle?: StrangRolle;
+  /** neu: Zweck in einem sachlichen Satz (wird bei der Übernahme zu Strang.beschreibung) */
+  beschreibung?: string;
+  /** Kapitel in Buchreihenfolge (zuordnung: genau eins) */
+  kapitel: Id[];
+  /** frage: die Rückfrage */
+  frage?: string;
+  /** frage: Leons Antwort (dann status 'uebernommen') */
+  antwort?: string;
+  begruendung: string;
+  /** wörtliche Zitate (E6), mindestens eins je Kapitel */
+  belege: Zitat[];
+  status: VorschlagsStatus;
+  /** neu: nach der Übernahme die ID des angelegten Strangs */
+  angelegt?: Id;
 }
 
 /** plan/faeden.md – Frontmatter {ruheSchwelle, faeden}. Status bleibt in entscheidungen.faeden. */

@@ -92,6 +92,11 @@ export function KapitelKarte({
         )}
       </span>
       <strong style={{ fontSize: 14 }}>{titel}</strong>
+      {plan.funktion && (
+        <span className="pl-etikett" style={{ alignSelf: 'flex-start', background: 'var(--chip)', color: 'var(--ink-soft)' }}>
+          {plan.funktion}
+        </span>
+      )}
       {szene && <span style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic' }}>{szene}</span>}
       {zeile ? (
         <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{zeile}</span>

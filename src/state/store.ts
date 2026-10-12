@@ -23,6 +23,7 @@ import type {
   Recherche,
   Schreibstatistik,
   StimmenBeobachtung,
+  StrangVorschlag,
   Zeitleiste,
   ZeitVorschlag,
   ZustandVorschlag,
@@ -91,6 +92,8 @@ export type DialogId =
   | 'zeit-vorschlaege'
   /** G3: Figurenstimme prüfen; param {figur?: Id} */
   | 'stimme-pruefen'
+  /** G2: KI schlägt Erzählstränge, Zuordnungen und Rückfragen vor */
+  | 'straenge-vorschlagen'
   /** G4: Markennamen-Übersicht */
   | 'marken'
   /** G5: benannte Fassung anlegen */
@@ -216,6 +219,8 @@ export interface Basis {
   speichereKiLeser(a: KiAblage<LeserStand>): Promise<void>;
   /** G6 .plotwerk/fragen.json */
   speichereKiFragen(a: KiAblage<BuchFrage>): Promise<void>;
+  /** G2 .plotwerk/strang-vorschlaege.json */
+  speichereKiStrangVorschlaege(a: KiAblage<StrangVorschlag>): Promise<void>;
   /** G8 Binärdatei lesen (nur unter recherche/); null = fehlt */
   leseBinaerDatei(pfad: string): Promise<Uint8Array | null>;
   /** G8 Binärdatei atomar schreiben (nur unter recherche/, Rust fs_schreiben_binaer) */
@@ -707,6 +712,8 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     speichereKiStimmen: (a) => speichereFeld('kiStimmen', a, persistenz.PFADE.kiStimmen, persistenz.speichereKiStimmen),
     speichereKiLeser: (a) => speichereFeld('kiLeser', a, persistenz.PFADE.kiLeser, persistenz.speichereKiLeser),
     speichereKiFragen: (a) => speichereFeld('kiFragen', a, persistenz.PFADE.kiFragen, persistenz.speichereKiFragen),
+    speichereKiStrangVorschlaege: (a) =>
+      speichereFeld('kiStrangVorschlaege', a, persistenz.PFADE.kiStraenge, persistenz.speichereKiStrangVorschlaege),
 
     leseBinaerDatei: (pfad) => persistenz.leseBinaer(binaerFs(), pfad, sprache()),
     async speichereBinaerDatei(pfad, inhalt) {

@@ -138,7 +138,7 @@ export const figuren: Form<typeof de> = {
       typ: {
         pruefen: 'Check',
         schreibweise: 'Spelling',
-        offener_faden: 'Open thread',
+        offener_faden: 'Loose end',
         unbekannt: 'Unknown',
         struktur: 'Structure',
         zeitleiste: 'Timeline',

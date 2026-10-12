@@ -19,7 +19,7 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 | E9 | **Speichern** atomar (temp + fsync + rename), Debounce 1,5 s, bei Dauertippen spätestens 1,8 s nach der ersten ungespeicherten Eingabe (0,2 s Reserve fürs Schreiben): jede Eingabe liegt nach höchstens 2 s auf der Platte. | Absturzsicherheit |
 | E10 | **Struktur-Hinweise lokal** (leeres Kapitel, Satzabbruch am Kapitelende, leere Überschrift beim Import, doppelte Leerzeilen …), ohne KI. | schon in Phase 1 |
 | E11 | **KI-Aufruf im Rust-Kern** (`ki_anfrage`), Schlüssel nur im macOS-Schlüsselbund (je Anbieter ein Eintrag), nie in der Web-Oberfläche. Prompt-Aufbau und Antwortprüfung in TypeScript (`core/ki`), die nur `ProjektLeser` und `KiTransport` kennt. | Schlüssel und Schreibschutz |
-| E12 | **Allowlist** für alles, was an das Modell geht: Kapiteltext, Kapiteltitel, Figuren-/Ortsnamen + Aliase, Gewissheit von Figuren und Stellen (`existenz`/`realitaet`), Gruppen-Namen, **Plan-Felder von Figuren (`plan`) und Kapitelplänen (Szene, „Was soll hier passieren?“)** – freigegeben von Leon am 2026-10-09 für F-05. Nie: `wahrheit`, `notizen`, `kurz`, Ortsbeschreibungen, Abweichungen, Akte, Stränge, Anmerkungen, Ideen. Werkzeuge (2026-10-10): Die **Namen der Zustandsarten** (`plan/zeitleiste.md`, z. B. „nüchtern“, „betrunken“) gehen als Antwortvokabular der Zustands-Aufgabe (G1) mit – nur die Namen, keine eingetragenen Zustände, Zeitpunkte oder Notizen; von Leon am 2026-10-11 bestätigt. | private Felder können nicht durchrutschen; Plan ↔ Text-Abgleich (F-05) |
+| E12 | **Allowlist** für alles, was an das Modell geht: Kapiteltext, Kapiteltitel, Figuren-/Ortsnamen + Aliase, Gewissheit von Figuren und Stellen (`existenz`/`realitaet`), Gruppen-Namen, **Plan-Felder von Figuren (`plan`) und Kapitelplänen (Szene, „Was soll hier passieren?“)** – freigegeben von Leon am 2026-10-09 für F-05. Nie: `wahrheit`, `notizen`, `kurz`, Ortsbeschreibungen, Abweichungen, Akte, Stränge, Anmerkungen, Ideen. Werkzeuge (2026-10-10): Die **Namen der Zustandsarten** (`plan/zeitleiste.md`, z. B. „nüchtern“, „betrunken“) gehen als Antwortvokabular der Zustands-Aufgabe (G1) mit – nur die Namen, keine eingetragenen Zustände, Zeitpunkte oder Notizen; von Leon am 2026-10-11 bestätigt. **Stränge (2026-10-12):** Für die Aufgabe „Stränge vorschlagen“ (G2) gehen Name, Haupt-/Nebenhandlung (`rolle`), „Wofür steht der Strang?“ (`beschreibung`) und die Plan-Kapitel jedes Strangs sowie Leons Antworten auf frühere Rückfragen mit – nur im Aufgabentext, nicht im gecachten Prefix; von Leon am 2026-10-12 freigegeben. Die `funktion` eines Kapitels geht nicht an die KI. | private Felder können nicht durchrutschen; Plan ↔ Text-Abgleich (F-05) |
 | E13 | **Ganzes Buch als gecachter Prefix** (Prompt Caching) + Aufgaben pro Kapitel; Ergebnis-Cache pro Kapitel-Text-Hash. Token-Schätzung über `count_tokens`. | einfacher, findet kapitelübergreifende Widersprüche |
 | E14 | **Zwei KI-Anbieter, Wahl in den Einstellungen** (`projekt.ki.anbieter`, fehlt = Foundry): **Microsoft Foundry** (Endpoint `https://<resource>.services.ai.azure.com/anthropic`, eingetragen werden Deployment-Namen; Schlüsselbund-Konto `azure-foundry`) oder **Claude API** von Anthropic (Basis-URL `https://api.anthropic.com`, überschreibbar; Modell-IDs; Konto `anthropic-api`). Die Einstellungen des anderen Anbieters bleiben beim Umschalten erhalten. Modelle: `claude-haiku-5-5` (Erkennung), `claude-sonnet-5-5` (Prüfung), `claude-opus-5-5` (Tiefencheck). Nur Claude API: bei Sonnet/Opus 5.5 serverseitiger Fallback `fallbacks: "default"` (Beta `server-side-fallback-2026-07-01`), gesetzt in der Transportschicht. Hosting/Region egal (Leon akzeptiert Verarbeitung in den USA). | Leons Vorgabe |
 
@@ -39,10 +39,10 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 ├── projekt.md                 Frontmatter: version, titel, kapitel[], ki{endpoint, deployments, anbieter, claude{endpoint, modelle}}
 ├── manuskript/<id>.md         Frontmatter: id, titel · Body: Markdown
 ├── plan/akte.md               Frontmatter: akte[]
-├── plan/straenge.md           Frontmatter: straenge[]
+├── plan/straenge.md           Frontmatter: straenge[] (id, name, farbe, gruppe?, rolle? haupt|neben, beschreibung?)
 ├── plan/ideen.md              Frontmatter: ideen[]
 ├── plan/motive.md             Frontmatter: motive[] (id, name, aliase) – Motive im Tab „Erkannt“ (S-10)
-├── plan/kapitel/<id>.md       Frontmatter: KapitelPlan ohne notiz · Body: notiz
+├── plan/kapitel/<id>.md       Frontmatter: KapitelPlan ohne notiz (szene = „Kurzbeschreibung“, funktion? = „Funktion im Buch“) · Body: notiz
 ├── figuren/<id>.md            Frontmatter: Figur ohne wahrheit/notizen · Body: "## Wahrheit hinter den Kulissen" + "## Notizen"
 ├── gruppen/<id>.md            Frontmatter: Gruppe ohne notizen · Body: "## Notizen"
 ├── orte/<id>.md               Frontmatter: Ort ohne beschreibung/notizen · Body: Beschreibung + "## Notizen"
@@ -68,6 +68,7 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 ├── .plotwerk/stimmen.json              G3 KiAblage<StimmenBeobachtung>
 ├── .plotwerk/leser.json                G6 KiAblage<LeserStand> (weiss, fragen, vermutungen, spannung, plan)
 ├── .plotwerk/fragen.json               G6 KiAblage<BuchFrage> (imBuch: false = „steht nicht im Buch“)
+├── .plotwerk/strang-vorschlaege.json   G2 KiAblage<StrangVorschlag> (zuordnung, neu, frage; Antworten auf Rückfragen)
 └── .versionen/…               Schnappschüsse (Binärdateien: .versionen/recherche/…/<Zeitstempel>.<endung>)
 ```
 
@@ -129,7 +130,7 @@ Gemeinsame Grundlage (Fundament, nur additiv ändern): Typen in `core/model/type
 | Gruppe | Eigene Pfade | Einhängepunkte in fremden Bereichen |
 | --- | --- | --- |
 | G1 Zeit & Zustand | `src/features/zeitleiste/`, `src/state/slices/zeit.ts`, `core/zeit/`, `core/ki/zeit.ts`, `src/backend/ki/demoAntworten/zeit.ts` | `zeitHinweise()` (core/zeit) fließt in core/index-Hinweise |
-| G2 Plot-Struktur | `src/features/faeden/`, `src/state/slices/struktur.ts`, `core/struktur/faeden.ts`, `core/struktur/szenen.ts` | `StrangRaster` (Akte planen, Segment „Stränge“), `SzenenUebersicht` (Kapitel-Überblick), `SzenenKarte` (Schreiben-Inspektor, Tab Plan) |
+| G2 Plot-Struktur | `src/features/faeden/`, `src/state/slices/struktur.ts`, `core/struktur/faeden.ts`, `core/struktur/szenen.ts`, `core/struktur/straenge.ts`, `core/ki/straenge.ts`, `src/backend/ki/demoAntworten/struktur.ts` | `StrangRaster` und `StrangInspektor` (Akte planen, Segment „Stränge“), `KapitelStrangVorschlaege` (Kapitel-Inspektor), `SzenenUebersicht` (Kapitel-Überblick), `SzenenKarte` (Schreiben-Inspektor, Tab Plan) |
 | G3 Figuren | `src/features/figuren/Boegen*.tsx`, `Stimme*.tsx`, `src/state/slices/figurenbogen.ts`, `core/figuren/`, `core/ki/stimme.ts`, `core/ki/stimmeRede.ts`, `src/backend/ki/demoAntworten/figuren.ts` | `FigurenBoegen` (Figuren, Segment „Bögen“), Spalte „Stimme“ an der Figurenkarte; `stimmenHinweise()` fließt in core/index-Hinweise (Typ `sprache`) |
 | G4 Editor | `src/features/schreiben/werkzeuge/`, `src/state/slices/editorwerkzeuge.ts`, `core/stil/`, `src/backend/tauri/vorlesen.ts`, `src-tauri/src/vorlesen.rs` | `editorErweiterungen()`, `<EditorWerkzeuge>` (Editor), `<EditorWerkzeugleiste>` (Statusleiste), Tab „Stil“ (Schreiben-Inspektor) |
 | G5 Versionen & Statistik | `src/features/statistik/`, `src/state/slices/statistik.ts`, `core/statistik/` | `<SchreibzielAnzeige>` (Statusleiste); Schnappschüsse über `schnappschuss(pfad, 'benannt')` |
@@ -138,9 +139,9 @@ Gemeinsame Grundlage (Fundament, nur additiv ändern): Typen in `core/model/type
 | G8 Recherche & Mac | `src/features/recherche/`, `src/state/slices/recherche.ts`, `core/recherche/`, `scripts/`, Tauri-Konfiguration für Signatur/Updater (`docs/mac-verteilung.md`) | `RechercheLeiste` an Figurenkarte, Ortskarte, Kapitel-Überblick, Schreiben-Inspektor (Plan) und Szenen-Formular |
 
 Neue Bereiche (Seitenleisten-Gruppe „Werkzeuge“, einklappbar): `zeitleiste` (⌘8), `faeden` (⌘9), `recherche` (⌘0),
-`statistik`, `fragen`. Neue Dialoge: `zeit-vorschlaege`, `stimme-pruefen`, `marken`, `fassung`, `versionsvergleich`,
+`statistik`, `fragen`. Neue Dialoge: `zeit-vorschlaege`, `stimme-pruefen`, `straenge-vorschlagen`, `marken`, `fassung`, `versionsvergleich`,
 `leser-simulation`, `abgabe-export`, `rueckimport`, `recherche-eintrag`. Befehle (Menü, Schnellsuche):
-`zeit-vorschlaege`, `stimme-pruefen`, `marken`, `typewriter` (⌘⇧T), `wiederholungen`, `vorlesen`, `fassung`,
+`zeit-vorschlaege`, `stimme-pruefen`, `straenge-vorschlagen`, `marken`, `typewriter` (⌘⇧T), `wiederholungen`, `vorlesen`, `fassung`,
 `versionsvergleich`, `leser-simulation`, `abgabe`, `rueckimport`, `recherche-neu`, `faden-neu`. Fassung sichern: ⌘⇧S.
 Solange ein Dialog offen ist, wechseln ⌘-Bereichstasten nicht den Bereich dahinter. Anzeigenamen der Hinweis-Typen:
 `core/index/hinweisTypen.ts` (Hinweise-Ansicht und Lektoratsmappe).

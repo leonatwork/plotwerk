@@ -117,6 +117,13 @@ const de = {
   planAbgleichOhneStatus: 'Plan-Abgleich ohne gültigen Status',
   nameFrage: 'Frage an das Buch',
   antwortFehlt: 'Antwort fehlt',
+
+  // Erzählstränge (straenge.ts)
+  nameStraenge: 'Stränge vorschlagen',
+  strangUnbekannt: 'unbekannter Strang „{strang}“',
+  schonImPlan: 'Kap. {nr} steht schon beim Strang „{name}“',
+  strangGibtEs: 'den Strang „{name}“ gibt es schon',
+  ohneKapitel: 'ohne Kapitel mit Beleg',
 };
 
 const en: typeof de = {
@@ -221,6 +228,12 @@ const en: typeof de = {
   planAbgleichOhneStatus: 'Plan comparison without a valid status',
   nameFrage: 'Question to the book',
   antwortFehlt: 'Answer missing',
+
+  nameStraenge: 'Suggest plot lines',
+  strangUnbekannt: 'unknown plot line “{strang}”',
+  schonImPlan: 'Ch. {nr} is already part of the plot line “{name}”',
+  strangGibtEs: 'the plot line “{name}” already exists',
+  ohneKapitel: 'no chapter with evidence',
 };
 
 /** Wörterbuch der core/ki-Meldungen je Oberflächensprache. */

@@ -43,7 +43,7 @@ export const kapitel: Form<typeof de> = {
     titel: 'LOOSE ENDS SO FAR',
     offen: '{n} open',
     keineBekannt: 'No loose ends known yet. They come up when chapters are checked.',
-    keinFaden: 'No thread has been opened up to here.',
+    keinFaden: 'No loose end has been opened up to here.',
     wiederOffen: 'mark as open again',
     erledigt: 'done',
     bewusstOffen: 'deliberately open',

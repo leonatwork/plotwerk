@@ -24,6 +24,7 @@ const BEFEHLE: { befehl: Befehl; text: BefehlText }[] = [
   // Werkzeuge G1–G8
   { befehl: 'zeit-vorschlaege', text: 'zeitVorschlaege' },
   { befehl: 'stimme-pruefen', text: 'stimmePruefen' },
+  { befehl: 'straenge-vorschlagen', text: 'straengeVorschlagen' },
   { befehl: 'marken', text: 'marken' },
   { befehl: 'typewriter', text: 'typewriter' },
   { befehl: 'wiederholungen', text: 'wiederholungen' },

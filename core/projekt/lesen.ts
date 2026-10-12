@@ -52,6 +52,7 @@ import type {
   RealitaetsEintrag,
   Spur,
   Strang,
+  StrangVorschlag,
   TextAnker,
   Verweis,
 } from '../model/types';
@@ -107,6 +108,8 @@ export const PFADE = {
   kiLeser: '.plotwerk/leser.json',
   /** G6 Fragen an das Buch (KiAblage<BuchFrage>) */
   kiFragen: '.plotwerk/fragen.json',
+  /** G2 KI-Vorschläge zu Erzählsträngen (KiAblage<StrangVorschlag>) */
+  kiStraenge: '.plotwerk/strang-vorschlaege.json',
 } as const;
 
 export const kapitelPfad = (id: Id): string => `${PFADE.manuskript}/${id}.md`;
@@ -360,6 +363,7 @@ export function parseKapitelPlan(text: string, id?: Id): KapitelPlan {
     akt: akt === null || Number.isNaN(akt) ? null : akt,
     status: eines(daten.status, ['geplant', 'entwurf', 'geschrieben'] as const, 'geplant'),
     szene: s(daten.szene),
+    ...(sOpt(daten.funktion) ? { funktion: s(daten.funktion) } : {}),
     straenge: texte(daten.straenge),
     figuren: texte(daten.figuren),
     orte: texte(daten.orte),
@@ -384,11 +388,22 @@ export function parseAkte(text: string): Akt[] {
     }));
 }
 
+const STRANG_ROLLEN = ['haupt', 'neben'] as const;
+
 export function parseStraenge(text: string): Strang[] {
   const { daten } = parseFrontmatter(text);
   return liste(daten.straenge)
     .filter(istObjekt)
-    .map((st) => ohneUndefined({ id: s(st.id), name: s(st.name), farbe: s(st.farbe), gruppe: sOpt(st.gruppe) }))
+    .map((st) =>
+      ohneUndefined({
+        id: s(st.id),
+        name: s(st.name),
+        farbe: s(st.farbe),
+        gruppe: sOpt(st.gruppe),
+        rolle: STRANG_ROLLEN.find((r) => r === st.rolle),
+        beschreibung: sOpt(st.beschreibung),
+      }),
+    )
     .filter((st) => st.id !== '');
 }
 
@@ -1029,6 +1044,30 @@ export function parseKiStimmen(text: string): KiAblage<StimmenBeobachtung> {
   });
 }
 
+const STRANG_VORSCHLAG_ARTEN = ['zuordnung', 'neu', 'frage'] as const;
+
+export function parseKiStrangVorschlaege(text: string): KiAblage<StrangVorschlag> {
+  return parseKiAblage(text, (v) => {
+    const art = STRANG_VORSCHLAG_ARTEN.find((a) => a === v.art);
+    if (!s(v.schluessel) || !art) return null;
+    return ohneUndefined<StrangVorschlag>({
+      schluessel: s(v.schluessel),
+      art,
+      strang: sOpt(v.strang),
+      name: sOpt(v.name),
+      rolle: STRANG_ROLLEN.find((r) => r === v.rolle),
+      beschreibung: sOpt(v.beschreibung),
+      kapitel: texte(v.kapitel),
+      frage: sOpt(v.frage),
+      antwort: sOpt(v.antwort),
+      begruendung: s(v.begruendung),
+      belege: parseZitate(v.belege),
+      status: eines(v.status, VORSCHLAGS_STATI, 'neu'),
+      angelegt: sOpt(v.angelegt),
+    });
+  });
+}
+
 export function parseKiLeser(text: string): KiAblage<LeserStand> {
   return parseKiAblage(text, (v) => {
     if (!s(v.kapitel)) return null;
@@ -1177,12 +1216,13 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
     lies(PFADE.lektorat, parseLektorat),
     lies(PFADE.recherche, parseRecherche),
   ]);
-  const [kiZeitVorschlaege, kiZustandVorschlaege, kiStimmen, kiLeser, kiFragen] = await Promise.all([
+  const [kiZeitVorschlaege, kiZustandVorschlaege, kiStimmen, kiLeser, kiFragen, kiStrangVorschlaege] = await Promise.all([
     lies(PFADE.kiZeit, parseKiZeitVorschlaege),
     lies(PFADE.kiZustand, parseKiZustandVorschlaege),
     lies(PFADE.kiStimmen, parseKiStimmen),
     lies(PFADE.kiLeser, parseKiLeser),
     lies(PFADE.kiFragen, parseKiFragen),
+    lies(PFADE.kiStraenge, parseKiStrangVorschlaege),
   ]);
 
   const projekt: Projekt = projektRoh ?? { version: 1, titel: '', kapitel: [], notiz: '' };
@@ -1237,6 +1277,7 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
       ...(kiStimmen ? { kiStimmen } : {}),
       ...(kiLeser ? { kiLeser } : {}),
       ...(kiFragen ? { kiFragen } : {}),
+      ...(kiStrangVorschlaege ? { kiStrangVorschlaege } : {}),
     },
     warnungen,
   };

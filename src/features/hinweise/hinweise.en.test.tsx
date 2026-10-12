@@ -29,7 +29,7 @@ describe('Hinweise-Ansicht auf Englisch', () => {
     expect(within(filter).getByRole('option', { name: 'All chapters' })).toBeInTheDocument();
 
     const gruppen = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
-    expect(gruppen).toEqual(expect.arrayContaining(['Check', 'Spelling', 'Open thread', 'Unknown', 'Timeline']));
+    expect(gruppen).toEqual(expect.arrayContaining(['Check', 'Spelling', 'Loose end', 'Unknown', 'Timeline']));
     expect(screen.getByText('details that might contradict each other')).toBeInTheDocument();
 
     const inspektor = screen.getByRole('complementary', { name: 'Note inspector' });
@@ -54,7 +54,7 @@ describe('Hinweise-Ansicht auf Englisch', () => {
   it('Typ- und Status-Bezeichnungen sowie der Kontext folgen der Sprache', () => {
     expect(STATUS_LABEL).toMatchObject({ neu: 'New', absicht: 'Intentional', erledigt: 'Done' });
     expect(TYP_LABEL.pruefen).toBe('Check');
-    expect(HINWEIS_TYPEN.map((t) => t.label)).toEqual(['Check', 'Spelling', 'Open thread', 'Unknown', 'Structure', 'Timeline', 'Language']);
+    expect(HINWEIS_TYPEN.map((t) => t.label)).toEqual(['Check', 'Spelling', 'Loose end', 'Unknown', 'Structure', 'Timeline', 'Language']);
     expect(kontext(useStore.getState())).toMatch(/^Notes( · \d+ new)?$/);
     festeSprache('de');
     expect(STATUS_LABEL.absicht).toBe('Ist Absicht');

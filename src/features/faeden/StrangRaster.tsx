@@ -7,25 +7,15 @@
  */
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { ProjektDaten, Strang } from '@core/model/types';
-import { fadenSlug, RUHE_STANDARD, strangRaster, type RasterZeile, type RasterZelle } from '@core/struktur/faeden';
+import { RUHE_STANDARD, strangRaster, type RasterZeile, type RasterZelle } from '@core/struktur/faeden';
+import { freieStrangFarbe, neueStrangId, offeneStrangVorschlaege, STRANG_FARBEN, straengeSortiert } from '@core/struktur/straenge';
 import { useStore } from '../../state/store';
 import { Button, klassen, LeerZustand, StrangPunkt } from '../../ui';
 import { strangFarbe, strangGeplant } from '../akte/gemeinsam';
 import { kapitelVoll, roemisch } from './gemeinsam';
-import { f, texte, useTexte, type Woerterbuch } from '../../i18n';
+import { f, texte, useTexte } from '../../i18n';
 import './faeden.css';
 
-type FarbName = keyof Woerterbuch['faeden']['raster']['farben'];
-
-/** Farben für neue Stränge (Hex wie in plan/straenge.md; die Anzeige läuft über strangFarbe → Token). */
-const STRANG_FARBEN: { hex: string; name: FarbName }[] = [
-  { hex: '#3D5A75', name: 'blau' },
-  { hex: '#C2405C', name: 'rosa' },
-  { hex: '#A86A12', name: 'ocker' },
-  { hex: '#6A4C9C', name: 'violett' },
-  { hex: '#2F6B45', name: 'gruen' },
-  { hex: '#4A4A4F', name: 'grau' },
-];
 
 function strangInfo(z: RasterZeile): { text: string; warn: boolean } {
   const t = texte().faeden.raster;
@@ -46,18 +36,16 @@ function zellenTitel(daten: ProjektDaten, strang: Strang, c: RasterZelle): strin
 
 function NeuerStrang({ daten, onFertig }: { daten: ProjektDaten; onFertig(): void }) {
   const speichern = useStore((s) => s.speichereStraenge);
+  const waehleStrang = useStore((s) => s.struktur.waehleStrang);
   const [name, setName] = useState('');
-  const frei = STRANG_FARBEN.find((f) => !daten.straenge.some((s) => s.farbe.toLowerCase() === f.hex.toLowerCase())) ?? STRANG_FARBEN[0]!;
-  const [farbe, setFarbe] = useState(frei.hex);
+  const [farbe, setFarbe] = useState(() => freieStrangFarbe(daten.straenge));
   const t = useTexte();
   const anlegen = () => {
     const n = name.trim();
     if (!n) return;
-    const belegt = new Set(daten.straenge.map((s) => s.id));
-    const basis = fadenSlug(n);
-    let id = basis;
-    for (let i = 2; belegt.has(id); i++) id = `${basis}-${i}`;
+    const id = neueStrangId(daten.straenge, n);
     void speichern([...daten.straenge, { id, name: n, farbe }]);
+    waehleStrang(id);
     onFertig();
   };
   return (
@@ -110,9 +98,20 @@ function NeuerStrang({ daten, onFertig }: { daten: ProjektDaten; onFertig(): voi
 export function StrangRaster({ daten }: { daten: ProjektDaten }) {
   const umschalten = useStore((s) => s.struktur.strangUmschalten);
   const waehle = useStore((s) => s.waehle);
+  const waehleStrang = useStore((s) => s.struktur.waehleStrang);
+  const setzeRasterKapitel = useStore((s) => s.struktur.setzeRasterKapitel);
+  const strangAuswahl = useStore((s) => s.struktur.strangAuswahl);
+  const rasterKapitel = useStore((s) => s.struktur.rasterKapitel);
+  const oeffneDialog = useStore((s) => s.oeffneDialog);
+  const kiLauf = useStore((s) => s.struktur.strangLauf);
   const gewaehlt = useStore((s) => s.auswahl.plan ?? s.auswahl.kapitel);
   const schwelle = daten.fadenplanung?.ruheSchwelle ?? RUHE_STANDARD;
-  const raster = useMemo(() => strangRaster(daten, schwelle), [daten, schwelle]);
+  const raster = useMemo(() => {
+    const r = strangRaster(daten, schwelle);
+    const reihe = straengeSortiert(daten.straenge).map((s) => s.id);
+    return { ...r, zeilen: [...r.zeilen].sort((a, b) => reihe.indexOf(a.strang) - reihe.indexOf(b.strang)) };
+  }, [daten, schwelle]);
+  const offeneVorschlaege = useMemo(() => offeneStrangVorschlaege(daten).length, [daten]);
   const [fokus, setFokus] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
   const [neu, setNeu] = useState(false);
   const gitter = useRef<HTMLDivElement>(null);
@@ -122,7 +121,19 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
   const n = raster.kapitel.length;
   if (daten.straenge.length === 0 && !neu)
     return (
-      <LeerZustand titel={tr.leerTitel} aktionen={<Button onClick={() => setNeu(true)}>{tr.plusStrang}</Button>}>
+      <LeerZustand
+        titel={tr.leerTitel}
+        aktionen={
+          <>
+            <Button onClick={() => setNeu(true)}>{tr.plusStrang}</Button>
+            {n > 0 && (
+              <Button disabled={kiLauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
+                {tr.kiVorschlagen}
+              </Button>
+            )}
+          </>
+        }
+      >
         {tr.leerText}
       </LeerZustand>
     );
@@ -193,11 +204,14 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
                   type="button"
                   className={klassen('fd-raster__kapitel', k.ohneText && 'fd-raster__kapitel--ohnetext')}
                   style={{ flex: 1 }}
-                  aria-current={gewaehlt === k.id ? 'true' : undefined}
+                  aria-current={rasterKapitel && gewaehlt === k.id ? 'true' : undefined}
                   title={f(tr.kapitelTitel, { kap: f(t.gemeinsam.kapitelKurz, { nr: k.nummer }), titel: k.titel, ohneText: k.ohneText ? tr.nochOhneText : '' })}
                   aria-label={f(tr.kapitelLabel, { nr: k.nummer, titel: k.titel })}
                   tabIndex={-1}
-                  onClick={() => waehle({ plan: k.id, kapitel: k.id })}
+                  onClick={() => {
+                    waehle({ plan: k.id, kapitel: k.id });
+                    setzeRasterKapitel(true);
+                  }}
                 >
                   {k.nummer}
                 </button>
@@ -213,10 +227,22 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
             return (
               <div key={z.strang} role="row" style={{ display: 'contents' }}>
                 <div role="rowheader" className="fd-raster__strang" style={{ gridRow: r + 3 }}>
-                  <span className="fd-raster__strangname">
+                  <button
+                    type="button"
+                    className="fd-raster__strangname"
+                    aria-current={!rasterKapitel && strangAuswahl === strang.id ? 'true' : undefined}
+                    title={f(tr.strangOeffnen, { name: strang.name })}
+                    tabIndex={-1}
+                    onClick={() => waehleStrang(strang.id)}
+                  >
                     <StrangPunkt farbe={farbe} groesse={10} geplant={geplant} />
-                    {strang.name}
-                  </span>
+                    <span className="fd-raster__strangtext">{strang.name}</span>
+                    {strang.rolle && (
+                      <span className={klassen('fd-rolle', strang.rolle === 'haupt' && 'fd-rolle--haupt')} title={tr.rolle[strang.rolle]}>
+                        {tr.rolleKurz[strang.rolle]}
+                      </span>
+                    )}
+                  </button>
                   <span className={klassen('fd-raster__info', info.warn && 'fd-raster__info--warn')}>{info.text}</span>
                 </div>
                 {z.zellen.map((c, i) => (
@@ -273,6 +299,14 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {verschwunden > 0 && <span className="fd-etikett fd-etikett--warn">{f(tr.verschwinden, { n: verschwunden })}</span>}
+          {offeneVorschlaege > 0 && (
+            <button type="button" className="fd-etikett fd-etikett--accent fd-etikett--knopf" onClick={() => waehleStrang(null)}>
+              {f(tr.vorschlaegeOffen, { n: offeneVorschlaege })}
+            </button>
+          )}
+          <Button klein variante="leise" disabled={kiLauf} onClick={() => oeffneDialog('straenge-vorschlagen')}>
+            {tr.kiVorschlagen}
+          </Button>
           {!neu && (
             <Button klein variante="leise" onClick={() => setNeu(true)}>
               {tr.plusStrang}

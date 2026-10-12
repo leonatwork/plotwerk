@@ -29,7 +29,7 @@ export const app = {
     orte: 'Orte',
     hinweise: 'Hinweise',
     zeitleiste: 'Zeitleiste',
-    faeden: 'Fäden',
+    faeden: 'Lose Enden',
     recherche: 'Recherche',
     statistik: 'Statistik',
     fragen: 'Fragen',
@@ -37,7 +37,7 @@ export const app = {
   /** weitere Suchwörter der Werkzeug-Bereiche für die Schnellsuche (durch Komma getrennt) */
   bereichSuchwoerter: {
     zeitleiste: 'Zeit, Tag, Uhrzeit, Zustand, Zustand einer Figur',
-    faeden: 'Lose Enden, Faden, Auflösung',
+    faeden: 'Lose Enden, Faden, Fäden, Auflösung',
     recherche: 'Bilder, Links, Notizen, Ablage',
     statistik: 'Schreibziel, Tagesziel, Wörter pro Tag, Fortschritt',
     fragen: 'Fragen an das Buch, Chat, Belegstellen',
@@ -81,6 +81,7 @@ export const app = {
     vorschau: { titel: 'Buch-Vorschau', zusatz: '⌘⇧B', woerter: 'Vorschau, Lesevorschau, E-Book, Buch' },
     zeitVorschlaege: { titel: 'Zeitpunkte vorschlagen …', zusatz: 'KI', woerter: 'Zeitleiste, Zeit, Zustand, Wann' },
     stimmePruefen: { titel: 'Figurenstimme prüfen …', zusatz: 'KI', woerter: 'Stimme, Ton, Figur, Rede' },
+    straengeVorschlagen: { titel: 'Stränge vorschlagen …', zusatz: 'KI', woerter: 'Strang, Stränge, Handlung, Haupthandlung, Nebenhandlung, Plot' },
     marken: { titel: 'Markennamen …', zusatz: 'Lektorat', woerter: 'Marken, Markenliste, Lektorat' },
     typewriter: { titel: 'Typewriter-Modus', zusatz: '⌘⇧T', woerter: 'Schreibmaschine, Zeile mittig, Fokus' },
     wiederholungen: { titel: 'Wiederholungen markieren', zusatz: 'Editor', woerter: 'Wortwiederholung, Satzanfänge, häufige Wörter' },
@@ -90,7 +91,7 @@ export const app = {
     leserSimulation: { titel: 'Leser-Simulation …', zusatz: 'KI', woerter: 'Leser, Was weiß der Leser, offene Fragen' },
     abgabe: { titel: 'Für die Abgabe exportieren …', zusatz: 'Export', woerter: 'Normseite, Exposé, EPUB, Lektoratsmappe, Abgabe' },
     rueckimport: { titel: 'Lektorat aus Word übernehmen …', zusatz: 'Import', woerter: 'Rückimport, Änderungen, Kommentare, Word' },
-    fadenNeu: { titel: 'Neuer Faden …', zusatz: 'Fäden', woerter: 'Faden, Lose Enden, Handlungsfaden, anlegen' },
+    fadenNeu: { titel: 'Neues loses Ende …', zusatz: 'Lose Enden', woerter: 'Faden, Lose Enden, Handlungsfaden, anlegen' },
     rechercheNeu: { titel: 'Recherche-Eintrag anlegen …', zusatz: 'Recherche', woerter: 'Bild, Link, Notiz, Recherche' },
   },
 };

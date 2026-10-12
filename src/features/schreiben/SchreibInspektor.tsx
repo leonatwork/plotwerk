@@ -402,6 +402,7 @@ function PlanTab({ kapitelId }: { kapitelId: Id }) {
       <Karte>
         <Abschnittslabel>{T.geplanteSzene}</Abschnittslabel>
         <strong className="pw-s-szene">{plan.szene || <span style={{ color: 'var(--ink-quiet)' }}>{T.keineSzene}</span>}</strong>
+        {plan.funktion && <span className="pw-s-leise">{f(T.funktion, { funktion: plan.funktion })}</span>}
         {straenge.map((s) => (
           <span key={s.id} className="pw-s-strang">
             <StrangPunkt farbe={s.farbe} groesse={10} />

@@ -232,6 +232,9 @@ Seit 10. Oktober 2026. Alles, was Leon festlegt, liegt als Markdown oder JSON im
 | PS-01 | Fäden | Board mit Spalten Offen, Auflösung geplant, Erledigt, Bewusst offen; Warnung bei ruhenden Fäden und überschrittenem Auflösungskapitel; eigene Fäden anlegen | Soll |
 | PS-02 | Akte planen | Strang-Raster (Stränge × Kapitel) mit Lücken; Klick nimmt einen Strang in den Kapitelplan auf | Soll |
 | PS-03 | Szenen | Szenen über die Trenner `* * *`: Plan je Szene (Titel, Ort, Figuren, Zeit, Notiz) im Schreiben-Inspektor und im Kapitel-Überblick; der Kapiteltext wird nie verändert | Soll |
+| PS-04 | Akte planen | Stränge als Haupt- oder Nebenhandlung markieren und beschreiben („Wofür steht der Strang?“); Kapitelplan mit Kurzbeschreibung und optionaler Funktion im Buch | Soll |
+| PS-05 | Akte planen | KI schlägt Kapitel-Zuordnungen zu Strängen, neue Stränge (mit Rolle und Zweck) und Rückfragen vor, jeweils mit wörtlichem Beleg; Leon übernimmt, verwirft oder antwortet, Verworfenes kommt nicht wieder | Kann |
+| PS-06 | Lose Enden | Bereich „Fäden“ heißt „Lose Enden“; Tabelle lose Enden × Kapitel, gruppiert nach Strang; ein loses Ende lässt sich als Strang übernehmen (mit seinen Kapiteln) | Soll |
 | FB-01 | Figuren | Figuren-Bögen: frei benannte Stufen je Kapitel oder Akt mit wörtlichen Belegen, Auftritte als Linie, Vergleich mehrerer Figuren | Soll |
 | FB-02 | Figuren | Figurenstimme: KI vergleicht die Rede einer Figur mit ihren typischen Stellen; Ergebnis mit auffälliger und typischer Stelle, beide wörtlich; erscheint auch als Hinweis „Sprache“ | Kann |
 | EW-01 | Editor | Typewriter-Modus: Cursorzeile mittig, übrige Absätze abgedunkelt | Kann |
