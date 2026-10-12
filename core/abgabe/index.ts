@@ -10,6 +10,7 @@ export {
   type ExposeOptionen,
   type ExposeStueck,
 } from './expose';
+export { personenAuswahl, personenKapitel, personenverzeichnis, type PersonenOptionen } from './personen';
 export {
   exportiereLektoratsmappe,
   HINWEIS_TYP_NAME,

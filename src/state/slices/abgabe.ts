@@ -7,7 +7,7 @@
  * den Kapiteltext erst auf Leons Klick, über die normale Speicherung und mit Schnappschuss davor (E8).
  */
 import type { StateCreator } from 'zustand';
-import type { ExposeKapitelQuelle } from '@core/abgabe/index';
+import type { ExposeKapitelQuelle, PersonenOptionen } from '@core/abgabe/index';
 import type { Rueckimport } from '@core/docx/rueckimport';
 import type { Id, Kapitel, LektoratsAenderung, ProjektAngaben } from '@core/model/types';
 import { buchSprache } from '@core/i18n';
@@ -15,7 +15,7 @@ import { kapitelPfad } from '@core/projekt';
 import { sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 
-export type AbgabeFormat = 'normseite' | 'expose' | 'epub' | 'mappe';
+export type AbgabeFormat = 'normseite' | 'expose' | 'epub' | 'mappe' | 'personen';
 export type ExposeDateiformat = 'docx' | 'md';
 
 export interface AbgabeEinstellungen {
@@ -31,13 +31,19 @@ export interface AbgabeEinstellungen {
   epubSchrift: boolean;
   /** Lektoratsmappe: Kapitel; null = ganzes Buch */
   mappeKapitel: Id | null;
+  /** Personenverzeichnis (eigene Datei und Vorspann) */
+  personen: PersonenOptionen;
+  personenFormat: ExposeDateiformat;
+  /** Normseite/EPUB: Personenverzeichnis als Vorspann */
+  personenVorspann: boolean;
 }
 
 export type AbgabeAuftrag =
-  | { format: 'normseite'; kapitel: Id[]; titelseite: boolean }
+  | { format: 'normseite'; kapitel: Id[]; titelseite: boolean; personen?: PersonenOptionen }
   | { format: 'expose'; ziel: ExposeDateiformat; kapitel: ExposeKapitelQuelle; nebenfiguren: boolean }
-  | { format: 'epub'; kapitel: Id[]; titelseite: boolean; schrift: boolean }
-  | { format: 'mappe'; kapitel: Id | null };
+  | { format: 'epub'; kapitel: Id[]; titelseite: boolean; schrift: boolean; personen?: PersonenOptionen }
+  | { format: 'mappe'; kapitel: Id | null }
+  | { format: 'personen'; ziel: ExposeDateiformat; optionen: PersonenOptionen };
 
 export interface RueckimportOptionen {
   /** Dateiname der .docx */
@@ -77,7 +83,9 @@ export interface AbgabeSlice {
   abgabe: Abgabe;
 }
 
-const ENDUNG: Record<AbgabeFormat, string> = { normseite: 'docx', expose: 'docx', epub: 'epub', mappe: 'pdf' };
+const ENDUNG: Record<AbgabeFormat, string> = { normseite: 'docx', expose: 'docx', epub: 'epub', mappe: 'pdf', personen: 'docx' };
+/** Formate mit wählbarer Endung (.docx oder .md) */
+const MIT_DATEIFORMAT: AbgabeFormat[] = ['expose', 'personen'];
 /** Zusatz im Dateinamen je Format (Sprache der Oberfläche). */
 function zusatz(format: AbgabeFormat): string {
   return format === 'epub' ? '' : texte().state.abgabe.zusatz[format];
@@ -87,13 +95,13 @@ function zusatz(format: AbgabeFormat): string {
 export function abgabeDateiname(titel: string, format: AbgabeFormat, exposeFormat: ExposeDateiformat = 'docx'): string {
   const basis =
     titel.replace(/[/\\:*?"<>|\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ').trim().replace(/^\.+/, '') || texte().state.standard.manuskript;
-  const endung = format === 'expose' ? exposeFormat : ENDUNG[format];
+  const endung = MIT_DATEIFORMAT.includes(format) ? exposeFormat : ENDUNG[format];
   return `${basis}${zusatz(format)}.${endung}`;
 }
 
 /** Endung des Dateinamens an das Format anpassen. */
 export function mitAbgabeEndung(name: string, format: AbgabeFormat, exposeFormat: ExposeDateiformat = 'docx'): string {
-  const endung = format === 'expose' ? exposeFormat : ENDUNG[format];
+  const endung = MIT_DATEIFORMAT.includes(format) ? exposeFormat : ENDUNG[format];
   const basis = name.trim().replace(/\.(docx|pdf|epub|md)$/i, '');
   return `${basis || texte().state.standard.manuskript}.${endung}`;
 }
@@ -105,6 +113,14 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
     const d = get().daten;
     if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
+  };
+
+  /** Personenverzeichnis als Vorspann-Kapitel (Buchsprache) */
+  const vorspann = async (optionen: PersonenOptionen | undefined): Promise<Kapitel[]> => {
+    if (!optionen) return [];
+    const { personenverzeichnis, personenKapitel } = await import('@core/abgabe/index');
+    get().indexNeuBerechnen();
+    return [personenKapitel(personenverzeichnis(daten(), get().index.erstesVorkommen, optionen, buchSprache(daten().projekt.angaben)))];
   };
 
   /** Kapitel in Projektreihenfolge (fehlende Manuskripte als leere Kapitel). */
@@ -126,6 +142,9 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
         exposeNebenfiguren: true,
         epubSchrift: true,
         mappeKapitel: null,
+        personen: { gliederung: 'gruppen', statisten: false, spitznamen: true },
+        personenFormat: 'docx',
+        personenVorspann: false,
       },
 
       setzeEinstellungen: (teil) => setze({ einstellungen: { ...get().abgabe.einstellungen, ...teil } }),
@@ -150,7 +169,7 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
         switch (auftrag.format) {
           case 'normseite': {
             const { exportiereNormseite } = await import('@core/abgabe/index');
-            return exportiereNormseite(kapitelListe(auftrag.kapitel), titel, { angaben, titelseite: auftrag.titelseite });
+            return exportiereNormseite([...(await vorspann(auftrag.personen)), ...kapitelListe(auftrag.kapitel)], titel, { angaben, titelseite: auftrag.titelseite });
           }
           case 'expose': {
             const { exposeGeruest, exposeDocx, exposeMarkdown } = await import('@core/abgabe/index');
@@ -165,7 +184,7 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
               const s = (await ladePdfSchriften())[0]!;
               schrift = { name: s.name, normal: s.normal, kursiv: s.kursiv, fett: s.fett, fettKursiv: s.fettKursiv };
             }
-            return exportiereEpub(kapitelListe(auftrag.kapitel), titel, { angaben, schrift, titelseite: auftrag.titelseite });
+            return exportiereEpub([...(await vorspann(auftrag.personen)), ...kapitelListe(auftrag.kapitel)], titel, { angaben, schrift, titelseite: auftrag.titelseite });
           }
           case 'mappe': {
             const [{ lektoratsmappe, exportiereLektoratsmappe }, { ladePdfSchriften }] = await Promise.all([
@@ -175,6 +194,14 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
             get().indexNeuBerechnen();
             const mappe = lektoratsmappe(daten(), get().index.hinweise, { kapitel: auftrag.kapitel });
             return exportiereLektoratsmappe(mappe, await ladePdfSchriften());
+          }
+          case 'personen': {
+            const { personenverzeichnis, exposeDocx, exposeMarkdown } = await import('@core/abgabe/index');
+            get().indexNeuBerechnen();
+            const sprache = buchSprache(angaben);
+            const bloecke = personenverzeichnis(daten(), get().index.erstesVorkommen, auftrag.optionen, sprache);
+            if (auftrag.ziel === 'md') return new TextEncoder().encode(exposeMarkdown(bloecke, sprache));
+            return exposeDocx(bloecke, { autor: angaben?.autor, sprache });
           }
         }
       },
