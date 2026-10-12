@@ -9,11 +9,14 @@ pub const DIENST: &str = "app.plotwerk.mac";
 pub const KONTO: &str = "azure-foundry";
 /// Konto für die Claude API von Anthropic.
 pub const KONTO_CLAUDE: &str = "anthropic-api";
+/// Konto für den OpenAI-kompatiblen Dienst (OpenAI, OpenRouter, Qwen …; lokal meist ohne Schlüssel).
+pub const KONTO_OPENAI: &str = "openai-kompatibel";
 
 pub fn konto(anbieter: Anbieter) -> &'static str {
     match anbieter {
         Anbieter::Foundry => KONTO,
         Anbieter::Claude => KONTO_CLAUDE,
+        Anbieter::OpenAi => KONTO_OPENAI,
     }
 }
 
@@ -82,13 +85,22 @@ pub fn lesen(anbieter: Anbieter) -> Result<String, String> {
     eintrag(anbieter)?.get_password().map_err(fehlertext)
 }
 
+/// Wie `lesen`, aber ein fehlender Eintrag ist kein Fehler (lokale Server brauchen keinen Schlüssel).
+pub fn lesen_optional(anbieter: Anbieter) -> Result<String, String> {
+    match eintrag(anbieter)?.get_password() {
+        Ok(w) => Ok(w),
+        Err(Error::NoEntry) => Ok(String::new()),
+        Err(e) => Err(fehlertext(e)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn leerer_schluessel_wird_abgelehnt() {
-        for anbieter in [Anbieter::Foundry, Anbieter::Claude] {
+        for anbieter in [Anbieter::Foundry, Anbieter::Claude, Anbieter::OpenAi] {
             assert!(setzen(anbieter, "   ").is_err());
             assert!(setzen(anbieter, "abc\ndef").is_err());
         }
@@ -98,6 +110,7 @@ mod tests {
     fn je_anbieter_ein_eintrag() {
         assert_eq!(konto(Anbieter::Foundry), "azure-foundry");
         assert_eq!(konto(Anbieter::Claude), "anthropic-api");
+        assert_eq!(konto(Anbieter::OpenAi), "openai-kompatibel");
         assert_eq!(DIENST, "app.plotwerk.mac");
     }
 

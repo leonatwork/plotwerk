@@ -4,11 +4,12 @@
  * Nichts wird automatisch übernommen. Besitzer: G1.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { EFFORT, formatiereUsd, kiEndpoint, type Schaetzung } from '@core/ki/index';
+import { EFFORT, kiEndpoint, type Schaetzung } from '@core/ki/index';
 import type { Id } from '@core/model/types';
 import { hauptfigur, offeneZeitVorschlaege, offeneZustandVorschlaege, zeitEinheiten } from '@core/zeit/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
-import { f, useTexte, vergleich, zahl as zahlFormat, sprache } from '../../i18n';
+import { f, useTexte, vergleich, zahl as zahlFormat } from '../../i18n';
+import { kostenBetrag, kostenWert } from '../ki/kosten';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import type { ZeitKiArt, ZeitKiAuftrag } from '../../state/slices/zeit';
 import { useStore } from '../../state/store';
@@ -208,7 +209,7 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
                 <span className="pw-ki-text">
                   {ergebnis.schonEingetragen > 0 && f(t.schonEingetragen, { n: ergebnis.schonEingetragen })}
                   {ergebnis.bereitsEntschieden > 0 && f(t.schonVerworfen, { n: ergebnis.bereitsEntschieden })}
-                  {f(t.verworfen, { n: ergebnis.verworfen.length })} · {formatiereUsd(ergebnis.kostenUsd, sprache())}
+                  {f(t.verworfen, { n: ergebnis.verworfen.length })} · {kostenBetrag(ergebnis)}
                 </span>
               </div>
               {ergebnis.verworfen.length > 0 && (
@@ -244,7 +245,7 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
                   <dt>{t.ausgabe}</dt>
                   <dd>{f(t.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
                   <dt>{t.kosten}</dt>
-                  <dd>{f(t.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+                  <dd>{kostenWert(s, t.kostenWert, 'kosten')}</dd>
                 </dl>
               )}
             </div>

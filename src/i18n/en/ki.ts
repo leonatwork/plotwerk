@@ -3,11 +3,14 @@ import type { ki as de } from '../de/ki';
 
 export const ki: Form<typeof de> = {
   kapitelAnzahl: { one: '{n} chapter', other: '{n} chapters' },
+  kostenUnbekannt: 'not known – billed by the service (free locally)',
   einstellungen: {
     titel: 'Settings',
     ungueltig: 'That isn’t a valid address.',
     https: 'The endpoint must start with https://.',
     rollen: { erkennung: 'Detection (Haiku)', pruefung: 'Check (Sonnet)', tiefencheck: 'Deep check (Opus)' },
+    rollenAllgemein: { erkennung: 'Detection (small, fast)', pruefung: 'Check', tiefencheck: 'Deep check (thorough)' },
+    httpsLokal: 'The address must start with https:// (http:// only for localhost).',
     schluesselErsetzt: 'Key replaced.',
     schluesselHinterlegt: 'Key stored.',
     schluesselGeloescht: 'Key deleted.',
@@ -19,6 +22,26 @@ export const ki: Form<typeof de> = {
     foundryModelle: 'Enter the deployment names from Foundry. Region and hosting don’t matter.',
     basisUrl: 'Base URL',
     basisUrlHilfe: 'Leave empty to use {url} (without /v1/messages).',
+    anbieterOpenAi: 'OpenAI-compatible',
+    dienst: 'Service',
+    openAiBasisUrl: 'Base URL',
+    openAiBasisUrlHilfe: 'With /v1, without /chat/completions. Default for {name}: {url}',
+    openAiBasisUrlEigen: 'Address of a service with an OpenAI-compatible API, with /v1, without /chat/completions.',
+    openAiModelle:
+      'Enter the model names of the service. One model is enough; empty roles use the check model. Models other than Claude aren’t tuned for Plotwerk: anything not quoted verbatim is discarded, so expect fewer findings.',
+    keinModell: 'Please enter at least one model.',
+    kontext: 'Context length (tokens)',
+    kontextPlatzhalter: 'e.g. 131072',
+    kontextFalsch: 'Please enter a whole number (or leave it empty).',
+    kontextLokal:
+      'The whole book is sent with every request. Local servers often run with a small context and then cut it silently. Enter the context length set in the server (Ollama: OLLAMA_CONTEXT_LENGTH, LM Studio: when loading the model) – Plotwerk then rejects larger requests up front.',
+    kontextCloud: 'Optional. If set, Plotwerk rejects requests that don’t fit.',
+    schluesselOptional: '{name} doesn’t need a key; only enter one if the server asks for it.',
+    platzhalterOpenAi: 'Paste your API key from {name}',
+    datenschutzLokal:
+      'The model runs on this Mac: the manuscript never leaves the computer. The model only receives chapter texts and titles, names and aliases of characters and places, group names, the certainty of characters and passages and the planning of characters and chapters – never truth, notes, comments or ideas.',
+    datenschutzOpenRouter:
+      'OpenRouter forwards to changing providers. Plotwerk requires providers that neither store data nor train on it and that support the response format.',
     claudeModelle:
       'Enter Claude API model IDs. If the safety filters of Sonnet or Opus 5.5 decline a request, a fallback model from Anthropic answers automatically (server-side fallback).',
     schluesselAbschnitt: 'API key · {name}',

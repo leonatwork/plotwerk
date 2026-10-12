@@ -1,11 +1,16 @@
 /** Texte für den Bereich „ki“ (deutsch, Quellsprache). Schlüssel: kurze deutsche Bezeichner. */
 export const ki = {
   kapitelAnzahl: { one: '{n} Kapitel', other: '{n} Kapitel' },
+  /** Kosten bei OpenAI-kompatiblen Diensten (kein Listenpreis bekannt) */
+  kostenUnbekannt: 'keine Angabe – rechnet der Dienst ab (lokal kostenlos)',
   einstellungen: {
     titel: 'Einstellungen',
     ungueltig: 'Das ist keine gültige Adresse.',
     https: 'Der Endpoint muss mit https:// beginnen.',
     rollen: { erkennung: 'Erkennung (Haiku)', pruefung: 'Prüfung (Sonnet)', tiefencheck: 'Tiefencheck (Opus)' },
+    /** Rollen ohne Claude-Modellnamen (OpenAI-kompatible Dienste) */
+    rollenAllgemein: { erkennung: 'Erkennung (klein, schnell)', pruefung: 'Prüfung', tiefencheck: 'Tiefencheck (gründlich)' },
+    httpsLokal: 'Die Adresse muss mit https:// beginnen (http:// nur für localhost).',
     schluesselErsetzt: 'Schlüssel ersetzt.',
     schluesselHinterlegt: 'Schlüssel hinterlegt.',
     schluesselGeloescht: 'Schlüssel gelöscht.',
@@ -17,6 +22,26 @@ export const ki = {
     foundryModelle: 'Eingetragen werden die Deployment-Namen aus Foundry. Region und Hosting sind egal.',
     basisUrl: 'Basis-URL',
     basisUrlHilfe: 'Leer lassen für {url} (ohne /v1/messages).',
+    anbieterOpenAi: 'OpenAI-kompatibel',
+    dienst: 'Dienst',
+    openAiBasisUrl: 'Basis-URL',
+    openAiBasisUrlHilfe: 'Mit /v1, ohne /chat/completions. Standard für {name}: {url}',
+    openAiBasisUrlEigen: 'Adresse eines Dienstes mit OpenAI-kompatibler API, mit /v1, ohne /chat/completions.',
+    openAiModelle:
+      'Eingetragen werden die Modellnamen des Dienstes. Ein Modell reicht; leere Rollen nutzen das Prüfmodell. Andere Modelle als Claude sind nicht mit Plotwerk abgestimmt: Was nicht wörtlich zitiert, wird verworfen – es kommen eher weniger Hinweise.',
+    keinModell: 'Bitte mindestens ein Modell eintragen.',
+    kontext: 'Kontextlänge (Tokens)',
+    kontextPlatzhalter: 'z. B. 131072',
+    kontextFalsch: 'Bitte eine ganze Zahl eintragen (oder leer lassen).',
+    kontextLokal:
+      'Das ganze Buch geht bei jeder Anfrage mit. Lokale Server arbeiten oft mit kleinem Kontext und kürzen dann still. Trag hier die Kontextlänge ein, die im Server eingestellt ist (Ollama: OLLAMA_CONTEXT_LENGTH, LM Studio: beim Laden des Modells) – größere Anfragen lehnt Plotwerk dann vorher ab.',
+    kontextCloud: 'Optional. Ist sie eingetragen, lehnt Plotwerk Anfragen ab, die nicht hineinpassen.',
+    schluesselOptional: 'Für {name} ist kein Schlüssel nötig; nur eintragen, wenn der Server einen verlangt.',
+    platzhalterOpenAi: 'API-Schlüssel von {name} einfügen',
+    datenschutzLokal:
+      'Das Modell läuft auf diesem Mac: Das Manuskript verlässt den Rechner nicht. Ans Modell gehen nur Kapiteltexte und -titel, Namen und Aliase von Figuren und Orten, Gruppennamen, Gewissheit von Figuren und Stellen und die Planung von Figuren und Kapiteln – nie Wahrheit, Notizen, Anmerkungen oder Ideen.',
+    datenschutzOpenRouter:
+      'OpenRouter leitet an wechselnde Anbieter weiter. Plotwerk verlangt Anbieter, die keine Daten speichern oder zum Training nutzen und das Antwortformat unterstützen.',
     claudeModelle:
       'Eingetragen werden Modell-IDs der Claude API. Lehnen die Sicherheitsfilter von Sonnet oder Opus 5.5 eine Anfrage ab, antwortet automatisch ein Ersatzmodell von Anthropic (serverseitiger Fallback).',
     schluesselAbschnitt: 'API-Schlüssel · {name}',

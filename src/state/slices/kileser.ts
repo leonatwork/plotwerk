@@ -30,6 +30,8 @@ export interface FragenSchaetzung {
   ersteUsd: number;
   /** jede weitere Frage innerhalb von 5 Minuten (Buch aus dem Cache) */
   weitereUsd: number;
+  /** false = Kosten unbekannt (OpenAI-kompatibler Dienst) */
+  kostenBekannt?: false;
   eingabeTokens: number;
   gezaehlt: boolean;
 }
@@ -139,7 +141,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
           const eintraege = [...alt.eintraege.filter((e) => e.kapitel !== kapitel), stand].sort(
             (a, b) => reihenfolge.indexOf(a.kapitel) - reihenfolge.indexOf(b.kapitel),
           );
-          await get().speichereKiLeser({ version: 1, eintraege, lauf: { datum: r.datum, modell: r.modell, kostenUsd: Math.round(r.kostenUsd * 10000) / 10000 } });
+          await get().speichereKiLeser({ version: 1, eintraege, lauf: { datum: r.datum, modell: r.modell, ...(r.kostenBekannt === false ? {} : { kostenUsd: Math.round(r.kostenUsd * 10000) / 10000 }) } });
           setze({ simVerworfen: { ...zustand().simVerworfen, [kapitel]: r.verworfen.map((v) => v.grund) } });
           return true;
         } catch (e) {
@@ -178,6 +180,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
             weitereUsd: kostenUsd({ eingabe: s.eingabeTokens - s.prefixTokens, ausgabe: s.ausgabeTokens, cacheGelesen: s.prefixTokens, cacheGeschrieben: 0 }, preis),
             eingabeTokens: s.eingabeTokens,
             gezaehlt: s.gezaehlt,
+            ...(s.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
           };
           setze({ fragenSchaetzung: { schnell, wert } });
           return wert;
@@ -213,7 +216,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
           await get().speichereKiFragen({
             version: 1,
             eintraege: [...alt.eintraege, eintrag],
-            lauf: { datum: r.datum, modell: r.modell, kostenUsd: eintrag.kostenUsd },
+            lauf: { datum: r.datum, modell: r.modell, ...(eintrag.kostenUsd !== undefined ? { kostenUsd: eintrag.kostenUsd } : {}) },
           });
           const hinweis =
             r.ergebnis.verworfeneBelege > 0

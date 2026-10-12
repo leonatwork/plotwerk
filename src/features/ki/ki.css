@@ -30,6 +30,33 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* OpenAI-kompatibel: Dienst | Basis-URL */
+.pw-ki-felder--url {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+/* Auswahl im Stil von .pw-textfeld */
+.pw-ki-select {
+  font: inherit;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.pw-ki-select:focus {
+  border-color: var(--dotted);
+}
+
+.pw-ki-select:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
 .pw-ki-kasten {
   display: flex;
   flex-direction: column;

@@ -214,7 +214,7 @@ describe('Dialoge und Vorschläge (UI)', () => {
   });
 
   it('Einstellungen: Anbieter umschalten ohne Datenverlust, Schlüssel je Anbieter', async () => {
-    useStore.setState({ kiSchluesselJe: { foundry: 'unbekannt', claude: 'unbekannt' }, kiSchluessel: 'unbekannt' });
+    useStore.setState({ kiSchluesselJe: { foundry: 'unbekannt', claude: 'unbekannt', openai: 'unbekannt' }, kiSchluessel: 'unbekannt' });
     const schliessen = vi.fn();
     render(<EinstellungenDialog schliessen={schliessen} />);
     const foundry = screen.getByRole('button', { name: 'Microsoft Foundry' });
@@ -278,6 +278,60 @@ describe('Dialoge und Vorschläge (UI)', () => {
     expect(datei).toContain('tiefencheck: claude-opus-5\n');
     expect(useStore.getState().daten!.projekt.ki?.claude?.modelle.tiefencheck).toBe('claude-opus-5');
     expect(useStore.getState().kiSchluessel).toBe('fehlt');
+  });
+
+  it('Einstellungen: OpenAI-kompatibler Dienst mit Vorlage, Modell und Kontextlänge', async () => {
+    useStore.setState({ kiSchluesselJe: { foundry: 'unbekannt', claude: 'unbekannt', openai: 'unbekannt' }, kiSchluessel: 'unbekannt' });
+    const schliessen = vi.fn();
+    render(<EinstellungenDialog schliessen={schliessen} />);
+    fireEvent.click(screen.getByRole('button', { name: 'OpenAI-kompatibel' }));
+
+    // Standard: Ollama auf diesem Mac, ohne Schlüssel, ohne Modell
+    expect(screen.getByLabelText('Dienst')).toHaveValue('ollama');
+    expect(screen.getByLabelText('Basis-URL')).toHaveValue('http://localhost:11434/v1');
+    expect(screen.getByLabelText('Prüfung')).toHaveAttribute('placeholder', 'qwen3:32b');
+    expect(screen.getByText('Bitte mindestens ein Modell eintragen.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sichern' })).toBeDisabled();
+    expect(screen.getByRole('heading', { name: 'API-Schlüssel · Ollama' })).toBeInTheDocument();
+    expect(screen.getByText(/Für Ollama ist kein Schlüssel nötig/)).toBeInTheDocument();
+    expect(screen.getByText(/verlässt den Rechner nicht/)).toBeInTheDocument();
+    expect(screen.getByText(/OLLAMA_CONTEXT_LENGTH/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Prüfung'), { target: { value: 'qwen3:32b' } });
+    fireEvent.change(screen.getByLabelText('Kontextlänge (Tokens)'), { target: { value: 'viel' } });
+    expect(screen.getByText('Bitte eine ganze Zahl eintragen (oder leer lassen).')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sichern' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Kontextlänge (Tokens)'), { target: { value: '131.072' } });
+    // http nur für localhost
+    fireEvent.change(screen.getByLabelText('Basis-URL'), { target: { value: 'http://192.168.1.20:11434/v1' } });
+    expect(screen.getByText('Die Adresse muss mit https:// beginnen (http:// nur für localhost).')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Basis-URL'), { target: { value: 'http://127.0.0.1:11434/v1/chat/completions' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sichern' }));
+    await waitFor(() => expect(schliessen).toHaveBeenCalled());
+    const ki = useStore.getState().daten!.projekt.ki!;
+    expect(ki.anbieter).toBe('openai');
+    expect(ki.openai).toEqual({
+      vorlage: 'ollama',
+      endpoint: 'http://127.0.0.1:11434/v1',
+      modelle: { erkennung: '', pruefung: 'qwen3:32b', tiefencheck: '' },
+      kontextTokens: 131072,
+    });
+    expect(useStore.getState().kiEinstellungen().deployments.pruefung).toBe('claude-sonnet-5-5');
+  });
+
+  it('Einstellungen: Dienst wechseln setzt dessen Standard-URL, Cloud-Dienste verlangen einen Schlüssel', () => {
+    render(<EinstellungenDialog schliessen={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: 'OpenAI-kompatibel' }));
+    fireEvent.change(screen.getByLabelText('Dienst'), { target: { value: 'openrouter' } });
+    expect(screen.getByLabelText('Basis-URL')).toHaveValue('https://openrouter.ai/api/v1');
+    expect(screen.getByRole('heading', { name: 'API-Schlüssel · OpenRouter' })).toBeInTheDocument();
+    expect(screen.queryByText(/kein Schlüssel nötig/)).toBeNull();
+    expect(screen.getByPlaceholderText('API-Schlüssel von OpenRouter einfügen')).toBeInTheDocument();
+    expect(screen.getByText(/keine Daten speichern oder zum Training nutzen/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Dienst'), { target: { value: 'eigen' } });
+    expect(screen.getByLabelText('Basis-URL')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Sichern' })).toBeDisabled();
   });
 
   it('endpointNormalisieren', () => {

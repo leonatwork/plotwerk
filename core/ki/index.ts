@@ -27,19 +27,30 @@ import { AUSGABE_SCHAETZUNG, kostenUsd, preisFuer } from './kosten';
 import { baueBuchKontext, type BuchKontext, type KontextKapitel } from './kontext';
 import { meldungenIn } from './meldungen';
 import { Pruefer } from './pruefung';
-import { kiModell } from './anbieter';
+import { kiModell, kostenBekannt, mitKosten } from './anbieter';
 
 export {
   ANBIETER_NAME,
+  anbieterName,
   CLAUDE_API_ENDPOINT,
   KI_ANBIETER,
+  KI_VORLAGEN,
   kiAnbieter,
   kiEndpoint,
   kiMitStandards,
   kiModell,
+  kiVorlage,
+  bekannteKosten,
+  kostenBekannt,
+  mitKosten,
   STANDARD_CLAUDE,
   STANDARD_MODELLE,
+  STANDARD_VORLAGE,
+  VORLAGEN,
+  type VorlageInfo,
 } from './anbieter';
+/** OpenAI-kompatible Dienste: Übersetzung im Transport (E15) */
+export { eingabeTokensSchaetzen, jsonAusText, KONTEXT_RESERVE, nachOpenAi, passtInKontext, vonOpenAi } from './openai';
 export { KiFehler, type KiFehlerArt } from './antwort';
 export { kiMeldungen, type KiMeldung } from './meldungen';
 export { KI_HINWEIS_TYPEN, MAX_TOKENS, EFFORT, type KiRolle } from './anfrage';
@@ -55,7 +66,10 @@ export * from './zeit';
 export * from './stimme';
 export * from './leser';
 
-/** Transport zur Messages-API (Foundry oder Claude API). In der App: Rust-Kommando ki_anfrage. */
+/**
+ * Transport zur Messages-API (Foundry oder Claude API). In der App: Rust-Kommando ki_anfrage. Für OpenAI-kompatible
+ * Dienste übersetzt der Transport Body und Antwort (nachOpenAi/vonOpenAi); core/ki sieht immer die Messages-API.
+ */
 export interface KiTransport {
   /** Schlüssel und Endpoint vorhanden? */
   bereit(): Promise<boolean>;
@@ -93,6 +107,7 @@ export interface PruefErgebnis {
   /** Lauf vorzeitig beendet (Fehler oder Abbruch); bis dahin gesammelte Ergebnisse sind enthalten */
   fehler?: string;
   modell?: string;
+  /** fehlt, wenn die Kosten unbekannt sind (OpenAI-kompatible Dienste) */
   kostenUsd?: number;
 }
 
@@ -137,6 +152,8 @@ export interface Schaetzung {
   prefixTokens: number;
   ausgabeTokens: number;
   kostenUsd: number;
+  /** false = kein Listenpreis bekannt (OpenAI-kompatible Dienste); kostenUsd ist dann 0 und wird nicht angezeigt */
+  kostenBekannt?: false;
   /** false = count_tokens nicht verfügbar, Schätzung über Zeichen/3 */
   gezaehlt: boolean;
 }
@@ -254,7 +271,7 @@ export async function schaetzeLauf(
     eingabeTokens: voll.tokens * n,
     prefixTokens,
     ausgabeTokens: ausgabe,
-    kostenUsd: kosten,
+    ...mitKosten(einstellungen, kosten),
     gezaehlt: voll.gezaehlt && prefix.gezaehlt,
   };
 }
@@ -361,7 +378,8 @@ export async function pruefe(
   optionen.fortschritt?.({ erledigt: ergebnis.geprueft!.length, gesamt, kapitel: null, titel: '' });
   ergebnis.bereitsEntschieden = entschiedenGesehen.size;
   ergebnis.tokens = { eingabe: nutzung.eingabe + nutzung.cacheGeschrieben, ausgabe: nutzung.ausgabe, cacheGelesen: nutzung.cacheGelesen };
-  ergebnis.kostenUsd = kostenUsd(nutzung, preisFuer(lauf.modell, lauf.rolle, lauf.kontext.text.length / 3));
+  if (kostenBekannt(einstellungen)) ergebnis.kostenUsd = kostenUsd(nutzung, preisFuer(lauf.modell, lauf.rolle, lauf.kontext.text.length / 3));
+  else delete ergebnis.kostenUsd;
   return ergebnis;
 }
 
