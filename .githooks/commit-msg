@@ -1,0 +1,3 @@
+#!/bin/sh
+# Sperrliste auch für die Commit-Nachricht (scripts/sperrliste.mjs).
+exec node scripts/sperrliste.mjs --nachricht "$1"

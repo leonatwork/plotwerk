@@ -20,7 +20,7 @@ titel: Hafenlichter
 kapitel:
   - grundriss
 ki:
-  endpoint: https://flamingo.services.ai.azure.com/anthropic
+  endpoint: https://beispiel.services.ai.azure.com/anthropic
   deployments:
     erkennung: mein-haiku
     pruefung: mein-sonnet
@@ -31,7 +31,7 @@ Notiz.
 `;
 
 const CLAUDE: KiEinstellungen = {
-  endpoint: 'https://flamingo.services.ai.azure.com/anthropic',
+  endpoint: 'https://beispiel.services.ai.azure.com/anthropic',
   deployments: { erkennung: 'mein-haiku', pruefung: 'mein-sonnet', tiefencheck: 'mein-opus' },
   anbieter: 'claude',
   claude: {
@@ -44,12 +44,12 @@ describe('KI-Anbieter', () => {
   it('ältere projekt.md lädt unverändert und gilt als Foundry', () => {
     const p = parseProjekt(ALT);
     expect(p.ki).toEqual({
-      endpoint: 'https://flamingo.services.ai.azure.com/anthropic',
+      endpoint: 'https://beispiel.services.ai.azure.com/anthropic',
       deployments: { erkennung: 'mein-haiku', pruefung: 'mein-sonnet', tiefencheck: 'mein-opus' },
     });
     expect(kiAnbieter(p.ki)).toBe('foundry');
     expect(kiModell(p.ki, 'pruefung')).toBe('mein-sonnet');
-    expect(kiEndpoint(p.ki)).toBe('https://flamingo.services.ai.azure.com/anthropic');
+    expect(kiEndpoint(p.ki)).toBe('https://beispiel.services.ai.azure.com/anthropic');
     // unverändert zurückgeschrieben: kein anbieter/claude-Block, Datei bleibt identisch
     expect(serializeProjekt(p, ALT)).toBe(ALT);
   });
