@@ -1,0 +1,71 @@
+[
+  {
+    "schluessel": "pruefen:flut/dass ich eine halbe Stunde zu früh bin|lotte/fährt mit seinem alten Saab 900 zum Lindenhof",
+    "typ": "pruefen",
+    "titel": "Paul am Lindenhof: zu spät oder zu früh?",
+    "zitate": [
+      {
+        "kapitel": "lotte",
+        "text": "fährt mit seinem alten Saab 900 zum Lindenhof"
+      },
+      {
+        "kapitel": "flut",
+        "text": "dass ich eine halbe Stunde zu früh bin"
+      }
+    ],
+    "erklaerung": "In Kap. 3 fährt Paul selbst und kommt wegen der Klappbrücke zu spät, in Kap. 9 steigt er aus einem fremden Volvo und ist eine halbe Stunde zu früh. Wenn beide Kapitel dasselbe Treffen meinen, widersprechen sich die Angaben.",
+    "quelle": "ki",
+    "offen": true,
+    "status": "neu"
+  },
+  {
+    "schluessel": "offener_faden:bis-bald/findet er in der Manteltasche einen Messingschlüssel und eine Postkarte|funkstille/In der Manteltasche steckt eine neue Postkarte",
+    "typ": "offener_faden",
+    "titel": "Wer steckt die zweite Postkarte in Pauls Mantel?",
+    "zitate": [
+      {
+        "kapitel": "bis-bald",
+        "text": "findet er in der Manteltasche einen Messingschlüssel und eine Postkarte"
+      },
+      {
+        "kapitel": "funkstille",
+        "text": "In der Manteltasche steckt eine neue Postkarte"
+      }
+    ],
+    "erklaerung": "Die erste Postkarte taucht nach der Nacht im Fährhaus in Kap. 8 auf, die zweite in Kap. 10. Woher die zweite kommt, bleibt bisher unbeantwortet.",
+    "quelle": "ki",
+    "status": "neu"
+  },
+  {
+    "schluessel": "unbekannt:funkstille/ob er die Krabben wieder für Fiete mitnimmt",
+    "typ": "unbekannt",
+    "titel": "»Fiete« ist keiner Figur zugeordnet",
+    "zitate": [
+      {
+        "kapitel": "funkstille",
+        "text": "ob er die Krabben wieder für Fiete mitnimmt"
+      }
+    ],
+    "erklaerung": "Der Name Fiete kommt nur hier vor und gehört zu keiner angelegten Figur.",
+    "quelle": "ki",
+    "status": "neu"
+  },
+  {
+    "schluessel": "zeitleiste:funkstille/Heute ist Donnerstag.|weissraum/Am Montag ist im Büro jeder Zeichentisch voller Papierrollen und Kaffeebecher",
+    "typ": "zeitleiste",
+    "titel": "Nur Montag und Donnerstag sind verankert",
+    "zitate": [
+      {
+        "kapitel": "weissraum",
+        "text": "Am Montag ist im Büro jeder Zeichentisch voller Papierrollen und Kaffeebecher"
+      },
+      {
+        "kapitel": "funkstille",
+        "text": "Heute ist Donnerstag."
+      }
+    ],
+    "erklaerung": "Nur Kap. 6 und Kap. 10 nennen einen Wochentag. Die Abstände zwischen den übrigen Kapiteln sind offen.",
+    "quelle": "ki",
+    "status": "neu"
+  }
+]

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "id": "lindenhof-skizze",
+      "art": "bild",
+      "titel": "Lindenhof (Skizze)",
+      "datei": "recherche/dateien/lindenhof.svg",
+      "text": "Platzhalter-Skizze, kein echtes Foto.",
+      "verweise": [
+        {
+          "typ": "ort",
+          "id": "lindenhof"
+        },
+        {
+          "typ": "kapitel",
+          "id": "lotte"
+        }
+      ],
+      "erstellt": "2026-10-09T10:00:00.000Z",
+      "schlagworte": [
+        "Hafen"
+      ]
+    },
+    {
+      "id": "saab-900",
+      "art": "link",
+      "titel": "Saab 900 (Wikipedia)",
+      "url": "https://de.wikipedia.org/wiki/Saab_900",
+      "text": "Pauls Auto in Kap. 3.",
+      "verweise": [
+        {
+          "typ": "figur",
+          "id": "paul"
+        },
+        {
+          "typ": "kapitel",
+          "id": "lotte"
+        }
+      ],
+      "erstellt": "2026-10-09T10:05:00.000Z"
+    },
+    {
+      "id": "postkarten-handschrift",
+      "art": "notiz",
+      "titel": "Handschrift der Postkarten",
+      "text": "Beide Postkarten in derselben Handschrift? Siehe [[figur:die-fremde|Die Fremde]].",
+      "verweise": [
+        {
+          "typ": "figur",
+          "id": "die-fremde"
+        },
+        {
+          "typ": "kapitel",
+          "id": "bis-bald"
+        },
+        {
+          "typ": "kapitel",
+          "id": "funkstille"
+        }
+      ],
+      "erstellt": "2026-10-09T10:10:00.000Z"
+    }
+  ]
+}

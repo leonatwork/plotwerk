@@ -1,0 +1,17 @@
+{
+  "kapitel": "lotte",
+  "textHash": "e2022ff2a3e8e770",
+  "zusammenfassung": "Paul macht sich für das Treffen mit Lotte fertig, die ihm über Kleinanzeigen einen Zeichentisch verkauft hat, und fährt im alten Saab zum Lindenhof. An der Klappbrücke schreibt er Lotte, dass er zu spät kommt.",
+  "kurz": "Vorbereitung aufs Treffen mit Lotte, Paul kommt zu spät.",
+  "wendung": "Keine.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "treffen-mit-lotte",
+      "name": "Treffen mit Lotte",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

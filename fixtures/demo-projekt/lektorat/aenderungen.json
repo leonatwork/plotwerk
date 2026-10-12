@@ -1,0 +1,50 @@
+[
+  {
+    "id": "lektorat-1",
+    "anker": {
+      "kapitel": "lotte",
+      "exakt": "ein zweites Mal",
+      "davor": "Abend. Er bügelt das helle Hemd ",
+      "danach": " und krempelt die Ärmel bis zu d"
+    },
+    "art": "ersetzen",
+    "alt": "ein zweites Mal",
+    "neu": "noch einmal",
+    "autor": "Lektorin",
+    "datum": "2026-10-08T09:00:00Z",
+    "quelle": "Hafenlichter_lektoriert.docx",
+    "status": "offen"
+  },
+  {
+    "id": "lektorat-2",
+    "anker": {
+      "kapitel": "staub",
+      "exakt": "Paul sieht nicht vom Zollstock auf",
+      "davor": " fragt, was er hier oben macht. ",
+      "danach": " und sagt nur: \"Achtzehn auf jed"
+    },
+    "art": "loeschen",
+    "alt": "Paul sieht nicht vom Zollstock auf",
+    "neu": "",
+    "autor": "Lektorin",
+    "datum": "2026-10-08T09:05:00Z",
+    "quelle": "Hafenlichter_lektoriert.docx",
+    "status": "offen"
+  },
+  {
+    "id": "lektorat-3",
+    "anker": {
+      "kapitel": "ebbe",
+      "exakt": "Gegen elf",
+      "davor": "auriert, Paul hört nur halb zu. ",
+      "danach": " sagt er, er müsse morgen früh f"
+    },
+    "art": "einfuegen",
+    "alt": "",
+    "neu": " Uhr",
+    "autor": "Lektorin",
+    "datum": "2026-10-08T09:10:00Z",
+    "quelle": "Hafenlichter_lektoriert.docx",
+    "status": "abgelehnt"
+  }
+]

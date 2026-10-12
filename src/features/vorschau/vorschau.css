@@ -1,0 +1,613 @@
+/*
+ * Lesevorschau (Buch / E-Book). Farben über die Tokens (src/theme/tokens.css); die E-Book-Hintergründe
+ * „Papier“, „Sepia“, „Nacht“ sind eigene Variablen (unten) und setzen die Tokens innerhalb der Vorschau
+ * neu, damit Leisten, Knöpfe und Text zusammenpassen – im Hell- wie im Dunkelmodus.
+ */
+
+.pw-vorschau {
+  /* Papier der Buchseiten */
+  --v-papier: var(--surface);
+  --v-papier-schatten: 0 1px 2px color-mix(in srgb, var(--ink) 8%, transparent), 0 10px 30px color-mix(in srgb, var(--ink) 10%, transparent);
+  --v-falz: color-mix(in srgb, var(--ink) 9%, transparent);
+
+  /* E-Book-Hintergründe (je Grund, Text, Nebentext, Linie, Leiste) */
+  --v-papier-grund: #fbfaf8;
+  --v-papier-text: #24262b;
+  --v-papier-leise: #6e6a63;
+  --v-papier-linie: #e2ded7;
+  --v-papier-leiste: #f3f1ed;
+  --v-sepia-grund: #f4ecd8;
+  --v-sepia-text: #4b3a2a;
+  --v-sepia-leise: #85705a;
+  --v-sepia-linie: #e2d5b8;
+  --v-sepia-leiste: #ede2c9;
+  --v-nacht-grund: #161719;
+  --v-nacht-text: #cdc8bf;
+  --v-nacht-leise: #8f8a82;
+  --v-nacht-linie: #2c2d30;
+  --v-nacht-leiste: #1d1e21;
+
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--schrift-ui);
+  font-size: 13px;
+  outline: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .pw-vorschau {
+    --v-papier: var(--surface-muted);
+    --v-papier-schatten: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.45);
+    --v-falz: rgba(0, 0, 0, 0.28);
+    /* Papier und Sepia nachts etwas gedämpft (blendet weniger) */
+    --v-papier-grund: #e7e3dc;
+    --v-papier-leiste: #dcd8d0;
+    --v-papier-linie: #cdc8bf;
+    --v-sepia-grund: #e2d6bb;
+    --v-sepia-leiste: #d6c9ac;
+    --v-sepia-linie: #c9b996;
+  }
+}
+
+/* Browser-Demo: Fensterrahmen wie .pw-fenster--browser */
+.pw-vorschau--browser {
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* E-Book-Themen: Tokens innerhalb der Vorschau neu setzen */
+.pw-vorschau--ebook[data-hintergrund='papier'],
+.pw-vorschau--ebook[data-hintergrund='sepia'],
+.pw-vorschau--ebook[data-hintergrund='nacht'] {
+  --canvas: var(--v-grund);
+  --surface: var(--v-grund);
+  --inspector: color-mix(in srgb, var(--v-text) 4%, var(--v-grund));
+  --surface-muted: color-mix(in srgb, var(--v-text) 7%, var(--v-grund));
+  --titlebar: var(--v-leiste);
+  --ink: var(--v-text);
+  --ink-quiet: var(--v-leise);
+  --line: var(--v-linie);
+  --line-soft: var(--v-linie);
+  --line-faint: var(--v-linie);
+  --border-strong: color-mix(in srgb, var(--v-text) 22%, var(--v-grund));
+  --segment: color-mix(in srgb, var(--v-text) 8%, var(--v-leiste));
+  --selected: color-mix(in srgb, var(--v-text) 11%, var(--v-leiste));
+  background: var(--v-grund);
+  color: var(--v-text);
+}
+.pw-vorschau--ebook[data-hintergrund='papier'] {
+  color-scheme: light;
+  --v-grund: var(--v-papier-grund);
+  --v-text: var(--v-papier-text);
+  --v-leise: var(--v-papier-leise);
+  --v-linie: var(--v-papier-linie);
+  --v-leiste: var(--v-papier-leiste);
+  --on-ink: #ffffff;
+}
+.pw-vorschau--ebook[data-hintergrund='sepia'] {
+  color-scheme: light;
+  --v-grund: var(--v-sepia-grund);
+  --v-text: var(--v-sepia-text);
+  --v-leise: var(--v-sepia-leise);
+  --v-linie: var(--v-sepia-linie);
+  --v-leiste: var(--v-sepia-leiste);
+  --on-ink: var(--v-sepia-grund);
+}
+.pw-vorschau--ebook[data-hintergrund='nacht'] {
+  color-scheme: dark;
+  --v-grund: var(--v-nacht-grund);
+  --v-text: var(--v-nacht-text);
+  --v-leise: var(--v-nacht-leise);
+  --v-linie: var(--v-nacht-linie);
+  --v-leiste: var(--v-nacht-leiste);
+  --on-ink: var(--v-nacht-grund);
+  --schatten-segment: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --schatten-popover: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+/* Leisten ------------------------------------------------------------------ */
+.pw-v-leiste {
+  flex: 0 0 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  background: var(--titlebar);
+  border-bottom: 1px solid var(--line);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pw-v-leiste__ampel {
+  flex: 0 0 64px;
+  align-self: stretch;
+}
+.pw-v-leiste__titel {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pw-v-leiste__kontext {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pw-v-leiste__fueller {
+  flex: 1 1 0;
+  align-self: stretch;
+}
+.pw-v-leiste .pw-button {
+  margin-left: -6px;
+}
+.pw-v-aa {
+  font-family: var(--schrift-text);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.pw-v-fuss {
+  flex: 0 0 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  border-top: 1px solid var(--line-soft);
+  background: var(--canvas);
+  color: var(--ink-quiet);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pw-v-fuss__text {
+  flex: 0 0 auto;
+  min-width: 220px;
+}
+.pw-v-fuss__prozent {
+  flex: 0 0 auto;
+  min-width: 44px;
+  text-align: right;
+}
+.pw-v-fortschritt {
+  flex: 1 1 auto;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.pw-v-fortschritt > span {
+  display: block;
+  height: 100%;
+  background: var(--ink-quiet);
+  border-radius: 2px;
+}
+
+/* Bühne -------------------------------------------------------------------- */
+.pw-v-buehne {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pw-v-leer {
+  max-width: 420px;
+  text-align: center;
+  color: var(--ink-quiet);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pw-v-pfeil {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  border: 0;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--ink-quiet);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.pw-v-pfeil--zurueck {
+  left: 0;
+  justify-content: flex-start;
+}
+.pw-v-pfeil--vor {
+  right: 0;
+  justify-content: flex-end;
+}
+.pw-v-pfeil:hover:not(:disabled),
+.pw-v-pfeil:focus-visible {
+  opacity: 1;
+}
+.pw-v-pfeil:focus-visible {
+  outline-offset: -4px;
+}
+.pw-v-pfeil:disabled {
+  cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-v-pfeil {
+    transition: none;
+  }
+}
+
+/* Buchseiten --------------------------------------------------------------- */
+.pw-v-seiten {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+}
+.pw-v-seite {
+  position: relative;
+  flex: 0 0 auto;
+  background: var(--v-papier);
+  color: var(--ink);
+  box-shadow: var(--v-papier-schatten);
+  font-family: var(--schrift-text);
+  font-optical-sizing: auto;
+  overflow: hidden;
+}
+.pw-v-seite--fehlt {
+  background: transparent;
+  box-shadow: none;
+}
+/* Falz zwischen den Seiten einer Doppelseite */
+.pw-v-seite--doppel.pw-v-seite--links::after,
+.pw-v-seite--doppel.pw-v-seite--rechts::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6%;
+  pointer-events: none;
+}
+.pw-v-seite--doppel.pw-v-seite--links::after {
+  right: 0;
+  background: linear-gradient(to left, var(--v-falz), transparent);
+}
+.pw-v-seite--doppel.pw-v-seite--rechts::after {
+  left: 0;
+  background: linear-gradient(to right, var(--v-falz), transparent);
+}
+
+.pw-v-kolumne,
+.pw-v-folio {
+  position: absolute;
+  text-align: center;
+  font-size: 0.8em;
+  line-height: 1.2;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pw-v-kolumne {
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+.pw-v-folio {
+  font-variant-numeric: oldstyle-nums proportional-nums;
+}
+
+.pw-v-titelseite {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4em;
+  text-align: center;
+}
+.pw-v-titelseite__titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 2.6em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.pw-v-titelseite__linie {
+  width: 2.2em;
+  height: 1px;
+  background: var(--ink-quiet);
+  opacity: 0.6;
+}
+
+/* Satz (Buch und E-Book) ------------------------------------------------- */
+.pw-v-fenster {
+  position: absolute;
+  overflow: hidden;
+  contain: strict;
+}
+.pw-v-fluss {
+  position: absolute;
+  top: 0;
+  column-fill: auto;
+  font-family: var(--schrift-text);
+  font-optical-sizing: auto;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  text-rendering: optimizeLegibility;
+  color: var(--ink);
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphenate-limit-chars: 6 3 2;
+  -webkit-hyphenate-limit-before: 3;
+  -webkit-hyphenate-limit-after: 2;
+  -webkit-hyphenate-limit-lines: 2;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  orphans: 2;
+  widows: 2;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.pw-v-fluss p {
+  margin: 0;
+}
+.pw-v-fluss .pw-v-e {
+  text-indent: 1.1em;
+}
+.pw-v-fluss strong {
+  font-weight: 600;
+}
+.pw-v-trenner {
+  margin: var(--v-zeile) 0;
+  text-align: center;
+  text-indent: 0;
+  break-inside: avoid;
+  break-after: avoid;
+  hyphens: manual;
+  color: var(--ink-quiet);
+}
+.pw-v-zwischentitel {
+  margin: var(--v-zeile) 0 0;
+  font: inherit;
+  font-style: italic;
+  font-weight: 500;
+  text-align: center;
+  hyphens: manual;
+  break-after: avoid;
+  break-inside: avoid;
+}
+.pw-v-kopf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  text-indent: 0;
+  hyphens: manual;
+  break-after: avoid;
+  break-inside: avoid;
+}
+.pw-v-kopf__titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+/* Buch: Kapitelanfang mit Abstand oben (Höhe in ganzen Zeilen → Grundlinienraster) */
+.pw-v-kopf--buch {
+  justify-content: flex-end;
+  min-height: calc(var(--v-zeile) * 11);
+  padding-bottom: calc(var(--v-zeile) * 2);
+}
+.pw-v-kopf--buch .pw-v-kopf__nummer {
+  font-family: var(--schrift-titel);
+  font-size: 2.4em;
+  line-height: 1;
+  margin-bottom: 0.3em;
+  color: var(--ink-quiet);
+}
+.pw-v-kopf--buch .pw-v-kopf__titel {
+  font-size: 1.9em;
+}
+/* E-Book: kompakter Kopf */
+.pw-v-kopf--ebook {
+  padding-top: calc(var(--v-zeile) * 2);
+  padding-bottom: calc(var(--v-zeile) * 1.5);
+}
+.pw-v-kopf--ebook .pw-v-kopf__nummer {
+  font-family: var(--schrift-ui);
+  font-size: 0.68em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  margin-bottom: 0.6em;
+}
+.pw-v-kopf--ebook .pw-v-kopf__titel {
+  font-size: 2.1em;
+}
+
+/* E-Book-Fläche ------------------------------------------------------------ */
+.pw-v-ebook {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Messen (unsichtbar, gleiche Klassen wie die Anzeige) */
+.pw-v-messung {
+  position: absolute;
+  top: 0;
+  left: -100000px;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Panels ------------------------------------------------------------------- */
+.pw-v-panel {
+  position: absolute;
+  top: 58px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--schatten-popover);
+}
+.pw-v-panel__titel {
+  padding: 14px 16px 6px;
+}
+.pw-v-panel__leer {
+  padding: 4px 16px 16px;
+  color: var(--ink-quiet);
+}
+.pw-v-panel--inhalt {
+  width: 340px;
+  max-height: min(560px, calc(100% - 120px));
+}
+.pw-v-inhalt {
+  list-style: none;
+  margin: 0;
+  padding: 0 6px 8px;
+  overflow-y: auto;
+}
+.pw-v-inhalt__eintrag {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+}
+.pw-v-inhalt__eintrag:hover {
+  background: var(--segment);
+}
+.pw-v-inhalt__eintrag[aria-current='true'] {
+  background: var(--selected);
+  font-weight: 600;
+}
+.pw-v-inhalt__nummer {
+  flex: 0 0 22px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.pw-v-inhalt__titel {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--schrift-text);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-v-inhalt__seite {
+  flex: 0 0 auto;
+  color: var(--ink-quiet);
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-v-panel--darstellung {
+  width: 300px;
+  gap: 16px;
+  padding: 14px 16px 16px;
+}
+.pw-v-feld {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-v-stufen {
+  display: flex;
+  align-items: stretch;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--segment);
+}
+.pw-v-stufe {
+  flex: 1 1 0;
+  height: 34px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--schrift-text);
+  line-height: 1;
+}
+.pw-v-stufe[aria-pressed='true'] {
+  background: var(--surface);
+  box-shadow: var(--schatten-segment);
+  font-weight: 600;
+}
+.pw-v-themen {
+  display: flex;
+  gap: 8px;
+}
+.pw-v-thema {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 12px;
+}
+.pw-v-thema__muster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  font-family: var(--schrift-text);
+  font-size: 17px;
+}
+.pw-v-thema[aria-pressed='true'] {
+  font-weight: 600;
+}
+.pw-v-thema[aria-pressed='true'] .pw-v-thema__muster {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.pw-v-thema[data-thema='papier'] .pw-v-thema__muster {
+  background: var(--v-papier-grund);
+  color: var(--v-papier-text);
+}
+.pw-v-thema[data-thema='sepia'] .pw-v-thema__muster {
+  background: var(--v-sepia-grund);
+  color: var(--v-sepia-text);
+}
+.pw-v-thema[data-thema='nacht'] .pw-v-thema__muster {
+  background: var(--v-nacht-grund);
+  color: var(--v-nacht-text);
+}

@@ -1,0 +1,33 @@
+# Dieses Crate darf nichts auf der Platte lesen oder schreiben (harte Regel 1: Die KI schreibt nie).
+disallowed-methods = [
+  { path = "std::fs::read", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::read_to_string", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::read_dir", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::write", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::copy", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::rename", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::remove_file", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::remove_dir", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::remove_dir_all", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::create_dir", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::create_dir_all", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::hard_link", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::set_permissions", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::metadata", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::symlink_metadata", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::canonicalize", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::os::unix::fs::symlink", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "tokio::fs::read", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+  { path = "tokio::fs::read_to_string", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+  { path = "tokio::fs::write", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+  { path = "tokio::fs::remove_file", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+  { path = "tokio::fs::rename", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+  { path = "tokio::fs::create_dir_all", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+]
+disallowed-types = [
+  { path = "std::fs::File", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::OpenOptions", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "std::fs::DirBuilder", reason = "plotwerk-ki hat keinen Dateizugriff" },
+  { path = "tokio::fs::File", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+  { path = "tokio::fs::OpenOptions", reason = "plotwerk-ki hat keinen Dateizugriff", allow-invalid = true },
+]

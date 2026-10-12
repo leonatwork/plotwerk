@@ -1,0 +1,32 @@
+[
+  {
+    "id": "bleistift-motiv",
+    "anker": {
+      "kapitel": "flut",
+      "exakt": "Bleistifte",
+      "davor": "hlen, dass ich heute alle meine ",
+      "danach": " zu Hause gelassen habe."
+    },
+    "notiz": "Bleistift-Motiv: In Kap. 2 klemmt er sich den Bleistift hinters Ohr.",
+    "ziel": {
+      "typ": "figur",
+      "id": "paul"
+    },
+    "erstellt": "2026-10-06T20:15:00.000Z"
+  },
+  {
+    "id": "tisch-lotte",
+    "anker": {
+      "kapitel": "flut",
+      "exakt": "nach einem freien Tisch suche",
+      "davor": " da bist\" sage ich, während ich ",
+      "danach": ""
+    },
+    "notiz": "Wo setzen sie sich hin? Szene noch ausführen.",
+    "ziel": {
+      "typ": "figur",
+      "id": "lotte"
+    },
+    "erstellt": "2026-10-07T21:40:00.000Z"
+  }
+]

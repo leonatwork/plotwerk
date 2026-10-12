@@ -1,0 +1,36 @@
+name: Fehler melden / Bug report
+description: Etwas funktioniert nicht wie erwartet.
+labels: [fehler]
+body:
+  - type: textarea
+    id: was
+    attributes:
+      label: Was ist passiert?
+      description: Und was hättest du erwartet?
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Bereich „Zeitleiste“ öffnen
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plotwerk-Version
+      description: Plotwerk → Über Plotwerk
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS-Version und Mac (Apple Silicon / Intel)
+  - type: textarea
+    id: mehr
+    attributes:
+      label: Screenshots, Logs, Sonstiges
+      description: Bitte keine Auszüge aus unveröffentlichten Manuskripten, die du nicht teilen möchtest.

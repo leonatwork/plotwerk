@@ -1,0 +1,27 @@
+{
+  "kapitel": "funkstille",
+  "textHash": "7ff7ef8ba68e04ff",
+  "zusammenfassung": "Paul hat seit zwei Nächten nicht geschlafen und findet eine neue Postkarte in der Manteltasche, die er erst am Fischstand umdreht: »Warum bist du nicht gekommen?« Zu Hause ruft eine unterdrückte Nummer an, niemand spricht. Heute ist Donnerstag.",
+  "kurz": "Zweite Postkarte, stummer Anruf.",
+  "wendung": "Die zweite Postkarte und der stumme Anruf.",
+  "antagonistenBezug": "Konsortium? Mögliche Spuren: »Kranich«, Radio-Meldung über leerstehende Speicher.",
+  "loseEnden": [
+    {
+      "id": "die-fremde-und-die-postkarten",
+      "name": "Die Fremde und die Postkarten",
+      "eroeffnet": false
+    },
+    {
+      "id": "speicher-wechseln-den-besitzer",
+      "name": "Speicher wechseln den Besitzer",
+      "eroeffnet": true
+    },
+    {
+      "id": "fiete",
+      "name": "»Fiete«",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

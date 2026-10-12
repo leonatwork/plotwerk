@@ -1,0 +1,74 @@
+# Tests für jeden Pull Request und jeden Push auf main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  signoff:
+    name: Sign-off (DCO)
+    if: github.event_name == 'pull_request' && !endsWith(github.event.pull_request.user.login, '[bot]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Jeder Commit hat ein Signed-off-by des Autors
+        env:
+          BASIS: ${{ github.event.pull_request.base.sha }}
+        run: |
+          fehlt=0
+          for c in $(git rev-list --no-merges "$BASIS..HEAD"); do
+            autor=$(git log -1 --format='%ae' "$c")
+            if ! git log -1 --format='%(trailers:key=Signed-off-by,valueonly)' "$c" | grep -qiF "<$autor>"; then
+              echo "::error::Commit $(git log -1 --format='%h %s' "$c") hat kein Signed-off-by von $autor."
+              fehlt=1
+            fi
+          done
+          if [ "$fehlt" = 1 ]; then
+            echo "Sign-off ergänzen: git rebase --signoff $BASIS && git push --force-with-lease (siehe CONTRIBUTING.md)."
+            exit 1
+          fi
+
+  web:
+    name: TypeScript (Typecheck, Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  rust:
+    name: Rust (fmt, Clippy, Tests)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      # tauri::generate_context! erwartet das Frontend unter dist/
+      - run: mkdir -p dist && touch dist/index.html
+      - working-directory: src-tauri
+        run: |
+          cargo fmt --check
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo test --workspace

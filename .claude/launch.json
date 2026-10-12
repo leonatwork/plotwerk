@@ -1,0 +1,1 @@
+{"version": "0.0.1", "configurations": [{"name": "plotwerk-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173}, {"name": "plotwerk-release", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "--port", "5180", "--strictPort"], "port": 5180}]}

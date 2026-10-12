@@ -1,0 +1,14 @@
+[
+  {
+    "id": "erste-fassung",
+    "name": "Erste Fassung",
+    "datum": "2026-10-01T18:00:00.000Z",
+    "notiz": "Testdaten: Schnappschuss-Dateien liegen nicht im Demo-Projekt.",
+    "dateien": [
+      {
+        "pfad": "manuskript/grundriss.md",
+        "version": ".versionen/manuskript/grundriss.md/2026-10-01T20-00-00.md"
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "schluessel": "zustand:paul@funkstille",
+      "figur": "paul",
+      "kapitel": "funkstille",
+      "zustand": "schlaflos",
+      "belege": [
+        {
+          "kapitel": "funkstille",
+          "text": "Er hat seit zwei Nächten nicht geschlafen"
+        }
+      ],
+      "begruendung": "Paul hat zwei Nächte nicht geschlafen.",
+      "status": "neu"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

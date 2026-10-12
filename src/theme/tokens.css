@@ -1,0 +1,234 @@
+/*
+ * Plotwerk – Design-Tokens. Farben NUR über diese Variablen verwenden.
+ *
+ * Quelle: docs/anforderungen-v1.0.md (Design → Farben) und alle Hex-Werte aus
+ * docs/design/screens/*.dc.html. Zuordnung Hex → Token (Hellmodus):
+ *
+ *   #24262B --ink                    Text, primäre Knöpfe, Statuspunkt „geschrieben“
+ *   #6E6A63 --ink-quiet              Labels, Nebentext
+ *   #4A473E --ink-soft               Kartentext („Paul, Ole · Büro“), Kontext-Boxen
+ *   #FFFFFF --surface                Fenster, Karten, Editor
+ *   #F4F2EF --sidebar                Seitenleiste
+ *   #EFEDEA --titlebar               Titelleiste
+ *   #F6F4F1 --canvas                 Hintergrund von Boards und Netz
+ *   #DAD6CF --line                   Trennlinien, Eingabefelder
+ *   #E2DED7 --line-soft              Kartenränder, Spaltentrenner
+ *   #F0EDE7 --line-faint             Zeilentrenner in Listen
+ *   #CFCBC4 --border-strong          Fensterrahmen, sekundäre Knöpfe
+ *   #E3DFD9 --selected               aktiver Eintrag Seitenleiste, Segment-Hintergrund (Titelleiste)
+ *   #ECE9E4 --segment                Segment-Umschalter (Inspektor), Statusleisten-Linie
+ *   #FAF9F7 --inspector              Inspektor, „Aus dem Text“, Kontext-Boxen
+ *   #F3F1ED --surface-muted          Entwurfs-Karte, leere Auftritts-Zelle
+ *   #EDEAE5 --spalte                 Akt-Spalte im Board
+ *   #C2405C --accent                 Auswahl, Abweichung, Zähler, Anmerkung an Figur
+ *   #8E2B40 --accent-dark            Text auf Akzentflächen, Labels („WENDUNG“)
+ *   #F9DDE3 --chip-accent            Chip/Fläche in Akzentfarbe
+ *   #E8B4C0 --accent-line            Rand in Akzentfarbe (Lotte-Karte, hervorgehobenes Feld)
+ *   #FDF1F3 --accent-flaeche         Notiz-Hintergrund (Figurenkarte)
+ *   #A8344E --link                   Links, Text-Knöpfe
+ *   #7E2539 --link-hover             Links (Hover)
+ *   #EFEBE4 --chip                   gefüllter Chip
+ *   #D5D0C7 --chip-line              umrandeter Chip
+ *   #A39D8C --dashed                 gestrichelte Knöpfe („+ Figur“, „+ Szene planen“)
+ *   #8A857B --dotted                 gepunktete Unterstreichung, gestrichelter Chip, Legende „geplant“
+ *   #B7B1A6 --status-entwurf         Statuspunkt „Entwurf“, „+ Figur vorab anlegen“
+ *   #3D5A75 --strang-arbeit          Arbeit und Antagonisten
+ *   #2A4157 --arbeit-dark            Beschriftungen Antagonist/Arbeit
+ *   #9FB3C6 --arbeit-line            Kartenrand Arbeit (Netz)
+ *   #E6ECF1 --arbeit-flaeche         Gruppenfläche Antagonist (Arbeit)
+ *   #B9C7D3 --arbeit-flaeche-line    Rand Gruppenfläche Antagonist (Arbeit)
+ *   #C2405C --strang-dates           Dates und Begegnungen
+ *   #A86A12 --strang-warm            Strang in Ocker
+ *   #6E440A --warm-dark            Text auf warmen Flächen („LOSE ENDEN“, „Notiz an Paul“)
+ *   #E6D3A9 --notiz-line             Rand Notiz am Rand
+ *   #FDF6EA --warm-flaeche           Karte „Die Fremde“
+ *   #FBEFD9 --ruhend                 Faden, der seit ≥ 3 Kapiteln ruht
+ *   #FBF6EC --ideen                  Ideen-Ablage
+ *   #EFE2C6 --ideen-line             Rand Ideen-Ablage/Ideenkarte
+ *   #D6C39A --ideen-dashed           „+ Idee“
+ *   #6A4C9C --strang-violett         Strang in Violett
+ *   #4B3474 --vage-dark              Text „REAL ODER EINGEBILDET?“, „REALITÄT OFFEN“
+ *   #4A4A4F --strang-organisation    Antagonist Organisation
+ *   #3B3B40 --organisation-dark      Beschriftungen Organisation
+ *   #EEEDEF --organisation-flaeche   Gruppenfläche Organisation
+ *   #C8C6CC --organisation-line      Rand Gruppenfläche Organisation
+ *   #8A8890 --organisation-dashed    gestrichelte Karte ohne Figur
+ *   #2F6B45 --real-gesichert         Realitätsebene gesichert
+ *   #A86A12 --real-offen             Realitätsebene noch offen
+ *   #6A4C9C --real-vage              Realitätsebene bewusst vage
+ *   #FBE9C9 --mark-gelb              Anmerkung im Text (gelb)
+ *   #FBE0E6 --mark-rosa              Anmerkung im Text (rosa, neue Notiz)
+ *   #F3F0EA --schraffur              Schraffur „geplant“ im Kapitelstreifen
+ *   #D9D5CE --on-ink-quiet           Nebentext auf dunkler Karte (Paul im Netz)
+ *   #FFFFFF --on-ink / --on-accent   Text auf ink-/accent-Flächen
+ *   #FFFFFF --on-farbe               Text auf Realitäts-/Strangfarben (dunkel im Dunkelmodus, da die Flächen dort hell sind)
+ *   #FF5F57 #FEBC2E #28C840          --ampel-rot/-gelb/-gruen (nur Browser-Demo)
+ */
+:root {
+  color-scheme: light;
+
+  --ink: #24262b;
+  --ink-quiet: #6e6a63;
+  --ink-soft: #4a473e;
+  --surface: #ffffff;
+  --sidebar: #f4f2ef;
+  --titlebar: #efedea;
+  --canvas: #f6f4f1;
+  --line: #dad6cf;
+  --line-soft: #e2ded7;
+  --line-faint: #f0ede7;
+  --border-strong: #cfcbc4;
+  --selected: #e3dfd9;
+  --segment: #ece9e4;
+  --inspector: #faf9f7;
+  --surface-muted: #f3f1ed;
+  --spalte: #edeae5;
+
+  --accent: #c2405c;
+  --accent-dark: #8e2b40;
+  --chip-accent: #f9dde3;
+  --accent-line: #e8b4c0;
+  --accent-flaeche: #fdf1f3;
+  --link: #a8344e;
+  --link-hover: #7e2539;
+
+  --chip: #efebe4;
+  --chip-line: #d5d0c7;
+  --dashed: #a39d8c;
+  --dotted: #8a857b;
+  --status-entwurf: #b7b1a6;
+
+  --strang-arbeit: #3d5a75;
+  --arbeit-dark: #2a4157;
+  --arbeit-line: #9fb3c6;
+  --arbeit-flaeche: #e6ecf1;
+  --arbeit-flaeche-line: #b9c7d3;
+  --strang-dates: #c2405c;
+  --strang-warm: #a86a12;
+  --warm-dark: #6e440a;
+  --notiz-line: #e6d3a9;
+  --warm-flaeche: #fdf6ea;
+  --ruhend: #fbefd9;
+  --ideen: #fbf6ec;
+  --ideen-line: #efe2c6;
+  --ideen-dashed: #d6c39a;
+  --strang-violett: #6a4c9c;
+  --vage-dark: #4b3474;
+  --strang-organisation: #4a4a4f;
+  --organisation-dark: #3b3b40;
+  --organisation-flaeche: #eeedef;
+  --organisation-line: #c8c6cc;
+  --organisation-dashed: #8a8890;
+
+  --real-gesichert: #2f6b45;
+  --real-offen: #a86a12;
+  --real-vage: #6a4c9c;
+
+  --mark-gelb: #fbe9c9;
+  --mark-rosa: #fbe0e6;
+  /* Textauswahl: eigene Farbe, unabhängig von Anmerkungen, voller Kontrast */
+  --auswahl: #c8daf2;
+  --auswahl-text: #1b1d22;
+  --schraffur: #f3f0ea;
+
+  --on-ink: #ffffff;
+  --on-ink-quiet: #d9d5ce;
+  --on-accent: #ffffff;
+  --on-farbe: #ffffff;
+
+  --ampel-rot: #ff5f57;
+  --ampel-gelb: #febc2e;
+  --ampel-gruen: #28c840;
+
+  --schatten-segment: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --schatten-segment-gross: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --schatten-karte: 0 2px 8px rgba(36, 38, 43, 0.06);
+  --schatten-popover: 0 6px 20px rgba(36, 38, 43, 0.12);
+  --schatten-dialog: 0 24px 60px rgba(36, 38, 43, 0.22);
+  --abdunkeln: rgba(36, 38, 43, 0.28);
+
+  --schrift-ui: -apple-system, BlinkMacSystemFont, sans-serif;
+  --schrift-titel: 'Instrument Serif', Georgia, serif;
+  --schrift-text: 'Newsreader Variable', Newsreader, Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --ink: #ece9e4;
+    --ink-quiet: #a29d94;
+    --ink-soft: #c9c4ba;
+    --surface: #1f2023;
+    --sidebar: #242528;
+    --titlebar: #2a2b2e;
+    --canvas: #1a1b1d;
+    --line: #3a3b3f;
+    --line-soft: #333438;
+    --line-faint: #2c2d30;
+    --border-strong: #47484d;
+    --selected: #38393d;
+    --segment: #2d2e31;
+    --inspector: #222326;
+    --surface-muted: #28292c;
+    --spalte: #232427;
+
+    --accent: #e0647f;
+    --accent-dark: #f2a7b7;
+    --chip-accent: #4a2530;
+    --accent-line: #7a3a4a;
+    --accent-flaeche: #33232a;
+    --link: #f08aa1;
+    --link-hover: #f5b0c0;
+
+    --chip: #303135;
+    --chip-line: #46474c;
+    --dashed: #6d6960;
+    --dotted: #807b72;
+    --status-entwurf: #78746b;
+
+    --strang-arbeit: #7fa3c4;
+    --arbeit-dark: #a9c3da;
+    --arbeit-line: #4d6378;
+    --arbeit-flaeche: #1f2830;
+    --arbeit-flaeche-line: #3a4a5a;
+    --strang-dates: #e0647f;
+    --strang-warm: #d89a3c;
+    --warm-dark: #e8be7a;
+    --notiz-line: #5a4a28;
+    --warm-flaeche: #2e2719;
+    --ruhend: #3a2f1c;
+    --ideen: #29261f;
+    --ideen-line: #4a4130;
+    --ideen-dashed: #6b5b3e;
+    --strang-violett: #a387d1;
+    --vage-dark: #c7b3ea;
+    --strang-organisation: #9a9aa2;
+    --organisation-dark: #c4c4ca;
+    --organisation-flaeche: #26262a;
+    --organisation-line: #45454c;
+    --organisation-dashed: #75757e;
+
+    --real-gesichert: #5daa7a;
+    --real-offen: #d89a3c;
+    --real-vage: #a387d1;
+
+    --mark-gelb: #4a3a1a;
+    --mark-rosa: #4a2530;
+    --auswahl: #35527d;
+    --auswahl-text: #ffffff;
+    --schraffur: #2a2b2e;
+
+    --on-ink: #1f2023;
+    --on-ink-quiet: #4a473e;
+    --on-accent: #ffffff;
+    --on-farbe: #1a1b1d;
+
+    --schatten-segment: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --schatten-segment-gross: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --schatten-karte: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --schatten-popover: 0 6px 20px rgba(0, 0, 0, 0.45);
+    --schatten-dialog: 0 24px 60px rgba(0, 0, 0, 0.55);
+    --abdunkeln: rgba(0, 0, 0, 0.5);
+  }
+}

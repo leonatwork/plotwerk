@@ -1,0 +1,22 @@
+{
+  "kapitel": "ebbe",
+  "textHash": "068a27b69cabf800",
+  "zusammenfassung": "Paul beendet den Abend mit Vera mit der Lüge, er müsse früh für Ole nach Kopenhagen. Am Kai bleibt er bei Ebbe reglos stehen, ein alter Mann spricht ihn an. Danach schreibt er Vera die Wahrheit.",
+  "kurz": "Abend mit Vera endet, Kai, alter Mann.",
+  "wendung": "Sein »Ich melde mich bei Dir!« war gelogen und wird doch wahr.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "ausrede-kopenhagen",
+      "name": "Ausrede Kopenhagen",
+      "eroeffnet": true
+    },
+    {
+      "id": "vera",
+      "name": "Vera",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

@@ -1,0 +1,764 @@
+/* G1 Zeitleiste: Tages-Achse, Karten, Spuren, Inspektor, Vorschläge. Stil wie Akte/Kapitel, Farben nur über Tokens. */
+
+.zl-seite {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Werkzeugzeile ------------------------------------------------------------ */
+.zl-werkzeuge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.zl-werkzeuge__rechts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.zl-select {
+  font: inherit;
+  font-size: 12px;
+  height: 28px;
+  max-width: 100%;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.zl-select:focus-visible,
+.zl-feld:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+.zl-legende {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.zl-legende__eintrag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Sicherheits-Punkt: gesichert gefüllt, vage halb, offen nur Rand */
+.zl-punkt {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--zl-farbe, var(--ink-quiet));
+  background: var(--zl-farbe, var(--ink-quiet));
+}
+.zl-punkt--ungefaehr {
+  background: linear-gradient(90deg, var(--zl-farbe) 50%, transparent 50%);
+}
+.zl-punkt--unklar {
+  background: transparent;
+}
+
+/* Hinweis-Leiste (Leerzustand, Zeitwidersprüche) */
+.zl-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--inspector);
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.zl-banner--warn {
+  border-color: var(--notiz-line);
+  background: var(--warm-flaeche);
+  color: var(--warm-dark);
+}
+.zl-banner > span {
+  flex: 1 1 auto;
+}
+
+/* Raster ------------------------------------------------------------------- */
+.zl-rahmen {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.zl-rahmen:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: -2px;
+}
+.zl-raster {
+  display: inline-flex;
+  align-items: stretch;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+/* Zeilenhöhen (Beschriftung und Gruppen gleich) */
+.zl-z-kopf {
+  height: 58px;
+}
+.zl-z-zeit {
+  height: 26px;
+}
+.zl-z-karte {
+  height: 104px;
+}
+.zl-z-ort {
+  height: 40px;
+}
+.zl-z-zustand {
+  height: 46px;
+}
+
+.zl-beschriftung {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  flex: 0 0 96px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line-soft);
+  background: var(--surface);
+}
+.zl-beschriftung > div {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  border-top: 1px solid var(--line-faint);
+}
+.zl-beschriftung > .zl-z-kopf {
+  border-top: 0;
+}
+.zl-beschriftung__figur {
+  display: block;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zl-gruppe {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line-soft);
+}
+.zl-gruppe__kopf {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 12px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line-soft);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.zl-gruppe__titel {
+  position: sticky;
+  left: 108px;
+  align-self: flex-start;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  white-space: nowrap;
+}
+.zl-gruppe__tag {
+  font-family: var(--schrift-titel);
+  font-size: 22px;
+  line-height: 1;
+  color: var(--ink);
+}
+.zl-gruppe__datum {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.zl-gruppe__einheiten {
+  flex: 1 1 auto;
+  display: flex;
+}
+.zl-gruppe--unbekannt .zl-gruppe__kopf {
+  background: repeating-linear-gradient(135deg, var(--schraffur) 0 6px, var(--canvas) 6px 12px);
+}
+.zl-gruppe--unbekannt .zl-gruppe__tag {
+  font-family: inherit;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-quiet);
+}
+.zl-gruppe--rueckblende .zl-gruppe__kopf {
+  background: var(--surface-muted);
+}
+
+/* Tageszeit-Achse im Kopf: 4–5 Uhr am nächsten Morgen */
+.zl-tagachse {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--line-faint) 0 14%,
+    var(--line-soft) 14% 28%,
+    var(--line-faint) 28% 42%,
+    var(--line-soft) 42% 56%,
+    var(--line-faint) 56% 72%,
+    var(--line-soft) 72% 86%,
+    var(--selected) 86% 100%
+  );
+}
+.zl-tagachse__marke {
+  position: absolute;
+  top: -2px;
+  width: 4px;
+  height: 10px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--ink-quiet);
+}
+.zl-tagachse__marke--spanne {
+  height: 6px;
+  top: 0;
+  margin-left: 0;
+  border-radius: 3px;
+  opacity: 0.55;
+}
+.zl-tagachse__marke--aktiv {
+  background: var(--accent);
+  opacity: 1;
+}
+
+.zl-luecke {
+  flex: 0 0 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-right: 1px solid var(--line-soft);
+  background: repeating-linear-gradient(90deg, transparent 0 25px, var(--line-faint) 25px 27px, transparent 27px 52px);
+}
+.zl-luecke__text {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--ink-quiet);
+  background: var(--canvas);
+  width: 100%;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.zl-einheit {
+  flex: 0 0 172px;
+  width: 172px;
+  display: flex;
+  flex-direction: column;
+}
+.zl-einheit + .zl-einheit {
+  border-left: 1px dashed var(--line-faint);
+}
+.zl-einheit > .zl-z-zeit {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.zl-einheit__karte-zelle {
+  box-sizing: border-box;
+  padding: 2px 8px 8px;
+}
+
+.zl-karte {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 9px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--schatten-karte);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zl-karte:hover {
+  border-color: var(--line);
+}
+.zl-karte:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+.zl-karte--aktiv,
+.zl-karte--aktiv:hover {
+  border: 1.5px solid var(--accent);
+  padding: 8.5px 9.5px;
+}
+.zl-karte--offen {
+  border-style: dashed;
+  box-shadow: none;
+  background: var(--surface-muted);
+}
+.zl-karte--ohne-text .zl-karte__titel {
+  color: var(--ink-quiet);
+}
+.zl-karte__kopf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+}
+.zl-karte__titel {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.zl-karte__fuss {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.zl-marke {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 17px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+.zl-marke--warn {
+  background: var(--ruhend);
+  color: var(--warm-dark);
+}
+.zl-marke--ki {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+}
+.zl-marke--leise {
+  background: var(--chip);
+  color: var(--ink-soft);
+}
+.zl-marke:first-of-type {
+  margin-left: auto;
+}
+
+/* Spuren -------------------------------------------------------------------- */
+.zl-spur {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border-top: 1px solid var(--line-faint);
+  font-size: 12px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  white-space: nowrap;
+}
+.zl-spur--leer {
+  color: var(--ink-quiet);
+}
+.zl-ort {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--chip-line);
+  border-radius: 999px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zl-ort--geerbt {
+  border-style: dashed;
+  color: var(--ink-quiet);
+}
+
+/* Zustandsspur: farbiges Band oben (durchgehend wie eine Kurve), Name darunter */
+.zl-spur--zustand {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 0;
+}
+.zl-band {
+  display: flex;
+  height: 8px;
+}
+.zl-band > span {
+  flex: 1 1 0;
+  background: var(--zl-farbe, transparent);
+}
+.zl-band--geerbt > span {
+  opacity: 0.45;
+}
+.zl-zustand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zl-zustand__punkt {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--zl-farbe);
+}
+
+/* Inspektor ----------------------------------------------------------------- */
+.zl-insp {
+  overflow-y: auto;
+  gap: 16px;
+}
+.zl-kopflabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--accent-dark);
+}
+.zl-titel {
+  margin: -6px 0 0;
+  font-family: var(--schrift-titel);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.zl-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-faint);
+}
+.zl-abschnitt__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.zl-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+.zl-leise {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+}
+.zl-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.zl-felder {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.zl-felder .pw-feld__label {
+  font-size: 11.5px;
+}
+.zl-feld {
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 0;
+}
+.zl-feld--fehler {
+  border-color: var(--accent);
+}
+.zl-feld::placeholder {
+  color: var(--ink-quiet);
+  opacity: 0.8;
+}
+.zl-textbereich {
+  height: auto;
+  min-height: 56px;
+  padding: 8px;
+  line-height: 1.45;
+  resize: vertical;
+}
+.zl-fehler {
+  font-size: 12px;
+  color: var(--accent-dark);
+}
+.zl-reihe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.zl-knopf {
+  font: inherit;
+  font-size: 12px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--chip-line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.zl-knopf:hover:not(:disabled) {
+  background: var(--segment);
+}
+.zl-knopf:disabled {
+  color: var(--ink-quiet);
+  cursor: default;
+  opacity: 0.7;
+}
+.zl-knopf:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+.zl-knopf[aria-pressed='true'] {
+  border-color: var(--zl-farbe, var(--ink));
+  background: var(--zl-farbe, var(--ink));
+  color: var(--on-farbe);
+}
+.zl-knopf--zustand {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.zl-knopf--zustand[aria-pressed='true'] .zl-zustand__punkt {
+  background: var(--on-farbe);
+}
+.zl-link {
+  font: inherit;
+  font-size: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  cursor: pointer;
+  text-align: left;
+}
+.zl-link:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+.zl-link--leise {
+  color: var(--ink-quiet);
+}
+
+.zl-zitat {
+  margin: 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--zl-farbe, var(--line));
+  border-radius: 0 6px 6px 0;
+  background: var(--inspector);
+  font-family: var(--schrift-text);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.zl-zitat--knopf {
+  display: block;
+  width: 100%;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.zl-zitat--knopf:hover {
+  background: var(--segment);
+}
+.zl-zitat__ort {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--schrift-ui);
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+
+.zl-hinweis {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--notiz-line);
+  border-radius: 8px;
+  background: var(--warm-flaeche);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.zl-hinweis__titel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warm-dark);
+}
+
+/* Vorschlagskarten (Inspektor und Dialog) */
+.zl-vorschlag {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 10px;
+  background: var(--accent-flaeche);
+}
+.zl-vorschlag__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--accent-dark);
+}
+.zl-vorschlag__wert {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.zl-vorschlag__bisher {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.zl-vorschlag__aktionen {
+  display: flex;
+  gap: 6px;
+}
+
+.zl-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Zustandsarten verwalten */
+.zl-art {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 4px;
+}
+.zl-art__farbe {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.zl-art__farbe > select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.zl-art__farbe:focus-within {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+.zl-art__farbe > span {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--zl-farbe);
+}
+.zl-symbol {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-quiet);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.zl-symbol:hover:not(:disabled) {
+  background: var(--segment);
+  color: var(--ink);
+}
+.zl-symbol:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.zl-symbol:focus-visible {
+  outline: 2px solid var(--accent-line);
+}

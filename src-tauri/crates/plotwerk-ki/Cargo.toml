@@ -1,0 +1,15 @@
+[package]
+name = "plotwerk-ki"
+version = "0.1.0"
+description = "HTTP-Transport zur Messages-API (Microsoft Foundry oder Claude API). Ohne Dateizugriff."
+edition = "2021"
+rust-version = "1.90"
+publish = false
+
+[dependencies]
+reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "http2", "json", "system-proxy"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tokio = { version = "1", default-features = false, features = ["time"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "io-util", "time"] }

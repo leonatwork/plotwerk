@@ -1,0 +1,17 @@
+{
+  "kapitel": "flut",
+  "textHash": "5d2cb5bbb81d9fa7",
+  "zusammenfassung": "Paul lässt sich im Volvo zum Hafen bringen, ist eine halbe Stunde zu früh und hat seine Bleistifte vergessen. Er beobachtet Vater und Tochter am Bootsverleih und merkt, dass er lächelt. Dann tippt Lotte ihm auf die Schulter.",
+  "kurz": "Warten am Hafen, Lotte taucht auf.",
+  "wendung": "Lotte steht plötzlich hinter ihm.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "treffen-mit-lotte",
+      "name": "Treffen mit Lotte",
+      "eroeffnet": false
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

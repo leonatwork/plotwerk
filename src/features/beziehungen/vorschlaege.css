@@ -1,0 +1,179 @@
+/* KI-Vorschläge im Bereich „Beziehungen“ (Panel rechts, Leerzustand). Farben nur über Tokens. */
+
+.pw-vs-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pw-vs-schliessen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+.pw-vs-schliessen:hover {
+  background: var(--inspector);
+  color: var(--ink);
+}
+.pw-vs-schliessen:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+.pw-vs-klein {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+}
+
+.pw-vs-aktionen {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.pw-vs-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-vs-abschnitt__kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.pw-vs-eintrag {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.pw-vs-eintrag[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.pw-vs-zeile {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+.pw-vs-zeile strong {
+  font-weight: 600;
+}
+.pw-vs-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.pw-vs-art {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pw-vs-kurz {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.pw-vs-neu {
+  align-self: flex-start;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pw-vs-belege {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pw-vs-belege .pw-bz-beleg__text {
+  font-size: 12.5px;
+}
+
+.pw-vs-knoepfe {
+  display: flex;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+/* unbestimmter Fortschritt (eine Anfrage) */
+.pw-vs-balken > span {
+  width: 35%;
+  animation: pw-vs-laeuft 1.4s ease-in-out infinite;
+}
+@keyframes pw-vs-laeuft {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(290%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-vs-balken > span {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+
+/* Hinweis in der Leiste unter dem Netz */
+.pw-vs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 999px;
+  background: var(--accent-flaeche);
+  color: var(--accent-dark);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pw-vs-chip:hover {
+  background: var(--chip-accent);
+}
+
+/* dezenter Link in der Figurenliste */
+.pw-vs-link {
+  align-self: flex-start;
+  margin: 6px 10px 2px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--link);
+  cursor: pointer;
+}
+.pw-vs-link:hover {
+  color: var(--link-hover);
+  text-decoration: underline;
+}

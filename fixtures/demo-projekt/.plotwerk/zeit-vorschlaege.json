@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "schluessel": "zeit:lotte",
+      "kapitel": "lotte",
+      "zeit": {
+        "tageszeit": "abends",
+        "sicherheit": "ungefaehr"
+      },
+      "belege": [
+        {
+          "kapitel": "lotte",
+          "text": "um halb acht am Lindenhof"
+        }
+      ],
+      "begruendung": "Das Treffen ist für halb acht verabredet.",
+      "status": "neu"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

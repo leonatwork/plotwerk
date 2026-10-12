@@ -1,0 +1,497 @@
+/* Gemeinsame UI-Bausteine. Maße exakt aus docs/design/screens/*.dc.html, Farben nur über Tokens. */
+
+.pw-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Button ------------------------------------------------------------------ */
+.pw-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 12px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+.pw-button:hover:not(:disabled) {
+  background: var(--inspector);
+}
+.pw-button:active:not(:disabled) {
+  background: var(--surface-muted);
+}
+.pw-button:disabled {
+  opacity: 0.5;
+}
+.pw-button--primaer {
+  font-weight: 600;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.pw-button--primaer:hover:not(:disabled) {
+  background: var(--ink);
+  opacity: 0.88;
+}
+.pw-button--primaer:active:not(:disabled) {
+  background: var(--ink);
+  opacity: 0.8;
+}
+.pw-button--text {
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  font-weight: 600;
+  padding: 0 10px;
+}
+.pw-button--text:hover:not(:disabled),
+.pw-button--text:active:not(:disabled) {
+  background: transparent;
+  color: var(--link-hover);
+}
+.pw-button--leise {
+  justify-content: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--ink-quiet);
+  font-size: 13px;
+  padding: 0 10px;
+}
+.pw-button--leise:hover:not(:disabled),
+.pw-button--leise:active:not(:disabled) {
+  background: transparent;
+  color: var(--ink);
+}
+.pw-button--gestrichelt {
+  border: 1.5px dashed var(--dashed);
+  background: transparent;
+  color: var(--ink-quiet);
+  font-size: 13px;
+  border-radius: 8px;
+}
+.pw-button--gestrichelt:hover:not(:disabled),
+.pw-button--gestrichelt:active:not(:disabled) {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--dotted);
+}
+.pw-button--klein {
+  height: 26px;
+  padding: 0 10px;
+}
+.pw-button--breit {
+  width: 100%;
+}
+
+/* Chip -------------------------------------------------------------------- */
+.pw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-size: 12px;
+  line-height: normal;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+  max-width: 100%;
+}
+button.pw-chip,
+a.pw-chip {
+  cursor: pointer;
+}
+.pw-chip--gefuellt {
+  background: var(--chip);
+}
+.pw-chip--accent {
+  color: var(--accent-dark);
+}
+.pw-chip--gefuellt.pw-chip--accent {
+  background: var(--chip-accent);
+}
+.pw-chip--umrandet {
+  border: 1px solid var(--chip-line);
+}
+.pw-chip--gestrichelt {
+  border: 1px dashed var(--dotted);
+}
+.pw-chip--knopf {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+.pw-chip--knopf[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--chip);
+  font-weight: 600;
+}
+a.pw-chip:hover,
+button.pw-chip:hover {
+  color: inherit;
+  filter: brightness(0.97);
+}
+
+/* Segment ----------------------------------------------------------------- */
+.pw-segment {
+  display: flex;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--segment);
+}
+.pw-segment--selected {
+  background: var(--selected);
+}
+.pw-segment--gross {
+  padding: 3px;
+  border-radius: 8px;
+}
+.pw-segment__knopf {
+  font: inherit;
+  font-size: 12px;
+  height: 28px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pw-segment--voll .pw-segment__knopf {
+  flex: 1 1 0;
+  padding: 0 6px;
+}
+.pw-segment--klein .pw-segment__knopf {
+  height: 26px;
+}
+.pw-segment--hoch .pw-segment__knopf {
+  height: 30px;
+}
+.pw-segment--gross .pw-segment__knopf {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 6px;
+}
+.pw-segment__knopf--aktiv {
+  font-weight: 600;
+  background: var(--surface);
+  box-shadow: var(--schatten-segment);
+}
+.pw-segment--gross .pw-segment__knopf--aktiv {
+  box-shadow: var(--schatten-segment-gross);
+}
+.pw-segment__knopf--farbig.pw-segment__knopf--aktiv {
+  box-shadow: none;
+  color: var(--on-farbe);
+}
+
+/* Karte, Label ------------------------------------------------------------ */
+.pw-karte {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  min-width: 0;
+}
+.pw-karte--akzent {
+  border: 1.5px solid var(--accent);
+}
+
+.pw-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* Inspektor --------------------------------------------------------------- */
+.pw-inspektor {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+  border-left: 1px solid var(--line);
+  background: var(--inspector);
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 0;
+}
+.pw-inspektor > * {
+  flex-shrink: 0;
+}
+.pw-inspektor--weiss {
+  background: var(--surface);
+  padding: 18px;
+}
+
+/* Zähler, Punkte, Avatar -------------------------------------------------- */
+.pw-zaehler {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: normal;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.pw-punkt {
+  display: inline-block;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.pw-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--on-ink);
+  font-weight: 400;
+  line-height: 1;
+}
+
+/* Formulare --------------------------------------------------------------- */
+.pw-textfeld {
+  font: inherit;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 0;
+}
+.pw-textfeld::placeholder,
+.pw-textbereich::placeholder {
+  color: var(--ink-quiet);
+  opacity: 0.8;
+}
+.pw-textfeld:focus,
+.pw-textbereich:focus {
+  border-color: var(--dotted);
+}
+.pw-textbereich {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: none;
+  min-width: 0;
+}
+.pw-feld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pw-feld__label {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.pw-auswahl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pw-auswahl input {
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+/* Realitätsebene (Chip-Variante) ----------------------------------------- */
+.pw-realitaet {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.pw-realitaet__knopf {
+  font: inherit;
+  font-size: 11px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.pw-realitaet__knopf[aria-pressed='true'] {
+  font-weight: 600;
+  color: var(--on-farbe);
+}
+
+/* Dialog ------------------------------------------------------------------ */
+.pw-dialog-hintergrund {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: var(--abdunkeln);
+}
+.pw-dialog-hintergrund--oben {
+  align-items: flex-start;
+  padding-top: 110px;
+}
+.pw-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--schatten-dialog);
+  overflow: hidden;
+}
+.pw-dialog__kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px 0;
+}
+.pw-dialog__titel {
+  flex: 1;
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.1;
+}
+.pw-dialog__schliessen {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-quiet);
+}
+.pw-dialog__schliessen:hover {
+  background: var(--segment);
+  color: var(--ink);
+}
+.pw-dialog__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  overflow: auto;
+  min-height: 0;
+}
+.pw-dialog__fuss {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--segment);
+}
+
+/* Leerer Zustand ---------------------------------------------------------- */
+.pw-leer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1;
+  padding: 40px;
+  text-align: center;
+  color: var(--ink-quiet);
+}
+.pw-leer__titel {
+  font-family: var(--schrift-titel);
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--ink);
+}
+.pw-leer__text {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Werkzeug-Bereiche (Werkzeugseite) – Maße wie „Akte planen“ */
+.pw-werkzeug {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+.pw-werkzeug__flaeche {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+.pw-werkzeug__kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+.pw-werkzeug__titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 34px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--ink);
+}
+.pw-werkzeug__hinweis {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--ink-quiet);
+  text-align: right;
+}
+.pw-werkzeug__inhalt {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}

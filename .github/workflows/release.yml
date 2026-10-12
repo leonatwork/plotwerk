@@ -1,0 +1,125 @@
+# Release: Tag „v*“ pushen (z. B. v0.2.0) → universelle Mac-App (Apple Silicon + Intel),
+# DMG, signierte Updater-Dateien und latest.json landen in einem Release-Entwurf.
+# Ablauf und Secrets: docs/release.md
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag, der gebaut werden soll (z. B. v0.2.0)"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Version prüfen (Tag = package.json = tauri.conf.json = Cargo.toml)
+        run: node scripts/version.mjs --pruefen "${TAG#v}"
+
+      - name: Update-Signierschlüssel vorhanden?
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "::error::Secret TAURI_SIGNING_PRIVATE_KEY fehlt (siehe docs/release.md)."
+            exit 1
+          fi
+
+      # Developer-ID-Signatur und Notarisierung nur, wenn die Apple-Secrets gesetzt sind.
+      # Ohne sie bleibt die App ad-hoc signiert (tauri.conf.json → signingIdentity "-").
+      - name: Apple-Signatur einrichten (optional)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_SIGNING_IDENTITY" ]; then
+            for v in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; do
+              { echo "$v<<__ENDE__"; printenv "$v"; echo "__ENDE__"; } >> "$GITHUB_ENV"
+            done
+            if [ -n "$APPLE_ID" ] && [ -n "$APPLE_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
+              for v in APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+                { echo "$v<<__ENDE__"; printenv "$v"; echo "__ENDE__"; } >> "$GITHUB_ENV"
+              done
+              echo "Signatur mit Developer ID und Notarisierung."
+            else
+              echo "::warning::Signatur mit Developer ID, aber ohne Notarisierung (APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID fehlen)."
+            fi
+          else
+            echo "::notice::Keine Apple-Secrets – Build bleibt ad-hoc signiert."
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+      - name: Bauen und Release-Entwurf anlegen
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ env.TAG }}
+          releaseName: Plotwerk ${{ env.TAG }}
+          releaseBody: |
+            **Installieren:** Terminal öffnen und einfügen:
+
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/install.sh | bash
+            ```
+
+            Oder `Plotwerk.dmg` unten laden und Plotwerk in „Programme“ ziehen. macOS 12 oder neuer, Apple Silicon und Intel.
+            Installierte Versionen aktualisieren sich über „Plotwerk → Nach Updates suchen …“.
+          releaseDraft: true
+          prerelease: ${{ contains(env.TAG, '-') }}
+          includeUpdaterJson: true
+          args: --target universal-apple-darwin --config src-tauri/tauri.updater.conf.json
+
+      # Fester Dateiname für install.sh und den Download-Link in der README
+      # (…/releases/latest/download/Plotwerk.dmg).
+      - name: Plotwerk.dmg anhängen
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.tauri.outputs.releaseId }}
+        run: |
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg | head -n 1)
+          cp "$dmg" Plotwerk.dmg
+          gh api --method POST \
+            -H "Content-Type: application/x-apple-diskimage" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=Plotwerk.dmg" \
+            --input Plotwerk.dmg > /dev/null
+          echo "Release-Entwurf fertig. Prüfen und auf GitHub veröffentlichen."

@@ -1,0 +1,543 @@
+/* Editor-Werkzeuge (G4) – Farben nur über Tokens (src/theme/tokens.css), Maße wie im Schreiben-Inspektor. */
+
+/* Markierungen im Text (nur Darstellung) ---------------------------------- */
+.pw-w-nah {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-skip-ink: none;
+}
+.pw-w-anfang {
+  text-decoration-line: underline;
+  text-decoration-style: double;
+  text-decoration-color: var(--strang-arbeit);
+  text-underline-offset: 4px;
+}
+.pw-w-fokus {
+  background: var(--ruhend);
+  box-shadow: inset 0 -2px 0 var(--strang-warm);
+  border-radius: 2px;
+}
+.pw-w-vorlesen {
+  background: var(--arbeit-flaeche);
+  box-shadow: 0 0 0 2px var(--arbeit-flaeche);
+  border-bottom: 1.5px solid var(--strang-arbeit);
+  border-radius: 2px;
+}
+
+/* Typewriter-Modus --------------------------------------------------------- */
+.pw-s-papier--typewriter .pw-s-text {
+  padding-top: 28vh;
+  padding-bottom: 55vh;
+}
+.pw-s-papier--typewriter .pw-s-prosemirror > *,
+.pw-s-papier--typewriter .pw-s-kopf-label,
+.pw-s-papier--typewriter .pw-s-titel {
+  transition: opacity 0.18s ease;
+}
+.pw-s-papier--typewriter .pw-s-prosemirror > :not(.pw-tw-aktiv),
+.pw-s-papier--typewriter .pw-s-kopf-label,
+.pw-s-papier--typewriter .pw-s-titel:not(:focus) {
+  opacity: 0.3;
+}
+.pw-s-papier--typewriter .pw-s-prosemirror:not(:focus-within) > .pw-tw-aktiv {
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-s-papier--typewriter .pw-s-prosemirror > * {
+    transition: none;
+  }
+}
+
+/* Statusleiste ------------------------------------------------------------- */
+.pw-w-leiste {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pw-w-meldung {
+  color: var(--ink-soft);
+}
+.pw-s-status .pw-w-schalter {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-quiet);
+  font: inherit;
+  text-decoration: none;
+}
+.pw-s-status .pw-w-schalter:hover {
+  color: var(--ink);
+  background: var(--surface-muted);
+}
+.pw-s-status .pw-w-schalter--an {
+  color: var(--ink);
+  background: var(--segment);
+  border-color: var(--line-soft);
+}
+.pw-s-status .pw-w-schalter:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+.pw-w-vorlesegruppe {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pw-w-fortschritt {
+  margin-right: 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* Vorlese-Fenster ---------------------------------------------------------- */
+.pw-w-pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 30;
+  width: 290px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--schatten-popover);
+  color: var(--ink);
+  font-size: 12px;
+  white-space: normal;
+  text-align: left;
+}
+.pw-w-pop__titel {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pw-w-pop__feld {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--ink-quiet);
+}
+.pw-w-pop__feld b {
+  color: var(--ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pw-w-pop__feld input[type='range'] {
+  width: 100%;
+  accent-color: var(--ink);
+}
+.pw-w-pop__knoepfe {
+  display: flex;
+  gap: 6px;
+}
+.pw-s-status .pw-w-knopf,
+.pw-w-knopf {
+  flex: 1 1 0;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: none;
+}
+.pw-s-status .pw-w-knopf:hover {
+  color: var(--ink);
+  background: var(--surface-muted);
+}
+.pw-s-status .pw-w-knopf--primaer,
+.pw-s-status .pw-w-knopf--primaer:hover {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.pw-w-auswahl {
+  height: 28px;
+  min-width: 0;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+}
+.pw-w-leise {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+}
+
+/* Tab „Stil“ im Inspektor -------------------------------------------------- */
+.pw-w-stil {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.pw-w-kopf {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.pw-w-kopf__zeile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+}
+.pw-w-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-w-unterlabel {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.pw-w-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pw-w-liste--dicht {
+  gap: 1px;
+}
+.pw-w-eintrag {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.pw-w-eintrag:hover {
+  border-color: var(--border-strong);
+}
+.pw-w-eintrag__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-quiet);
+}
+.pw-w-eintrag__kopf b {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+}
+.pw-w-nah-punkt,
+.pw-w-anfang-punkt {
+  text-underline-offset: 4px;
+}
+.pw-w-nah-punkt {
+  text-decoration: underline wavy var(--accent) 1px;
+}
+.pw-w-anfang-punkt {
+  text-decoration: underline double var(--strang-arbeit);
+}
+.pw-w-zitat {
+  font-family: var(--schrift-text);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.pw-w-zitat mark {
+  background: var(--mark-gelb);
+  color: inherit;
+  border-radius: 2px;
+}
+.pw-w-wort {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 34px;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.pw-w-wort:hover {
+  background: var(--surface-muted);
+}
+.pw-w-wort--an,
+.pw-w-wort--an:hover {
+  background: var(--ruhend);
+}
+.pw-w-wort__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-w-wort__info {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--ink-quiet);
+}
+.pw-w-wort__zahl {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-quiet);
+}
+.pw-w-balken {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--line-faint);
+  overflow: hidden;
+}
+.pw-w-balken > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--dotted);
+}
+.pw-w-wort--an .pw-w-balken > span {
+  background: var(--strang-warm);
+}
+.pw-w-kandidat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px dashed var(--chip-line);
+  border-radius: 8px;
+}
+.pw-w-kandidat__name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-quiet);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.pw-w-kandidat__name b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.pw-w-kandidat__aktionen {
+  display: flex;
+  gap: 12px;
+}
+.pw-w-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pw-w-link:hover:not(:disabled) {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+.pw-w-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.pw-w-link--leise {
+  color: var(--ink-quiet);
+}
+.pw-w-link--leise:hover:not(:disabled) {
+  color: var(--ink);
+}
+.pw-w-mehr {
+  align-self: flex-start;
+}
+
+/* Dialog „Markennamen“ ----------------------------------------------------- */
+.pw-w-dialog .pw-dialog__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pw-w-dialog .pw-dialog__fuss {
+  justify-content: space-between;
+}
+.pw-w-dialog__intro {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.pw-w-dialog__meldung {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.pw-w-dialog__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: min(56vh, 520px);
+  overflow-y: auto;
+}
+.pw-w-dialog__export {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.pw-w-leer {
+  margin: 12px 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+.pw-w-tabelle {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.pw-w-tabelle th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface);
+  color: var(--ink-quiet);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.pw-w-tabelle td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line-faint);
+  vertical-align: top;
+}
+.pw-w-tabelle td b {
+  font-weight: 600;
+}
+.pw-w-tabelle--formular td {
+  padding: 4px;
+  vertical-align: middle;
+}
+.pw-w-tabelle--formular .pw-textfeld {
+  width: 100%;
+  height: 28px;
+  font-size: 12.5px;
+}
+.pw-w-zahl {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pw-w-kategorie,
+.pw-w-schreibweisen,
+.pw-w-notiz {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-quiet);
+}
+.pw-w-schreibweisen {
+  color: var(--accent-dark);
+}
+.pw-w-aktionen {
+  white-space: nowrap;
+}
+.pw-w-aktionen .pw-w-link + .pw-w-link {
+  margin-left: 12px;
+}
+.pw-w-kapchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pw-w-kapchip {
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--chip-line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.pw-w-kapchip:hover {
+  background: var(--chip);
+}
+.pw-w-kapchip span {
+  color: var(--ink-quiet);
+}
+.pw-w-neu {
+  display: flex;
+  gap: 8px;
+}
+.pw-w-neu .pw-textfeld {
+  flex: 1 1 auto;
+}
+.pw-w-ignoriert {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pw-w-ignoriert__wort {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  padding: 0 4px 0 8px;
+  border-radius: 11px;
+  background: var(--chip);
+  font-size: 11.5px;
+}
+.pw-w-ignoriert__wort button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: none;
+  color: var(--ink-quiet);
+  font: inherit;
+  cursor: pointer;
+}
+.pw-w-ignoriert__wort button:hover {
+  background: var(--selected);
+  color: var(--ink);
+}

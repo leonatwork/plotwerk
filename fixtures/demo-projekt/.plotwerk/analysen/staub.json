@@ -1,0 +1,17 @@
+{
+  "kapitel": "staub",
+  "textHash": "927e6f1d623e579c",
+  "zusammenfassung": "Nachts im Kornspeicher misst Paul die Fenster aus und dreht das Handy um, als Konrad nach den Zeichnungen fragt. Er zählt die Fenster wieder und wieder, während sieben Nachrichten eingehen, vier von Konrad. Dem Wachmann antwortet er nur mit der Zahl.",
+  "kurz": "Kornspeicher, ignorierte Nachrichten, die Fenster.",
+  "wendung": "Paul antwortet dem Wachmann nur noch mit der Zahl der Fenster.",
+  "antagonistenBezug": "Nordhaven: »Fassade, kurze Rückfrage«, ungeöffnet.",
+  "loseEnden": [
+    {
+      "id": "glasfassade-bis-monatsende",
+      "name": "Glasfassade »bis Monatsende«",
+      "eroeffnet": false
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "schluessel": "stimme:paul|staub/sagt nur: \"Achtzehn auf jeder Seite.",
+      "figur": "paul",
+      "kapitel": "staub",
+      "titel": "Paul antwortet nur noch mit einer Zahl",
+      "erklaerung": "Sonst erklärt Paul ausführlich und anschaulich; hier antwortet er dem Wachmann nur mit der Zahl der Fenster.",
+      "zitate": [
+        {
+          "kapitel": "staub",
+          "text": "sagt nur: „Achtzehn auf jeder Seite.“"
+        }
+      ],
+      "vergleich": [
+        {
+          "kapitel": "grundriss",
+          "text": "Paul erklärt, warum er jedes Gebäude zuerst aus Pappe baut"
+        }
+      ],
+      "status": "neu"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

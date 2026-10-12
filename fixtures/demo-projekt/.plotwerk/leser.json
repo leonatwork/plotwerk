@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "kapitel": "lotte",
+      "basisHash": "",
+      "weiss": [
+        {
+          "text": "Paul trifft sich mit Lotte, die ihm einen Zeichentisch verkauft hat.",
+          "belege": [
+            {
+              "kapitel": "lotte",
+              "text": "den er vor zwei Wochen über Kleinanzeigen gekauft hat"
+            }
+          ]
+        }
+      ],
+      "fragen": [
+        {
+          "id": "fenster-nordhaven",
+          "frage": "Was sagt Nordhaven zu Pauls Fenstern?",
+          "belege": [
+            {
+              "kapitel": "grundriss",
+              "text": "Und was sagt Nordhaven zu so vielen Fenstern?"
+            }
+          ]
+        },
+        {
+          "id": "werfthalle-nordkai",
+          "frage": "Wer hat die Werfthalle am Nordkai gekauft?",
+          "belege": [
+            {
+              "kapitel": "fassade",
+              "text": "Werfthalle am Nordkai verkauft"
+            }
+          ]
+        }
+      ],
+      "modell": "demo",
+      "datum": "2026-10-09T12:00:00.000Z"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}

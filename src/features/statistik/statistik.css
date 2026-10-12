@@ -1,0 +1,585 @@
+/* G5 Statistik & Fassungen. Farben nur über Tokens (src/theme/tokens.css). Präfix pw-st-. */
+
+.pw-st-seite {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 24px;
+  min-width: 0;
+}
+
+.pw-st-leiste {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pw-st-panel {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.pw-st-panel__kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+.pw-st-leise {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  line-height: 1.45;
+}
+
+/* Kennzahlen ---------------------------------------------------------------- */
+.pw-st-kacheln {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.pw-st-panel.pw-st-kachel {
+  flex-direction: row;
+  gap: 12px;
+  align-items: center;
+}
+.pw-st-kachel__zahl {
+  font-family: var(--schrift-titel);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.pw-st-kachel__einheit {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  margin-left: 4px;
+}
+.pw-st-kachel__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Fortschrittsring ---------------------------------------------------------- */
+.pw-st-ring {
+  flex: 0 0 auto;
+  display: block;
+}
+.pw-st-ring__spur {
+  stroke: var(--segment);
+}
+.pw-st-ring__wert {
+  stroke: var(--accent);
+  transition: stroke-dashoffset 0.4s ease;
+}
+.pw-st-ring--erreicht .pw-st-ring__wert {
+  stroke: var(--real-gesichert);
+}
+
+/* Balken -------------------------------------------------------------------- */
+.pw-st-balken {
+  position: relative;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--segment);
+  overflow: hidden;
+}
+.pw-st-balken__wert {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  background: var(--accent);
+}
+.pw-st-balken--duenn {
+  height: 6px;
+}
+.pw-st-balken__wert--fertig {
+  background: var(--ink);
+}
+
+/* Kalender-Heatmap ---------------------------------------------------------- */
+.pw-st-kalender {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.pw-st-kalender__wochentage {
+  display: grid;
+  grid-template-rows: 14px repeat(7, 14px);
+  row-gap: 3px;
+  font-size: 10px;
+  color: var(--ink-quiet);
+  line-height: 14px;
+}
+.pw-st-kalender__raster {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: 14px repeat(7, 14px);
+  grid-auto-columns: 14px;
+  gap: 3px;
+  outline: none;
+}
+.pw-st-kalender__monat {
+  font-size: 10px;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+  line-height: 14px;
+  overflow: visible;
+}
+.pw-st-zelle {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: var(--segment);
+  cursor: pointer;
+}
+.pw-st-zelle[data-stufe='1'] {
+  background: color-mix(in srgb, var(--accent) 25%, var(--segment));
+}
+.pw-st-zelle[data-stufe='2'] {
+  background: color-mix(in srgb, var(--accent) 50%, var(--segment));
+}
+.pw-st-zelle[data-stufe='3'] {
+  background: color-mix(in srgb, var(--accent) 78%, var(--segment));
+}
+.pw-st-zelle[data-stufe='4'] {
+  background: var(--accent-dark);
+}
+.pw-st-zelle--zukunft {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-faint);
+  cursor: default;
+}
+.pw-st-zelle--heute {
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+.pw-st-zelle[aria-pressed='true'] {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.pw-st-zelle:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+.pw-st-legende {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.pw-st-legende .pw-st-zelle {
+  width: 11px;
+  height: 11px;
+  cursor: default;
+}
+
+/* Akte und Kapitel ---------------------------------------------------------- */
+.pw-st-akte {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pw-st-akt {
+  border-top: 1px solid var(--line-faint);
+  padding: 8px 0 4px;
+}
+.pw-st-akt:first-child {
+  border-top: 0;
+}
+.pw-st-akt__kopf {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 90px minmax(80px, 160px);
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.pw-st-akt__kopf:hover {
+  background: var(--segment);
+}
+.pw-st-akt__kopf:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+}
+.pw-st-akt__pfeil {
+  color: var(--ink-quiet);
+  transition: transform 0.15s ease;
+}
+.pw-st-akt__kopf[aria-expanded='true'] .pw-st-akt__pfeil {
+  transform: rotate(90deg);
+}
+.pw-st-akt__name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-st-zahl {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.pw-st-kapitel {
+  margin: 2px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.pw-st-kapitel li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) 90px minmax(80px, 160px);
+  align-items: center;
+  gap: 10px;
+  padding: 3px 6px;
+  font-size: 12px;
+}
+.pw-st-kapitel button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pw-st-kapitel button:hover,
+.pw-st-kapitel button:focus-visible {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+/* Inspektor ----------------------------------------------------------------- */
+.pw-st-insp {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  overflow-y: auto;
+}
+.pw-st-insp__abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pw-st-insp__tag {
+  font-family: var(--schrift-titel);
+  font-size: 22px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.pw-st-insp dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.pw-st-insp dt {
+  color: var(--ink-quiet);
+}
+.pw-st-insp dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.pw-st-regel {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* Fassungen ----------------------------------------------------------------- */
+.pw-st-fassungen {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pw-st-fassung {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  align-items: start;
+  padding: 12px 4px;
+  border-top: 1px solid var(--line-faint);
+}
+.pw-st-fassung:first-child {
+  border-top: 0;
+}
+.pw-st-fassung__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.pw-st-fassung__meta {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.pw-st-fassung__notiz {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+.pw-st-fassung__aktionen {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.pw-st-fassung__bearbeiten {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Dialog „Fassung sichern“ --------------------------------------------------- */
+.pw-st-auswahlliste {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--inspector);
+}
+.pw-st-auswahlliste .pw-auswahl {
+  font-size: 13px;
+}
+.pw-st-fehler {
+  font-size: 12px;
+  color: var(--accent-dark);
+}
+
+/* Vergleich ----------------------------------------------------------------- */
+.pw-st-vgl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.pw-st-vgl__wahl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: end;
+}
+.pw-st-vgl__tauschen {
+  margin-bottom: 1px;
+}
+.pw-st-select {
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.pw-st-select:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 0;
+}
+.pw-st-vgl__kapitel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pw-st-vgl__kapitel .pw-st-select {
+  width: auto;
+  min-width: 240px;
+  max-width: 100%;
+}
+.pw-st-vgl__spalten {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  height: min(58vh, 560px);
+  min-height: 220px;
+}
+.pw-st-vgl__spalte {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--inspector);
+  overflow: hidden;
+}
+.pw-st-vgl__spaltenkopf {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 12px;
+  color: var(--ink-quiet);
+  background: var(--surface);
+}
+.pw-st-vgl__spaltenkopf strong {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-st-vgl__text {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 14px 16px;
+  font-family: var(--schrift-text);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pw-st-vgl__text:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: -2px;
+}
+.pw-st-vgl__leer {
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--ink-quiet);
+  font-family: var(--schrift-ui);
+}
+.pw-st-diff--neu {
+  background: color-mix(in srgb, var(--real-gesichert) 16%, transparent);
+  color: var(--real-gesichert);
+  border-radius: 2px;
+}
+.pw-st-diff--entfernt {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+  text-decoration: line-through;
+  border-radius: 2px;
+}
+.pw-st-vgl__text [data-aktiv] {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.pw-st-vgl__legende {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.pw-st-buchliste {
+  display: flex;
+  flex-direction: column;
+  max-height: 160px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+}
+.pw-st-buchliste button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 5px 10px;
+  border: 0;
+  border-top: 1px solid var(--line-faint);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.pw-st-buchliste li:first-child button {
+  border-top: 0;
+}
+.pw-st-buchliste button:hover {
+  background: var(--segment);
+}
+.pw-st-buchliste button[aria-pressed='true'] {
+  background: var(--selected);
+  font-weight: 600;
+}
+.pw-st-buchliste button:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: -2px;
+}
+.pw-st-etikett {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--chip);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.pw-st-etikett--geaendert {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+}
+.pw-st-etikett--neu {
+  background: color-mix(in srgb, var(--real-gesichert) 16%, transparent);
+  color: var(--real-gesichert);
+}
+.pw-st-etikett--warn {
+  background: var(--ruhend);
+  color: var(--warm-dark);
+}
+
+/* Statusleiste (Schreiben) --------------------------------------------------- */
+.pw-s-status .pw-st-ziel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-quiet);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.pw-s-status .pw-st-ziel:hover {
+  color: var(--ink);
+}
+.pw-s-status .pw-st-ziel--erreicht {
+  color: var(--real-gesichert);
+}

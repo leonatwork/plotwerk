@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Fragen und lose Ideen / Questions
+    url: https://github.com/leonatwork/plotwerk/discussions
+    about: Für Fragen zur Nutzung und Ideen, die noch kein konkreter Vorschlag sind.
+  - name: Sicherheitslücke melden / Security
+    url: https://github.com/leonatwork/plotwerk/security/advisories/new
+    about: Bitte vertraulich melden, nicht als Issue.

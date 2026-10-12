@@ -1,0 +1,22 @@
+{
+  "kapitel": "bis-bald",
+  "textHash": "680af9a85d274ae0",
+  "zusammenfassung": "Paul wacht ohne Erinnerung im Fährhaus auf, gegenüber schläft eine Fremde im gelben Regenmantel. Beim Bezahlen eines Earl Grey findet er in der Manteltasche einen Messingschlüssel und eine Postkarte mit dem Leuchtturm: »Bis bald«.",
+  "kurz": "Gedächtnislücke, die Fremde, die erste Postkarte.",
+  "wendung": "Die Postkarte in der Manteltasche.",
+  "antagonistenBezug": "–",
+  "loseEnden": [
+    {
+      "id": "die-fremde-und-die-postkarten",
+      "name": "Die Fremde und die Postkarten",
+      "eroeffnet": true
+    },
+    {
+      "id": "der-messingschluessel",
+      "name": "Der Messingschlüssel",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

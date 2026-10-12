@@ -1,0 +1,443 @@
+/* Planungs-Ansichten (Akte, Kapitel, Figuren, Orte). Maße aus den Screens, Farben nur über Tokens. */
+
+.pl-link {
+  font: inherit;
+  font-size: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--link);
+  cursor: pointer;
+  text-align: left;
+}
+.pl-link:hover:not(:disabled) {
+  color: var(--link-hover);
+  text-decoration: underline;
+}
+.pl-link:disabled {
+  color: var(--ink-quiet);
+  cursor: default;
+}
+
+/* „+ Figur“, „+ Ort“ (gestrichelter Chip, 26 px) */
+.pl-plus-chip {
+  font: inherit;
+  font-size: 12px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--dashed);
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pl-plus-chip:hover {
+  color: var(--ink);
+  border-color: var(--dotted);
+}
+
+.pl-menue {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--schatten-popover);
+}
+.pl-menue__suche {
+  font: inherit;
+  font-size: 12px;
+  height: 28px;
+  margin: 2px 2px 4px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.pl-menue__liste {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.pl-menue__eintrag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.pl-menue__eintrag:hover,
+.pl-menue__eintrag:focus-visible {
+  background: var(--segment);
+  outline: none;
+}
+.pl-menue__zusatz {
+  margin-top: 4px;
+  border-top: 1px solid var(--line-faint);
+  border-radius: 0 0 5px 5px;
+  color: var(--link);
+  font-weight: 600;
+  font-size: 12px;
+}
+.pl-menue__leer {
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+
+/* Chips mit Entfernen-Knopf */
+.pl-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  font-size: 12px;
+  border-radius: 999px;
+  color: var(--ink);
+}
+.pl-chip--gefuellt {
+  background: var(--chip);
+}
+.pl-chip--umrandet {
+  border: 1px solid var(--chip-line);
+}
+.pl-chip--accent {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+}
+.pl-chip__text {
+  font: inherit;
+  padding: 4px 4px 4px 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+button.pl-chip__text {
+  cursor: pointer;
+}
+button.pl-chip__text:hover {
+  text-decoration: underline;
+}
+.pl-chip__weg {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1;
+  width: 20px;
+  height: 22px;
+  padding: 0 6px 0 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  opacity: 0.55;
+}
+.pl-chip:hover .pl-chip__weg,
+.pl-chip__weg:focus-visible {
+  opacity: 1;
+}
+.pl-chip__weg:hover {
+  color: var(--accent-dark);
+}
+
+/* Akt-Board ---------------------------------------------------------------- */
+.pl-karte {
+  position: relative;
+  text-align: left;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.pl-karte:hover {
+  box-shadow: var(--schatten-karte);
+}
+.pl-karte:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.pl-karte--ziehend {
+  opacity: 0.35;
+}
+.pl-karte--overlay {
+  box-shadow: var(--schatten-popover) !important;
+  cursor: grabbing !important;
+  transform: rotate(-1deg);
+}
+.pl-spalte {
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.pl-spalte--ziel {
+  outline: 2px dashed var(--dashed);
+  outline-offset: -2px;
+}
+.pl-kopfkarte__bearbeiten {
+  font: inherit;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+.pl-kopfkarte__bearbeiten:hover {
+  color: var(--link);
+}
+.pl-kopfkarte {
+  cursor: text;
+}
+
+/* Eingaben ohne sichtbaren Rahmen, bis man hineinzeigt */
+.pl-still {
+  font: inherit;
+  margin: 0;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  min-width: 0;
+}
+.pl-still:hover {
+  border-color: var(--line);
+}
+.pl-still:focus {
+  border-color: var(--dotted);
+  background: var(--surface);
+}
+.pl-still::placeholder {
+  color: var(--ink-quiet);
+  opacity: 0.8;
+}
+
+.pl-eingabe {
+  font: inherit;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 0;
+}
+.pl-eingabe:focus,
+.pl-bereich:focus {
+  border-color: var(--dotted);
+}
+.pl-eingabe::placeholder,
+.pl-bereich::placeholder {
+  color: var(--ink-quiet);
+  opacity: 0.8;
+}
+.pl-bereich {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: none;
+  min-width: 0;
+}
+.pl-select {
+  font: inherit;
+  font-size: 13px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  min-width: 0;
+}
+
+/* Listen (Figuren, Orte) ---------------------------------------------------- */
+.pl-listeneintrag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.pl-listeneintrag:hover {
+  background: var(--segment);
+}
+.pl-listeneintrag[aria-current='true'] {
+  background: var(--chip-accent);
+}
+.pl-vorab {
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--status-entwurf);
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+.pl-vorab:hover {
+  color: var(--ink);
+  border-color: var(--dotted);
+}
+
+.pl-zeile-weg {
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  opacity: 0;
+}
+.pl-zeile:hover .pl-zeile-weg,
+.pl-zeile:focus-within .pl-zeile-weg,
+.pl-zeile-weg:focus-visible {
+  opacity: 1;
+}
+.pl-zeile-weg:hover {
+  color: var(--accent-dark);
+  background: var(--segment);
+}
+
+.pl-zelle {
+  font: inherit;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+button.pl-zelle {
+  cursor: pointer;
+}
+button.pl-zelle:hover {
+  filter: brightness(0.95);
+}
+
+.pl-kapitelwahl {
+  font: inherit;
+  font-size: 13px;
+  width: 40px;
+  height: 36px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.pl-kapitelwahl:hover {
+  background: var(--inspector);
+}
+.pl-kapitelwahl[aria-pressed='true'] {
+  font-weight: 600;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.pl-kapitelwahl--leer {
+  border-style: dashed;
+  color: var(--ink-quiet);
+}
+
+.pl-zeilenknopf {
+  font: inherit;
+  display: grid;
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--line-faint);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.pl-zeilenknopf:hover {
+  background: var(--inspector);
+}
+
+.pl-kleinknopf {
+  font: inherit;
+  font-size: 11px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pl-kleinknopf:hover {
+  background: var(--inspector);
+}
+.pl-kleinknopf[aria-pressed='true'] {
+  border-color: var(--ink);
+  background: var(--chip);
+  font-weight: 600;
+}
+
+.pl-etikett {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: normal;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pl-scroll {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* nur beim Zeigen auf die Zeile sichtbar (Tastatur: beim Fokus) */
+.pl-hover-zeigen {
+  opacity: 0;
+}
+.pl-zeile:hover .pl-hover-zeigen,
+.pl-zeile:focus-within .pl-hover-zeigen {
+  opacity: 1;
+}
+
+/* Inspektor im Akt-Board: Inhalt scrollt statt zu schrumpfen */
+.pl-inspektor > * {
+  flex-shrink: 0;
+}

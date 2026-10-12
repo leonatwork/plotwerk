@@ -1,0 +1,946 @@
+/* Recherche-Ablage (G8). Farben nur über Tokens (src/theme/tokens.css). */
+
+/* Bereich ----------------------------------------------------------------- */
+.rc-bereich {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rc-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  margin: 0 -6px;
+  padding: 2px 6px 20px;
+}
+.rc-bereich__ziehen {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--accent-line);
+  border-radius: 12px;
+  background: var(--accent-flaeche);
+  opacity: 0.94;
+  color: var(--accent-dark);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.rc-bereich__status {
+  position: absolute;
+  right: 0;
+  bottom: 8px;
+  z-index: 4;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: 12px;
+  box-shadow: var(--schatten-popover);
+}
+
+/* Filterleiste ------------------------------------------------------------- */
+.rc-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rc-filter__suche {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--ink-quiet);
+}
+.rc-filter__suche svg {
+  position: absolute;
+  left: 9px;
+  pointer-events: none;
+}
+.rc-filter__feld,
+.rc-filter__wahl select {
+  font: inherit;
+  font-size: 12px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.rc-filter__feld {
+  width: 220px;
+  padding: 0 10px 0 27px;
+}
+.rc-filter__feld::placeholder {
+  color: var(--ink-quiet);
+}
+.rc-filter__feld:focus,
+.rc-filter__wahl select:focus {
+  border-color: var(--dotted);
+}
+.rc-filter__wahl select {
+  max-width: 220px;
+  padding: 0 8px;
+  cursor: pointer;
+}
+.rc-filter__wahl--aktiv {
+  border-color: var(--accent-line) !important;
+  background: var(--accent-flaeche) !important;
+  color: var(--accent-dark) !important;
+}
+.rc-filter__zahl {
+  font-size: 11px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.rc-segment-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Hinweis: freie Dateien ---------------------------------------------------- */
+.rc-freie {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--notiz-line);
+  border-radius: 8px;
+  background: var(--warm-flaeche);
+  color: var(--warm-dark);
+  font-size: 12px;
+}
+.rc-freie > span {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sammlung: Raster --------------------------------------------------------- */
+.rc-sammlung {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.rc-sammlung:focus {
+  outline: none;
+}
+.rc-sammlung--raster {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.rc-kachel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+  cursor: default;
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.rc-kachel:hover {
+  box-shadow: var(--schatten-karte);
+}
+.rc-kachel:focus {
+  outline: none;
+}
+.rc-kachel:focus-visible {
+  box-shadow: 0 0 0 2px var(--accent-line);
+}
+.rc-kachel--gewaehlt {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.rc-kachel--gewaehlt:focus-visible {
+  box-shadow: 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-line);
+}
+.rc-kachel__medium {
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border-bottom: 1px solid var(--line-faint);
+}
+.rc-kachel__medium--link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--surface-muted);
+  color: var(--link);
+}
+.rc-kachel__host {
+  max-width: 100%;
+  font-family: var(--schrift-titel);
+  font-size: 19px;
+  line-height: 1.1;
+  color: var(--ink-soft);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-kachel__medium--notiz {
+  padding: 12px 14px;
+  background: var(--ideen);
+  overflow: hidden;
+}
+.rc-kachel__medium--notiz p {
+  margin: 0;
+  font-family: var(--schrift-text);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rc-kachel__text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px 12px;
+  min-width: 0;
+}
+.rc-kachel__titel {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.rc-kachel__neben {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+  min-width: 0;
+}
+.rc-kachel__nebentext {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-kachel__datum,
+.rc-zeile__datum {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.rc-karte__ziele {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+.rc-karte__mehr {
+  font-size: 11px;
+  color: var(--ink-quiet);
+  align-self: center;
+}
+
+/* Sammlung: Liste ---------------------------------------------------------- */
+.rc-sammlung--liste {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.rc-zeile {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) minmax(0, auto) 92px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 10px;
+  border-bottom: 1px solid var(--line-faint);
+  cursor: default;
+}
+.rc-zeile:last-child {
+  border-bottom: none;
+}
+.rc-zeile:hover {
+  background: var(--inspector);
+}
+.rc-zeile:focus {
+  outline: none;
+}
+.rc-zeile:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent-line);
+}
+.rc-zeile--gewaehlt,
+.rc-zeile--gewaehlt:hover {
+  background: var(--accent-flaeche);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.rc-zeile--gewaehlt:focus-visible {
+  box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 2px var(--accent-line);
+}
+.rc-zeile__mini {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.rc-zeile__symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+}
+.rc-zeile__symbol--link {
+  color: var(--link);
+}
+.rc-zeile__symbol--notiz {
+  background: var(--ideen);
+  color: var(--warm-dark);
+}
+.rc-zeile__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rc-zeile__titel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-zeile__beschreibung {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-zeile .rc-karte__ziele {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  max-width: 320px;
+  overflow: hidden;
+}
+.rc-zeile__datum {
+  text-align: right;
+}
+
+/* Bilder ------------------------------------------------------------------ */
+.rc-bild {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+.rc-bild img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.rc-bild--fehlt {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+  text-align: center;
+  background: repeating-linear-gradient(135deg, var(--surface-muted) 0 8px, var(--schraffur) 8px 16px);
+}
+.rc-bild--laedt {
+  background: var(--surface-muted);
+}
+
+/* Ziel-Chips -------------------------------------------------------------- */
+.rc-ziele {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.rc-ziel {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.rc-ziel__name {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 10px;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+button.rc-ziel__name {
+  cursor: pointer;
+  border-radius: 999px;
+}
+button.rc-ziel__name:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--dotted);
+}
+.rc-ziel__art {
+  color: var(--ink-quiet);
+  font-size: 10.5px;
+}
+.rc-ziel__weg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-right: 3px;
+  margin-left: -6px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-quiet);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.rc-ziel__weg:hover {
+  background: var(--selected);
+  color: var(--ink);
+}
+.rc-ziel--figur {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+}
+.rc-ziel--figur .rc-ziel__art {
+  color: var(--accent-dark);
+  opacity: 0.75;
+}
+.rc-ziel--ort {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--chip-line);
+}
+.rc-ziel--fehlt {
+  background: none;
+  color: var(--ink-quiet);
+  border: 1px dashed var(--dashed);
+  box-shadow: none;
+}
+.rc-ziel--klein {
+  height: 20px;
+  font-size: 11px;
+}
+.rc-ziel--klein .rc-ziel__name {
+  padding: 0 8px;
+  line-height: 20px;
+}
+.rc-ziel--klein .rc-ziel__art {
+  display: none;
+}
+.rc-schlagwort {
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid var(--chip-line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.rc-schlagwort::before {
+  content: '#';
+  color: var(--ink-quiet);
+  margin-right: 1px;
+}
+.rc-schlagwort:hover {
+  border-color: var(--dotted);
+}
+.rc-schlagwort--aktiv {
+  border-color: var(--accent-line);
+  background: var(--accent-flaeche);
+  color: var(--accent-dark);
+}
+
+/* Ziel-Auswahl ------------------------------------------------------------ */
+.rc-zielwahl {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.rc-zielwahl__feld {
+  height: 30px;
+  width: 100%;
+}
+.rc-zielwahl__liste {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--schatten-popover);
+}
+.rc-zielwahl__eintrag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.rc-zielwahl__eintrag--aktiv {
+  background: var(--selected);
+}
+.rc-zielwahl__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-zielwahl__art {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.rc-zielwahl__leer {
+  padding: 6px 2px 0;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+
+/* Inspektor --------------------------------------------------------------- */
+.rc-insp__bild {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+  cursor: zoom-in;
+}
+.rc-insp__bild .rc-bild {
+  height: 220px;
+  background: var(--surface);
+}
+.rc-insp__bild:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 2px;
+}
+.rc-insp__titelblock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rc-insp__art {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.rc-insp__titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.rc-insp__hilfe {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.rc-insp__link {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.rc-insp__url {
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--link);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  user-select: text;
+}
+.rc-insp__abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rc-insp__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 22px;
+}
+.rc-insp__kopf h3 {
+  margin: 0;
+}
+.rc-insp__notiz {
+  font-family: var(--schrift-text);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.rc-insp__leer {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.rc-insp__datei {
+  font-size: 12px;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.rc-insp__aktionen {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--line-faint);
+  padding-top: 14px;
+}
+.rc-insp__liste {
+  margin: 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.rc-insp__tasten {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+.rc-insp__tasten dt {
+  min-width: 26px;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 11px;
+  text-align: center;
+}
+.rc-insp__tasten dd {
+  margin: 0;
+  color: var(--ink-soft);
+  align-self: center;
+}
+
+/* Lupe -------------------------------------------------------------------- */
+.rc-lupe .pw-dialog__inhalt {
+  padding: 0;
+}
+.rc-lupe__bild {
+  width: 100%;
+  height: min(70vh, 640px);
+  background: var(--canvas);
+}
+.rc-lupe__zaehler {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+
+/* Dialog ------------------------------------------------------------------ */
+.rc-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.rc-dialog__text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.rc-dialog__hilfe {
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.rc-dialog__hilfe--fehler {
+  color: var(--accent-dark);
+}
+.rc-dialog__problem {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--accent-dark);
+}
+.rc-dialog__fehler {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--accent-flaeche);
+  color: var(--accent-dark);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.rc-ablage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 170px;
+  padding: 18px;
+  border: 1.5px dashed var(--dashed);
+  border-radius: 10px;
+  background: var(--inspector);
+  color: var(--ink-quiet);
+  text-align: center;
+}
+.rc-ablage--ziehen {
+  border-color: var(--accent);
+  background: var(--accent-flaeche);
+  color: var(--accent-dark);
+}
+.rc-ablage--voll {
+  padding: 10px;
+  border-style: solid;
+  border-color: var(--line-soft);
+  gap: 8px;
+}
+.rc-ablage__titel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.rc-ablage__klein {
+  font-size: 11px;
+}
+.rc-ablage__bild {
+  width: 100%;
+  height: 200px;
+  border-radius: 6px;
+  background: var(--surface);
+}
+.rc-ablage__info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  font-size: 11px;
+  color: var(--ink-quiet);
+  text-align: left;
+}
+.rc-ablage__info > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* RechercheLeiste (Einbindung in Karten anderer Bereiche) ----------------- */
+.rc-leiste {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 8px;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.rc-leiste--ziehen {
+  background: var(--accent-flaeche);
+  box-shadow: 0 0 0 1.5px var(--accent-line);
+}
+.rc-leiste__kopf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+.rc-leiste__anzahl {
+  font-size: 11px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.rc-leiste__knopf {
+  height: 22px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.rc-leiste__knopf:hover {
+  color: var(--link-hover);
+  background: var(--surface-muted);
+}
+.rc-leiste__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rc-leiste__zeile {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.rc-leiste__eintrag {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rc-leiste__eintrag:hover {
+  background: var(--surface-muted);
+}
+.rc-leiste__mini,
+.rc-leiste__symbol {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 5px;
+}
+.rc-leiste__symbol {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-muted);
+  color: var(--ink-soft);
+}
+.rc-leiste__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rc-leiste__titel {
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-leiste__neben {
+  font-size: 11px;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rc-leiste__neben:empty {
+  display: none;
+}
+.rc-leiste__zeile--erwaehnt .rc-leiste__titel {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.rc-leiste__extern {
+  flex: 0 0 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+.rc-leiste__extern:hover {
+  background: var(--surface-muted);
+  color: var(--link);
+}
+.rc-leiste__leer {
+  padding: 10px;
+  border: 1px dashed var(--dashed);
+  border-radius: 8px;
+  background: none;
+  color: var(--ink-quiet);
+  font: inherit;
+  font-size: 12px;
+  text-align: center;
+  cursor: pointer;
+}
+.rc-leiste__leer:hover {
+  color: var(--ink-soft);
+  border-color: var(--dotted);
+}
+.rc-leiste__mehr {
+  align-self: flex-start;
+  padding: 2px 6px;
+  border: none;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.rc-leiste__mehr:hover {
+  color: var(--link-hover);
+}

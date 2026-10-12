@@ -1,0 +1,620 @@
+/* G6 KI-Leser: Fragen an das Buch, Leser-Simulation, Karte im Kapitel-Überblick. Farben nur über Tokens. */
+
+/* Belege ------------------------------------------------------------------ */
+.pw-kl-belege {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pw-kl-beleg {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 9px;
+  border: 0;
+  border-left: 2px solid var(--line);
+  border-radius: 0 6px 6px 0;
+  background: var(--inspector);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.pw-kl-beleg:hover {
+  background: var(--surface-muted);
+  border-left-color: var(--accent-line);
+}
+.pw-kl-beleg:focus-visible {
+  outline: 2px solid var(--auswahl);
+  outline-offset: 1px;
+}
+.pw-kl-beleg__kap {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+.pw-kl-beleg__alt {
+  font-weight: 400;
+  color: var(--real-offen);
+}
+.pw-kl-beleg__text {
+  font-family: var(--schrift-text);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.pw-kl-belege--kompakt .pw-kl-beleg {
+  padding: 4px 8px;
+}
+.pw-kl-belege--kompakt .pw-kl-beleg__text {
+  font-size: 12.5px;
+}
+
+/* Etiketten und Status -------------------------------------------------------- */
+.pw-kl-etikett {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  background: var(--chip);
+  color: var(--ink-soft);
+}
+.pw-kl-etikett--warn {
+  background: var(--ruhend);
+  color: var(--warm-dark);
+}
+.pw-kl-etikett--accent {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+}
+
+.pw-kl-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pw-kl-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pw-kl-status--belegt {
+  color: var(--real-gesichert);
+}
+.pw-kl-status--teilweise {
+  color: var(--real-offen);
+}
+.pw-kl-status--nicht_belegt {
+  color: var(--accent);
+}
+
+.pw-kl-fehler {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-line);
+  border-radius: 8px;
+  background: var(--accent-flaeche);
+  color: var(--accent-dark);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.pw-kl-fehler__knoepfe {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pw-kl-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+.pw-kl-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.pw-kl-klein {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+}
+
+/* Fragen an das Buch (Chat) ------------------------------------------------- */
+.pw-kl-chat {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pw-kl-verlauf {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 4px 4px 12px;
+}
+.pw-kl-eintrag {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-kl-frage {
+  align-self: flex-end;
+  max-width: 78%;
+  padding: 8px 12px;
+  border-radius: 12px 12px 4px 12px;
+  background: var(--chip);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.pw-kl-antwort {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 0 0 12px;
+  border-left: 2px solid var(--line-soft);
+}
+.pw-kl-antwort--ohne {
+  border-left-color: var(--notiz-line);
+}
+.pw-kl-antwort__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+.pw-kl-antwort__ohne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--warm-dark);
+}
+.pw-kl-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-height: 22px;
+  font-size: 11.5px;
+  color: var(--ink-quiet);
+}
+.pw-kl-meta__hinweis {
+  color: var(--real-offen);
+}
+.pw-kl-weg {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font: inherit;
+  font-size: 11.5px;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  opacity: 0;
+}
+.pw-kl-eintrag:hover .pw-kl-weg,
+.pw-kl-eintrag:focus-within .pw-kl-weg {
+  opacity: 1;
+}
+.pw-kl-weg:hover {
+  color: var(--accent-dark);
+  background: var(--chip-accent);
+}
+.pw-kl-weg:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--auswahl);
+}
+
+.pw-kl-denkt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-quiet);
+}
+.pw-kl-denkt__punkte {
+  display: inline-flex;
+  gap: 3px;
+}
+.pw-kl-denkt__punkte span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-quiet);
+  animation: pw-kl-puls 1.2s ease-in-out infinite;
+}
+.pw-kl-denkt__punkte span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.pw-kl-denkt__punkte span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes pw-kl-puls {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-kl-denkt__punkte span {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.pw-kl-leer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 16px;
+  text-align: center;
+}
+.pw-kl-leer__titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 30px;
+  color: var(--ink);
+}
+.pw-kl-beispiele {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 520px;
+  margin-top: 4px;
+}
+.pw-kl-beispiel {
+  border: 1px solid var(--chip-line);
+  background: var(--surface);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pw-kl-beispiel:hover {
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+.pw-kl-beispiel:focus-visible {
+  outline: 2px solid var(--auswahl);
+  outline-offset: 1px;
+}
+
+.pw-kl-eingabe {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--schatten-karte);
+}
+.pw-kl-eingabe:focus-within {
+  border-color: var(--dotted);
+}
+.pw-kl-eingabe__zeile {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.pw-kl-eingabe textarea {
+  flex: 1;
+  min-height: 22px;
+  max-height: 160px;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 2px 0;
+}
+.pw-kl-eingabe textarea::placeholder {
+  color: var(--ink-quiet);
+}
+.pw-kl-eingabe__fuss {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--ink-quiet);
+}
+.pw-kl-taste {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 10.5px;
+  line-height: 15px;
+  color: var(--ink-soft);
+  background: var(--inspector);
+}
+
+.pw-kl-inspektor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-kl-regeln {
+  margin: 0;
+  padding: 0 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.pw-kl-zeilen {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.pw-kl-zeilen dt {
+  color: var(--ink-quiet);
+}
+.pw-kl-zeilen dd {
+  margin: 0;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Leser-Simulation (Dialog) ---------------------------------------------------- */
+.pw-kl-dialog .pw-dialog__inhalt {
+  max-height: min(70vh, 640px);
+  overflow-y: auto;
+}
+.pw-kl-kopf {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.pw-kl-auswahl {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  max-width: 100%;
+}
+.pw-kl-abschnitte {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.pw-kl-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pw-kl-abschnitt__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pw-kl-liste {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+.pw-kl-punkt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-faint);
+}
+.pw-kl-punkt:first-child {
+  border-top: 0;
+  padding-top: 2px;
+}
+.pw-kl-punkt__zeile {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.pw-kl-punkt__zeile > :first-child {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.pw-kl-plan {
+  font-family: var(--schrift-text);
+  font-size: 14px;
+}
+.pw-kl-plan__vor {
+  font-family: var(--schrift-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-quiet);
+  margin-right: 4px;
+}
+.pw-kl-erklaerung {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.pw-kl-zaehler {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.pw-kl-balken {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--segment);
+  overflow: hidden;
+}
+.pw-kl-balken > span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: 999px;
+  background: var(--ink);
+  animation: pw-kl-wandern 1.4s ease-in-out infinite;
+}
+@keyframes pw-kl-wandern {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-kl-balken > span {
+    animation: none;
+    width: 100%;
+    opacity: 0.4;
+  }
+}
+.pw-kl-kasten {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--inspector);
+}
+
+/* Karte im Kapitel-Überblick ---------------------------------------------------- */
+.pw-kl-karte {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+.pw-kl-karte__kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.pw-kl-karte__titel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--arbeit-dark);
+}
+.pw-kl-karte__zahlen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.pw-kl-karte__zahlen b {
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.pw-kl-karte__fragen {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pw-kl-karte__frage {
+  width: 100%;
+  display: flex;
+  gap: 6px;
+  padding: 3px 6px;
+  margin: 0 -6px;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+}
+.pw-kl-karte__frage::before {
+  content: '?';
+  flex-shrink: 0;
+  font-weight: 600;
+  color: var(--arbeit-dark);
+}
+.pw-kl-karte__frage:hover {
+  background: var(--inspector);
+}
+.pw-kl-karte__frage:focus-visible {
+  outline: 2px solid var(--auswahl);
+}
+.pw-kl-karte__knoepfe {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}

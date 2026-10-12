@@ -1,0 +1,198 @@
+/* Import/Export-Dialoge. Maße wie Kapitelliste (Schreiben.dc.html) und „Lose Enden“ (Kapitel.dc.html). */
+
+.pw-ie-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+
+.pw-ie-kopf {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.pw-ie-kopf__datei {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-ie-kopf__zahlen {
+  font-size: 12px;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+}
+.pw-ie-kopf .pw-button {
+  margin-left: auto;
+}
+
+.pw-ie-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pw-ie-abschnitt__kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.pw-ie-abschnitt__zusatz {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+
+.pw-ie-liste {
+  display: flex;
+  flex-direction: column;
+  max-height: 264px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.pw-ie-zeile {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+}
+.pw-ie-zeile + .pw-ie-zeile {
+  border-top: 1px solid var(--line-faint);
+}
+.pw-ie-zeile--zweizeilig {
+  align-items: flex-start;
+  padding: 6px 10px;
+}
+.pw-ie-zeile--zweizeilig .pw-punkt {
+  margin-top: 5px;
+}
+.pw-ie-zeile__nr {
+  flex: 0 0 auto;
+  min-width: 14px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.pw-ie-zeile__inhalt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pw-ie-zeile__titel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-ie-zeile__satz {
+  font-family: var(--schrift-text);
+  font-size: 13px;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-ie-zeile__zahl {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.pw-ie-zeile .pw-auswahl {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 30px;
+}
+
+.pw-ie-hinweise {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pw-ie-hinweis {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--ruhend);
+}
+.pw-ie-hinweis__titel {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pw-ie-hinweis__text {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+.pw-ie-hinweis__zitat {
+  font-family: var(--schrift-text);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.pw-ie-hinweis .pw-button {
+  align-self: flex-start;
+  height: 22px;
+  padding: 0;
+  margin-top: 2px;
+}
+
+.pw-ie-optionen {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pw-ie-einzug {
+  padding-left: 22px;
+  padding-bottom: 4px;
+}
+.pw-ie-einzug .pw-textfeld {
+  width: 100%;
+}
+
+.pw-ie-feldreihe {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pw-ie-feldreihe > .pw-feld__label,
+.pw-ie-feldreihe > label {
+  flex: 0 0 82px;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.pw-ie-feldreihe > .pw-textfeld {
+  flex: 1 1 auto;
+}
+
+.pw-ie-meldung {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.pw-ie-meldung--fehler {
+  color: var(--accent-dark);
+}
+.pw-ie-meldung--erfolg {
+  color: var(--real-gesichert);
+}
+.pw-ie-fuss-links {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}

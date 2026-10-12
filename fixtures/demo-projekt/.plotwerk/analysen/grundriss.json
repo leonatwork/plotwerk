@@ -1,0 +1,17 @@
+{
+  "kapitel": "grundriss",
+  "textHash": "bf40af5a832534f7",
+  "zusammenfassung": "Paul schneidet in der Teeküche das letzte Fenster in ein Pappmodell und erklärt Ole, warum er jedes Gebäude zuerst aus Pappe baut. Am Ende fragt Ole, was Nordhaven zu so vielen Fenstern sagt.",
+  "kurz": "Das Pappmodell, Oles Frage nach Nordhaven.",
+  "wendung": "Keine, Einstieg in Pauls Welt.",
+  "antagonistenBezug": "Nordhaven wird als Auftraggeber eingeführt.",
+  "loseEnden": [
+    {
+      "id": "glasfassade-bis-monatsende",
+      "name": "Glasfassade »bis Monatsende«",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

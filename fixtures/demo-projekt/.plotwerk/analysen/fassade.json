@@ -1,0 +1,22 @@
+{
+  "kapitel": "fassade",
+  "textHash": "055fec6dec53d456",
+  "zusammenfassung": "Besprechung im Zeichensaal. Malte zeigt die Ansichten, Konrad berichtet: Herr Kessler will die ganze Fassade aus Glas, die Vorgabe kommt vom Aufsichtsrat. Zwölf Millionen sind so gut wie sicher, Paul übernimmt.",
+  "kurz": "Nordhaven will Glas, Paul übernimmt »bis Monatsende«.",
+  "wendung": "Der sichere Auftrag hängt plötzlich an einer Glasfassade.",
+  "antagonistenBezug": "Nordhaven: Herr Kessler und die Vorgabe des Aufsichtsrats.",
+  "loseEnden": [
+    {
+      "id": "glasfassade-bis-monatsende",
+      "name": "Glasfassade »bis Monatsende«",
+      "eroeffnet": false
+    },
+    {
+      "id": "schlagzeile-werfthalle-am-nordkai",
+      "name": "Schlagzeile: Werfthalle am Nordkai verkauft",
+      "eroeffnet": true
+    }
+  ],
+  "modell": "demo",
+  "datum": "2026-10-08T18:00:00.000Z"
+}

@@ -1,0 +1,87 @@
+/* Verweis-Feld ([[) – auch in Planung, Figuren und Orten genutzt */
+.pw-s-verweisfeld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.pw-s-verweisfeld:not(.pw-s-verweisfeld--eigen) textarea {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: none;
+  min-width: 0;
+  overflow: hidden;
+}
+.pw-s-verweisfeld:not(.pw-s-verweisfeld--eigen) textarea:focus {
+  outline: none;
+  border-color: var(--dotted);
+}
+.pw-s-verweisfeld.pw-s-abw-feld textarea {
+  padding: 8px;
+  line-height: normal;
+}
+.pw-s-verweisliste {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--inspector);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+.pw-s-verweisliste li {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.pw-s-verweisliste li > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pw-s-verweisliste li > span:last-child {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.pw-s-verweisliste li[aria-selected='true'] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.pw-s-verweisliste li[aria-selected='true'] > span:last-child {
+  color: inherit;
+  opacity: 0.75;
+}
+.pw-s-verweis {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.pw-s-verweis:hover {
+  color: var(--link-hover);
+}
+.pw-s-verweis--fehlt {
+  color: var(--ink-quiet);
+  font-weight: 400;
+  text-decoration: line-through;
+  cursor: default;
+}

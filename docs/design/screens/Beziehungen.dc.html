@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Beziehungsnetz</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#A8344E}a:hover{color:#7E2539}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; border-radius: 12px; overflow: hidden; border: 1px solid #CFCBC4; background: #FFFFFF; color: #24262B; font-family: -apple-system, BlinkMacSystemFont, 'IBM Plex Sans', sans-serif; display: flex; flex-direction: column;">
+
+<div style="flex: 0 0 52px; height: 52px; box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #EFEDEA; border-bottom: 1px solid #DAD6CF;">
+<span aria-hidden="true" style="display: flex; gap: 8px;"><span style="width: 12px; height: 12px; border-radius: 50%; background: #FF5F57;"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #FEBC2E;"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #28C840;"></span></span>
+<span style="width: 150px;"></span>
+<span style="font-size: 13px; font-weight: 600;">Hafenlichter</span>
+<span style="font-size: 13px; color: #6E6A63;">Beziehungen</span>
+<span style="flex-grow: 1;"></span>
+<button type="button" style="font: inherit; font-size: 12px; font-weight: 600; height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid #24262B; background: #24262B; color: #FFFFFF; cursor: pointer;">+ Beziehung</button>
+</div>
+
+<div style="flex: 1 1 auto; min-height: 0; display: flex;">
+
+<aside style="flex: 0 0 230px; box-sizing: border-box; background: #F4F2EF; border-right: 1px solid #DAD6CF; padding: 12px 10px;">
+<nav aria-label="Bereiche" style="display: flex; flex-direction: column; gap: 2px;">
+<a href="Schreiben.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: #24262B; text-decoration: none; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>Schreiben</a>
+<a href="Kapitel.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: #24262B; text-decoration: none; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"></path><path d="M4 6h.5M4 12h.5M4 18h.5"></path></svg>Kapitel-Überblick</a>
+<a href="Akte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: #24262B; text-decoration: none; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M9 4v16M15 4v16"></path></svg>Akte planen</a>
+<a href="Figur.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: #24262B; text-decoration: none; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>Figuren</a>
+<a href="Beziehungen.dc.html" aria-current="page" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; background: #E3DFD9; color: #24262B; text-decoration: none; font-size: 13px; font-weight: 600;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2.5"></circle><circle cx="5" cy="19" r="2.5"></circle><circle cx="19" cy="19" r="2.5"></circle><path d="M12 7.5v4M12 11.5 6.5 17M12 11.5l5.5 5.5"></path></svg>Beziehungen</a>
+<a href="Orte.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: #24262B; text-decoration: none; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s7-6.3 7-12a7 7 0 0 0-14 0c0 5.7 7 12 7 12Z"></path><circle cx="12" cy="9" r="2.5"></circle></svg>Orte</a>
+<a href="Hinweise.dc.html" style="display: flex; align-items: center; gap: 10px; min-height: 34px; padding: 0 10px; border-radius: 6px; color: #24262B; text-decoration: none; font-size: 13px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20Z"></path><path d="M12 10v4M12 17v.5"></path></svg>Hinweise<span style="margin-left: auto; font-size: 11px; font-weight: 600; background: #C2405C; color: #FFFFFF; border-radius: 999px; padding: 1px 7px;">10</span></a>
+</nav>
+</aside>
+
+<div style="flex: 1 1 auto; min-width: 0; background: #F6F4F1; padding: 16px 15px; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 0 5px; flex-wrap: wrap; gap: 10px;">
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<h1 style="margin: 0; font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 34px; line-height: 1;">Beziehungsnetz</h1>
+<span style="font-size: 12px; color: #6E6A63;">{{stageNote}}</span>
+</div>
+<div role="group" aria-label="Stand der Geschichte" style="display: flex; padding: 3px; background: #E3DFD9; border-radius: 8px;">
+<sc-for list="{{stages}}" as="st" hint-placeholder-count="3">
+<sc-if value="{{st.active}}" hint-placeholder-val="{{ false }}"><button type="button" aria-pressed="true" onClick="{{st.pick}}" style="font: inherit; font-size: 12px; font-weight: 600; height: 34px; padding: 0 14px; border: 0; border-radius: 6px; background: #FFFFFF; color: #24262B; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer;">{{st.label}}</button></sc-if>
+<sc-if value="{{st.inactive}}" hint-placeholder-val="{{ true }}"><button type="button" aria-pressed="false" onClick="{{st.pick}}" style="font: inherit; font-size: 12px; height: 34px; padding: 0 14px; border: 0; border-radius: 6px; background: transparent; color: #24262B; cursor: pointer;">{{st.label}}</button></sc-if>
+</sc-for>
+</div>
+</div>
+
+<div style="position: relative; width: 880px; height: 600px; background: #FFFFFF; border: 1px solid #E2DED7; border-radius: 12px;">
+<div style="position: absolute; left: 8px; top: 222px; width: 184px; height: 156px; box-sizing: border-box; background: #EEEDEF; border: 1px solid #C8C6CC; border-radius: 12px;"></div>
+<div style="position: absolute; left: 688px; top: 222px; width: 184px; height: 156px; box-sizing: border-box; background: #E6ECF1; border: 1px solid #B9C7D3; border-radius: 12px;"></div>
+<div style="position: absolute; left: 18px; top: 232px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #3B3B40;">ANTAGONIST · KONSORTIUM</div>
+<div style="position: absolute; left: 698px; top: 232px; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #2A4157;">ANTAGONIST · NORDHAVEN</div>
+
+<svg width="492" height="8" viewBox="0 0 492 8" preserveAspectRatio="none" style="position: absolute; left: 194px; top: 186px; width: 492px; height: 8px; overflow: visible; fill: none; stroke: #3D5A75; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 492 4"></path></svg>
+<svg width="8" height="82" viewBox="0 0 8 82" preserveAspectRatio="none" style="position: absolute; left: 190px; top: 108px; width: 8px; height: 82px; overflow: visible; fill: none; stroke: #3D5A75; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 82"></path></svg>
+<svg width="8" height="82" viewBox="0 0 8 82" preserveAspectRatio="none" style="position: absolute; left: 436px; top: 108px; width: 8px; height: 82px; overflow: visible; fill: none; stroke: #3D5A75; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 82"></path></svg>
+<svg width="8" height="82" viewBox="0 0 8 82" preserveAspectRatio="none" style="position: absolute; left: 682px; top: 108px; width: 8px; height: 82px; overflow: visible; fill: none; stroke: #3D5A75; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 82"></path></svg>
+<svg width="8" height="80" viewBox="0 0 8 80" preserveAspectRatio="none" style="position: absolute; left: 436px; top: 190px; width: 8px; height: 80px; overflow: visible; fill: none; stroke: #3D5A75; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 80"></path></svg>
+<svg width="188" height="8" viewBox="0 0 188 8" preserveAspectRatio="none" style="position: absolute; left: 516px; top: 296px; width: 188px; height: 8px; overflow: visible; fill: none; stroke: #3D5A75; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><path d="M 0 4 L 188 4"></path></svg>
+<svg width="8" height="80" viewBox="0 0 8 80" preserveAspectRatio="none" style="position: absolute; left: 436px; top: 330px; width: 8px; height: 80px; overflow: visible; fill: none; stroke: #C2405C; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 80"></path></svg>
+<svg width="8" height="82" viewBox="0 0 8 82" preserveAspectRatio="none" style="position: absolute; left: 190px; top: 410px; width: 8px; height: 82px; overflow: visible; fill: none; stroke: #C2405C; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 82"></path></svg>
+<sc-if value="{{s1}}" hint-placeholder-val="{{ false }}">
+<svg width="246" height="8" viewBox="0 0 246 8" preserveAspectRatio="none" style="position: absolute; left: 194px; top: 406px; width: 246px; height: 8px; overflow: visible; fill: none; stroke: #C2405C; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 246 4"></path></svg>
+</sc-if>
+<sc-if value="{{ge2}}" hint-placeholder-val="{{ true }}">
+<svg width="492" height="8" viewBox="0 0 492 8" preserveAspectRatio="none" style="position: absolute; left: 194px; top: 406px; width: 492px; height: 8px; overflow: visible; fill: none; stroke: #C2405C; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 0 4 L 492 4"></path></svg>
+<svg width="8" height="82" viewBox="0 0 8 82" preserveAspectRatio="none" style="position: absolute; left: 436px; top: 410px; width: 8px; height: 82px; overflow: visible; fill: none; stroke: #C2405C; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round"><path d="M 4 0 L 4 82"></path></svg>
+<svg width="8" height="82" viewBox="0 0 8 82" preserveAspectRatio="none" style="position: absolute; left: 682px; top: 410px; width: 8px; height: 82px; overflow: visible; fill: none; stroke: #A86A12; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><path d="M 4 0 L 4 82"></path></svg>
+</sc-if>
+<sc-if value="{{s3}}" hint-placeholder-val="{{ true }}">
+<svg width="188" height="8" viewBox="0 0 188 8" preserveAspectRatio="none" style="position: absolute; left: 176px; top: 296px; width: 188px; height: 8px; overflow: visible; fill: none; stroke: #4A4A4F; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 6 6"><path d="M 0 4 L 188 4"></path></svg>
+</sc-if>
+
+<div style="position: absolute; left: 118px; top: 48px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1px solid #9FB3C6; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Ole</b><br><span style="font-size: 12px; color: #6E6A63;">Kollege</span></span></div>
+<div style="position: absolute; left: 364px; top: 48px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1px solid #9FB3C6; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Malte</b><br><span style="font-size: 12px; color: #6E6A63;">Kollege</span></span></div>
+<div style="position: absolute; left: 610px; top: 48px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1px solid #9FB3C6; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Konrad</b><br><span style="font-size: 12px; color: #6E6A63;">Chef</span></span></div>
+<sc-if value="{{lt3}}" hint-placeholder-val="{{ false }}">
+<div style="position: absolute; left: 24px; top: 270px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: transparent; border: 1.5px dashed #8A8890; border-radius: 10px; font-size: 13px; line-height: 1.3; color: #4A4A4F;"><span><b>noch keine Figur</b><br><span style="font-size: 11px;">Spur? Werfthalle am Nordkai verkauft, Kap. 2</span></span></div>
+</sc-if>
+<sc-if value="{{s3}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 24px; top: 270px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1.5px dashed #4A4A4F; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>»Kranich«</b><br><span style="font-size: 11px; color: #6E6A63;">Kap. 10 · Zuordnung?</span></span></div>
+</sc-if>
+<div style="position: absolute; left: 364px; top: 270px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #24262B; color: #FFFFFF; border-radius: 10px; font-size: 15px; line-height: 1.3;"><span><b>Paul</b><br><span style="font-size: 12px; color: #D9D5CE;">Ich-Erzähler</span></span></div>
+<div style="position: absolute; left: 704px; top: 270px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1px dashed #9FB3C6; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Herr Kessler</b><br><span style="font-size: 12px; color: #6E6A63;">erwähnt · Investor</span></span></div>
+<div style="position: absolute; left: 118px; top: 492px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1px solid #E8B4C0; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Lotte</b><br><span style="font-size: 12px; color: #6E6A63;">Kleinanzeige</span></span></div>
+<sc-if value="{{ge2}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 364px; top: 492px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FFFFFF; border: 1px solid #E8B4C0; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Vera</b><br><span style="font-size: 12px; color: #6E6A63;">Kap. 7</span></span></div>
+<div style="position: absolute; left: 610px; top: 492px; width: 152px; height: 60px; box-sizing: border-box; padding: 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: #FDF6EA; border: 2px dashed #A86A12; border-radius: 10px; font-size: 14px; line-height: 1.3;"><span><b>Die Fremde</b><br><span style="font-size: 11px; font-weight: 600; color: #6E440A;">existiert sie?</span></span></div>
+</sc-if>
+
+<div style="position: absolute; left: 206px; top: 141px; width: 64px; font-size: 13px; line-height: 16px; color: #2A4157;">Kollege</div>
+<div style="position: absolute; left: 452px; top: 141px; width: 64px; font-size: 13px; line-height: 16px; color: #2A4157;">Kollege</div>
+<div style="position: absolute; left: 698px; top: 141px; width: 40px; font-size: 13px; line-height: 16px; color: #2A4157;">Chef</div>
+<div style="position: absolute; left: 582px; top: 272px; width: 56px; text-align: center; font-size: 13px; line-height: 16px; color: #2A4157;">Kunde</div>
+<sc-if value="{{s3}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 238px; top: 272px; width: 64px; text-align: center; font-size: 13px; line-height: 16px; color: #3B3B40;">Kontakt</div>
+</sc-if>
+<div style="position: absolute; left: 206px; top: 443px; width: 130px; font-size: 13px; line-height: 16px; color: #8E2B40;">{{lotteLabel}}</div>
+<sc-if value="{{ge2}}" hint-placeholder-val="{{ true }}">
+<div style="position: absolute; left: 452px; top: 443px; width: 40px; font-size: 13px; line-height: 16px; color: #8E2B40;">Verabredung</div>
+<div style="position: absolute; left: 698px; top: 443px; width: 150px; font-size: 13px; line-height: 16px; color: #6E440A;">{{fremdeLabel}}</div>
+</sc-if>
+</div>
+</div>
+
+<aside style="flex: 0 0 300px; box-sizing: border-box; background: #FFFFFF; border-left: 1px solid #DAD6CF; padding: 18px; display: flex; flex-direction: column; gap: 12px; overflow: hidden;">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: #6E6A63;">AUSGEWÄHLT</span>
+<strong style="font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 28px; line-height: 1.05;">Die Fremde</strong>
+<span style="font-size: 13px; line-height: 1.45; color: #4A473E;">{{fremdeRel}}</span>
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<span style="font-size: 12px; color: #6E6A63;">Existenz</span>
+<div role="group" aria-label="Existenz" style="display: flex; padding: 2px; background: #ECE9E4; border-radius: 7px;">
+<button type="button" aria-pressed="false" style="flex: 1; font: inherit; font-size: 12px; height: 30px; border: 0; border-radius: 5px; background: transparent; color: #24262B;">gesichert</button>
+<button type="button" aria-pressed="false" style="flex: 1; font: inherit; font-size: 12px; height: 30px; border: 0; border-radius: 5px; background: transparent; color: #24262B;">noch offen</button>
+<button type="button" aria-pressed="true" style="flex: 1; font: inherit; font-size: 12px; font-weight: 600; height: 30px; border: 0; border-radius: 5px; background: #6A4C9C; color: #FFFFFF;">bewusst vage</button>
+</div>
+</div>
+<label for="wahrheit" style="font-size: 12px; color: #6E6A63;">Wahrheit hinter den Kulissen <span style="font-weight: 600;">(nur für dich, erscheint nie im Text)</span></label>
+<textarea id="wahrheit" rows="5" placeholder="Gibt es sie? Wer schreibt die Postkarten wirklich?" style="font: inherit; font-size: 13px; line-height: 1.5; padding: 10px; margin-top: -6px; border: 1px solid #DAD6CF; border-radius: 6px; resize: none; color: #24262B;"></textarea>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: #FAF9F7; border-radius: 8px; font-size: 12px; line-height: 1.45; color: #4A473E;">
+<strong style="font-size: 12px; color: #24262B;">Legende</strong>
+<span>Gestrichelte Karte: Existenz nicht gesichert oder nur erwähnt</span>
+<span>Graue Fläche: Antagonist Konsortium · Blaue Fläche: Antagonist Nordhaven</span>
+<span>Ausgeblendet über Filter: Pauls Vater</span>
+</div>
+</aside>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const self = this;
+const s = this.state.stage || 3;
+const defs = [
+{ n: 1, label: 'Akt I · Kap. 1–4' },
+{ n: 2, label: 'Akt II · Kap. 5–8' },
+{ n: 3, label: 'Akt III · Kap. 9–10' }
+];
+const stages = defs.map(function (d) {
+return { label: d.label, active: d.n === s, inactive: d.n !== s, pick: function () { self.setState({ stage: d.n }); } };
+});
+const notes = {
+1: 'Stand Ende Kap. 4: was der Leser bis hierhin weiß',
+2: 'Stand Ende Kap. 8: was der Leser bis hierhin weiß',
+3: 'Stand Ende Kap. 10: was der Leser bis hierhin weiß'
+};
+const rel = {
+1: 'Noch nicht eingeführt.',
+2: 'Kap. 8: Paul wacht im Fährhaus auf, ohne Erinnerung an die Nacht. Danach die Postkarte »Bis bald«.',
+3: 'Kap. 8: eine Nacht im Fährhaus, die erste Postkarte. Kap. 10: eine zweite Postkarte und ein stummer Anruf. Ob beides von ihr kommt, bleibt offen.'
+};
+return {
+stages: stages,
+stageNote: notes[s],
+s1: s === 1, s3: s === 3, ge2: s >= 2, lt3: s < 3,
+lotteLabel: s === 3 ? 'erstes Treffen' : 'Kleinanzeige, nur Chat',
+fremdeLabel: s === 3 ? 'Fährhaus, Postkarten?' : 'eine Nacht im Fährhaus',
+fremdeRel: rel[s]
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,650 @@
+/* G2 Plot-Struktur: Fäden-Board, Strang-Raster, Szenen. Stil wie Akte/Kapitel (planung.css), Farben nur über Tokens. */
+
+/* Gemeinsam ---------------------------------------------------------------- */
+.fd-etikett {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: normal;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.fd-etikett--warn {
+  background: var(--ruhend);
+  color: var(--warm-dark);
+}
+.fd-etikett--accent {
+  background: var(--chip-accent);
+  color: var(--accent-dark);
+}
+.fd-etikett--neutral {
+  background: var(--chip);
+  color: var(--ink-soft);
+}
+.fd-leise {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+}
+.fd-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* Kapitelstreifen ---------------------------------------------------------- */
+.fd-streifen {
+  display: grid;
+  gap: 2px;
+}
+.fd-zelle {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: var(--surface-muted);
+  color: var(--ink-quiet);
+  font: inherit;
+  font-size: 10px;
+}
+.fd-streifen--gross {
+  gap: 3px;
+}
+.fd-streifen--gross .fd-zelle {
+  height: 24px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.fd-streifen--gross .fd-zelle:hover {
+  filter: brightness(0.95);
+}
+.fd-streifen--gross .fd-zelle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.fd-zelle--ohnetext {
+  background: repeating-linear-gradient(135deg, var(--schraffur) 0 3px, var(--surface) 3px 6px);
+}
+.fd-zelle--ruht {
+  background: var(--ruhend);
+  box-shadow: inset 0 0 0 1px var(--notiz-line);
+}
+.fd-zelle--eroeffnet,
+.fd-zelle--aufgegriffen {
+  color: var(--on-farbe);
+  font-weight: 600;
+}
+.fd-zelle--aufgegriffen {
+  opacity: 0.6;
+}
+.fd-zelle--aufloesung {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.fd-streifen--gross .fd-zelle--aufloesung:not(.fd-zelle--eroeffnet):not(.fd-zelle--aufgegriffen) {
+  color: var(--accent-dark);
+  font-weight: 600;
+}
+
+/* Fäden-Board -------------------------------------------------------------- */
+.fd-leiste {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+.fd-leiste__trenner {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--line);
+}
+.fd-leiste__rechts {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.fd-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  gap: 12px;
+  overflow-x: auto;
+  margin-top: 12px;
+}
+.fd-spalte {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px 10px 10px;
+  border-radius: 10px;
+  background: var(--spalte);
+}
+.fd-spalte--ziel {
+  outline: 2px dashed var(--dashed);
+  outline-offset: -2px;
+}
+.fd-spalte__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px;
+}
+.fd-spalte__liste {
+  flex: 1 1 auto;
+  min-height: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: 2px;
+  margin: -2px;
+}
+.fd-spalte__leer {
+  padding: 14px 10px;
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+  text-align: center;
+}
+
+.fd-karte {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+.fd-karte:hover {
+  box-shadow: var(--schatten-karte);
+}
+.fd-karte:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.fd-karte--ruhend {
+  background: var(--ruhend);
+  border-color: var(--notiz-line);
+}
+.fd-karte--gewaehlt {
+  border: 1.5px solid var(--accent);
+  padding: 9.5px 11.5px;
+}
+.fd-karte--erledigt .fd-karte__name {
+  text-decoration: line-through;
+  color: var(--ink-quiet);
+}
+.fd-karte--ziehend {
+  opacity: 0.35;
+}
+.fd-karte--overlay {
+  box-shadow: var(--schatten-popover);
+  cursor: grabbing;
+  transform: rotate(-1deg);
+}
+.fd-karte__kopf {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.fd-karte__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.fd-karte__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.fd-karte__notiz {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fd-karte__warnung {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--warm-dark);
+}
+
+/* Inspektor ---------------------------------------------------------------- */
+.fd-inspektor-titel {
+  margin: 0;
+  font-family: var(--schrift-titel);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.fd-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.fd-zeile {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.fd-zeile__label {
+  flex: 0 0 86px;
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.fd-legende {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 11px;
+  color: var(--ink-quiet);
+}
+.fd-legende__eintrag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.fd-legende__muster {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+/* Strang-Raster ------------------------------------------------------------ */
+.fd-raster-flaeche {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+.fd-raster-scroll {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.fd-raster {
+  display: grid;
+  min-width: max-content;
+  padding: 12px 14px 14px 0;
+  row-gap: 6px;
+  column-gap: 4px;
+}
+.fd-raster__ecke,
+.fd-raster__strang {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  padding: 0 12px 0 16px;
+}
+.fd-raster__akt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--ink-quiet);
+  padding: 0 2px 4px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fd-raster__kapitel {
+  height: 26px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fd-raster__kapitel:hover {
+  background: var(--segment);
+}
+.fd-raster__kapitel[aria-current='true'] {
+  background: var(--ink);
+  color: var(--on-ink);
+}
+.fd-raster__kapitel--ohnetext {
+  color: var(--ink-quiet);
+  font-weight: 400;
+  text-decoration: underline dashed var(--dotted);
+  text-underline-offset: 3px;
+}
+.fd-raster__strang {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+}
+.fd-raster__strangname {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fd-raster__info {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+}
+.fd-raster__info--warn {
+  color: var(--warm-dark);
+}
+.fd-raster__zelle {
+  box-sizing: border-box;
+  height: 30px;
+  min-width: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: var(--surface-muted);
+  color: var(--on-farbe);
+  font: inherit;
+  font-size: 10px;
+  cursor: pointer;
+}
+.fd-raster__zelle:hover {
+  filter: brightness(0.95);
+}
+.fd-raster__zelle:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+.fd-raster__zelle--ohnetext:not(.fd-raster__zelle--belegt) {
+  background: repeating-linear-gradient(135deg, var(--schraffur) 0 4px, var(--surface) 4px 8px);
+}
+.fd-raster__zelle--luecke {
+  background: var(--ruhend);
+}
+.fd-raster__zelle--lang {
+  background: var(--ruhend);
+  border: 1.5px dashed var(--real-offen);
+}
+.fd-raster__zelle--geplant {
+  background: transparent;
+}
+.fd-raster__zelle--auswahl {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Szenen ------------------------------------------------------------------- */
+.fd-szenen-liste {
+  display: flex;
+  flex-direction: column;
+}
+.fd-szene {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line-faint);
+}
+.fd-szene:first-child {
+  border-top: 0;
+}
+.fd-szene__knopf {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 2px 8px;
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fd-szene__knopf:hover .fd-szene__titel {
+  text-decoration: underline;
+  text-decoration-color: var(--dotted);
+}
+.fd-szene__knopf:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+.fd-szene__nr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+}
+.fd-szene__nr--plan {
+  background: transparent;
+  border: 1.5px dashed var(--dotted);
+}
+.fd-szene__titel {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  min-width: 0;
+}
+.fd-szene__titel--leer {
+  font-weight: 400;
+  color: var(--ink-quiet);
+}
+.fd-szene__meta {
+  grid-column: 2 / 4;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.fd-szene__anfang {
+  grid-column: 2 / 4;
+  font-family: var(--schrift-text);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fd-szene__woerter {
+  font-size: 11px;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+.fd-szene__formular {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 0 12px;
+}
+.fd-felder {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.fd-felder > label {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.fd-zeitfelder {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 64px;
+  gap: 6px;
+}
+.fd-aktionen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+
+.fd-szenen-band {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.fd-szenen-kachel {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: var(--inspector);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.fd-szenen-kachel:hover {
+  box-shadow: var(--schatten-karte);
+}
+.fd-szenen-kachel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.fd-szenen-kachel--plan {
+  border: 1.5px dashed var(--dashed);
+  background: transparent;
+}
+.fd-szenen-kachel__kopf {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-quiet);
+}
+.fd-szenen-kachel__titel {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fd-szenen-kachel__meta {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fd-szene__formular--buendig {
+  padding: 0;
+}
+.fd-feldlabel {
+  font-size: 12px;
+  color: var(--ink-quiet);
+}
+.fd-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.fd-felder > .fd-chips,
+.fd-felder > .fd-zeitfelder {
+  min-width: 0;
+}
+
+/* Strang-Raster: gewähltes Kapitel, neuer Strang */
+.fd-raster__zelle--spalte:not(.fd-raster__zelle--belegt) {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.fd-strang-neu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.fd-strang-neu > .pl-eingabe {
+  flex: 1 1 200px;
+}
+.fd-farbwahl {
+  display: flex;
+  gap: 6px;
+}
+.fd-farbwahl__knopf {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.fd-farbwahl__knopf[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+}
+.fd-farbwahl__knopf:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

@@ -1,0 +1,21 @@
+name: Idee / Feature request
+description: Ein Vorschlag für eine neue Funktion oder Verbesserung.
+labels: [idee]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem beim Schreiben oder Planen soll gelöst werden?
+    validations:
+      required: true
+  - type: textarea
+    id: vorschlag
+    attributes:
+      label: Wie könnte es aussehen?
+  - type: checkboxes
+    id: grundsaetze
+    attributes:
+      label: Grundsätze
+      options:
+        - label: Der Vorschlag lässt die KI keinen Text schreiben oder umschreiben (siehe CONTRIBUTING.md).
+          required: true

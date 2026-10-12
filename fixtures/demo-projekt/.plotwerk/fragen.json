@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "eintraege": [
+    {
+      "id": "frage-bleistifte",
+      "frage": "Wo erwähne ich Pauls Bleistifte?",
+      "datum": "2026-10-09T12:05:00.000Z",
+      "antwort": "In Kap. 2 klemmt sich Paul den Bleistift hinters Ohr, in Kap. 9 hat er alle Bleistifte zu Hause gelassen.",
+      "belege": [
+        {
+          "kapitel": "fassade",
+          "text": "klemmt sich den Bleistift hinters Ohr"
+        },
+        {
+          "kapitel": "flut",
+          "text": "dass ich heute alle meine Bleistifte zu Hause gelassen habe"
+        }
+      ],
+      "modell": "demo"
+    }
+  ],
+  "lauf": {
+    "datum": "2026-10-09T12:00:00.000Z",
+    "modell": "demo"
+  }
+}
