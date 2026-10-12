@@ -3,12 +3,13 @@
  * selbst stehen danach im Inspektor des Segments „Stränge“ und im Kapitel-Inspektor. Besitzer: G2.
  */
 import { useEffect, useState } from 'react';
-import { EFFORT, formatiereUsd, kiEndpoint, type Schaetzung } from '@core/ki/index';
+import { EFFORT, kiEndpoint, type Schaetzung } from '@core/ki/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
-import { f as fmt, sprache, useTexte } from '../../i18n';
+import { f as fmt, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button, Dialog } from '../../ui';
+import { kostenBetrag, kostenWert } from '../ki/kosten';
 import '../ki/ki.css';
 
 function FehlerKasten({ fehler, einstellungen }: { fehler: KiFehlerAnzeige; einstellungen(): void }) {
@@ -128,7 +129,7 @@ export default function StraengeDialog({ schliessen }: DialogKomponentenProps) {
           <dt>{td.modell}</dt>
           <dd>{e.modell}</dd>
           <dt>{td.kosten}</dt>
-          <dd>{formatiereUsd(e.kostenUsd, sprache())}</dd>
+          <dd>{kostenBetrag(e)}</dd>
         </dl>
         {e.verworfen.length > 0 && (
           <details className="pw-ki-details">
@@ -186,7 +187,7 @@ export default function StraengeDialog({ schliessen }: DialogKomponentenProps) {
               <dt>{td.ausgabe}</dt>
               <dd>{fmt(td.ausgabeWert, { n: Math.round(s.ausgabeTokens) })}</dd>
               <dt>{td.kosten}</dt>
-              <dd>{fmt(td.kostenWert, { usd: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, td.kostenWert, 'usd')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-ki-klein">{td.nichtGezaehlt}</p>}
           </>

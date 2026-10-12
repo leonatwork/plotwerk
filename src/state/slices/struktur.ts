@@ -6,7 +6,7 @@
  * - Szenen: Plan-Daten im Kapitelplan (speicherePlan). Der Kapiteltext wird nie verändert.
  */
 import type { StateCreator } from 'zustand';
-import { KiFehler, mischeStrangVorschlaege, schaetzeStraenge, schlageStraengeVor, type Schaetzung } from '@core/ki/index';
+import { bekannteKosten, KiFehler, mischeStrangVorschlaege, schaetzeStraenge, schlageStraengeVor, type Schaetzung } from '@core/ki/index';
 import type { Fadenplanung, Id, KapitelPlan, Strang } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
 import { leereFadenplanung, standardPlan } from '@core/projekt/index';
@@ -43,6 +43,8 @@ export interface StrangLaufErgebnis {
   verworfen: { grund: string }[];
   modell: string;
   kostenUsd: number;
+  /** false = Kosten unbekannt (OpenAI-kompatibler Dienst) */
+  kostenBekannt?: false;
 }
 
 /** Felder eines Strangs, die Leon im Inspektor ändert */
@@ -299,7 +301,7 @@ export const createStrukturSlice: StateCreator<Store, [], [], StrukturSlice> = (
           const gemischt = mischeStrangVorschlaege(get().daten?.kiStrangVorschlaege, r.ergebnis.vorschlaege, {
             datum: r.datum,
             modell: r.modell,
-            kostenUsd: r.kostenUsd,
+            ...bekannteKosten(r),
           });
           await get().speichereKiStrangVorschlaege(gemischt.ablage);
           setze({
@@ -310,6 +312,7 @@ export const createStrukturSlice: StateCreator<Store, [], [], StrukturSlice> = (
               verworfen: r.verworfen.map((v) => ({ grund: v.grund })),
               modell: r.modell,
               kostenUsd: r.kostenUsd,
+              ...(r.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
             },
           });
         } catch (e) {

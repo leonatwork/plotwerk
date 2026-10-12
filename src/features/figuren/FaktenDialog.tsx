@@ -4,13 +4,14 @@
  * findet die App. Parameter: { figur?: Id }.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { EFFORT, formatiereUsd, kiEndpoint, type FaktenAuftrag, type Schaetzung } from '@core/ki/index';
+import { EFFORT, kiEndpoint, type FaktenAuftrag, type Schaetzung } from '@core/ki/index';
 import type { Id } from '@core/model/types';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
-import { f as fmt, sprache, useTexte, vergleich } from '../../i18n';
+import { f as fmt, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button, Checkbox, Dialog } from '../../ui';
+import { kostenBetrag, kostenWert } from '../ki/kosten';
 import '../ki/ki.css';
 
 const ALLE = '';
@@ -141,7 +142,7 @@ export default function FaktenDialog({ param, schliessen }: DialogKomponentenPro
           <dt>{ts.modell}</dt>
           <dd>{ergebnis.modell}</dd>
           <dt>{ts.kosten}</dt>
-          <dd>{formatiereUsd(ergebnis.kostenUsd, sprache())}</dd>
+          <dd>{kostenBetrag(ergebnis)}</dd>
         </dl>
         {ergebnis.verworfen.length > 0 && (
           <details className="pw-ki-details">
@@ -209,7 +210,7 @@ export default function FaktenDialog({ param, schliessen }: DialogKomponentenPro
               <dt>{ts.ausgabe}</dt>
               <dd>{fmt(ts.ausgabeWert, { n: Math.round(s.ausgabeTokens) })}</dd>
               <dt>{ts.kosten}</dt>
-              <dd>{fmt(ts.kostenWert, { usd: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, ts.kostenWert, 'usd')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-ki-klein">{ts.nichtGezaehlt}</p>}
           </>
