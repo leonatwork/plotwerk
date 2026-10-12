@@ -37,6 +37,7 @@ const WERKZEUG_DATEIEN: [string, keyof ProjektDaten][] = [
   [PFADE.kiStimmen, 'kiStimmen'],
   [PFADE.kiLeser, 'kiLeser'],
   [PFADE.kiFragen, 'kiFragen'],
+  [PFADE.kiFakten, 'kiFakten'],
 ];
 
 const imOrdner = (pfad: string, ordner: string, endung: string) =>

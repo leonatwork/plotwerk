@@ -1,6 +1,7 @@
 # Plan: Figuren, Namen und Gruppen (Paket nach v0.2.0)
 
-Stand: 12. Oktober 2026. Grundlage: Rückmeldungen aus dem Schreiben mit dem eigenen Manuskript (Spitznamen werden als
+Stand: 13. Oktober 2026 – alle Phasen 1–9 umgesetzt (Branch `claude/statisten-handling-b9afbc`, ein Sammel-PR).
+Ursprünglicher Stand: 12. Oktober 2026. Grundlage: Rückmeldungen aus dem Schreiben mit dem eigenen Manuskript (Spitznamen werden als
 eigene Figuren angelegt, doppelte Figuren lassen sich nicht zusammenführen, Gruppen nur über Dateien). Bereits
 umgesetzt auf diesem Branch: F-07 Figuren zusammenführen, F-08 Spitznamen-Feld, A-04 Gruppen in der App,
 KI-Vorschläge nehmen den Eigennamen.
@@ -18,7 +19,7 @@ Leitlinien für alle Phasen:
 
 | Phase | Inhalt | Anforderungen | Aufwand | KI |
 |---|---|---|---|---|
-| 0 | PR mit dem bisherigen Stand | F-07, F-08, A-04 | erledigt, offen: PR | – |
+| 0 | Zusammenführen, Spitzname-Feld, Gruppen in der App | F-07, F-08, A-04 | erledigt | – |
 | 1 | Hover-Blase im Editor stabil machen | S-02 (Qualität) | mittel | – |
 | 2 | Namen zuordnen: Blase „Figur / Spitzname“, KI-Vorschläge als Spitzname übernehmen | F-09, F-10 | mittel | nutzt vorhandene |
 | 3 | Lokale Namens-Hinweise: Spitzname vor Einführung, verwechselbare Namen, verschwundene Figuren | F-11, F-12, F-13 | klein–mittel | – |
@@ -26,7 +27,7 @@ Leitlinien für alle Phasen:
 | 5 | Gruppen: mehrere pro Figur, Rollen in der Gruppe | A-05, A-06 | mittel | – |
 | 6 | Besetzungsübersicht (Figuren × Kapitel) | F-15 | mittel | – |
 | 7 | Spitznamen mit Kontext (wer nennt wen so, ab wann) | F-16 | klein–mittel | – |
-| 8 | Personenverzeichnis exportieren | AB-xx | klein–mittel | – |
+| 8 | Personenverzeichnis exportieren | AB-06 | klein–mittel | – |
 | 9 | Figurenfakten aus dem Text, Widersprüche je Figur | F-17 | groß | ja |
 | – | Erzählperspektive pro Kapitel | – | – | zurückgestellt |
 
@@ -177,7 +178,7 @@ Ersetzt nebenbei das Komma-Feld durch Chips (Eingabe mit Enter oder Komma, × zu
 
 ## Phase 8 – Personenverzeichnis
 
-**AB-xx** Neues Abgabe-Format „Personenverzeichnis“ (`core/abgabe/personen.ts`): Figuren nach Gruppen oder
+**AB-06** Neues Abgabe-Format „Personenverzeichnis“ (`core/abgabe/personen.ts`): Figuren nach Gruppen oder
 Rolle, je Zeile Name, Spitznamen, Kurzbeschreibung, optional Rolle in der Gruppe. Optionen: Statisten ja/nein,
 „geplant“ ausblenden, nur bis Kapitel X (kein Spoiler). Ausgabe als .docx/PDF/Markdown und als optionaler
 Vorspann im EPUB- und Normseiten-Export. Private Felder (`wahrheit`, `notizen`) nie.

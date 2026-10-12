@@ -210,6 +210,15 @@ Die Planung ist die zweite Ebene neben dem Text. Referenz-Screens: `Akte.dc.html
 | F-06 | Figuren | Figur vorab anlegen, bevor sie im Text vorkommt | Muss |
 | F-07 | Figuren | Zwei Figuren zusammenführen (Richtung wählbar): Namen werden Spitznamen, Beziehungen, Planfelder und Notizen kommen dazu, alle Verweise im Projekt zeigen auf die bleibende Figur; Hinweis auf der Figurenkarte bei gleichem Namen | Soll |
 | F-08 | Figuren | Feld „Auch genannt / Spitzname“: mehrere Namen mit Komma, sofort in der Erkennung und bei KI-Vorschlägen berücksichtigt | Muss |
+| F-09 | Figuren | Auswahl-Leiste im Editor „Figur“: markierten Text als neue Figur oder als Spitznamen einer Figur übernehmen | Soll |
+| F-10 | Figuren | KI-Vorschläge, die eine angelegte Figur unter anderem Namen meinen, als „Spitznamen für X“ übernehmen; Erwähnungsvorschläge „Als Spitznamen merken“ | Soll |
+| F-11 | Figuren | Hinweis, wenn eine Figur zuerst über einen Spitznamen vorkommt und ihr Name erst später fällt | Soll |
+| F-12 | Figuren | Hinweis auf leicht verwechselbare Namen (ein Buchstabe Unterschied, gleicher Anfang bei gleicher Länge) | Kann |
+| F-13 | Figuren | Hinweis auf ruhende Figuren (Standard Haupt 3, Neben 6 Kapitel, je Figur einstellbar); im Auftrittsstreifen markiert | Soll |
+| F-14 | Figuren | Rolle „Statist“: eigener eingeklappter Bereich, schlanke Karte, im Netz nur auf Wunsch, nie im Exposé; Hinweis „zur Nebenfigur machen?“ ab drei Kapiteln | Soll |
+| F-15 | Figuren | Besetzungsübersicht Figuren × Kapitel | Soll |
+| F-16 | Figuren | Spitznamen als Chips mit Kontext (wer nennt die Figur so, ab welchem Kapitel, Notiz); Hinweis, wenn ein Spitzname vor seinem Kapitel fällt | Kann |
+| F-17 | Figuren | Figurenfakten aus dem Text (KI, wörtlich belegt) je Merkmal auf der Figurenkarte; Widersprüche und Planabweichungen als „Prüfen“ | Soll |
 | O-01 | Orte | Liste mit Kapiteln, Belegen aus dem Text, Beschreibung, Notizen; Unterorte (Zeichensaal im Büro) | Muss |
 | O-02 | Orte | Schreibweisen zusammenführen und die gültige festlegen | Muss |
 | O-03 | Orte | Weg einer Figur (z. B. „Pauls Weg“): Ortsfolge über alle Kapitel | Soll |
@@ -221,6 +230,8 @@ Die Planung ist die zweite Ebene neben dem Text. Referenz-Screens: `Akte.dc.html
 | A-02 | Antagonisten | Pro Gruppe Mitglieder, Präsenz pro Akt und Kapitel und mögliche Spuren im Text als Vorschlag (z. B. »Kranich«), die Leon bestätigt oder verwirft | Muss |
 | A-03 | Antagonisten | Antagonisten erscheinen als eigene Stränge im Akt-Board und im Kapitel-Überblick | Muss |
 | A-04 | Gruppen | Gruppen in der App anlegen („+ Gruppe“ im Beziehungsnetz, „+ Neue Gruppe …“ auf der Figurenkarte) und löschen; eine neue Gruppe bekommt sofort eine Fläche im Netz um ihre Mitglieder | Muss |
+| A-05 | Gruppen | Eine Figur in mehreren Gruppen; Hauptgruppe bestimmt Farbe und Platz im Netz, andere Gruppen zeigen sie als Verweis | Soll |
+| A-06 | Gruppen | Rolle je Mitglied in der Gruppe (Inspektor, Netzkarte, Figurenkarte) | Kann |
 
 ## Funktionen: Werkzeuge (G1–G8)
 
@@ -251,6 +262,7 @@ Seit 10. Oktober 2026. Alles, was Leon festlegt, liegt als Markdown oder JSON im
 | AB-03 | Abgabe | EPUB 3 mit Satz wie die Buch-Vorschau | Kann |
 | AB-04 | Abgabe | Lektoratsmappe (PDF) mit offenen Hinweisen | Kann |
 | AB-05 | Abgabe | Rückimport aus Word: Kommentare als Anmerkungen, nachverfolgte Änderungen einzeln annehmen/ablehnen (vorher Schnappschuss); offene Änderungen im Editor markiert | Soll |
+| AB-06 | Abgabe | Personenverzeichnis (.docx/.md) nach Gruppen oder Rolle, „nur bis Kapitel X“; optional als Vorspann von Normseite und EPUB | Kann |
 | RC-01 | Recherche | Bilder, Links und Notizen ablegen (Ziehen, Einfügen, Dialog), Bilder nach `recherche/dateien/`; Links werden nie geladen, nur auf Klick im Browser geöffnet | Soll |
 | RC-02 | Recherche | Einträge an Figur, Ort, Kapitel oder Szene heften; Recherche-Leiste auf Figurenkarte, Ortskarte, Kapitel-Überblick, Schreiben-Inspektor und Szenen-Formular | Soll |
 | RC-03 | Recherche | Filter nach Art, Ziel, Schlagwort, Suche; Raster oder Liste | Soll |

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryFs, parseFigur, parseGruppe, figurPfad, gruppePfad } from '@core/projekt';
+import { MemoryFs, parseFigur, parseGruppe, parseKiFakten, figurPfad, gruppePfad, PFADE } from '@core/projekt';
+import { erstelleDemoKiTransport } from '../../backend/ki/demo';
 import { demoDateien } from '../../../fixtures/demoProjekt';
 import { erstelleDemoBackend } from '../../backend/demo';
 import { exposeGeruest } from '@core/abgabe/index';
@@ -173,5 +174,24 @@ describe('Personenverzeichnis (Abgabe)', () => {
     const mit = await store.getState().abgabe.erstellen({ format: 'normseite', kapitel: ['grundriss'], titelseite: false, personen: { gliederung: 'rolle' } });
     const ohne = await store.getState().abgabe.erstellen({ format: 'normseite', kapitel: ['grundriss'], titelseite: false });
     expect(mit.length).toBeGreaterThan(ohne.length);
+  });
+});
+
+describe('Figurenfakten (F-17, Store)', () => {
+  it('Lauf mit Demo-KI speichert die Ablage; Widerspruch erscheint als Hinweis; Verwerfen wirkt', async () => {
+    const { store, fs } = await laden();
+    store.setState({ backend: { ...erstelleDemoBackend(), ki: erstelleDemoKiTransport({ verzoegerungMs: 0 }) } });
+    await store.getState().figurenbogen.faktenSammeln({});
+    const s = store.getState();
+    expect(s.figurenbogen.faktenFehler).toBeNull();
+    expect(s.figurenbogen.faktenErgebnis!.angaben).toBeGreaterThanOrEqual(4);
+    await s.alleSpeichernAbwarten();
+    expect(parseKiFakten((await fs.lesen(PFADE.kiFakten))!).eintraege.length).toBe(s.figurenbogen.faktenErgebnis!.angaben);
+    s.indexNeuBerechnen();
+    expect(store.getState().index.hinweise.some((h) => h.schluessel === 'fakt:widerspruch:paul|auto')).toBe(true);
+    const volvo = store.getState().daten!.kiFakten!.eintraege.find((f) => f.wert === 'Volvo')!;
+    await store.getState().figurenbogen.faktVerwerfen(volvo.schluessel);
+    store.getState().indexNeuBerechnen();
+    expect(store.getState().index.hinweise.some((h) => h.schluessel === 'fakt:widerspruch:paul|auto')).toBe(false);
   });
 });

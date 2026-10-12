@@ -53,6 +53,7 @@ export * from './aufgabe';
 /** G1 Zeitpunkte und Zustände · G3 Figurenstimme · G6 Leser-Simulation und Fragen (Besitzer: die Gruppen) */
 export * from './zeit';
 export * from './stimme';
+export * from './fakten';
 export * from './leser';
 
 /** Transport zur Messages-API (Foundry oder Claude API). In der App: Rust-Kommando ki_anfrage. */

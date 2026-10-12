@@ -12,6 +12,7 @@ import type {
   Zitat,
 } from '../model/types';
 import { stimmenHinweise } from '../figuren/stimme';
+import { faktenHinweise } from '../figuren/fakten';
 import { figurenHinweise } from '../figuren/hinweise';
 import type { Sprache } from '../i18n';
 import { strukturHinweise } from '../struktur';
@@ -177,6 +178,7 @@ function hinweiseBerechnen(daten: ProjektDaten, sprache: Sprache, erwaehnungen: 
     ...zeitHinweise(daten, sprache),
     ...stimmenHinweise(daten, sprache),
     ...figurenHinweise(daten, erwaehnungen, sprache),
+    ...faktenHinweise(daten, sprache),
   ];
   const ki = (daten.kiHinweise ?? [])
     .filter((h) => kiHinweisGueltig(h, daten))

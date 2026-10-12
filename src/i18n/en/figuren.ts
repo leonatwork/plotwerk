@@ -65,6 +65,16 @@ export const figuren: Form<typeof de> = {
       erstesVorkommen: 'First appearance',
       stelleZeigen: 'Show passage in text',
     },
+    fakten: {
+      widerspruch: 'The text gives different values',
+      planAbweichung: 'The text differs from your plan',
+      planung: 'Plan: {wert}',
+      verwerfen: 'Discard {wert}',
+      verwerfenTitel: 'Wrongly recognised – discard (won’t come back)',
+      sammeln: 'Collect facts from the text (AI) …',
+      erneut: 'Collect facts again (AI) …',
+      laeuft: 'Collecting facts …',
+    },
     planung: {
       titel: 'Your plan',
       rechts: 'freely editable',
@@ -320,6 +330,19 @@ export const figuren: Form<typeof de> = {
     nochNicht: 'Not checked yet.',
     nichtsOffen: 'Nothing left open.',
     nichtsEntschieden: 'Nothing decided yet.',
+  },
+
+  faktenDialog: {
+    titel: 'Collect facts from the text',
+    intro:
+      'The AI reads the book and collects what the text states as fact about the characters – age, appearance, occupation, home, car … – each with a verbatim quote. Contradictions and deviations from your plan are then found by the app. The AI judges nothing and changes no text.',
+    alle: 'All characters (without walk-ons)',
+    liestAlle: 'The AI is collecting the facts about all characters …',
+    liestEine: 'The AI is collecting the facts about {name} …',
+    fertig: 'Facts collected',
+    angaben: { one: '1 fact', other: '{n} facts' },
+    widersprueche: 'Contradictions and deviations from the plan appear on the character card under “From the text” and as “Check” in the notes.',
+    starten: 'Collect',
   },
 
   stimmeDialog: {

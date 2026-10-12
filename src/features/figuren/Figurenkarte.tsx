@@ -1,6 +1,6 @@
 /** F-02–F-05: Figurenkarte nach docs/design/screens/Figur.dc.html. */
 import { useId, useState, type CSSProperties } from 'react';
-import { bogenVon, RUHE_SCHWELLE, ruhendeStrecken, ruheSchwelle, sortiereStufen, stufeImKapitel, stufenSpanne } from '@core/figuren/index';
+import { bogenVon, faktenDerFigur, RUHE_SCHWELLE, ruhendeStrecken, ruheSchwelle, sortiereStufen, stufeImKapitel, stufenSpanne } from '@core/figuren/index';
 import type { Index } from '@core/index/index';
 import { hauptfigur } from '@core/zeit/zustand';
 import type { Beziehung, BeziehungsKategorie, Erwaehnung, Figur, FigurRolle, Hinweis, Id, ProjektDaten } from '@core/model/types';
@@ -98,7 +98,58 @@ function Kopf({ f, daten, ersteStelle }: { f: Figur; daten: ProjektDaten; ersteS
   );
 }
 
-function AusDemText({ daten, index, nachKapitel }: { daten: ProjektDaten; index: Index; nachKapitel: Map<Id, Erwaehnung[]> }) {
+/** F-17: Angaben aus dem Text je Merkmal (KI, wörtlich belegt); Widersprüche und Planabweichungen markiert. */
+function Fakten({ f, daten }: { f: Figur; daten: ProjektDaten }) {
+  const markiere = useStore((s) => s.markiere);
+  const oeffneDialog = useStore((s) => s.oeffneDialog);
+  const faktVerwerfen = useStore((s) => s.figurenbogen.faktVerwerfen);
+  const laeuft = useStore((s) => !!s.figurenbogen.faktenLauf);
+  const t = useTexte().figuren;
+  const tf = t.karte.fakten;
+  const gruppen = faktenDerFigur(daten, f.id);
+  const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
+  return (
+    <>
+      {gruppen.map((g) => {
+        const auffaellig = g.widerspruch || g.plan?.abweichend;
+        return (
+          <div key={g.merkmal} style={{ display: 'contents' }}>
+            <span style={auffaellig ? { color: 'var(--accent-dark)', fontWeight: 600 } : leise} title={g.widerspruch ? tf.widerspruch : g.plan?.abweichend ? tf.planAbweichung : undefined}>
+              {g.merkmal}
+              {auffaellig && ' ⚠'}
+            </span>
+            <span style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              {g.fakten.map((x) => (
+                <span key={x.schluessel} className="pl-spitzname" title={x.zitat.text}>
+                  <button type="button" className="pl-spitzname__name" onClick={() => markiere({ kapitel: x.kapitel, anker: zitatAnker(daten, x.kapitel, x.zitat.text) })}>
+                    {x.wert}{' '}
+                    <span style={leise}>· {kapKurz(nr(x.kapitel))}</span>
+                  </button>
+                  <button type="button" className="pl-spitzname__weg" aria-label={fmt(tf.verwerfen, { wert: x.wert })} title={tf.verwerfenTitel} onClick={() => void faktVerwerfen(x.schluessel)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+              {g.plan && (
+                <span style={{ fontSize: 12, ...(g.plan.abweichend ? { color: 'var(--accent-dark)' } : leise) }}>
+                  {fmt(tf.planung, { wert: g.plan.wert })}
+                </span>
+              )}
+            </span>
+            <span />
+          </div>
+        );
+      })}
+      <span />
+      <span>
+        <LinkKnopf onClick={() => oeffneDialog('figurenfakten', { figur: f.id })}>{laeuft ? tf.laeuft : gruppen.length ? tf.erneut : tf.sammeln}</LinkKnopf>
+      </span>
+      <span />
+    </>
+  );
+}
+
+function AusDemText({ f, daten, index, nachKapitel }: { f: Figur; daten: ProjektDaten; index: Index; nachKapitel: Map<Id, Erwaehnung[]> }) {
   const markiere = useStore((s) => s.markiere);
   const arten = artJeKapitel([...nachKapitel.values()].flat());
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
@@ -147,6 +198,7 @@ function AusDemText({ daten, index, nachKapitel }: { daten: ProjektDaten; index:
               </div>
             );
           })}
+          <Fakten f={f} daten={daten} />
         </div>
       )}
     </Abschnitt>
@@ -918,7 +970,7 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
       <Kopf f={f} daten={daten} ersteStelle={ersteStelle} />
       <div style={{ display: 'flex', gap: 28, minHeight: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div style={{ flex: '1 1 500px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <AusDemText daten={daten} index={index} nachKapitel={nachKapitel} />
+          <AusDemText f={f} daten={daten} index={index} nachKapitel={nachKapitel} />
           <DeinePlanung f={f} daten={daten} />
           <Auftritte f={f} daten={daten} index={index} nachKapitel={nachKapitel} farbe={farbe} />
           {(f.rolle !== 'statist' || bogenVon(daten.boegen, f.id).stufen.length > 0) && <Bogen f={f} daten={daten} farbe={farbe} />}
