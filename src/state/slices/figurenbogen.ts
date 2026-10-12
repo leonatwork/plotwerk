@@ -56,6 +56,8 @@ export interface FaktenLaufErgebnis {
   verworfen: { grund: string }[];
   modell: string;
   kostenUsd: number;
+  /** false = Kosten unbekannt (OpenAI-kompatibler Dienst) */
+  kostenBekannt?: false;
 }
 
 export interface Figurenbogen {
@@ -282,7 +284,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
         try {
           const r = await sammleFakten(await leser(), transport(), get().kiEinstellungen(), auftrag, { signal: steuerung.signal, oberflaeche: sprache() });
           if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', texte().state.ki.pruefungAbgebrochen);
-          const gemischt = mischeFakten(daten().kiFakten, r.ergebnis.figuren, r.ergebnis.fakten, { datum: r.datum, modell: r.modell, kostenUsd: r.kostenUsd });
+          const gemischt = mischeFakten(daten().kiFakten, r.ergebnis.figuren, r.ergebnis.fakten, { datum: r.datum, modell: r.modell, ...bekannteKosten(r) });
           await get().speichereKiFakten(gemischt.ablage);
           setze({
             faktenErgebnis: {
@@ -292,6 +294,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
               verworfen: r.verworfen.map((v) => ({ grund: v.grund })),
               modell: r.modell,
               kostenUsd: r.kostenUsd,
+              ...(r.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
             },
           });
         } catch (e) {
