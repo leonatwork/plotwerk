@@ -1,5 +1,5 @@
 /**
- * Zwei Figuren zusammenführen (z. B. „Marian“ und „der Alte“, die sich als dieselbe Person herausstellen).
+ * Zwei Figuren zusammenführen (z. B. „Henrik“ und „der Alte“, die sich als dieselbe Person herausstellen).
  * Reine Funktion: liefert neue ProjektDaten; unveränderte Teile behalten ihre Referenz, damit der Store nur die
  * geänderten Dateien schreibt.
  *

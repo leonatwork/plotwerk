@@ -54,22 +54,22 @@ describe('Satz um eine Stelle', () => {
 
 describe('F-11 Spitzname vor dem Namen', () => {
   it('meldet den ersten Spitznamen vor dem ersten Namen, mit beiden Sätzen als Zitat', () => {
-    const d = projekt(['Der Alte stand am Fenster.', 'Später sagte Marian nichts.'], [figur('marian', 'Marian', { aliase: ['Alte'] })]);
+    const d = projekt(['Der Alte stand am Fenster.', 'Später sagte Henrik nichts.'], [figur('henrik', 'Henrik', { aliase: ['Alte'] })]);
     const h = hinweise(d, 'vorher');
     expect(h).toHaveLength(1);
-    expect(h[0]!.schluessel).toBe('figuren:vorher:marian|alte');
+    expect(h[0]!.schluessel).toBe('figuren:vorher:henrik|alte');
     expect(h[0]!.zitate).toEqual([
       { kapitel: 'k1', text: 'Der Alte stand am Fenster.' },
-      { kapitel: 'k2', text: 'Später sagte Marian nichts.' },
+      { kapitel: 'k2', text: 'Später sagte Henrik nichts.' },
     ]);
     for (const z of h[0]!.zitate) expect(klartext(d.kapitel[z.kapitel]!.text)).toContain(z.text);
   });
 
   it('nicht, wenn der Name zuerst fällt (auch im Genitiv), ohne Namen im Text oder bei „bewusst vage“', () => {
-    expect(hinweise(projekt(['Marians Hut lag da. Der Alte kam.'], [figur('marian', 'Marian', { aliase: ['Alte'] })]), 'vorher')).toEqual([]);
-    expect(hinweise(projekt(['Der Alte kam.'], [figur('marian', 'Marian', { aliase: ['Alte'] })]), 'vorher')).toEqual([]);
+    expect(hinweise(projekt(['Henriks Hut lag da. Der Alte kam.'], [figur('henrik', 'Henrik', { aliase: ['Alte'] })]), 'vorher')).toEqual([]);
+    expect(hinweise(projekt(['Der Alte kam.'], [figur('henrik', 'Henrik', { aliase: ['Alte'] })]), 'vorher')).toEqual([]);
     expect(
-      hinweise(projekt(['Der Alte kam.', 'Marian ging.'], [figur('marian', 'Marian', { aliase: ['Alte'], existenz: 'bewusst_vage' })]), 'vorher'),
+      hinweise(projekt(['Der Alte kam.', 'Henrik ging.'], [figur('henrik', 'Henrik', { aliase: ['Alte'], existenz: 'bewusst_vage' })]), 'vorher'),
     ).toEqual([]);
   });
 });
@@ -77,11 +77,11 @@ describe('F-11 Spitzname vor dem Namen', () => {
 describe('F-12 verwechselbare Namen', () => {
   it('ein Buchstabe Unterschied, gleicher Anfang bei gleicher Länge', () => {
     const d = projekt(
-      ['Marian kam mit Marion. Sabine und Sabina lachten.'],
-      [figur('marian', 'Marian'), figur('marion', 'Marion'), figur('sabine', 'Sabine'), figur('sabina', 'Sabina')],
+      ['Henrik kam mit Hendrik. Sabine und Sabina lachten.'],
+      [figur('henrik', 'Henrik'), figur('hendrik', 'Hendrik'), figur('sabine', 'Sabine'), figur('sabina', 'Sabina')],
     );
     expect(hinweise(d, 'aehnlich').map((h) => h.schluessel)).toEqual([
-      'figuren:aehnlich:marian|marion|Marian|Marion',
+      'figuren:aehnlich:hendrik|henrik|Hendrik|Henrik',
       'figuren:aehnlich:sabina|sabine|Sabina|Sabine',
     ]);
     const anfang = projekt(['Marina und Marlis kamen.'], [figur('marina', 'Marina'), figur('marlis', 'Marlis')]);
@@ -90,7 +90,7 @@ describe('F-12 verwechselbare Namen', () => {
 
   it('nicht bei deutlich verschiedenen Namen oder wenn eine Figur nicht im Text vorkommt', () => {
     expect(hinweise(projekt(['Paul und Vera.'], [figur('paul', 'Paul'), figur('vera', 'Vera')]), 'aehnlich')).toEqual([]);
-    expect(hinweise(projekt(['Marian kam.'], [figur('marian', 'Marian'), figur('marion', 'Marion')]), 'aehnlich')).toEqual([]);
+    expect(hinweise(projekt(['Henrik kam.'], [figur('henrik', 'Henrik'), figur('hendrik', 'Hendrik')]), 'aehnlich')).toEqual([]);
   });
 });
 
@@ -162,13 +162,13 @@ describe('F-15 Besetzung', () => {
 
 describe('F-16 Spitzname vor seinem geplanten Kapitel', () => {
   it('meldet die erste Stelle vor „ab Kapitel“; ab dort nicht', () => {
-    const d = projekt(['Der Alte kam.', 'Marian lachte.', 'Der Alte ging.'], [
-      figur('marian', 'Marian', { aliase: ['Alte'], spitznamen: [{ name: 'Alte', abKapitel: 'k3' }] }),
+    const d = projekt(['Der Alte kam.', 'Henrik lachte.', 'Der Alte ging.'], [
+      figur('henrik', 'Henrik', { aliase: ['Alte'], spitznamen: [{ name: 'Alte', abKapitel: 'k3' }] }),
     ]);
     const h = hinweise(d, 'frueh');
-    expect(h.map((x) => x.schluessel)).toEqual(['figuren:frueh:marian|alte']);
+    expect(h.map((x) => x.schluessel)).toEqual(['figuren:frueh:henrik|alte']);
     expect(h[0]!.zitate).toEqual([{ kapitel: 'k1', text: 'Der Alte kam.' }]);
-    d.figuren.marian = { ...d.figuren.marian!, spitznamen: [{ name: 'Alte', abKapitel: 'k1' }] };
+    d.figuren.henrik = { ...d.figuren.henrik!, spitznamen: [{ name: 'Alte', abKapitel: 'k1' }] };
     expect(hinweise(d, 'frueh')).toEqual([]);
   });
 
