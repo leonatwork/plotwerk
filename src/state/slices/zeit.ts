@@ -41,6 +41,7 @@ import {
   zustandsId,
   type ZustandSetzen,
 } from '@core/zeit/index';
+import { sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from './ki';
 
@@ -139,7 +140,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
 
   function daten(): ProjektDaten {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet.');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   }
 
@@ -150,7 +151,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
   /** Nur-Lese-Sicht auf das Projekt (harte Regel 1: core/ki bekommt nie das schreibende Dateisystem). */
   async function leser(): Promise<ProjektLeser> {
     const fs = get().fs;
-    if (!fs || !get().daten) throw new KiFehler('auftrag', 'Kein Projekt geöffnet.');
+    if (!fs || !get().daten) throw new KiFehler('auftrag', texte().state.fehler.keinProjekt);
     await get().editorSichern();
     await get().alleSpeichernAbwarten();
     return { lesen: (p) => fs.lesen(p), auflisten: (o) => fs.auflisten(o), existiert: (p) => fs.existiert(p) };
@@ -158,7 +159,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
 
   function transport() {
     const b = get().backend;
-    if (!b) throw new KiFehler('nicht_bereit', 'Die App ist noch nicht bereit.');
+    if (!b) throw new KiFehler('nicht_bereit', texte().state.fehler.nichtBereit);
     return b.ki;
   }
 
@@ -170,7 +171,7 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
       ...(a.tiefencheck ? { tiefencheck: true } : {}),
     };
     if (a.art === 'zeit') return basis;
-    if (!a.figur || !d.figuren[a.figur]) throw new KiFehler('auftrag', 'Wähle zuerst eine Figur.');
+    if (!a.figur || !d.figuren[a.figur]) throw new KiFehler('auftrag', texte().state.ki.figurWaehlen);
     const arten = zeitleisteVon(d).zustandsarten.map((x) => ({ id: x.id, name: x.name }));
     return { ...basis, figur: a.figur, arten };
   }
@@ -251,8 +252,8 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
     async schaetzen(a) {
       const auftrag = kernAuftrag(a);
       return a.art === 'zeit'
-        ? schaetzeZeitpunkte(await leser(), transport(), get().kiEinstellungen(), auftrag)
-        : schaetzeZustaende(await leser(), transport(), get().kiEinstellungen(), auftrag as ZustandAuftrag);
+        ? schaetzeZeitpunkte(await leser(), transport(), get().kiEinstellungen(), auftrag, sprache())
+        : schaetzeZustaende(await leser(), transport(), get().kiEinstellungen(), auftrag as ZustandAuftrag, sprache());
     },
 
     async vorschlagen(a) {
@@ -264,8 +265,8 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
         const auftrag = kernAuftrag(a);
         const einstellungen = get().kiEinstellungen();
         if (a.art === 'zeit') {
-          const r = await schlageZeitpunkteVor(await leser(), transport(), einstellungen, auftrag, { signal: steuerung.signal });
-          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', 'Abgebrochen.');
+          const r = await schlageZeitpunkteVor(await leser(), transport(), einstellungen, auftrag, { signal: steuerung.signal, oberflaeche: sprache() });
+          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', texte().state.ki.abgebrochen);
           const gemischt = mischeZeitVorschlaege(
             daten().kiZeitVorschlaege,
             r.ergebnis.vorschlaege,
@@ -289,8 +290,8 @@ export const createZeitSlice: StateCreator<Store, [], [], ZeitSlice> = (set, get
           });
         } else {
           const za = auftrag as ZustandAuftrag;
-          const r = await schlageZustaendeVor(await leser(), transport(), einstellungen, za, { signal: steuerung.signal });
-          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', 'Abgebrochen.');
+          const r = await schlageZustaendeVor(await leser(), transport(), einstellungen, za, { signal: steuerung.signal, oberflaeche: sprache() });
+          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', texte().state.ki.abgebrochen);
           const gemischt = mischeZustandVorschlaege(
             daten().kiZustandVorschlaege,
             r.ergebnis.vorschlaege,

@@ -4,6 +4,7 @@
  * einem Wechsel nie im neuen.
  */
 import { binaerPfadErlaubt, pruefePfad, type ProjektDateisystem } from '@core/projekt';
+import { f, texte } from '../../i18n';
 import { aufruf } from './aufruf';
 
 /** Antwort von projekt_oeffnen/projekt_waehlen/projekt_neu/projekt_letztes */
@@ -40,7 +41,7 @@ export class TauriFs implements ProjektDateisystem {
 
   async schreiben(pfad: string, inhalt: string): Promise<void> {
     const p = pruefePfad(pfad);
-    if (!p) throw new Error('Leerer Pfad');
+    if (!p) throw new Error(texte().backend.leererPfad);
     await aufruf<void>('fs_schreiben', { kennung: this.kennung, pfad: p, inhalt });
   }
 
@@ -51,7 +52,7 @@ export class TauriFs implements ProjektDateisystem {
   /** Binärdatei (nur unter recherche/): Rust liefert die Bytes roh (ipc::Response → ArrayBuffer). */
   async lesenBinaer(pfad: string): Promise<Uint8Array | null> {
     const p = pruefePfad(pfad);
-    if (!binaerPfadErlaubt(p)) throw new Error(`Binärdateien nur unter recherche/: ${pfad}`);
+    if (!binaerPfadErlaubt(p)) throw new Error(f(texte().backend.binaerNurRecherche, { pfad }));
     if (!(await this.existiert(p))) return null;
     const puffer = await aufruf<ArrayBuffer | number[]>('fs_lesen_binaer', { kennung: this.kennung, pfad: p });
     return puffer instanceof ArrayBuffer ? new Uint8Array(puffer) : Uint8Array.from(puffer);
@@ -60,7 +61,7 @@ export class TauriFs implements ProjektDateisystem {
   /** Binärdatei atomar schreiben: Bytes als roher Request-Body, Pfad und Kennung in Kopfzeilen. */
   async schreibenBinaer(pfad: string, daten: Uint8Array): Promise<void> {
     const p = pruefePfad(pfad);
-    if (!binaerPfadErlaubt(p)) throw new Error(`Binärdateien nur unter recherche/: ${pfad}`);
+    if (!binaerPfadErlaubt(p)) throw new Error(f(texte().backend.binaerNurRecherche, { pfad }));
     await aufruf<void>('fs_schreiben_binaer', daten, {
       headers: { 'plotwerk-kennung': String(this.kennung), 'plotwerk-pfad': encodeURIComponent(p) },
     });

@@ -57,7 +57,9 @@ export const AUSGABE_SCHAETZUNG: Record<KiRolle, number> = {
 };
 
 /** „≈ 0,12 $“ */
-export function formatiereUsd(usd: number): string {
+/** „≈ 0,12 $“ (de) bzw. „≈ $0.12“ (en) – Sprache der Oberfläche. */
+export function formatiereUsd(usd: number, sprache: 'de' | 'en' = 'de'): string {
   const stellen = usd < 0.01 ? 3 : 2;
-  return `≈ ${usd.toLocaleString('de-DE', { minimumFractionDigits: stellen, maximumFractionDigits: stellen })} $`;
+  const zahl = usd.toLocaleString(sprache === 'en' ? 'en-US' : 'de-DE', { minimumFractionDigits: stellen, maximumFractionDigits: stellen });
+  return sprache === 'en' ? `≈ $${zahl}` : `≈ ${zahl} $`;
 }

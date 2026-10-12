@@ -10,8 +10,27 @@
  * stimmt er nicht, wird nichts geändert.
  */
 import { absatzZuMarkdown, laeufeText, leseMarkdown, type Lauf } from '../docx/markdown';
+import { texteJe, type Sprache } from '../i18n';
 import type { LektoratsAenderung } from '../model/types';
 import { ankerFinden, bloecke, klartext, normalisiere, zitatKern, type Bereich } from '../text';
+
+/** Gründe, warum eine Änderung nicht angewendet wird (Oberflächensprache). */
+const GRUND = texteJe(
+  {
+    verwaist: 'Die Stelle steht so nicht mehr im Text.',
+    veraendert: 'Der Text an dieser Stelle hat sich inzwischen geändert.',
+    ohneText: 'Das Kapitel hat keinen Text.',
+    ueberschrift: 'Änderungen in Überschriften bitte selbst im Text vornehmen.',
+    nichtAutomatisch: 'Diese Stelle lässt sich nicht automatisch ändern. Bitte im Text selbst ändern.',
+  },
+  {
+    verwaist: 'This passage is no longer in the text.',
+    veraendert: 'The text at this point has changed in the meantime.',
+    ohneText: 'The chapter has no text.',
+    ueberschrift: 'Please make changes to headings yourself in the text.',
+    nichtAutomatisch: 'This passage can’t be changed automatically. Please edit the text yourself.',
+  },
+);
 
 export type AenderungsLage =
   /** Stelle gefunden, alter Text steht noch da */
@@ -205,17 +224,18 @@ function laeufeAendern(laeufe: Lauf[], s: number, e: number, neu: string): Lauf[
  * Wendet eine Änderung auf den Markdown-Text eines Kapitels an. Ändert nur die betroffenen Absätze.
  * Gibt einen Grund zurück, wenn die Stelle fehlt, sich geändert hat oder sich nicht sicher ändern lässt.
  */
-export function wendeAenderungAn(markdown: string, a: LektoratsAenderung): AnwendenErgebnis {
+export function wendeAenderungAn(markdown: string, a: LektoratsAenderung, sprache: Sprache = 'de'): AnwendenErgebnis {
+  const t = GRUND(sprache);
   const kt = klartext(markdown);
   const stelle = aenderungFinden(kt, a);
-  if (stelle.lage === 'verwaist' || !stelle.bereich) return { ok: false, grund: 'Die Stelle steht so nicht mehr im Text.' };
-  if (stelle.lage === 'veraendert') return { ok: false, grund: 'Der Text an dieser Stelle hat sich inzwischen geändert.' };
+  if (stelle.lage === 'verwaist' || !stelle.bereich) return { ok: false, grund: t.verwaist };
+  if (stelle.lage === 'veraendert') return { ok: false, grund: t.veraendert };
   const { start: s, ende: e } = stelle.bereich;
   const neu = a.art === 'loeschen' ? '' : a.neu;
   const erwartet = vergleich(kt.slice(0, s) + neu + kt.slice(e));
 
   const liste = quellBloecke(markdown);
-  if (!liste || liste.length === 0) return { ok: false, grund: 'Das Kapitel hat keinen Text.' };
+  if (!liste || liste.length === 0) return { ok: false, grund: t.ohneText };
   // betroffene Blöcke: der erste, der die Stelle enthält (bei Einfügungen am Absatzende der Absatz davor)
   let i1 = liste.findIndex((b) => s <= b.ende && (e > s ? s < b.ende : true));
   if (i1 < 0) i1 = liste.length - 1;
@@ -223,7 +243,7 @@ export function wendeAenderungAn(markdown: string, a: LektoratsAenderung): Anwen
   const ueberAbsatz = kt.slice(s, e).includes('\n');
   if (e > s) for (let i = i1; i < liste.length && (liste[i]!.start < e || (ueberAbsatz && liste[i]!.start === e)); i++) i2 = i;
   const betroffen = liste.slice(i1, i2 + 1);
-  if (betroffen.some((b) => b.art !== 'absatz' && b.art !== 'trenner')) return { ok: false, grund: 'Änderungen in Überschriften bitte selbst im Text vornehmen.' };
+  if (betroffen.some((b) => b.art !== 'absatz' && b.art !== 'trenner')) return { ok: false, grund: t.ueberschrift };
 
   const zeilen = markdown.split('\n');
   const von = betroffen[0]!.zeilen[0];
@@ -256,8 +276,7 @@ export function wendeAenderungAn(markdown: string, a: LektoratsAenderung): Anwen
     if (b.art === 'trenner') laeufe.push({ text: '* * *', fett: false, kursiv: false });
     else laeufe.push(...b.laeufe.map((l) => ({ ...l })));
   });
-  if (laeufeText(laeufe) !== kt.slice(basis, betroffen[betroffen.length - 1]!.ende))
-    return { ok: false, grund: 'Diese Stelle lässt sich nicht automatisch ändern. Bitte im Text selbst ändern.' };
+  if (laeufeText(laeufe) !== kt.slice(basis, betroffen[betroffen.length - 1]!.ende)) return { ok: false, grund: t.nichtAutomatisch };
   try {
     const ersatz = absatzZuMarkdown(laeufeAendern(laeufe, ls, le, neu)).join('\n\n');
     const kandidat = zusammensetzen(ersatz);
@@ -265,7 +284,7 @@ export function wendeAenderungAn(markdown: string, a: LektoratsAenderung): Anwen
   } catch {
     /* unten: Fehler melden */
   }
-  return { ok: false, grund: 'Diese Stelle lässt sich nicht automatisch ändern. Bitte im Text selbst ändern.' };
+  return { ok: false, grund: t.nichtAutomatisch };
 }
 
 /** Zählt Änderungen nach Status. */

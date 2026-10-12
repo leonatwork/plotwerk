@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type ClipboardEvent, type DragEvent } fro
 import type { Id, RechercheArt, Verweis } from '@core/model/types';
 import { bildMimeTyp, entwurfPruefen, groesseText, linkPruefen, schlagworteAusText, standardTitel, titelAusDateiname, type EintragEntwurf } from '@core/recherche/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, sprache, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import type { NeueDatei } from '../../state/slices/recherche';
 import { Button, Dialog, Feld, Segment, Textfeld, klassen } from '../../ui';
@@ -34,6 +35,8 @@ function kontextZiel(): Verweis | undefined {
 }
 
 export default function EintragDialog({ param, schliessen }: DialogKomponentenProps) {
+  const t = useTexte();
+  const td = t.recherche.dialog;
   const p = (param ?? {}) as EintragDialogParam;
   const daten = useStore((s) => s.daten);
   const r = useStore((s) => s.recherche);
@@ -72,9 +75,9 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
     }),
     [art, titel, text, url, neueDatei, alt?.datei, verweise, schlagworte],
   );
-  const probleme = entwurfPruefen(entwurf);
+  const probleme = entwurfPruefen(entwurf, sprache());
   const link = art === 'link' ? linkPruefen(url) : null;
-  const titelVorschlag = standardTitel({ ...entwurf, titel: '' });
+  const titelVorschlag = standardTitel({ ...entwurf, titel: '' }, sprache());
 
   function dateiUebernehmen(name: string, bytes: Uint8Array) {
     const f = r.dateiPruefen(name, bytes.length);
@@ -90,7 +93,7 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
       kopie.set(bytes);
       return URL.createObjectURL(new Blob([kopie.buffer], { type: bildMimeTyp(name) }));
     });
-    if (!titel.trim()) setTitel(titelAusDateiname(name));
+    if (!titel.trim()) setTitel(titelAusDateiname(name, sprache()));
   }
 
   async function dateiAusDatei(f: File) {
@@ -140,8 +143,8 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
   if (!daten) return null;
   if (p.id && !alt)
     return (
-      <Dialog titel="Recherche-Eintrag" onSchliessen={schliessen} aktionen={<Button variante="primaer" onClick={schliessen}>Schließen</Button>}>
-        <p className="rc-dialog__text">Diesen Eintrag gibt es nicht mehr.</p>
+      <Dialog titel={td.titel} onSchliessen={schliessen} aktionen={<Button variante="primaer" onClick={schliessen}>{t.gemeinsam.schliessen}</Button>}>
+        <p className="rc-dialog__text">{td.gibtsNicht}</p>
       </Dialog>
     );
 
@@ -149,7 +152,7 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
 
   return (
     <Dialog
-      titel={bearbeiten ? 'Recherche-Eintrag bearbeiten' : 'Neuer Recherche-Eintrag'}
+      titel={bearbeiten ? td.bearbeiten : td.neu}
       onSchliessen={schliessen}
       breite={560}
       modalFest={beschaeftigt}
@@ -157,10 +160,10 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
         <>
           {probleme.length > 0 && urlBeruehrt && <span className="rc-dialog__problem">{probleme[0]}</span>}
           <Button onClick={schliessen} disabled={beschaeftigt}>
-            Abbrechen
+            {t.gemeinsam.abbrechen}
           </Button>
-          <Button variante="primaer" onClick={() => void speichern()} disabled={beschaeftigt} title="Speichern (⌘↩)">
-            {beschaeftigt ? 'Speichert …' : bearbeiten ? 'Speichern' : 'Anlegen'}
+          <Button variante="primaer" onClick={() => void speichern()} disabled={beschaeftigt} title={td.speichernTitel}>
+            {beschaeftigt ? td.speichert : bearbeiten ? t.gemeinsam.speichern : td.anlegen}
           </Button>
         </>
       }
@@ -183,7 +186,7 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
       >
         {!bearbeiten && (
           <Segment<RechercheArt>
-            label="Art des Eintrags"
+            label={td.art}
             rolle="tablist"
             wert={art}
             onChange={(a) => {
@@ -191,9 +194,9 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
               setFehler(null);
             }}
             optionen={[
-              { wert: 'bild', label: <span className="rc-segment-label"><IconBild size={13} /> Bild</span> },
-              { wert: 'link', label: <span className="rc-segment-label"><IconLink size={13} /> Link</span> },
-              { wert: 'notiz', label: <span className="rc-segment-label"><IconNotiz size={13} /> Notiz</span> },
+              { wert: 'bild', label: <span className="rc-segment-label"><IconBild size={13} /> {t.recherche.art.bild}</span> },
+              { wert: 'link', label: <span className="rc-segment-label"><IconLink size={13} /> {t.recherche.art.link}</span> },
+              { wert: 'notiz', label: <span className="rc-segment-label"><IconNotiz size={13} /> {t.recherche.art.notiz}</span> },
             ]}
           />
         )}
@@ -215,29 +218,29 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
           >
             {bildDa ? (
               <>
-                <RechercheBild pfad={alt?.datei} vorschauUrl={vorschau} alt={titel || 'Vorschau'} einpassen="contain" className="rc-ablage__bild" />
+                <RechercheBild pfad={alt?.datei} vorschauUrl={vorschau} alt={titel || td.vorschau} einpassen="contain" className="rc-ablage__bild" />
                 <div className="rc-ablage__info">
-                  <span>{neueDatei ? `${neueDatei.name} · ${groesseText(neueDatei.daten.length)} – wird beim Speichern kopiert` : alt?.datei}</span>
+                  <span>{neueDatei ? f(td.neueDatei, { name: neueDatei.name, groesse: groesseText(neueDatei.daten.length, sprache()) }) : alt?.datei}</span>
                   <Button variante="text" klein onClick={() => void dateiWaehlen()} disabled={!backend}>
-                    Anderes Bild …
+                    {td.anderesBild}
                   </Button>
                 </div>
               </>
             ) : (
               <>
                 <IconBild size={28} />
-                <span className="rc-ablage__titel">Bild hierher ziehen oder einfügen (⌘V)</span>
+                <span className="rc-ablage__titel">{td.bildZiehen}</span>
                 <Button onClick={() => void dateiWaehlen()} disabled={!backend} data-autofocus>
-                  Bild wählen …
+                  {td.bildWaehlen}
                 </Button>
-                <span className="rc-ablage__klein">Wird in den Projektordner kopiert (recherche/dateien/).</span>
+                <span className="rc-ablage__klein">{td.bildKopie}</span>
               </>
             )}
           </div>
         )}
 
         {art === 'link' && (
-          <Feld label="Adresse">
+          <Feld label={td.adresse}>
             {(id) => (
               <>
                 <Textfeld
@@ -254,44 +257,44 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
                 />
                 <span className={klassen('rc-dialog__hilfe', urlBeruehrt && url.trim() && !link && 'rc-dialog__hilfe--fehler')}>
                   {url.trim() && !link
-                    ? 'Keine gültige http- oder https-Adresse.'
+                    ? td.adresseUngueltig
                     : link
-                      ? `${link.host} · Plotwerk lädt die Seite nicht, sie öffnet sich nur auf Klick im Browser.`
-                      : 'Plotwerk lädt die Seite nicht, sie öffnet sich nur auf Klick im Browser.'}
+                      ? f(td.nichtGeladenHost, { host: link.host })
+                      : td.nichtGeladen}
                 </span>
               </>
             )}
           </Feld>
         )}
 
-        <Feld label="Titel">
+        <Feld label={td.titelFeld}>
           {(id) => (
             <Textfeld
               id={id}
               value={titel}
               autoFocus={art === 'notiz'}
-              placeholder={titelVorschlag && titelVorschlag !== 'Notiz' ? titelVorschlag : art === 'notiz' ? 'Titel der Notiz' : 'Titel'}
+              placeholder={titelVorschlag && titelVorschlag !== 'Notiz' ? titelVorschlag : art === 'notiz' ? td.titelNotiz : td.titelFeld}
               onChange={(e) => setTitel(e.target.value)}
             />
           )}
         </Feld>
 
-        <Feld label={art === 'notiz' ? 'Notiz' : 'Beschreibung'}>
+        <Feld label={art === 'notiz' ? t.recherche.notiz : t.recherche.beschreibung}>
           {(id) => (
             <VerweisFeld
               id={id}
-              label={art === 'notiz' ? 'Notiz' : 'Beschreibung'}
+              label={art === 'notiz' ? t.recherche.notiz : t.recherche.beschreibung}
               wert={text}
               onChange={setText}
               zeilen={art === 'notiz' ? 5 : 2}
               kontext={verweise[0] ?? null}
-              placeholder={art === 'notiz' ? 'Notiz … ([[ verweist auf Figuren, Orte, Kapitel)' : 'Wozu gehört das? ([[ für Verweise)'}
+              placeholder={art === 'notiz' ? td.notizPlatzhalter : td.beschreibungPlatzhalter}
             />
           )}
         </Feld>
 
         <div className="pw-feld">
-          <span className="pw-feld__label">Geheftet an</span>
+          <span className="pw-feld__label">{t.recherche.geheftetAn}</span>
           {verweise.length > 0 && (
             <div className="rc-ziele">
               {verweise.map((v) => (
@@ -302,8 +305,8 @@ export default function EintragDialog({ param, schliessen }: DialogKomponentenPr
           <ZielWahl gewaehlt={verweise} onWaehlen={(v) => setVerweise((l) => [...l, v])} />
         </div>
 
-        <Feld label="Schlagworte">
-          {(id) => <Textfeld id={id} value={schlagworte} placeholder="z. B. Hafen, Nacht (mit Komma trennen)" onChange={(e) => setSchlagworte(e.target.value)} />}
+        <Feld label={t.recherche.schlagworte}>
+          {(id) => <Textfeld id={id} value={schlagworte} placeholder={td.schlagwortePlatzhalter} onChange={(e) => setSchlagworte(e.target.value)} />}
         </Feld>
 
         {fehler && (

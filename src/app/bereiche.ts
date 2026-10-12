@@ -6,6 +6,7 @@
  *   export function kontext(state: Store)      – optional, Text neben dem Projektnamen
  */
 import { useEffect, useState, type ComponentType } from 'react';
+import { sprache as aktuelleSprache, woerterbuch, type Sprache } from '../i18n';
 import type { Bereich, Store } from '../state/store';
 import {
   IconAkte,
@@ -32,69 +33,59 @@ export interface BereichModul {
 
 export interface BereichDefinition {
   id: Bereich;
-  titel: string;
+  /** Name in der aktuellen Oberflächensprache (wird bei jedem Zugriff gelesen) */
+  readonly titel: string;
   Icon: ComponentType<IconProps>;
   /** ⌘-Taste (Werkzeuge ohne eigene Taste: nur über Seitenleiste, Menü und Schnellsuche) */
   taste?: string;
   /** Werkzeuge stehen in der Seitenleiste in einer eigenen, einklappbaren Gruppe */
   gruppe?: 'werkzeuge';
-  /** weitere Suchwörter für die Schnellsuche */
-  suchwoerter?: string[];
+  /** weitere Suchwörter für die Schnellsuche (aktuelle Oberflächensprache) */
+  readonly suchwoerter?: string[];
   laden: () => Promise<BereichModul>;
 }
 
+/** Name des Bereichs in einer Sprache (Standard: aktuelle Oberflächensprache). */
+export function bereichTitel(id: Bereich, sprache: Sprache = aktuelleSprache()): string {
+  return woerterbuch(sprache).app.bereiche[id];
+}
+
+/** Suchwörter eines Werkzeug-Bereichs in einer Sprache. */
+export function bereichSuchwoerter(id: Bereich, sprache: Sprache = aktuelleSprache()): string[] {
+  const woerter: Partial<Record<Bereich, string>> = woerterbuch(sprache).app.bereichSuchwoerter;
+  return (woerter[id] ?? '')
+    .split(',')
+    .map((w) => w.trim())
+    .filter(Boolean);
+}
+
+/** Bereich mit Titel und Suchwörtern, die bei jedem Zugriff der aktuellen Oberflächensprache folgen. */
+function bereich(def: Omit<BereichDefinition, 'titel' | 'suchwoerter'>): BereichDefinition {
+  return {
+    ...def,
+    get titel() {
+      return bereichTitel(def.id);
+    },
+    get suchwoerter() {
+      return def.gruppe === 'werkzeuge' ? bereichSuchwoerter(def.id) : undefined;
+    },
+  };
+}
+
 export const BEREICHE: BereichDefinition[] = [
-  { id: 'schreiben', titel: 'Schreiben', Icon: IconSchreiben, taste: '1', laden: () => import('../features/schreiben/index') },
-  { id: 'kapitel', titel: 'Kapitel-Überblick', Icon: IconKapitel, taste: '2', laden: () => import('../features/kapitel/index') },
-  { id: 'akte', titel: 'Akte planen', Icon: IconAkte, taste: '3', laden: () => import('../features/akte/index') },
-  { id: 'figuren', titel: 'Figuren', Icon: IconFiguren, taste: '4', laden: () => import('../features/figuren/index') },
-  { id: 'beziehungen', titel: 'Beziehungen', Icon: IconBeziehungen, taste: '5', laden: () => import('../features/beziehungen/index') },
-  { id: 'orte', titel: 'Orte', Icon: IconOrte, taste: '6', laden: () => import('../features/orte/index') },
-  { id: 'hinweise', titel: 'Hinweise', Icon: IconHinweise, taste: '7', laden: () => import('../features/hinweise/index') },
+  bereich({ id: 'schreiben', Icon: IconSchreiben, taste: '1', laden: () => import('../features/schreiben/index') }),
+  bereich({ id: 'kapitel', Icon: IconKapitel, taste: '2', laden: () => import('../features/kapitel/index') }),
+  bereich({ id: 'akte', Icon: IconAkte, taste: '3', laden: () => import('../features/akte/index') }),
+  bereich({ id: 'figuren', Icon: IconFiguren, taste: '4', laden: () => import('../features/figuren/index') }),
+  bereich({ id: 'beziehungen', Icon: IconBeziehungen, taste: '5', laden: () => import('../features/beziehungen/index') }),
+  bereich({ id: 'orte', Icon: IconOrte, taste: '6', laden: () => import('../features/orte/index') }),
+  bereich({ id: 'hinweise', Icon: IconHinweise, taste: '7', laden: () => import('../features/hinweise/index') }),
   // Werkzeuge (G1–G8)
-  {
-    id: 'zeitleiste',
-    titel: 'Zeitleiste',
-    Icon: IconZeitleiste,
-    taste: '8',
-    gruppe: 'werkzeuge',
-    suchwoerter: ['Zeit', 'Tag', 'Uhrzeit', 'Zustand', 'Zustand einer Figur'],
-    laden: () => import('../features/zeitleiste/index'),
-  },
-  {
-    id: 'faeden',
-    titel: 'Fäden',
-    Icon: IconFaeden,
-    taste: '9',
-    gruppe: 'werkzeuge',
-    suchwoerter: ['Lose Enden', 'Faden', 'Auflösung'],
-    laden: () => import('../features/faeden/index'),
-  },
-  {
-    id: 'recherche',
-    titel: 'Recherche',
-    Icon: IconRecherche,
-    taste: '0',
-    gruppe: 'werkzeuge',
-    suchwoerter: ['Bilder', 'Links', 'Notizen', 'Ablage'],
-    laden: () => import('../features/recherche/index'),
-  },
-  {
-    id: 'statistik',
-    titel: 'Statistik',
-    Icon: IconStatistik,
-    gruppe: 'werkzeuge',
-    suchwoerter: ['Schreibziel', 'Tagesziel', 'Wörter pro Tag', 'Fortschritt'],
-    laden: () => import('../features/statistik/index'),
-  },
-  {
-    id: 'fragen',
-    titel: 'Fragen',
-    Icon: IconFragen,
-    gruppe: 'werkzeuge',
-    suchwoerter: ['Fragen an das Buch', 'Chat', 'Belegstellen'],
-    laden: () => import('../features/fragen/index'),
-  },
+  bereich({ id: 'zeitleiste', Icon: IconZeitleiste, taste: '8', gruppe: 'werkzeuge', laden: () => import('../features/zeitleiste/index') }),
+  bereich({ id: 'faeden', Icon: IconFaeden, taste: '9', gruppe: 'werkzeuge', laden: () => import('../features/faeden/index') }),
+  bereich({ id: 'recherche', Icon: IconRecherche, taste: '0', gruppe: 'werkzeuge', laden: () => import('../features/recherche/index') }),
+  bereich({ id: 'statistik', Icon: IconStatistik, gruppe: 'werkzeuge', laden: () => import('../features/statistik/index') }),
+  bereich({ id: 'fragen', Icon: IconFragen, gruppe: 'werkzeuge', laden: () => import('../features/fragen/index') }),
 ];
 
 export function bereichDefinition(id: Bereich): BereichDefinition {

@@ -7,6 +7,7 @@
  * - Links werden nie automatisch geladen: hier wird eine URL nur geprüft und zerlegt.
  * - Recherche geht nie an die KI (E12).
  */
+import { fmt, localeVon, texteJe, type Sprache } from '../i18n';
 import type { Id, ProjektDaten, Recherche, RechercheArt, RechercheEintrag, Szene, Verweis, VerweisTyp } from '../model/types';
 
 export const RECHERCHE_ORDNER = 'recherche/dateien';
@@ -16,6 +17,56 @@ export const MAX_DATEIGROESSE = 50 * 1024 * 1024;
 
 export const ART_NAME: Record<RechercheArt, string> = { bild: 'Bild', link: 'Link', notiz: 'Notiz' };
 export const ART_MEHRZAHL: Record<RechercheArt, string> = { bild: 'Bilder', link: 'Links', notiz: 'Notizen' };
+
+/** Beschriftungen und Meldungen (Oberflächensprache). Die Konstanten oben bleiben deutsch. */
+const T = texteJe(
+  {
+    art: { bild: 'Bild', link: 'Link', notiz: 'Notiz' } as Record<RechercheArt, string>,
+    artMehrzahl: { bild: 'Bilder', link: 'Links', notiz: 'Notizen' } as Record<RechercheArt, string>,
+    zielArt: {
+      figur: 'Figur',
+      ort: 'Ort',
+      kapitel: 'Kapitel',
+      szene: 'Szene',
+      plan: 'Plan-Karte',
+      idee: 'Idee',
+      gruppe: 'Gruppe',
+    } as Record<ZielArt, string>,
+    kap: 'Kap. {nr}',
+    szene: 'Szene {nr}',
+    bildWaehlen: 'Bitte ein Bild wählen.',
+    adresse: 'Bitte eine gültige Adresse (http oder https) eingeben.',
+    notizLeer: 'Die Notiz ist leer.',
+    byte: '{n} Byte',
+  },
+  {
+    art: { bild: 'Image', link: 'Link', notiz: 'Note' },
+    artMehrzahl: { bild: 'Images', link: 'Links', notiz: 'Notes' },
+    zielArt: {
+      figur: 'Character',
+      ort: 'Place',
+      kapitel: 'Chapter',
+      szene: 'Scene',
+      plan: 'Plan card',
+      idee: 'Idea',
+      gruppe: 'Group',
+    },
+    kap: 'Ch. {nr}',
+    szene: 'Scene {nr}',
+    bildWaehlen: 'Please choose an image.',
+    adresse: 'Please enter a valid address (http or https).',
+    notizLeer: 'The note is empty.',
+    byte: '{n} bytes',
+  },
+);
+
+export function artName(art: RechercheArt, sprache: Sprache = 'de'): string {
+  return T(sprache).art[art];
+}
+
+export function artMehrzahl(art: RechercheArt, sprache: Sprache = 'de'): string {
+  return T(sprache).artMehrzahl[art];
+}
 
 // ---------------------------------------------------------------------------
 // Bilddateien
@@ -53,9 +104,9 @@ export function bildMimeTyp(name: string): string {
 }
 
 /** Dateiname → Titel-Vorschlag („kaffee_kontor-2024.JPG“ → „kaffee kontor 2024“) */
-export function titelAusDateiname(name: string): string {
+export function titelAusDateiname(name: string, sprache: Sprache = 'de'): string {
   const ohne = name.replace(/^.*[\\/]/, '').replace(/\.[A-Za-z0-9]{1,8}$/, '');
-  return ohne.replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Bild';
+  return ohne.replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ').trim() || T(sprache).art.bild;
 }
 
 function dateiSlug(s: string): string {
@@ -89,10 +140,10 @@ export function zielDateipfad(name: string, vorhandene: Iterable<string>): strin
   }
 }
 
-export function groesseText(bytes: number): string {
-  if (bytes < 1024) return `${bytes} Byte`;
+export function groesseText(bytes: number, sprache: Sprache = 'de'): string {
+  if (bytes < 1024) return fmt(T(sprache).byte, { n: bytes });
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-  return `${(bytes / 1024 / 1024).toLocaleString('de-DE', { maximumFractionDigits: 1 })} MB`;
+  return `${(bytes / 1024 / 1024).toLocaleString(localeVon(sprache), { maximumFractionDigits: 1 })} MB`;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,6 +229,11 @@ export function findeSzene(daten: ProjektDaten, id: Id): Szene | undefined {
 
 export type ZielArt = 'figur' | 'ort' | 'kapitel' | 'szene' | 'plan' | 'idee' | 'gruppe';
 
+/** Anzeigename der Ziel-Art in der Sprache (ZIEL_ART_NAME bleibt deutsch). */
+export function zielArtName(art: ZielArt, sprache: Sprache = 'de'): string {
+  return T(sprache).zielArt[art];
+}
+
 export const ZIEL_ART_NAME: Record<ZielArt, string> = {
   figur: 'Figur',
   ort: 'Ort',
@@ -196,21 +252,22 @@ export interface ZielInfo {
   kapitel?: Id;
 }
 
-function kapitelName(daten: ProjektDaten, id: Id): string | null {
+function kapitelName(daten: ProjektDaten, id: Id, sprache: Sprache): string | null {
   const nr = daten.projekt.kapitel.indexOf(id) + 1;
   const titel = daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel;
   if (titel === undefined) return null;
-  return nr > 0 ? `Kap. ${nr} · ${titel}` : titel;
+  return nr > 0 ? `${fmt(T(sprache).kap, { nr })} · ${titel}` : titel;
 }
 
-function szenenName(daten: ProjektDaten, s: Szene): string {
+function szenenName(daten: ProjektDaten, s: Szene, sprache: Sprache): string {
+  const t = T(sprache);
   const nr = daten.projekt.kapitel.indexOf(s.kapitel) + 1;
-  const titel = s.titel.trim() || `Szene ${s.index + 1}`;
-  return nr > 0 ? `Kap. ${nr}.${s.index + 1} · ${titel}` : titel;
+  const titel = s.titel.trim() || fmt(t.szene, { nr: s.index + 1 });
+  return nr > 0 ? `${fmt(t.kap, { nr: `${nr}.${s.index + 1}` })} · ${titel}` : titel;
 }
 
-/** Art und aktuelle Anzeige eines Verweises (Szenen-Verweise erkannt, siehe szenenVerweis). */
-export function zielInfo(daten: ProjektDaten, v: Verweis): ZielInfo {
+/** Art und aktuelle Anzeige eines Verweises (Szenen-Verweise erkannt, siehe szenenVerweis); `sprache` für „Kap. n“. */
+export function zielInfo(daten: ProjektDaten, v: Verweis, sprache: Sprache = 'de'): ZielInfo {
   const typ = v.typ as VerweisTyp | 'szene';
   switch (typ) {
     case 'figur':
@@ -218,7 +275,7 @@ export function zielInfo(daten: ProjektDaten, v: Verweis): ZielInfo {
     case 'ort':
       return { art: 'ort', name: daten.orte[v.id]?.name ?? null };
     case 'kapitel':
-      return { art: 'kapitel', name: kapitelName(daten, v.id), kapitel: v.id };
+      return { art: 'kapitel', name: kapitelName(daten, v.id, sprache), kapitel: v.id };
     case 'gruppe':
       return { art: 'gruppe', name: daten.gruppen[v.id]?.name ?? null };
     case 'idee':
@@ -228,7 +285,7 @@ export function zielInfo(daten: ProjektDaten, v: Verweis): ZielInfo {
       const plan = typ === 'plan' ? daten.plaene[v.id] : undefined;
       if (plan) return { art: 'plan', name: plan.szene || plan.titel, kapitel: v.id };
       const s = findeSzene(daten, v.id);
-      return { art: 'szene', name: s ? szenenName(daten, s) : null, kapitel: s?.kapitel };
+      return { art: 'szene', name: s ? szenenName(daten, s, sprache) : null, kapitel: s?.kapitel };
     }
   }
   return { art: 'figur', name: null };
@@ -257,18 +314,20 @@ export interface HeftZiel {
 }
 
 /** Alles, woran Leon einen Eintrag heften kann: Figuren, Orte, Kapitel, Szenen (in dieser Reihenfolge). */
-export function heftZiele(daten: ProjektDaten): HeftZiel[] {
+export function heftZiele(daten: ProjektDaten, sprache: Sprache = 'de'): HeftZiel[] {
   const liste: HeftZiel[] = [];
   const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, 'de') : a.rolle === 'haupt' ? -1 : 1));
   for (const f of figuren) liste.push({ verweis: { typ: 'figur', id: f.id }, art: 'figur', name: f.name, suche: [f.name, ...f.aliase] });
   for (const o of Object.values(daten.orte).sort((a, b) => a.name.localeCompare(b.name, 'de')))
     liste.push({ verweis: { typ: 'ort', id: o.id }, art: 'ort', name: o.name, suche: [o.name, ...o.aliase] });
   daten.projekt.kapitel.forEach((id, i) => {
-    const name = kapitelName(daten, id) ?? id;
-    liste.push({ verweis: { typ: 'kapitel', id }, art: 'kapitel', name, suche: [name, `Kapitel ${i + 1}`] });
+    const name = kapitelName(daten, id, sprache) ?? id;
+    const suche = [name, `Kapitel ${i + 1}`];
+    if (sprache === 'en') suche.push(`Chapter ${i + 1}`);
+    liste.push({ verweis: { typ: 'kapitel', id }, art: 'kapitel', name, suche });
   });
   for (const s of alleSzenen(daten)) {
-    const name = szenenName(daten, s);
+    const name = szenenName(daten, s, sprache);
     liste.push({ verweis: szenenVerweis(s.id), art: 'szene', name, suche: [name, s.titel, s.id] });
   }
   return liste;
@@ -277,9 +336,9 @@ export function heftZiele(daten: ProjektDaten): HeftZiel[] {
 const klein = (s: string) => s.toLocaleLowerCase('de');
 
 /** Ziele zur Anfrage (leer = alle), bereits gewählte ausgelassen; Wortanfänge zuerst. */
-export function heftZielVorschlaege(daten: ProjektDaten, anfrage: string, ohne: Verweis[] = [], max = 8): HeftZiel[] {
+export function heftZielVorschlaege(daten: ProjektDaten, anfrage: string, ohne: Verweis[] = [], max = 8, sprache: Sprache = 'de'): HeftZiel[] {
   const q = klein(anfrage.trim());
-  return heftZiele(daten)
+  return heftZiele(daten, sprache)
     .filter((z) => !ohne.some((v) => gleicherVerweis(v, z.verweis)))
     .map((z, reihenfolge) => {
       let wert = q ? Infinity : 0;
@@ -394,10 +453,10 @@ export function schlagwortListe(eintraege: RechercheEintrag[]): ZaehlerEintrag[]
 }
 
 /** Ziele, an denen mindestens ein Eintrag hängt (für den Filter), mit Anzahl; nach Art sortiert. */
-export function verwendeteZiele(daten: ProjektDaten, eintraege: RechercheEintrag[]): (HeftZiel & { anzahl: number })[] {
+export function verwendeteZiele(daten: ProjektDaten, eintraege: RechercheEintrag[], sprache: Sprache = 'de'): (HeftZiel & { anzahl: number })[] {
   const zaehl = new Map<string, number>();
   for (const e of eintraege) for (const v of e.verweise) zaehl.set(verweisSchluessel(v), (zaehl.get(verweisSchluessel(v)) ?? 0) + 1);
-  return heftZiele(daten)
+  return heftZiele(daten, sprache)
     .filter((z) => zaehl.has(verweisSchluessel(z.verweis)))
     .map((z) => ({ ...z, anzahl: zaehl.get(verweisSchluessel(z.verweis))! }));
 }
@@ -446,31 +505,38 @@ function bereinige(e: RechercheEintrag): RechercheEintrag {
   return neu;
 }
 
-/** Fehler im Entwurf (leer = in Ordnung). */
-export function entwurfPruefen(e: EintragEntwurf): string[] {
+/** Fehler im Entwurf (leer = in Ordnung), in der Oberflächensprache. */
+export function entwurfPruefen(e: EintragEntwurf, sprache: Sprache = 'de'): string[] {
+  const t = T(sprache);
   const fehler: string[] = [];
-  if (e.art === 'bild' && !e.datei) fehler.push('Bitte ein Bild wählen.');
-  if (e.art === 'link' && !(e.url && linkPruefen(e.url))) fehler.push('Bitte eine gültige Adresse (http oder https) eingeben.');
-  if (e.art === 'notiz' && !e.titel.trim() && !e.text.trim()) fehler.push('Die Notiz ist leer.');
+  if (e.art === 'bild' && !e.datei) fehler.push(t.bildWaehlen);
+  if (e.art === 'link' && !(e.url && linkPruefen(e.url))) fehler.push(t.adresse);
+  if (e.art === 'notiz' && !e.titel.trim() && !e.text.trim()) fehler.push(t.notizLeer);
   return fehler;
 }
 
-/** Titel, falls Leon keinen eingibt. */
-export function standardTitel(e: EintragEntwurf): string {
+/** Titel, falls Leon keinen eingibt (Ersatztitel „Bild“/„Link“/„Notiz“ in `sprache`). */
+export function standardTitel(e: EintragEntwurf, sprache: Sprache = 'de'): string {
   if (e.titel.trim()) return e.titel.trim();
-  if (e.art === 'bild' && e.datei) return titelAusDateiname(e.datei);
-  if (e.art === 'link' && e.url) return titelAusLink(e.url) || 'Link';
+  if (e.art === 'bild' && e.datei) return titelAusDateiname(e.datei, sprache);
+  if (e.art === 'link' && e.url) return titelAusLink(e.url) || T(sprache).art.link;
   const erste = verweiseAlsText(e.text).trim().split('\n')[0] ?? '';
-  return erste.length > 60 ? `${erste.slice(0, 57).trimEnd()} …` : erste || 'Notiz';
+  return erste.length > 60 ? `${erste.slice(0, 57).trimEnd()} …` : erste || T(sprache).art.notiz;
 }
 
 /** Legt einen Eintrag an (neueste zuerst in der Datei). */
-export function eintragAnlegen(r: Recherche, id: Id, entwurf: EintragEntwurf, jetzt: Date): { recherche: Recherche; eintrag: RechercheEintrag } {
+export function eintragAnlegen(
+  r: Recherche,
+  id: Id,
+  entwurf: EintragEntwurf,
+  jetzt: Date,
+  sprache: Sprache = 'de',
+): { recherche: Recherche; eintrag: RechercheEintrag } {
   const url = entwurf.art === 'link' && entwurf.url ? (linkPruefen(entwurf.url)?.url ?? entwurf.url) : undefined;
   const eintrag = bereinige({
     id,
     art: entwurf.art,
-    titel: standardTitel({ ...entwurf, url }),
+    titel: standardTitel({ ...entwurf, url }, sprache),
     datei: entwurf.datei,
     url,
     text: entwurf.text,
@@ -482,13 +548,13 @@ export function eintragAnlegen(r: Recherche, id: Id, entwurf: EintragEntwurf, je
 }
 
 /** Ändert einen Eintrag (ID und Erstellzeit bleiben). */
-export function eintragAendern(r: Recherche, id: Id, entwurf: EintragEntwurf): Recherche {
+export function eintragAendern(r: Recherche, id: Id, entwurf: EintragEntwurf, sprache: Sprache = 'de'): Recherche {
   return {
     ...r,
     eintraege: r.eintraege.map((e) => {
       if (e.id !== id) return e;
       const url = entwurf.art === 'link' && entwurf.url ? (linkPruefen(entwurf.url)?.url ?? entwurf.url) : undefined;
-      return bereinige({ ...e, art: entwurf.art, titel: standardTitel({ ...entwurf, url }), datei: entwurf.datei, url, text: entwurf.text, verweise: entwurf.verweise, schlagworte: entwurf.schlagworte });
+      return bereinige({ ...e, art: entwurf.art, titel: standardTitel({ ...entwurf, url }, sprache), datei: entwurf.datei, url, text: entwurf.text, verweise: entwurf.verweise, schlagworte: entwurf.schlagworte });
     }),
   };
 }

@@ -21,6 +21,8 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { istTauri } from '../../backend';
+import { f, prozent as prozentText, useTexte, zahl } from '../../i18n';
+import { useBuchSprache } from '../../i18n/buch';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, IconKapitel, klassen, Segment } from '../../ui';
 import { buchAusProjekt, kapitelHtml, startKapitel, type Buch, type BuchKapitel } from './buch';
@@ -47,16 +49,9 @@ import './vorschau.css';
 
 const LEERES_BUCH: Buch = { titel: '', kapitel: [], zeichen: 0 };
 const FOKUSSIERBAR = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-const HINTERGRUENDE: { wert: Hintergrund; label: string }[] = [
-  { wert: 'papier', label: 'Papier' },
-  { wert: 'sepia', label: 'Sepia' },
-  { wert: 'nacht', label: 'Nacht' },
-];
-const ZEILEN: { wert: Zeilenabstand; label: string }[] = [
-  { wert: 'eng', label: 'Eng' },
-  { wert: 'normal', label: 'Normal' },
-  { wert: 'weit', label: 'Weit' },
-];
+/** Reihenfolge der Hintergründe und Zeilenabstände (Namen aus dem Wörterbuch) */
+const HINTERGRUENDE: Hintergrund[] = ['papier', 'sepia', 'nacht'];
+const ZEILEN: Zeilenabstand[] = ['eng', 'normal', 'weit'];
 
 // ---------------------------------------------------------------------------
 // Hooks
@@ -133,6 +128,8 @@ interface SatzFensterProps {
 
 /** Fenster auf eine Spalte des Kapitelsatzes. Beim Blättern ändert sich nur die Verschiebung. */
 const SatzFenster = memo(function SatzFenster({ slot, id, html, fluss, spalte, breite, links, oben, klasse, verborgen, registrieren }: SatzFensterProps) {
+  // Satz in der Buchsprache (Silbentrennung über hyphens: auto)
+  const sprache = useBuchSprache();
   const ref = useCallback((el: HTMLDivElement | null) => registrieren(slot, el), [slot, registrieren]);
   const b = fluss.beschnitt;
   const stil = useMemo(() => ({ ...(flussStil(fluss) as CSSProperties), left: b }), [fluss, b]);
@@ -142,7 +139,7 @@ const SatzFenster = memo(function SatzFenster({ slot, id, html, fluss, spalte, b
         ref={ref}
         data-abschnitt={id}
         className={`pw-v-fluss ${klasse}`}
-        lang="de"
+        lang={sprache}
         style={{ ...stil, transform: `translateX(${-spalte * (fluss.breite + fluss.abstand)}px)` }}
         dangerouslySetInnerHTML={{ __html: html }}
       />
@@ -167,6 +164,7 @@ interface BuchSeiteProps {
 }
 
 const BuchSeite = memo(function BuchSeite({ slot, seite, id, spalte, leer, anfang, geo, buchTitel, kapitel, html, verborgen, registrieren }: BuchSeiteProps) {
+  const t = useTexte().vorschau.seite;
   const { seiteBreite: b, seiteHoehe: h, rand, fluss } = geo;
   if (!seite) return <div className="pw-v-seite pw-v-seite--fehlt" style={{ width: b, height: h }} aria-hidden="true" />;
   const verso = seite % 2 === 0;
@@ -175,7 +173,7 @@ const BuchSeite = memo(function BuchSeite({ slot, seite, id, spalte, leer, anfan
   const klasse = klassen('pw-v-seite', verso ? 'pw-v-seite--links' : 'pw-v-seite--rechts', geo.doppel && 'pw-v-seite--doppel');
   if (id === TITELEI)
     return (
-      <div className={klasse} style={stil} aria-label={leer ? 'Leere Seite' : 'Titelseite'}>
+      <div className={klasse} style={stil} aria-label={leer ? t.leer : t.titelseite}>
         {!leer && (
           <div className="pw-v-titelseite" style={{ paddingTop: Math.round(h * 0.27), paddingLeft: links, paddingRight: verso ? rand.innen : rand.aussen }}>
             <h1 className="pw-v-titelseite__titel">{buchTitel}</h1>
@@ -184,10 +182,10 @@ const BuchSeite = memo(function BuchSeite({ slot, seite, id, spalte, leer, anfan
         )}
       </div>
     );
-  if (leer || !html || !kapitel) return <div className={klasse} style={stil} aria-label="Leere Seite" />;
+  if (leer || !html || !kapitel) return <div className={klasse} style={stil} aria-label={t.leer} />;
   const kolumne = anfang ? null : verso ? buchTitel : kapitel.titel;
   return (
-    <div className={klasse} style={stil} aria-label={`Seite ${seite}`}>
+    <div className={klasse} style={stil} aria-label={f(t.nummer, { nr: seite })}>
       {kolumne && (
         <div className="pw-v-kolumne" style={{ left: links, width: fluss.breite, top: Math.round(rand.oben * 0.36) }}>
           {kolumne}
@@ -232,6 +230,7 @@ function Inhaltsverzeichnis({
   waehle(id: string): void;
   schliessen(): void;
 }) {
+  const t = useTexte().vorschau.inhalt;
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     const knopf = ref.current?.querySelector<HTMLButtonElement>('[aria-current="true"]') ?? ref.current?.querySelector<HTMLButtonElement>('button');
@@ -243,7 +242,7 @@ function Inhaltsverzeichnis({
     <nav
       ref={ref}
       className="pw-v-panel pw-v-panel--inhalt"
-      aria-label="Inhaltsverzeichnis"
+      aria-label={t.label}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
         e.preventDefault();
@@ -253,10 +252,10 @@ function Inhaltsverzeichnis({
       }}
     >
       <Abschnittslabel as="h2" className="pw-v-panel__titel">
-        Inhalt
+        {t.titel}
       </Abschnittslabel>
       {buch.kapitel.length === 0 ? (
-        <p className="pw-v-panel__leer">Noch kein Kapitel mit Text.</p>
+        <p className="pw-v-panel__leer">{t.leer}</p>
       ) : (
         <ul className="pw-v-inhalt">
           {buch.kapitel.map((k) => {
@@ -278,6 +277,8 @@ function Inhaltsverzeichnis({
 }
 
 function Darstellung({ schliessen }: { schliessen(): void }) {
+  const tv = useTexte().vorschau;
+  const t = tv.darstellung;
   const einstellungen = useVorschau((s) => s.einstellungen);
   const setzen = useVorschau((s) => s.setzeEinstellungen);
   const ref = useRef<HTMLDivElement>(null);
@@ -286,17 +287,17 @@ function Darstellung({ schliessen }: { schliessen(): void }) {
   }, []);
   useAussenKlick(ref, schliessen);
   return (
-    <div ref={ref} className="pw-v-panel pw-v-panel--darstellung" role="group" aria-label="Darstellung">
+    <div ref={ref} className="pw-v-panel pw-v-panel--darstellung" role="group" aria-label={t.titel}>
       <div className="pw-v-feld">
-        <Abschnittslabel as="h2">Schriftgröße</Abschnittslabel>
-        <div className="pw-v-stufen" role="group" aria-label="Schriftgröße">
+        <Abschnittslabel as="h2">{t.schriftgroesse}</Abschnittslabel>
+        <div className="pw-v-stufen" role="group" aria-label={t.schriftgroesse}>
           {SCHRIFTSTUFEN.map((px, i) => (
             <button
               key={px}
               type="button"
               className="pw-v-stufe"
               aria-pressed={einstellungen.schriftstufe === i}
-              aria-label={`Schriftgröße ${i + 1} von ${SCHRIFTSTUFEN.length}`}
+              aria-label={f(t.stufe, { nr: i + 1, n: SCHRIFTSTUFEN.length })}
               style={{ fontSize: 11 + i * 2.5 }}
               onClick={() => setzen({ schriftstufe: i })}
             >
@@ -306,18 +307,25 @@ function Darstellung({ schliessen }: { schliessen(): void }) {
         </div>
       </div>
       <div className="pw-v-feld">
-        <Abschnittslabel as="h2">Zeilenabstand</Abschnittslabel>
-        <Segment rolle="group" label="Zeilenabstand" voll optionen={ZEILEN} wert={einstellungen.zeilenabstand} onChange={(z) => setzen({ zeilenabstand: z })} />
+        <Abschnittslabel as="h2">{t.zeilenabstand}</Abschnittslabel>
+        <Segment
+          rolle="group"
+          label={t.zeilenabstand}
+          voll
+          optionen={ZEILEN.map((wert) => ({ wert, label: tv.zeilen[wert] }))}
+          wert={einstellungen.zeilenabstand}
+          onChange={(z) => setzen({ zeilenabstand: z })}
+        />
       </div>
       <div className="pw-v-feld">
-        <Abschnittslabel as="h2">Hintergrund</Abschnittslabel>
-        <div className="pw-v-themen" role="group" aria-label="Hintergrund">
+        <Abschnittslabel as="h2">{t.hintergrund}</Abschnittslabel>
+        <div className="pw-v-themen" role="group" aria-label={t.hintergrund}>
           {HINTERGRUENDE.map((h) => (
-            <button key={h.wert} type="button" className="pw-v-thema" data-thema={h.wert} aria-pressed={einstellungen.hintergrund === h.wert} onClick={() => setzen({ hintergrund: h.wert })}>
+            <button key={h} type="button" className="pw-v-thema" data-thema={h} aria-pressed={einstellungen.hintergrund === h} onClick={() => setzen({ hintergrund: h })}>
               <span className="pw-v-thema__muster" aria-hidden="true">
                 Aa
               </span>
-              {h.label}
+              {tv.hintergrund[h]}
             </button>
           ))}
         </div>
@@ -352,6 +360,9 @@ const Pfeil = ({ richtung }: { richtung: 'links' | 'rechts' }) => (
 // ---------------------------------------------------------------------------
 
 export default function Vorschau() {
+  const t = useTexte();
+  const tv = t.vorschau;
+  const buchSprache = useBuchSprache();
   const daten = useStore((s) => s.daten);
   const einstellungen = useVorschau((s) => s.einstellungen);
   const start = useVorschau((s) => s.start);
@@ -362,7 +373,10 @@ export default function Vorschau() {
 
   const buch = useMemo(() => (daten ? buchAusProjekt(daten) : LEERES_BUCH), [daten]);
   const kapitelNach = useMemo(() => new Map(buch.kapitel.map((k) => [k.id, k])), [buch]);
-  const satz = useMemo(() => buch.kapitel.map((k) => ({ id: k.id, html: kapitelHtml(k, modus), hash: `${k.hash}|${k.nummer}|${modus}` })), [buch, modus]);
+  const satz = useMemo(
+    () => buch.kapitel.map((k) => ({ id: k.id, html: kapitelHtml(k, modus, buchSprache), hash: `${k.hash}|${k.nummer}|${modus}|${buchSprache}` })),
+    [buch, modus, buchSprache],
+  );
   const satzNach = useMemo(() => new Map(satz.map((s) => [s.id, s])), [satz]);
 
   const wurzelRef = useRef<HTMLDivElement>(null);
@@ -400,7 +414,7 @@ export default function Vorschau() {
 
   // --- Spalten messen -----------------------------------------------------
   const [gemessen, setGemessen] = useState<{ schluessel: string; spalten: Map<string, number>; fertig: boolean } | null>(null);
-  const messSchluessel = bereit && geo ? `${geo.schluessel}|${schriftStand}` : null;
+  const messSchluessel = bereit && geo ? `${geo.schluessel}|${schriftStand}|${buchSprache}` : null;
   const ortIdRef = useRef(ort.id);
   ortIdRef.current = ankerRef.current?.id ?? ort.id;
   useEffect(() => {
@@ -408,7 +422,7 @@ export default function Vorschau() {
     if (!messSchluessel || !geo || !host) return;
     const i = satz.findIndex((s) => s.id === ortIdRef.current);
     const reihenfolge = i < 0 ? satz : [satz[i]!, ...satz.slice(i + 1, i + 2), ...satz.slice(Math.max(0, i - 1), i), ...satz.slice(0, Math.max(0, i - 1)), ...satz.slice(i + 2)];
-    return vermessen(host, { schluessel: messSchluessel, fluss: geo.fluss, kapitel: reihenfolge, klasse: `pw-v-fluss--${geo.art}` }, (spalten, fertig) =>
+    return vermessen(host, { schluessel: messSchluessel, fluss: geo.fluss, kapitel: reihenfolge, klasse: `pw-v-fluss--${geo.art}`, sprache: buchSprache }, (spalten, fertig) =>
       setGemessen({ schluessel: messSchluessel, spalten, fertig }),
     );
     // geo steckt im Schlüssel
@@ -639,23 +653,24 @@ export default function Vorschau() {
   const leer = plan.gesamt === 0;
   const haupt = leer ? null : hauptseite(plan, ort, doppel);
   const hauptKapitel = haupt ? kapitelNach.get(haupt.ort.id) : undefined;
-  const kontext = haupt?.ort.id === TITELEI ? 'Titelseite' : hauptKapitel ? `Kap. ${hauptKapitel.nummer} · ${hauptKapitel.titel}` : '';
+  const kontext = haupt?.ort.id === TITELEI ? tv.seite.titelseite : hauptKapitel ? `${f(t.gemeinsam.kapitelKurz, { nr: hauptKapitel.nummer })} · ${hauptKapitel.titel}` : '';
   const sichtbar = leer ? [] : sichtbareSeiten(plan, ort, doppel);
   const amAnfang = leer || blaettern(plan, ort, -1, doppel) === ort;
   const amEnde = leer || blaettern(plan, ort, 1, doppel) === ort;
   const anteil = leer ? 0 : fortschritt(plan, ort, doppel);
   const prozent = Math.round(anteil * 100);
-  const ca = plan.geschaetzt || !messungFertig ? 'ca. ' : '';
+  /** Seitenzahl, geschätzt mit „ca.“ */
+  const anzahl = (n: number, geschaetzt: boolean) => (geschaetzt ? f(tv.fuss.ca, { n }) : zahl(n));
 
   let seitenText = '';
   if (!leer && geo?.art === 'buch') {
     const nummern = sichtbar.filter((s) => !!s).map((s) => s!.seite);
-    const von = `von ${ca}${plan.gesamt}`;
-    seitenText = nummern.length === 2 ? `Seite ${nummern[0]}–${nummern[1]} ${von}` : `Seite ${nummern[0] ?? 1} ${von}`;
+    const gesamt = anzahl(plan.gesamt, plan.geschaetzt || !messungFertig);
+    seitenText =
+      nummern.length === 2 ? f(tv.fuss.doppelseite, { von: nummern[0], bis: nummern[1], gesamt }) : f(tv.fuss.seite, { nr: nummern[0] ?? 1, gesamt });
   } else if (!leer && haupt) {
     const a = plan.abschnitte[plan.index.get(haupt.ort.id) ?? 0];
-    const im = a?.geschaetzt ? 'ca. ' : '';
-    seitenText = `Seite ${haupt.ort.spalte + 1} von ${im}${a?.spalten ?? 1} im Kapitel`;
+    seitenText = f(tv.fuss.imKapitel, { nr: haupt.ort.spalte + 1, gesamt: anzahl(a?.spalten ?? 1, !!a?.geschaetzt) });
   }
 
   const seitenBreite = geo?.art === 'buch' ? (geo.doppel ? 2 * geo.seiteBreite : geo.seiteBreite) : geo?.art === 'ebook' ? geo.breite : 0;
@@ -667,7 +682,7 @@ export default function Vorschau() {
       ref={wurzelRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Buch-Vorschau"
+      aria-label={tv.titel}
       tabIndex={-1}
       className={klassen('pw-vorschau', `pw-vorschau--${modus}`, !tauri && 'pw-vorschau--browser')}
       data-hintergrund={modus === 'ebook' ? einstellungen.hintergrund : undefined}
@@ -677,13 +692,13 @@ export default function Vorschau() {
         {tauri && <span className="pw-v-leiste__ampel" data-tauri-drag-region />}
         <Segment<VorschauModus>
           rolle="group"
-          label="Ansicht"
+          label={tv.leiste.ansicht}
           groesse="klein"
           hintergrund="selected"
           voll={false}
           optionen={[
-            { wert: 'buch', label: 'Buch' },
-            { wert: 'ebook', label: 'E-Book' },
+            { wert: 'buch', label: tv.leiste.buch },
+            { wert: 'ebook', label: tv.leiste.ebook },
           ]}
           wert={modus}
           onChange={setzeModus}
@@ -703,23 +718,23 @@ export default function Vorschau() {
           aria-expanded={panel === 'inhalt'}
           onClick={() => (panel === 'inhalt' ? panelSchliessen() : setPanel('inhalt'))}
         >
-          Inhalt
+          {tv.inhalt.titel}
         </Button>
         {modus === 'ebook' && (
           <Button data-panel-knopf aria-expanded={panel === 'darstellung'} onClick={() => (panel === 'darstellung' ? panelSchliessen() : setPanel('darstellung'))}>
             <span className="pw-v-aa" aria-hidden="true">
               Aa
             </span>
-            Darstellung
+            {tv.darstellung.titel}
           </Button>
         )}
-        <Button onClick={schliessen} title="Schließen (Esc)">
-          Schließen
+        <Button onClick={schliessen} title={tv.leiste.schliessenTitel}>
+          {t.gemeinsam.schliessen}
         </Button>
       </header>
 
       <div className="pw-v-buehne" ref={buehneRef} onClick={klickRand}>
-        {bereit && geo && leer && <p className="pw-v-leer">Noch kein Kapitel mit Text – die Vorschau zeigt nur geschriebenen Text.</p>}
+        {bereit && geo && leer && <p className="pw-v-leer">{tv.leer}</p>}
         {bereit && geo?.art === 'buch' && !leer && (
           <div ref={seitenRef} className={klassen('pw-v-seiten', geo.doppel && 'pw-v-seiten--doppel')} style={{ width: seitenBreite, height: geo.seiteHoehe }}>
             {sichtbar.map((info, i) => {
@@ -750,10 +765,10 @@ export default function Vorschau() {
         )}
         {!leer && bereit && (
           <>
-            <button type="button" className="pw-v-pfeil pw-v-pfeil--zurueck" style={{ width: randBreite }} aria-label="Vorige Seite" disabled={amAnfang} onMouseDown={ohneFokus} onClick={() => blaetternNach(-1)}>
+            <button type="button" className="pw-v-pfeil pw-v-pfeil--zurueck" style={{ width: randBreite }} aria-label={tv.vorige} disabled={amAnfang} onMouseDown={ohneFokus} onClick={() => blaetternNach(-1)}>
               <Pfeil richtung="links" />
             </button>
-            <button type="button" className="pw-v-pfeil pw-v-pfeil--vor" style={{ width: randBreite }} aria-label="Nächste Seite" disabled={amEnde} onMouseDown={ohneFokus} onClick={() => blaetternNach(1)}>
+            <button type="button" className="pw-v-pfeil pw-v-pfeil--vor" style={{ width: randBreite }} aria-label={tv.naechste} disabled={amEnde} onMouseDown={ohneFokus} onClick={() => blaetternNach(1)}>
               <Pfeil richtung="rechts" />
             </button>
           </>
@@ -764,10 +779,10 @@ export default function Vorschau() {
         <span className="pw-v-fuss__text" aria-live="polite">
           {seitenText}
         </span>
-        <span className="pw-v-fortschritt" role="progressbar" aria-label="Fortschritt im Buch" aria-valuemin={0} aria-valuemax={100} aria-valuenow={prozent}>
+        <span className="pw-v-fortschritt" role="progressbar" aria-label={tv.fortschritt} aria-valuemin={0} aria-valuemax={100} aria-valuenow={prozent}>
           <span style={{ width: `${prozent}%` }} />
         </span>
-        <span className="pw-v-fuss__prozent">{leer ? '' : `${prozent} %`}</span>
+        <span className="pw-v-fuss__prozent">{leer ? '' : prozentText(prozent / 100)}</span>
       </footer>
 
       {panel === 'inhalt' && (

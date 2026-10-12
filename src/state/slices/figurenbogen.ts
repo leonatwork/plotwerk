@@ -20,6 +20,7 @@ import {
 import { KiFehler, pruefeStimme, schaetzeStimme, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
 import type { BogenStufe, Figurenbogen as BogenDaten, HinweisEntscheidung, Id, ProjektDaten, TextAnker } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
+import { sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from './ki';
 
@@ -91,7 +92,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
 
   function daten(): ProjektDaten {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet.');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   }
 
@@ -109,7 +110,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
   /** Nur-Lese-Sicht auf das Projekt (harte Regel 1: core/ki bekommt nie das schreibende Dateisystem). */
   async function leser(): Promise<ProjektLeser> {
     const fs = get().fs;
-    if (!fs || !get().daten) throw new KiFehler('auftrag', 'Kein Projekt geöffnet.');
+    if (!fs || !get().daten) throw new KiFehler('auftrag', texte().state.fehler.keinProjekt);
     await get().editorSichern();
     await get().alleSpeichernAbwarten();
     return { lesen: (p) => fs.lesen(p), auflisten: (o) => fs.auflisten(o), existiert: (p) => fs.existiert(p) };
@@ -117,7 +118,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
 
   function transport() {
     const b = get().backend;
-    if (!b) throw new KiFehler('nicht_bereit', 'Die App ist noch nicht bereit.');
+    if (!b) throw new KiFehler('nicht_bereit', texte().state.fehler.nichtBereit);
     return b.ki;
   }
 
@@ -135,7 +136,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
       waehleStufe: (gewaehlteStufe) => setze({ gewaehlteStufe }),
 
       async stufeAnlegen(figur, teil) {
-        const titel = teil.titel.trim() || 'Neue Stufe';
+        const titel = teil.titel.trim() || texte().state.standard.stufe;
         const bogen = bogenVon(daten().boegen, figur);
         const id = neueStufenId(bogen, titel);
         const stufe: BogenStufe = {
@@ -180,7 +181,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
       stimmeErgebnis: null,
 
       async stimmeSchaetzen(auftrag) {
-        return schaetzeStimme(await leser(), transport(), get().kiEinstellungen(), auftrag);
+        return schaetzeStimme(await leser(), transport(), get().kiEinstellungen(), auftrag, sprache());
       },
 
       async stimmePruefen(auftrag) {
@@ -189,8 +190,8 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
         abbruch = steuerung;
         setze({ stimmeLauf: { figur: auftrag.figur, tiefencheck: !!auftrag.tiefencheck }, stimmeFehler: null, stimmeErgebnis: null });
         try {
-          const r = await pruefeStimme(await leser(), transport(), get().kiEinstellungen(), auftrag, { signal: steuerung.signal });
-          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', 'Die Prüfung wurde abgebrochen.');
+          const r = await pruefeStimme(await leser(), transport(), get().kiEinstellungen(), auftrag, { signal: steuerung.signal, oberflaeche: sprache() });
+          if (steuerung.signal.aborted) throw new KiFehler('abgebrochen', texte().state.ki.pruefungAbgebrochen);
           const d = daten();
           const gemischt = mischeStimmen(
             d.kiStimmen,

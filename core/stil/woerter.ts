@@ -1,7 +1,9 @@
 /**
  * Wörter, Stammformen und Sätze im Klartext (core/text.klartext). Reine Funktionen, ohne KI.
  * Alle Offsets beziehen sich auf den übergebenen Klartext – derselbe, den Editor, Index und Anker benutzen.
+ * Stoppwörter, Stammformen und Abkürzungen hängen von der Buchsprache ab (`sprache`, Standard Deutsch).
  */
+import type { Sprache } from '../i18n';
 
 export interface Wort {
   /** Wort wie im Text */
@@ -34,24 +36,46 @@ export const STOPPWOERTER: ReadonlySet<string> = new Set(
   ),
 );
 
-const ENDUNGEN = ['ern', 'en', 'em', 'er', 'es', 'e', 's', 'n'];
+/** Häufige englische Funktionswörter (Apostroph als ’; Vergleich über `istStoppwort`). */
+export const STOPPWOERTER_EN: ReadonlySet<string> = new Set(
+  `a about above after again against all almost also although always am among an and another any anyone anything are around as at away back be became because been before being below between both but by came can can’t cannot could couldn’t did didn’t do does doesn’t doing don’t done down during each either else enough even ever every everything few for from get gets getting go goes going gone got had hadn’t has hasn’t have haven’t having he he’d he’ll he’s her here here’s hers herself him himself his how however i i’d i’ll i’m i’ve if in into is isn’t it it’s its itself just let let’s like made make many may maybe me might mine more most much must my myself never no nor not nothing now of off often oh ok okay on once one only onto or other others our ours ourselves out over own perhaps quite rather really said same say says see seemed shall she she’d she’ll she’s should shouldn’t since so some something somehow still such than that that’s the their theirs them themselves then there there’s these they they’d they’ll they’re they’ve thing things this those though through thus till to too toward towards under until up upon us very was wasn’t way we we’d we’ll we’re we’ve well were weren’t what what’s when where where’s whether which while who who’s whom whose why will with within without won’t would wouldn’t yeah yes yet you you’d you’ll you’re you’ve your yours yourself`.split(
+    /\s+/,
+  ),
+);
 
-/** Einfache Stammform: Kleinschreibung, Endungen ab fünf Buchstaben abgeschnitten (Rest mindestens drei Buchstaben). */
-export function stamm(wort: string): string {
+/** Stoppwörter der Buchsprache. */
+export function stoppwoerter(sprache: Sprache = 'de'): ReadonlySet<string> {
+  return sprache === 'en' ? STOPPWOERTER_EN : STOPPWOERTER;
+}
+
+/** Ist das (klein geschriebene) Wort ein Stoppwort der Buchsprache? Apostroph ' und ’ gelten als gleich. */
+export function istStoppwort(klein: string, sprache: Sprache = 'de'): boolean {
+  return stoppwoerter(sprache).has(sprache === 'en' ? klein.replace(/'/gu, '’') : klein);
+}
+
+const ENDUNGEN = ['ern', 'en', 'em', 'er', 'es', 'e', 's', 'n'];
+/** Englisch: „walked“, „walking“, „walks“ → „walk“; „smile“, „smiled“, „smiling“ → „smil“. */
+const ENDUNGEN_EN = ['ing', 'ed', 'es', 'e', 's'];
+
+/**
+ * Einfache Stammform: Kleinschreibung, Possessiv-s weg, Endungen ab fünf Buchstaben abgeschnitten
+ * (Rest mindestens vier Buchstaben). Deutsch: Flexionsendungen; Englisch: -ing, -ed, -es, -e, -s.
+ */
+export function stamm(wort: string, sprache: Sprache = 'de'): string {
   const w = wort.normalize('NFC').toLowerCase().replace(/[’']s$/u, '');
   if (w.length < 5) return w;
-  for (const e of ENDUNGEN) {
+  for (const e of sprache === 'en' ? ENDUNGEN_EN : ENDUNGEN) {
     if (w.endsWith(e) && w.length - e.length >= 4) return w.slice(0, -e.length);
   }
   return w;
 }
 
-export function woerter(text: string): Wort[] {
+export function woerter(text: string, sprache: Sprache = 'de'): Wort[] {
   const liste: Wort[] = [];
   for (const m of text.matchAll(WORT)) {
     const t = m[0];
     const klein = t.normalize('NFC').toLowerCase();
-    liste.push({ text: t, klein, stamm: stamm(t), start: m.index, ende: m.index + t.length, nr: liste.length });
+    liste.push({ text: t, klein, stamm: stamm(t, sprache), start: m.index, ende: m.index + t.length, nr: liste.length });
   }
   return liste;
 }
@@ -60,13 +84,17 @@ export function woerter(text: string): Wort[] {
 const ABKUERZUNGEN = new Set(
   'z.b u.a d.h ca dr nr bzw usw etc hr fr st str vgl ggf evtl inkl max min mio mrd prof s ebd jh ff o.ä u.ä z.t'.split(' '),
 );
+const ABKUERZUNGEN_EN = new Set(
+  'mr mrs ms mx dr st jr sr prof rev gen col capt sgt lt vs etc e.g i.e a.m p.m no approx dept est fig vol ave blvd mt'.split(' '),
+);
 
 const SATZENDE = /[.!?…]+[»«“”"'’)\]]*/gu;
 
 /** Teilt den Klartext in Sätze. Absatzwechsel beenden immer einen Satz; Szenentrenner „* * *“ entfallen. */
-export function saetze(text: string): Satz[] {
+export function saetze(text: string, sprache: Sprache = 'de'): Satz[] {
+  const abkuerzungen = sprache === 'en' ? ABKUERZUNGEN_EN : ABKUERZUNGEN;
   const ergebnis: Satz[] = [];
-  const alleWoerter = woerter(text);
+  const alleWoerter = woerter(text, sprache);
   let wi = 0;
   const hinzu = (start: number, ende: number) => {
     // Leerraum und Trennerzeilen abschneiden
@@ -91,7 +119,7 @@ export function saetze(text: string): Satz[] {
       if (m[0].startsWith('.') && m[0].length === 1) {
         const vor = absatz.slice(satzStart, m.index);
         const letztes = /([\p{L}.]+)$/u.exec(vor)?.[1]?.toLowerCase() ?? '';
-        if (ABKUERZUNGEN.has(letztes) || /^\p{L}$/u.test(letztes)) continue;
+        if (abkuerzungen.has(letztes) || /^\p{L}$/u.test(letztes)) continue;
         // Ordinalzahl („am 3. Mai“) – nur wenn ein Wort folgt, das klein beginnt oder ein Monat ist
         if (/\d$/u.test(vor) && /^\s+(?:\p{Ll}|Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)/u.test(naechstes)) continue;
       }

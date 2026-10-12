@@ -129,6 +129,40 @@ Unverändert durchreichen (`serde_json::Value`), nichts ergänzen oder umsortier
   TypeScript. Seit 2026-10-09 gehen auch Plan-Felder von Figuren und Kapitelplänen an das Modell (F-05);
   Antworten tragen dafür im Schema `plan: {figur, kapitel, feld}` (leer, wenn kein Plan-Bezug).
 
+## Buchsprache = Antwortsprache (`sprache.ts`)
+
+Die KI formuliert Hinweise, Zusammenfassungen, Vorschläge, Leser-Simulation, Antworten, Stimmen- und
+Zeitbegründungen in der **Buchsprache** (`projekt.md → angaben.sprache`, BCP-47; leer/`de*` = Deutsch, `en*` und
+alles andere = Englisch, `buchSprache` aus core/i18n), nicht in der Oberflächensprache.
+
+- `baueBuchKontext(daten)` setzt `kontext.sprache`. Für englische Bücher sind System-Prompts
+  (`SYSTEM_PRUEFUNG_EN`, `SYSTEM_ERKENNUNG_EN`, `SYSTEM_VORSCHLAEGE_EN`, `SYSTEM_ZEIT_EN`, `SYSTEM_STIMME_EN`,
+  `SYSTEM_LESER_EN`, `SYSTEM_FRAGEN_EN`), Aufgabentexte und die Beschriftungen im Buch-Prefix („Characters:“,
+  „Existence: …“, „Planned scene: …“) englisch; jeder englische System-Prompt endet mit `ANTWORTSPRACHE_EN`.
+- Gleich bleiben in beiden Sprachen: XML-Tags und Attribute (`<angaben>`, `<kapitel nr id titel>`, `<aufgabe art=…>`),
+  Feldnamen und Enum-Werte der Schemas (`pruefen`, `haupt`, `fest`, `montag`, `morgens` …). Die englischen Prompts
+  erklären die Werte; Demo-Transport und Antwortprüfung bleiben dadurch sprachunabhängig (`leseBuchKontext` liest
+  beide Beschriftungen und liefert Stufen immer in der deutschen Form).
+- Eigene `AufgabenDefinition`en geben `systemEn` an; fehlt es, geht der deutsche Prompt mit `SPRACHANWEISUNG_EN`
+  an das Modell (`systemFuer`).
+- **E12:** Die Sprachangabe ist kein neues Feld an die KI. `angaben` geht weiterhin nicht mit; gesendet wird nur der
+  Prompt in der passenden Sprache – die Angabe steuert ausschließlich die Antwortsprache.
+- Antwortprüfung: Die Zitatprüfung (E6) vergleicht normalisiert, typografische und gerade Anführungszeichen und
+  Apostrophe gelten als gleich („Don’t“ = "Don't"). Der Ersatztext-Filter enthält immer auch englische Muster
+  (better:, replace … with, rephrase/reword, rewrite as, consider writing, you could write, change it to “…”,
+  should read “…”, Suggestion:, I suggest, write … instead, instead of “…” use “…”), eng gefasst auf Anweisungen,
+  damit Handlungsbeschreibungen („Paul walks home instead of …“) durchgehen. `fremdesZitat` erkennt bei englischen
+  Büchern “…”, "…" und ‘…’ (Apostrophe im Wort zählen nicht als Zitatende).
+- Ergebnis-Cache: `leserBasisHash` enthält die Buchsprache (nur wenn nicht Deutsch – deutsche Stände bleiben gültig),
+  ein Sprachwechsel macht Leser-Stände veraltet. Kapitel-Analysen (`textHash`) kennen die Sprache noch nicht: nach
+  einem Sprachwechsel bei unverändertem Text „Prüfung erzwingen“ (Folgeschritt: Feld `sprache` an `KapitelAnalyse`).
+- **Meldungen für die Oberfläche** (KiFehler-Texte, Gründe in `verworfen`, Aufgabennamen bei Abbruch) folgen dagegen
+  der **Oberflächensprache**: Wörterbuch `meldungen.ts` (`texteJe`), übergeben als `oberflaeche` (Optionen von
+  `pruefe`, `schlageVorschlaegeVor`, `fuehreAufgabeAus` …) bzw. letzter optionaler Parameter (`schaetzeLauf`,
+  `schaetzeAufgabe`, `schaetzeZeitpunkte`, `schlageErwaehnungenVor`, `leseAntwort`, `ersatztextGrund`,
+  `leseZeitAngaben`, `pruefeVorschlaege`); Standard Deutsch. Aufgaben geben dafür `nameEn` an. Der Store übergibt
+  `sprache()` aus src/i18n.
+
 ## Kosten (grob, Listenpreise USD pro Mio. Tokens)
 
 | Modell | Eingabe | Ausgabe |

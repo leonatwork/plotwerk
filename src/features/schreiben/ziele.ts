@@ -1,11 +1,12 @@
 /** Figuren im Fokus einer Szene und Beschriftung von Notiz-Zielen. */
 import type { Figur, Id, KapitelPlan, ProjektDaten, Verweis } from '@core/model/types';
+import { f, texte } from '../../i18n';
 import { kapitelAnzeige, zielName } from './verweise';
 
 /** Ich-Erzähler (steht in jeder Szene, ist daher nie „Figur im Fokus“). */
 export function istErzaehler(f: Figur): boolean {
-  if (/erzähler/i.test(f.kurz ?? '')) return true;
-  return Object.entries(f.plan).some(([feld, wert]) => /rolle/i.test(feld) && /erzähler/i.test(wert));
+  if (/erzähler|narrator/i.test(f.kurz ?? '')) return true;
+  return Object.entries(f.plan).some(([feld, wert]) => /rolle|role/i.test(feld) && /erzähler|narrator/i.test(wert));
 }
 
 /**
@@ -20,7 +21,8 @@ export function notizFarbe(ziel: Verweis | null, fokus: Set<Id>): 'gelb' | 'rosa
   return ziel?.typ === 'figur' && fokus.has(ziel.id) ? 'rosa' : 'gelb';
 }
 
-const PRAEPOSITION: Record<Verweis['typ'], string> = {
+/** Präposition je Ziel (Schlüssel in t.schreiben.notizen) */
+const PRAEPOSITION: Record<Verweis['typ'], 'an' | 'zu' | 'zur'> = {
   figur: 'an',
   ort: 'zu',
   kapitel: 'zu',
@@ -29,15 +31,16 @@ const PRAEPOSITION: Record<Verweis['typ'], string> = {
   gruppe: 'zu',
 };
 
-/** „Notiz an Paul“, „Notiz zu Lindenhof“, „Notiz zum Kapitel“ … */
+/** „Notiz an Paul“, „Notiz zu Lindenhof“, „Notiz zum Kapitel“ … (in der Oberflächensprache) */
 export function notizKopf(daten: ProjektDaten, ziel: Verweis | null, kapitel: Id, neu = false): { praefix: string; name: string } {
-  const praefix = neu ? 'Neue Notiz' : 'Notiz';
-  if (!ziel) return { praefix, name: '' };
-  if (ziel.typ === 'kapitel' && ziel.id === kapitel) return { praefix: `${praefix} zum`, name: 'Kapitel' };
-  if (ziel.typ === 'plan' && ziel.id === kapitel) return { praefix: `${praefix} zur`, name: 'Plan-Karte' };
-  if (ziel.typ === 'idee') return { praefix: `${praefix} zur Idee`, name: zielName(daten, ziel) ?? ziel.id };
-  if (ziel.typ === 'plan') return { praefix: `${praefix} zur Plan-Karte`, name: kapitelAnzeige(daten, ziel.id) };
-  return { praefix: `${praefix} ${PRAEPOSITION[ziel.typ]}`, name: zielName(daten, ziel) ?? ziel.id };
+  const T = texte().schreiben.notizen;
+  const notiz = neu ? T.neueNotiz : T.notiz;
+  if (!ziel) return { praefix: notiz, name: '' };
+  if (ziel.typ === 'kapitel' && ziel.id === kapitel) return { praefix: f(T.zum, { notiz }), name: T.kapitel };
+  if (ziel.typ === 'plan' && ziel.id === kapitel) return { praefix: f(T.zur, { notiz }), name: T.planKarte };
+  if (ziel.typ === 'idee') return { praefix: f(T.zurIdee, { notiz }), name: zielName(daten, ziel) ?? ziel.id };
+  if (ziel.typ === 'plan') return { praefix: f(T.zurPlanKarte, { notiz }), name: kapitelAnzeige(daten, ziel.id) };
+  return { praefix: f(T[PRAEPOSITION[ziel.typ]], { notiz }), name: zielName(daten, ziel) ?? ziel.id };
 }
 
 export function verweisSchluessel(v: Verweis | null): string {

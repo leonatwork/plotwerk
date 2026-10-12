@@ -31,9 +31,11 @@ import { baueAnfrage, EFFORT, prefixZaehlBody, zaehlBody } from './anfrage';
 import { KiFehler, LEERE_NUTZUNG, leseAntwort, type Nutzung } from './antwort';
 import { kiModell } from './anbieter';
 import { kostenUsd, preisFuer } from './kosten';
+import { meldungenIn } from './meldungen';
 import { baueBuchKontext, type BuchKontext, type KontextFigur, type KontextOrt } from './kontext';
 import { ersatztextGrund, fremdesZitat, loseEndeId, Pruefer, type Verworfen, type ZitatStelle } from './pruefung';
 import type { KiTransport, Schaetzung } from './index';
+import { ANTWORTSPRACHE_EN, systemFuer, type Sprache } from './sprache';
 
 // ---------------------------------------------------------------------------
 // Request: System-Prompt, Aufgabe, Schema
@@ -87,6 +89,43 @@ Weitere Regeln:
 - Als „bewusst vage“ markierte Figuren und Stellen sind absichtlich mehrdeutig. Lege über sie nichts fest, was der Text offenlässt.
 - Lieber wenige belastbare Vorschläge als viele vage. Erfinde nichts, was nicht im Text steht.`;
 
+/** Englische Fassung (Buchsprache en). Feldnamen und Enum-Werte bleiben wie im Schema. */
+export const SYSTEM_VORSCHLAEGE_EN = `You help an author to capture the characters, places and relationships of their English-language novel manuscript. You read the book the way a reader does: the text of the chapters in their order and the author's few notes on characters, places and groups that are already set up. In addition there is the author's planning (lines “Plan” for characters, <plan> for chapters); it is not part of the book and never evidence.
+
+You make suggestions which the author adopts or discards one by one. You never write text for the book: no rewordings, no replacement sentences, no suggested phrasings. You settle nothing that the text leaves open.
+
+Characters (figuren):
+- Suggest every person who acts, speaks or is mentioned by name or by a fixed designation in the text (for example “the man at the kiosk”) and who is not yet among the characters set up. A nameless first-person narrator is not a separate character if they are recognisably a character that is set up or suggested.
+- name: what the person is called most often in the text. aliase: further names and designations of the same person, character for character as in the text, without possessive forms (’s).
+- rolle: haupt for characters who carry the book (narrators, recurring central characters), otherwise neben.
+- kurz: one factual line, at most four words, on what the text says about the character (for example “Paul's colleague” or “Kleinanzeigen match”); it appears as a subtitle on the card in the relationship web. No interpretation, no speculation about hidden things.
+- belege: one to three passages where the character appears.
+
+Places (orte):
+- Suggest places where scenes take place or that are mentioned by name, and that are not yet among the places set up.
+- name and aliase as for characters. in: the name of the enclosing place (set up or also suggested, for example a meeting room in the office), otherwise an empty string.
+- belege: one to three passages.
+
+Relationships (beziehungen):
+- A relationship between two characters if the text shows or names it: work, dates and love, family, friendship, acquaintance.
+- von and zu: the id of a character that is set up, or exactly the name of a character you suggest under figuren. Other people do not appear in relationships.
+- art: a short designation of the relationship from the point of view of “von”, at most four words (for example “colleague”, “boss”, “Kleinanzeigen match”).
+- kategorie: arbeit (job, colleagues, clients), dates (dates, affairs, love), otherwise sonstige.
+- abKapitel: the id of the chapter with the first piece of evidence.
+- unsicher: true if the relationship is only mentioned, hinted at or open. Relationships to characters marked “deliberately vague” are always unsicher.
+- belege: at least one passage that shows the relationship.
+- begruendung: one factual sentence on how you recognise the relationship in the text. No suggestion of how the text could read.
+
+Rules for all evidence:
+- kapitel is the id of the chapter, zitat one continuous passage, copied character for character from the <text> of that chapter, without omissions, at most one sentence. Suggestions without a verbatim quote are discarded.
+
+Further rules:
+- Do not suggest characters and places that are set up (under <angaben>) again, not even under a different spelling. You may suggest relationships between characters that are set up.
+- Characters and passages marked “deliberately vague” are intentionally ambiguous. Settle nothing about them that the text leaves open.
+- Prefer a few solid suggestions to many vague ones. Invent nothing that is not in the text.
+
+${ANTWORTSPRACHE_EN}`;
+
 const obj = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({
   type: 'object',
   additionalProperties: false,
@@ -131,7 +170,16 @@ export function vorschlagsSchema(kontext: BuchKontext): Record<string, unknown> 
   });
 }
 
-export function vorschlagsAufgabe(): string {
+export function vorschlagsAufgabe(sprache?: Sprache): string {
+  if (sprache === 'en')
+    return [
+      '<aufgabe art="vorschlaege">',
+      'Read the whole book and suggest characters, places and relationships between characters.',
+      '- figuren and orte: only what is not yet set up under <angaben>.',
+      '- beziehungen: between characters that are set up (von/zu = id) and suggested characters (von/zu = name, exactly as under figuren).',
+      '- Every suggestion with verbatim evidence from the <text> of the chapters.',
+      '</aufgabe>',
+    ].join('\n');
   return [
     '<aufgabe art="vorschlaege">',
     'Lies das ganze Buch und schlage Figuren, Orte und Beziehungen zwischen Figuren vor.',
@@ -152,6 +200,8 @@ export interface VorschlagsOptionen {
   /** Abbruch vor dem Senden */
   signal?: AbortSignal;
   jetzt?(): Date;
+  /** Sprache der Meldungen (Fehler, Verwerfungsgründe); Standard Deutsch. Vorschläge selbst: Buchsprache. */
+  oberflaeche?: Sprache;
 }
 
 type Rolle = 'pruefung' | 'tiefencheck';
@@ -171,15 +221,15 @@ function modellFuer(einstellungen: KiEinstellungen | undefined, rolle: Rolle): s
 
 function planeVorschlaege(daten: ProjektDaten, einstellungen: KiEinstellungen | undefined, optionen: VorschlagsOptionen): VorschlagsLauf {
   const kontext = baueBuchKontext(daten);
-  if (kapitelIds(kontext).length === 0) throw new KiFehler('auftrag', 'Das Buch hat noch keinen Text.');
+  if (kapitelIds(kontext).length === 0) throw new KiFehler('auftrag', meldungenIn(optionen.oberflaeche)('buchOhneText'));
   const rolle: Rolle = optionen.tiefencheck ? 'tiefencheck' : 'pruefung';
   const modell = modellFuer(einstellungen, rolle);
   const body = {
     ...baueAnfrage({
       modell,
-      system: SYSTEM_VORSCHLAEGE,
+      system: systemFuer(SYSTEM_VORSCHLAEGE, SYSTEM_VORSCHLAEGE_EN, kontext.sprache),
       kontext,
-      aufgabe: vorschlagsAufgabe(),
+      aufgabe: vorschlagsAufgabe(kontext.sprache),
       schema: vorschlagsSchema(kontext),
       effort: EFFORT[rolle],
     }),
@@ -216,7 +266,7 @@ export async function schaetzeVorschlaege(
 ): Promise<Schaetzung> {
   const lauf = planeVorschlaege(await ladeProjekt(leser), einstellungen, optionen);
   const voll = await zaehle(transport, zaehlBody(lauf.body));
-  const prefix = await zaehle(transport, prefixZaehlBody({ modell: lauf.modell, system: SYSTEM_VORSCHLAEGE, kontext: lauf.kontext }));
+  const prefix = await zaehle(transport, prefixZaehlBody({ modell: lauf.modell, system: systemFuer(SYSTEM_VORSCHLAEGE, SYSTEM_VORSCHLAEGE_EN, lauf.kontext.sprache), kontext: lauf.kontext }));
   const prefixTokens = Math.min(prefix.tokens, voll.tokens);
   const ausgabe = VORSCHLAG_AUSGABE_SCHAETZUNG[lauf.rolle];
   const preis = preisFuer(lauf.modell, lauf.rolle, voll.tokens);
@@ -265,8 +315,8 @@ function fehlertext(e: unknown): string {
   }
 }
 
-function ergebnisAus(lauf: VorschlagsLauf, roh: unknown, nutzung: Nutzung, jetzt: () => Date): VorschlagsErgebnis {
-  const geprueft = pruefeVorschlaege(lauf.daten, roh, lauf.kontext);
+function ergebnisAus(lauf: VorschlagsLauf, roh: unknown, nutzung: Nutzung, jetzt: () => Date, oberflaeche: Sprache = 'de'): VorschlagsErgebnis {
+  const geprueft = pruefeVorschlaege(lauf.daten, roh, lauf.kontext, oberflaeche);
   return {
     ...geprueft,
     tokens: { eingabe: nutzung.eingabe + nutzung.cacheGeschrieben, ausgabe: nutzung.ausgabe, cacheGelesen: nutzung.cacheGelesen },
@@ -283,19 +333,21 @@ export async function schlageVorschlaegeVor(
   einstellungen: KiEinstellungen,
   optionen: VorschlagsOptionen = {},
 ): Promise<VorschlagsErgebnis> {
+  const oberflaeche = optionen.oberflaeche ?? 'de';
+  const m = meldungenIn(oberflaeche);
   const lauf = planeVorschlaege(await ladeProjekt(leser), einstellungen, optionen);
   if (!(await transport.bereit())) {
-    throw new KiFehler('nicht_bereit', 'Die KI ist noch nicht eingerichtet: API-Schlüssel oder Endpoint fehlt.');
+    throw new KiFehler('nicht_bereit', m('nichtBereit'));
   }
-  if (optionen.signal?.aborted) throw new KiFehler('abgebrochen', 'Die Vorschläge wurden abgebrochen.');
+  if (optionen.signal?.aborted) throw new KiFehler('abgebrochen', m('vorschlaegeAbgebrochen'));
   let antwort;
   try {
-    antwort = leseAntwort(await transport.senden(lauf.body, { signal: optionen.signal }));
+    antwort = leseAntwort(await transport.senden(lauf.body, { signal: optionen.signal }), oberflaeche);
   } catch (e) {
     throw e instanceof KiFehler ? e : new KiFehler('api', fehlertext(e));
   }
-  if (antwort.daten === null) throw new KiFehler('antwort', antwort.grund ?? 'Die Antwort enthält keine Daten.');
-  return ergebnisAus(lauf, antwort.daten, antwort.nutzung, optionen.jetzt ?? (() => new Date()));
+  if (antwort.daten === null) throw new KiFehler('antwort', antwort.grund ?? m('antwortOhneDaten'));
+  return ergebnisAus(lauf, antwort.daten, antwort.nutzung, optionen.jetzt ?? (() => new Date()), oberflaeche);
 }
 
 function istNachricht(v: unknown): v is Record<string, unknown> {
@@ -314,6 +366,8 @@ export async function werteVorschlagsAntwortAus(
   antwort: unknown,
   optionen: VorschlagsOptionen & { einstellungen?: KiEinstellungen } = {},
 ): Promise<VorschlagsErgebnis> {
+  const oberflaeche = optionen.oberflaeche ?? 'de';
+  const m = meldungenIn(oberflaeche);
   const lauf = planeVorschlaege(await ladeProjekt(leser), optionen.einstellungen, optionen);
   let roh = antwort;
   let nutzung = LEERE_NUTZUNG;
@@ -321,16 +375,16 @@ export async function werteVorschlagsAntwortAus(
     try {
       roh = JSON.parse(roh);
     } catch {
-      throw new KiFehler('antwort', 'Die Antwort ist kein gültiges JSON.');
+      throw new KiFehler('antwort', m('keinJson'));
     }
   }
   if (istNachricht(roh)) {
-    const a = leseAntwort(roh);
-    if (a.daten === null) throw new KiFehler('antwort', a.grund ?? 'Die Antwort enthält keine Daten.');
+    const a = leseAntwort(roh, oberflaeche);
+    if (a.daten === null) throw new KiFehler('antwort', a.grund ?? m('antwortOhneDaten'));
     roh = a.daten;
     nutzung = a.nutzung;
   }
-  return ergebnisAus(lauf, roh, nutzung, optionen.jetzt ?? (() => new Date()));
+  return ergebnisAus(lauf, roh, nutzung, optionen.jetzt ?? (() => new Date()), oberflaeche);
 }
 
 // ---------------------------------------------------------------------------
@@ -363,12 +417,12 @@ function nameSauber(v: unknown): string {
     .trim();
 }
 
-/** Vergleichsform eines Namens: normalisiert (E6), klein, ohne führenden Artikel. */
+/** Vergleichsform eines Namens: normalisiert (E6), klein, ohne führenden Artikel (der/die/das …, the). */
 export function namensForm(s: string): string {
   return normalisiere(s.trim())
     .text.trim()
     .toLocaleLowerCase('de')
-    .replace(/^(der|die|das|den|dem|des)\s+/, '');
+    .replace(/^(der|die|das|den|dem|des|the)\s+/, '');
 }
 
 function figurNamen(f: { name: string; aliase?: string[]; formen?: string[] }): string[] {
@@ -392,19 +446,25 @@ type FigurReferenz = { verweis: VorschlagsVerweis; vage: boolean } | { verworfen
 
 /**
  * Prüft das Antwort-JSON des Modells gegen das Projekt (rein, ohne Request). Entspricht der Prüfung in
- * schlageVorschlaegeVor; `kontext` wird bei Bedarf aus `daten` gebaut.
+ * schlageVorschlaegeVor; `kontext` wird bei Bedarf aus `daten` gebaut. `oberflaeche`: Sprache der Gründe.
  */
-export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: BuchKontext = baueBuchKontext(daten)): GepruefteVorschlaege {
-  if (!roh || typeof roh !== 'object' || Array.isArray(roh)) throw new KiFehler('antwort', 'Die Antwort passt nicht zum Schema.');
+export function pruefeVorschlaege(
+  daten: ProjektDaten,
+  roh: unknown,
+  kontext: BuchKontext = baueBuchKontext(daten),
+  oberflaeche: Sprache = 'de',
+): GepruefteVorschlaege {
+  const m = meldungenIn(oberflaeche);
+  if (!roh || typeof roh !== 'object' || Array.isArray(roh)) throw new KiFehler('antwort', m('schemaFalsch'));
   const d = roh as Record<string, unknown>;
   const rohFiguren = Array.isArray(d.figuren) ? d.figuren : [];
   const rohOrte = Array.isArray(d.orte) ? d.orte : [];
   const rohBeziehungen = Array.isArray(d.beziehungen) ? d.beziehungen : [];
   if (!Array.isArray(d.figuren) && !Array.isArray(d.orte) && !Array.isArray(d.beziehungen)) {
-    throw new KiFehler('antwort', 'Die Antwort passt nicht zum Schema.');
+    throw new KiFehler('antwort', m('schemaFalsch'));
   }
 
-  const pruefer = new Pruefer(kontext);
+  const pruefer = new Pruefer(kontext, undefined, oberflaeche);
   const verworfen: Verworfen[] = [];
   let bereitsAngelegt = 0;
   let bereitsEntschieden = 0;
@@ -420,7 +480,7 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
 
   /** Belege prüfen: jedes Zitat wörtlich (E6); sortiert nach Buchreihenfolge und Position. */
   function belegePruefen(v: unknown): Zitat[] | string {
-    if (!Array.isArray(v) || v.length === 0) return 'ohne Beleg';
+    if (!Array.isArray(v) || v.length === 0) return m('ohneBeleg');
     const stellen: ZitatStelle[] = [];
     for (const b of v as unknown[]) {
       const bb = (b ?? {}) as Record<string, unknown>;
@@ -434,10 +494,10 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
 
   function textGrund(text: string): string | null {
     if (!text) return null;
-    const ersatz = ersatztextGrund(text);
+    const ersatz = ersatztextGrund(text, oberflaeche);
     if (ersatz) return ersatz;
     const fremd = fremdesZitat(text, kontext);
-    return fremd ? `zitiert Text, der nicht im Buch steht („${fremd}“)` : null;
+    return fremd ? m('zitiertFremd', { zitat: fremd }) : null;
   }
 
   function aliaseSauber(v: unknown, name: string): string[] {
@@ -476,7 +536,7 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
       if (name) figurVerworfen.set(namensForm(name), { grund, entschieden: false });
     };
     if (!name) {
-      verworfen.push({ grund: 'Figur ohne Namen', roh: r });
+      verworfen.push({ grund: m('figurOhneNamen'), roh: r });
       continue;
     }
     if (bekannteFigur(name)) {
@@ -485,13 +545,13 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
     }
     const belege = belegePruefen(f.belege);
     if (typeof belege === 'string') {
-      weg(`Figur „${name}“: ${belege}`);
+      weg(m('figurGrund', { name, grund: belege }));
       continue;
     }
     const kurz = sauber(f.kurz);
     const grund = textGrund(kurz);
     if (grund) {
-      weg(`Figur „${name}“: Kurzbeschreibung ${grund}`);
+      weg(m('figurKurz', { name, grund }));
       continue;
     }
     const schluessel = figurSchluessel(name);
@@ -503,7 +563,7 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
     const status = figurEntschieden.get(schluessel);
     if (status) {
       bereitsEntschieden += 1;
-      if (status === 'verworfen') figurVerworfen.set(namensForm(name), { grund: `Figur „${name}“ hast du verworfen`, entschieden: true });
+      if (status === 'verworfen') figurVerworfen.set(namensForm(name), { grund: m('figurVerworfen', { name }), entschieden: true });
       continue;
     }
     const vorschlag: FigurVorschlag = {
@@ -526,7 +586,7 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
     const o = (r ?? {}) as Record<string, unknown>;
     const name = nameSauber(o.name);
     if (!name) {
-      verworfen.push({ grund: 'Ort ohne Namen', roh: r });
+      verworfen.push({ grund: m('ortOhneNamen'), roh: r });
       continue;
     }
     if (bekannterOrt(name)) {
@@ -535,7 +595,7 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
     }
     const belege = belegePruefen(o.belege);
     if (typeof belege === 'string') {
-      verworfen.push({ grund: `Ort „${name}“: ${belege}`, roh: r });
+      verworfen.push({ grund: m('ortGrund', { name, grund: belege }), roh: r });
       continue;
     }
     const schluessel = ortSchluessel(name);
@@ -585,7 +645,7 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
       const f = figurNachId.get(frueher.figur)!;
       return { verweis: { typ: 'angelegt', id: f.id, name: f.name }, vage: f.existenz === 'bewusst_vage' };
     }
-    if (frueher?.status === 'verworfen') return { verworfen: `Figur „${frueher.name}“ hast du verworfen`, entschieden: true };
+    if (frueher?.status === 'verworfen') return { verworfen: m('figurVerworfen', { name: frueher.name }), entschieden: true };
     return null;
   }
 
@@ -598,20 +658,20 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
     const von = figurReferenz(b.von);
     const zu = figurReferenz(b.zu);
     const anzeige = (ref: FigurReferenz, roh: unknown) => (ref && 'verweis' in ref ? ref.verweis.name : nameSauber(roh) || '?');
-    const titel = `Beziehung „${anzeige(von, b.von)}“ – „${anzeige(zu, b.zu)}“`;
-    const weg = (grund: string) => verworfen.push({ grund: `${titel}: ${grund}`, roh: r });
+    const titel = m('beziehungTitel', { von: anzeige(von, b.von), zu: anzeige(zu, b.zu) });
+    const weg = (grund: string) => verworfen.push({ grund: m('mitName', { name: titel, text: grund }), roh: r });
     if (!von || !zu) {
-      weg(`unbekannte Figur „${!von ? nameSauber(b.von) : nameSauber(b.zu)}“ (weder angelegt noch vorgeschlagen)`);
+      weg(m('unbekannteFigur', { name: !von ? nameSauber(b.von) : nameSauber(b.zu) }));
       continue;
     }
     if ('verworfen' in von || 'verworfen' in zu) {
       const x = ('verworfen' in von ? von : zu) as { verworfen: string; entschieden: boolean };
       if (x.entschieden) bereitsEntschieden += 1;
-      else weg(`verweist auf eine verworfene Figur (${x.verworfen})`);
+      else weg(m('verworfeneFigur', { grund: x.verworfen }));
       continue;
     }
     if (von.verweis.typ === zu.verweis.typ && von.verweis.id === zu.verweis.id) {
-      weg('Beziehung einer Figur zu sich selbst');
+      weg(m('zuSichSelbst'));
       continue;
     }
     if (von.verweis.typ === 'angelegt' && zu.verweis.typ === 'angelegt' && angelegtePaare.has([von.verweis.id, zu.verweis.id].sort().join('|'))) {
@@ -620,11 +680,11 @@ export function pruefeVorschlaege(daten: ProjektDaten, roh: unknown, kontext: Bu
     }
     const art = sauber(b.art);
     if (!art) {
-      weg('ohne Bezeichnung');
+      weg(m('ohneBezeichnung'));
       continue;
     }
     if (art.split(' ').length > ART_MAX_WOERTER) {
-      weg(`Bezeichnung „${art}“ hat mehr als ${ART_MAX_WOERTER} Wörter`);
+      weg(m('bezeichnungZuLang', { art, n: ART_MAX_WOERTER }));
       continue;
     }
     const belege = belegePruefen(b.belege);

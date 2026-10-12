@@ -22,11 +22,22 @@ export interface SayVoice {
 /** Entspricht dem genutzten Teil von SpeechSynthesisUtterance. */
 export class SayAeusserung {
   voice: SayVoice | null = null;
-  lang = 'de-DE';
   rate = 1;
   onend: (() => void) | null = null;
   onerror: ((e: { error: string }) => void) | null = null;
-  constructor(public text: string) {}
+  /** `lang`: Sprache des Textes (Buchsprache, Standard de-DE) – ohne gewählte Stimme spricht eine Stimme dieser Sprache. */
+  constructor(
+    public text: string,
+    public lang = 'de-DE',
+  ) {}
+}
+
+/** Erste Stimme mit genau dieser Sprache (de-DE), sonst derselben Sprachfamilie (de-AT); `say` meldet de_DE. */
+export function stimmeFuerSprache(stimmen: readonly SayVoice[], lang: string): SayVoice | null {
+  const norm = (l: string) => l.replace('_', '-').toLowerCase();
+  const ziel = norm(lang);
+  const familie = ziel.split('-')[0]!;
+  return stimmen.find((s) => norm(s.lang) === ziel) ?? stimmen.find((s) => norm(s.lang).split('-')[0] === familie) ?? null;
 }
 
 export class SaySprachausgabe {
@@ -56,7 +67,9 @@ export class SaySprachausgabe {
   }
 
   speak(u: SayAeusserung): void {
-    aufruf<string>('vorlesen_sagen', { text: u.text, stimme: u.voice?.voiceURI ?? null, tempo: u.rate })
+    // Ohne gewählte Stimme nicht die Systemstimme (Sprache des Macs), sondern eine Stimme der Textsprache
+    const stimme = u.voice?.voiceURI ?? stimmeFuerSprache(this.stimmen, u.lang)?.voiceURI ?? null;
+    aufruf<string>('vorlesen_sagen', { text: u.text, stimme, tempo: u.rate })
       .then((ergebnis) => (ergebnis === 'fertig' ? u.onend?.() : u.onerror?.({ error: 'canceled' })))
       .catch((e: unknown) => u.onerror?.({ error: e instanceof Error ? e.message : String(e) }));
   }

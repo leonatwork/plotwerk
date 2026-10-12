@@ -1,7 +1,7 @@
 /** Hinweise-Ansicht: Status, Filter, Gruppierung, Schreibweisen-Varianten. Reine Funktionen. */
 import type { Entscheidungen, Hinweis, HinweisEntscheidung, HinweisTyp, Id, ProjektDaten, Verweis } from '@core/model/types';
-import { HINWEIS_TYP_NAME } from '@core/index/hinweisTypen';
-import { guillemets } from '../beziehungen/gemeinsam';
+import { texte } from '../../i18n';
+import { guillemets, sprachabhaengig } from '../beziehungen/gemeinsam';
 
 export type HinweisStatus = 'neu' | HinweisEntscheidung;
 
@@ -13,21 +13,43 @@ export interface HinweisFilter {
 
 export const STANDARD_FILTER: HinweisFilter = { typ: 'alle', kapitel: 'alle', status: 'neu' };
 
-/** Reihenfolge und Bezeichnungen wie in der Anforderung (Hinweis-Typen). */
-export const HINWEIS_TYPEN: { typ: HinweisTyp; label: string; farbe: string; beschreibung: string }[] = [
-  { typ: 'pruefen', label: HINWEIS_TYP_NAME.pruefen, farbe: 'var(--accent-dark)', beschreibung: 'Angaben, die sich widersprechen könnten' },
-  { typ: 'schreibweise', label: HINWEIS_TYP_NAME.schreibweise, farbe: 'var(--arbeit-dark)', beschreibung: 'derselbe Name, verschieden geschrieben' },
-  { typ: 'offener_faden', label: HINWEIS_TYP_NAME.offener_faden, farbe: 'var(--warm-dark)', beschreibung: 'Fragen, die der Text noch nicht beantwortet' },
-  { typ: 'unbekannt', label: HINWEIS_TYP_NAME.unbekannt, farbe: 'var(--vage-dark)', beschreibung: 'Namen ohne zugeordnete Figur' },
-  { typ: 'struktur', label: HINWEIS_TYP_NAME.struktur, farbe: 'var(--ink-soft)', beschreibung: 'leere Kapitel, Satzabbrüche, leere Überschriften' },
-  { typ: 'zeitleiste', label: HINWEIS_TYP_NAME.zeitleiste, farbe: 'var(--organisation-dark)', beschreibung: 'Zeitpunkte, die nicht zusammenpassen, und zeitliche Verankerung' },
-  { typ: 'sprache', label: HINWEIS_TYP_NAME.sprache, farbe: 'var(--ink-quiet)', beschreibung: 'Sprache und Figurenstimme – nur markiert, nie korrigiert' },
+export interface HinweisTypInfo {
+  typ: HinweisTyp;
+  /** Anzeigename in der Oberflächensprache (t.hinweise.typ) */
+  readonly label: string;
+  farbe: string;
+  /** Kurzbeschreibung in der Oberflächensprache (t.hinweise.typBeschreibung) */
+  readonly beschreibung: string;
+}
+
+const TYP_FARBEN: [HinweisTyp, string][] = [
+  ['pruefen', 'var(--accent-dark)'],
+  ['schreibweise', 'var(--arbeit-dark)'],
+  ['offener_faden', 'var(--warm-dark)'],
+  ['unbekannt', 'var(--vage-dark)'],
+  ['struktur', 'var(--ink-soft)'],
+  ['zeitleiste', 'var(--organisation-dark)'],
+  ['sprache', 'var(--ink-quiet)'],
 ];
 
-export const TYP_LABEL = Object.fromEntries(HINWEIS_TYPEN.map((t) => [t.typ, t.label])) as Record<HinweisTyp, string>;
-export const TYP_FARBE = Object.fromEntries(HINWEIS_TYPEN.map((t) => [t.typ, t.farbe])) as Record<HinweisTyp, string>;
+/** Reihenfolge und Bezeichnungen wie in der Anforderung (Hinweis-Typen); Texte folgen der Oberflächensprache. */
+export const HINWEIS_TYPEN: HinweisTypInfo[] = TYP_FARBEN.map(([typ, farbe]) => ({
+  typ,
+  farbe,
+  get label() {
+    return texte().hinweise.typ[typ];
+  },
+  get beschreibung() {
+    return texte().hinweise.typBeschreibung[typ];
+  },
+}));
 
-export const STATUS_LABEL: Record<HinweisStatus, string> = { neu: 'Neu', absicht: 'Ist Absicht', erledigt: 'Erledigt' };
+/** Anzeigenamen der Typen in der aktuellen Oberflächensprache. */
+export const TYP_LABEL: Readonly<Record<HinweisTyp, string>> = sprachabhaengig(() => texte().hinweise.typ);
+export const TYP_FARBE = Object.fromEntries(TYP_FARBEN) as Record<HinweisTyp, string>;
+
+/** Status-Bezeichnungen (Neu / Ist Absicht / Erledigt) in der aktuellen Oberflächensprache. */
+export const STATUS_LABEL: Readonly<Record<HinweisStatus, string>> = sprachabhaengig(() => texte().hinweise.status);
 
 /** Status mit Leons Entscheidung (entscheidungen.json hat Vorrang vor dem gespeicherten Status). */
 export function hinweisStatus(h: Hinweis, e: Entscheidungen | undefined): HinweisStatus {

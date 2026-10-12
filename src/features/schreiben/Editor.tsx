@@ -6,6 +6,7 @@
  * beim Kapitelwechsel oder wenn sich der Text im Store von außen ändert (Datei, Wiederherstellen).
  */
 import { erkenneKapitel, motiveImText } from '@core/erkennung/index';
+import { buchSprache } from '@core/i18n';
 import type { Erwaehnung, Id, Realitaet, TextAnker } from '@core/model/types';
 import { kapitelPfad } from '@core/projekt';
 import { ankerErzeugen, ankerFinden, findeZitat, woerterZaehlen } from '@core/text/index';
@@ -17,6 +18,8 @@ import { EditorWerkzeuge, editorErweiterungen } from './werkzeuge';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ankerGleich } from '../../state/slices/schreiben';
 import { useStore } from '../../state/store';
+import { f, texte, useTexte } from '../../i18n';
+import { useBuchSprache } from '../../i18n/buch';
 import { klassen } from '../../ui';
 import { Autosave } from './autosave';
 import { Blase } from './Blase';
@@ -50,16 +53,12 @@ const ANALYSE_PAUSE = 400;
 const INTERVALL = 10 * 60 * 1000;
 const LEER: { anker: TextAnker; stufe: Realitaet }[] = [];
 
-const EBENE_MELDUNG: Record<Realitaet, string> = {
-  gesichert: 'Stelle als »gesichert« markiert',
-  offen: 'Stelle als »noch offen« markiert – Erinnerung im Kapitel-Überblick',
-  bewusst_vage: 'Stelle als »bewusst vage« markiert – die Prüfung meldet hier keinen Widerspruch',
-};
-
 function KapitelTitel({ kapitelId, titel, editor }: { kapitelId: Id; titel: string; editor: Editor | null }) {
   const speichern = useStore((s) => s.kapitelTitelSpeichern);
   const ref = useRef<HTMLHeadingElement>(null);
   const fokus = useRef(false);
+  const T = useTexte().schreiben.editor;
+  const buchLang = useBuchSprache();
   useEffect(() => {
     if (ref.current && !fokus.current && ref.current.textContent !== titel) ref.current.textContent = titel;
   }, [titel, kapitelId]);
@@ -86,11 +85,11 @@ function KapitelTitel({ kapitelId, titel, editor }: { kapitelId: Id; titel: stri
       contentEditable="plaintext-only"
       suppressContentEditableWarning
       role="textbox"
-      aria-label="Kapiteltitel"
+      aria-label={T.titelLabel}
       aria-multiline="false"
-      data-leer="Titel"
+      data-leer={T.titelLeer}
       spellCheck
-      lang="de"
+      lang={buchLang}
       onFocus={() => {
         fokus.current = true;
       }}
@@ -117,6 +116,9 @@ function KapitelTitel({ kapitelId, titel, editor }: { kapitelId: Id; titel: stri
 }
 
 export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
+  const t = useTexte();
+  /** Buchsprache für Rechtschreibprüfung und Silbentrennung des WebViews */
+  const buchLang = useBuchSprache();
   const fokusModus = useStore((s) => s.fokusModus);
   const typewriter = useStore((s) => s.editorwerkzeuge.typewriter);
   const kapitelText = useStore((s) => s.daten?.kapitel[kapitelId]?.text ?? '');
@@ -210,16 +212,14 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     setzeEbenen(ed.view, stellen);
     // offene Lektorats-Änderungen (Rückimport aus Word) markieren; angenommen/abgelehnt wird im Dialog
     const lk: LektoratStelle[] = [];
+    const L = texte().schreiben.editor.lektorat;
     for (const a of aktuell.current.lektorat) {
       const b = ankerFinden(karte.text, a.anker);
       if (!b || b.ende <= b.start) continue;
-      const titel =
-        a.art === 'einfuegen'
-          ? `Lektorat: danach einfügen „${a.neu}“`
-          : a.art === 'loeschen'
-            ? `Lektorat: „${a.alt}“ streichen`
-            : `Lektorat: „${a.alt}“ → „${a.neu}“`;
-      lk.push({ ...bereichZuPositionen(karte, b.start, b.ende), art: a.art, titel: `${titel}${a.autor ? ` (${a.autor})` : ''} · annehmen oder ablehnen unter „Lektorat aus Word übernehmen …“` });
+      const werte = { alt: a.alt, neu: a.neu };
+      const titel = f(a.art === 'einfuegen' ? L.einfuegen : a.art === 'loeschen' ? L.loeschen : L.ersetzen, werte);
+      const mitAutor = a.autor ? f(L.autor, { titel, autor: a.autor }) : titel;
+      lk.push({ ...bereichZuPositionen(karte, b.start, b.ende), art: a.art, titel: f(L.hinweis, { titel: mitAutor }) });
     }
     setzeLektorat(ed.view, lk);
   }, []);
@@ -252,7 +252,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     ebenenAbgleichen(ed, karte);
     const vorher = s.schreibenLive;
     const gleich = vorher?.kapitel === id && vorher.verwaist.join('\n') === verwaiste.join('\n');
-    const motive = motiveImText(karte.text, d.motive ?? []);
+    const motive = motiveImText(karte.text, d.motive ?? [], buchSprache(d.projekt.angaben));
     s.setzeSchreibenLive({ kapitel: id, woerter: woerterZaehlen(karte.text), erwaehnungen, verwaist: gleich ? vorher.verwaist : verwaiste, motive });
   }, [kapitelId, karteVon, notizenAbgleichen, ebenenAbgleichen]);
 
@@ -308,7 +308,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
       ...basisErweiterungen(),
       Typografie,
       Dekorationen.configure({ handler }),
-      Placeholder.configure({ placeholder: 'Hier beginnt das Kapitel …' }),
+      Placeholder.configure({ placeholder: () => texte().schreiben.editor.platzhalter }),
       ...editorErweiterungen(),
     ],
     editorProps: {
@@ -318,7 +318,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
         lang: 'de',
         autocorrect: 'off',
         autocapitalize: 'off',
-        'aria-label': 'Kapiteltext',
+        'aria-label': t.schreiben.editor.textLabel,
       },
     },
     immediatelyRender: true,
@@ -407,12 +407,13 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
           .schnappschuss(kapitelPfad(kapitelId), 'extern')
           .catch((e) => console.error('Andere Fassung nicht gesichert:', e));
         void autosave.jetzt();
-        meldungZeigen(vonDatei ? 'Datei wurde außerhalb geändert – deine Eingaben bleiben, die andere Fassung liegt im Versionsverlauf' : 'Andere Fassung im Versionsverlauf gesichert');
+        const E = texte().schreiben.editor;
+        meldungZeigen(vonDatei ? E.externBehalten : E.andereFassung);
         return;
       }
       autosave.verwerfen();
       setUngespeichert(false);
-      if (vonDatei) meldungZeigen('Datei wurde außerhalb geändert – neu geladen');
+      if (vonDatei) meldungZeigen(texte().schreiben.editor.externNeuGeladen);
     }
     laden(editor, kapitelId, kapitelText, !vonAussen);
   }, [editor, kapitelId, kapitelText, autosave, laden, meldungZeigen]);
@@ -506,7 +507,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     const karte = karteVon(editor.state.doc);
     const b = ankerFinden(karte.text, markierung.anker);
     if (b) zeigeBereich(bereichZuPositionen(karte, b.start, b.ende));
-    else meldungZeigen('Die Stelle wurde im Text nicht mehr gefunden');
+    else meldungZeigen(texte().schreiben.editor.stelleFehlt);
     useStore.getState().markiere(null);
   }, [markierung, kapitelId, editor, karteVon, zeigeBereich, meldungZeigen]);
 
@@ -562,10 +563,10 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
       // erst den Text sichern, damit die Stelle im gespeicherten Kapitel genauso steht
       await autosave.jetzt();
       await useStore.getState().planung.stelleRealitaetSetzen(anker, stufe);
-      meldungZeigen(EBENE_MELDUNG[stufe]);
+      meldungZeigen(texte().schreiben.editor.ebeneMeldung[stufe]);
     } catch (e) {
       console.error('Realitätsebene nicht gespeichert:', e);
-      meldungZeigen('Realitätsebene konnte nicht gespeichert werden');
+      meldungZeigen(texte().schreiben.editor.ebeneFehler);
     }
   };
 
@@ -588,18 +589,18 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     void useStore.getState().anmerkungAendern(id, { anker: ankerErzeugen(kapitelId, karte.text, start, ende) });
   };
 
-  const label = status === 'geplant' && !kapitelText.trim() ? `Kapitel ${nummer} · geplant` : `Kapitel ${nummer}`;
+  const label = f(status === 'geplant' && !kapitelText.trim() ? t.schreiben.editor.kopfGeplant : t.schreiben.editor.kopf, { nr: nummer });
 
   return (
     <div className="pw-s-mitte">
       <div ref={papierRef} className={klassen('pw-s-papier', fokusModus && 'pw-s-papier--fokus', typewriter && 'pw-s-papier--typewriter')}>
-        <article className="pw-s-text" lang="de">
+        <article className="pw-s-text" lang={buchLang}>
           <span className="pw-s-kopf-label">{label}</span>
           <KapitelTitel kapitelId={kapitelId} titel={titel} editor={editor} />
           <EditorContent editor={editor} />
         </article>
         {!fokusModus && (
-          <div ref={randRef} className="pw-s-rand" aria-label="Notizen am Rand">
+          <div ref={randRef} className="pw-s-rand" aria-label={t.schreiben.editor.randLabel}>
             {editor && (
               <Randnotizen
                 editor={editor}

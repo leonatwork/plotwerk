@@ -67,7 +67,7 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 
 - **Figuren** (⌘4): Liste nach Haupt-, Nebenfiguren, „Realität offen“ und „geplant“; Karte mit „Aus dem Text“ (Belege),
   „Deine Planung“, Notizen, Wahrheit hinter den Kulissen (nur für dich), Beziehungen, Hinweisen und Recherche.
-- **Bögen** (Umschalter in der Titelleiste): Stufen je Kapitel oder Akt (z. B. „Hat alles im Griff“ → „Erste Risse“)
+- **Bögen** (Umschalter in der Titelleiste): Stufen je Kapitel oder Akt (z. B. „Alles im Lot“ → „Erste Risse“)
   mit wörtlichen Belegen; Auftritte als Linie darunter; „+ Figur vergleichen“ legt Bögen untereinander. Auf einer
   Stufe: ←/→ wechseln, ⌥←/⌥→ verschieben, Entf löschen.
 - **Figurenstimme** (Knopf „Stimme“ auf der Karte, Prüfen → Figurenstimme prüfen …): Die KI zeigt Stellen, an denen

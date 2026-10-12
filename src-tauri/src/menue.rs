@@ -1,31 +1,34 @@
 //! Natives Menü. Einträge mit der ID "befehl:<name>" gehen als Event "menue-befehl"
 //! an die Oberfläche (src/backend/tauri → plotwerk:befehl → befehlAusfuehren).
+//! Beschriftungen in der Oberflächensprache (crate::sprache); `sprache_setzen` baut das Menü neu.
 
 use tauri::menu::{AboutMetadataBuilder, Menu, MenuEvent, MenuItemBuilder, SubmenuBuilder};
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
+
+use crate::sprache::t;
 
 pub const EREIGNIS: &str = "menue-befehl";
 const PRAEFIX: &str = "befehl:";
 const BEENDEN: &str = "app:beenden";
 
-/// Bereiche wie in src/app/bereiche.ts (⌘1–⌘7).
-const BEREICHE: [(&str, &str, &str); 7] = [
-    ("schreiben", "Schreiben", "1"),
-    ("kapitel", "Kapitel-Überblick", "2"),
-    ("akte", "Akte planen", "3"),
-    ("figuren", "Figuren", "4"),
-    ("beziehungen", "Beziehungen", "5"),
-    ("orte", "Orte", "6"),
-    ("hinweise", "Hinweise", "7"),
+/// Bereiche wie in src/app/bereiche.ts (⌘1–⌘7): ID, deutsch, englisch, Taste.
+const BEREICHE: [(&str, &str, &str, &str); 7] = [
+    ("schreiben", "Schreiben", "Write", "1"),
+    ("kapitel", "Kapitel-Überblick", "Chapter Overview", "2"),
+    ("akte", "Akte planen", "Plan Acts", "3"),
+    ("figuren", "Figuren", "Characters", "4"),
+    ("beziehungen", "Beziehungen", "Relationships", "5"),
+    ("orte", "Orte", "Places", "6"),
+    ("hinweise", "Hinweise", "Notes", "7"),
 ];
 
 /// Werkzeug-Bereiche wie in src/app/bereiche.ts (Gruppe „Werkzeuge“; Taste leer = ohne Kürzel).
-const WERKZEUGE: [(&str, &str, &str); 5] = [
-    ("zeitleiste", "Zeitleiste", "8"),
-    ("faeden", "Fäden", "9"),
-    ("recherche", "Recherche", "0"),
-    ("statistik", "Statistik", ""),
-    ("fragen", "Fragen an das Buch", ""),
+const WERKZEUGE: [(&str, &str, &str, &str); 5] = [
+    ("zeitleiste", "Zeitleiste", "Timeline", "8"),
+    ("faeden", "Fäden", "Threads", "9"),
+    ("recherche", "Recherche", "Research", "0"),
+    ("statistik", "Statistik", "Statistics", ""),
+    ("fragen", "Fragen an das Buch", "Questions", ""),
 ];
 
 fn befehl<R: Runtime>(
@@ -41,112 +44,145 @@ fn befehl<R: Runtime>(
     b.build(app)
 }
 
+/// Menü beim Start: zuerst die gespeicherte Sprache laden.
+pub fn beim_start(app: &AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
+    if let Some(zustand) = app.try_state::<crate::Zustand>() {
+        crate::sprache::laden(app, &zustand);
+    }
+    erstellen(app)
+}
+
 pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let info = AboutMetadataBuilder::new()
         .name(Some("Plotwerk"))
         .version(Some(env!("CARGO_PKG_VERSION")))
-        .comments(Some("Romane schreiben und planen"))
+        .comments(Some(t(
+            "Romane schreiben und planen",
+            "Write and plan novels",
+        )))
         .build();
     let app_menue = SubmenuBuilder::new(app, "Plotwerk")
-        .about_with_text("Über Plotwerk", Some(info))
+        .about_with_text(t("Über Plotwerk", "About Plotwerk"), Some(info))
         .item(
-            &MenuItemBuilder::with_id(crate::aktualisierung::MENUE_ID, "Nach Updates suchen …")
-                .build(app)?,
+            &MenuItemBuilder::with_id(
+                crate::aktualisierung::MENUE_ID,
+                t("Nach Updates suchen …", "Check for Updates…"),
+            )
+            .build(app)?,
         )
         .separator()
         .item(&befehl(
             app,
             "einstellungen",
-            "Einstellungen …",
+            t("Einstellungen …", "Settings…"),
             Some("CmdOrCtrl+,"),
         )?)
         .separator()
-        .services_with_text("Dienste")
+        .services_with_text(t("Dienste", "Services"))
         .separator()
-        .hide_with_text("Plotwerk ausblenden")
-        .hide_others_with_text("Andere ausblenden")
-        .show_all_with_text("Alle einblenden")
+        .hide_with_text(t("Plotwerk ausblenden", "Hide Plotwerk"))
+        .hide_others_with_text(t("Andere ausblenden", "Hide Others"))
+        .show_all_with_text(t("Alle einblenden", "Show All"))
         .separator()
         .item(
-            &MenuItemBuilder::with_id(BEENDEN, "Plotwerk beenden")
+            &MenuItemBuilder::with_id(BEENDEN, t("Plotwerk beenden", "Quit Plotwerk"))
                 .accelerator("CmdOrCtrl+Q")
                 .build(app)?,
         )
         .build()?;
 
-    let ablage = SubmenuBuilder::new(app, "Ablage")
+    let ablage = SubmenuBuilder::new(app, t("Ablage", "File"))
         .item(&befehl(
             app,
             "projekt-oeffnen",
-            "Projekt öffnen …",
+            t("Projekt öffnen …", "Open Project…"),
             Some("CmdOrCtrl+O"),
         )?)
         .separator()
-        .item(&befehl(app, "import", "Word-Datei importieren …", None)?)
+        .item(&befehl(
+            app,
+            "import",
+            t("Word-Datei importieren …", "Import Word File…"),
+            None,
+        )?)
         .item(&befehl(
             app,
             "export",
-            "Exportieren …",
+            t("Exportieren …", "Export…"),
             Some("CmdOrCtrl+E"),
         )?)
         .separator()
         .item(&befehl(
             app,
             "abgabe",
-            "Für die Abgabe exportieren …",
+            t("Für die Abgabe exportieren …", "Export for Submission…"),
             None,
         )?)
         .item(&befehl(
             app,
             "rueckimport",
-            "Lektorat aus Word übernehmen …",
+            t(
+                "Lektorat aus Word übernehmen …",
+                "Import Editor’s Changes from Word…",
+            ),
             None,
         )?)
         .separator()
         .item(&befehl(
             app,
             "recherche-neu",
-            "Neuer Recherche-Eintrag …",
+            t("Neuer Recherche-Eintrag …", "New Research Entry…"),
             None,
         )?)
-        .item(&befehl(app, "faden-neu", "Neuer Faden …", None)?)
+        .item(&befehl(
+            app,
+            "faden-neu",
+            t("Neuer Faden …", "New Thread…"),
+            None,
+        )?)
         .separator()
-        .item(&befehl(app, "versionen", "Versionsverlauf …", None)?)
+        .item(&befehl(
+            app,
+            "versionen",
+            t("Versionsverlauf …", "Version History…"),
+            None,
+        )?)
         .item(&befehl(
             app,
             "fassung",
-            "Fassung sichern …",
+            t("Fassung sichern …", "Save Draft Version…"),
             Some("CmdOrCtrl+Shift+S"),
         )?)
         .item(&befehl(
             app,
             "versionsvergleich",
-            "Fassungen vergleichen …",
+            t("Fassungen vergleichen …", "Compare Draft Versions…"),
             None,
         )?)
         .separator()
-        .close_window_with_text("Fenster schließen")
+        .close_window_with_text(t("Fenster schließen", "Close Window"))
         .build()?;
 
-    let bearbeiten = SubmenuBuilder::new(app, "Bearbeiten")
-        .undo_with_text("Widerrufen")
-        .redo_with_text("Wiederholen")
+    let bearbeiten = SubmenuBuilder::new(app, t("Bearbeiten", "Edit"))
+        .undo_with_text(t("Widerrufen", "Undo"))
+        .redo_with_text(t("Wiederholen", "Redo"))
         .separator()
-        .cut_with_text("Ausschneiden")
-        .copy_with_text("Kopieren")
-        .paste_with_text("Einsetzen")
-        .select_all_with_text("Alles auswählen")
+        .cut_with_text(t("Ausschneiden", "Cut"))
+        .copy_with_text(t("Kopieren", "Copy"))
+        .paste_with_text(t("Einsetzen", "Paste"))
+        .select_all_with_text(t("Alles auswählen", "Select All"))
         .separator()
         .item(&befehl(
             app,
             "schnellsuche",
-            "Schnellsuche …",
+            t("Schnellsuche …", "Quick Search…"),
             Some("CmdOrCtrl+K"),
         )?)
         .build()?;
 
-    let mut darstellung = SubmenuBuilder::new(app, "Darstellung");
-    for (i, (id, titel, taste)) in BEREICHE.iter().chain(WERKZEUGE.iter()).enumerate() {
+    let mut darstellung = SubmenuBuilder::new(app, t("Darstellung", "View"));
+    for (i, (id, de, en, taste)) in BEREICHE.iter().chain(WERKZEUGE.iter()).enumerate() {
+        let titel = t(de, en);
         if i == BEREICHE.len() {
             darstellung = darstellung.separator();
         }
@@ -158,55 +194,70 @@ pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .item(&befehl(
             app,
             "typewriter",
-            "Typewriter-Modus",
+            t("Typewriter-Modus", "Typewriter Mode"),
             Some("CmdOrCtrl+Shift+T"),
         )?)
         .item(&befehl(
             app,
             "wiederholungen",
-            "Wiederholungen markieren",
+            t("Wiederholungen markieren", "Highlight Repetitions"),
             None,
         )?)
-        .item(&befehl(app, "vorlesen", "Vorlesen", None)?)
+        .item(&befehl(app, "vorlesen", t("Vorlesen", "Read Aloud"), None)?)
         .item(&befehl(
             app,
             "fokus",
-            "Fokus-Modus",
+            t("Fokus-Modus", "Focus Mode"),
             Some("CmdOrCtrl+Shift+F"),
         )?)
-        .fullscreen_with_text("Vollbild")
+        .fullscreen_with_text(t("Vollbild", "Enter Full Screen"))
         .build()?;
 
-    let pruefen = SubmenuBuilder::new(app, "Prüfen")
-        .item(&befehl(app, "pruefen", "Kapitel prüfen …", None)?)
-        .item(&befehl(app, "buch-pruefen", "Buch prüfen …", None)?)
+    let pruefen = SubmenuBuilder::new(app, t("Prüfen", "Check"))
+        .item(&befehl(
+            app,
+            "pruefen",
+            t("Kapitel prüfen …", "Check Chapter…"),
+            None,
+        )?)
+        .item(&befehl(
+            app,
+            "buch-pruefen",
+            t("Buch prüfen …", "Check Book…"),
+            None,
+        )?)
         .separator()
         .item(&befehl(
             app,
             "zeit-vorschlaege",
-            "Zeitpunkte vorschlagen …",
+            t("Zeitpunkte vorschlagen …", "Suggest Times…"),
             None,
         )?)
         .item(&befehl(
             app,
             "stimme-pruefen",
-            "Figurenstimme prüfen …",
+            t("Figurenstimme prüfen …", "Check Character Voice…"),
             None,
         )?)
         .item(&befehl(
             app,
             "leser-simulation",
-            "Leser-Simulation …",
+            t("Leser-Simulation …", "Reader Simulation…"),
             None,
         )?)
-        .item(&befehl(app, "marken", "Markennamen …", None)?)
+        .item(&befehl(
+            app,
+            "marken",
+            t("Markennamen …", "Brand Names…"),
+            None,
+        )?)
         .build()?;
 
-    let fenster = SubmenuBuilder::new(app, "Fenster")
-        .minimize_with_text("Im Dock ablegen")
-        .maximize_with_text("Zoomen")
+    let fenster = SubmenuBuilder::new(app, t("Fenster", "Window"))
+        .minimize_with_text(t("Im Dock ablegen", "Minimize"))
+        .maximize_with_text(t("Zoomen", "Zoom"))
         .separator()
-        .bring_all_to_front_with_text("Alle nach vorne bringen")
+        .bring_all_to_front_with_text(t("Alle nach vorne bringen", "Bring All to Front"))
         .build()?;
 
     Menu::with_items(

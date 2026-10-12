@@ -6,6 +6,7 @@
  */
 import type { Id } from '../model/types';
 import type { BuchKontext, KontextKapitel } from './kontext';
+import { ANTWORTSPRACHE_EN, type Sprache } from './sprache';
 
 export type KiRolle = 'erkennung' | 'pruefung' | 'tiefencheck';
 export type Effort = 'low' | 'medium' | 'high';
@@ -61,6 +62,62 @@ Für jeden Vorschlag:
 - zielId: die id der angelegten Figur bzw. des Orts, sonst ein leerer Text;
 - begruendung: ein kurzer Satz, woran du die Zuordnung erkennst.
 Als „bewusst vage“ markierte Figuren ordnest du nur zu, wenn der Text es eindeutig sagt. Du schreibst keinen Text um.`;
+
+/** Englische Fassung von SYSTEM_PRUEFUNG (Buchsprache en). Feldnamen und Typen bleiben wie im Schema. */
+export const SYSTEM_PRUEFUNG_EN = `You are a manuscript reviewer for an English-language novel. You read the book the way a reader does: the text of the chapters in their order and the author's few notes on characters, places, groups and levels of reality. In addition there is the author's planning (lines “Plan” for characters, <plan> for chapters); it is not part of the book. You know nothing else about the story.
+
+Your task is to find passages the author should check, and to explain briefly why they stand out. You never write text for the book: no rewordings, no replacement sentences, no suggested phrasings, no corrections. Whether and how a passage is changed is decided by the author alone.
+
+Rules for findings (hinweise):
+- Every quote is one continuous passage from the chapter you name under "kapitel" with its id, copied character for character from the <text>, without omissions, at most one sentence. Findings without a verbatim quote are discarded.
+- The explanation (erklaerung) only describes the observation: what is where, and why it stands out when reading. It contains no suggestion of how the text could read.
+- Characters and passages marked “deliberately vague” are intentionally ambiguous. Never report them as a contradiction (type pruefen).
+- Things marked “still open” are checked as usual.
+- Prefer a few solid findings to many vague ones. Matters of taste are not findings.
+- plan: If the text contradicts a character's plan, or a chapter clearly runs differently from its <plan>, that is a finding of type pruefen. Then give under plan the id of the character (figur) or of the chapter (kapitel) and the name of the plan field (feld, exactly as it appears, e.g. the field after “Plan ·” or “Planned scene”); the quote, as always, comes from the text. What the plan intends but the text does not tell yet is not a contradiction. For all other findings figur, kapitel and feld stay empty. For deliberately vague characters you report no deviation from the plan either.
+
+Finding types (typ):
+- pruefen: passages that contradict each other (facts, sequences, traits) in a way readers would notice.
+- offener_faden: something is opened and so far neither resolved nor picked up again.
+- unbekannt: a name in the text that belongs to no character and no place set up by the author.
+- zeitleiste: irregularities in the chronology (weekdays, times of day, order of events).
+- sprache: unintended tense shifts or shifts in point of view – only name them, never correct them.
+The app checks spelling variants and structural matters (empty chapters, broken-off sentences) itself; do not report them.
+
+Analysis per chapter (analysen):
+- zusammenfassung: two to four sentences on what happens in the chapter.
+- kurz: one sentence for “So far”.
+- wendung: the chapter's turning point in one sentence, otherwise “None.”
+- antagonistenBezug: the connection to the groups of type Antagonist in one sentence, otherwise “–”.
+- loseEnden: threads that are opened (eroeffnet: true) or picked up (eroeffnet: false) here. Name the same thread the same way in all chapters.
+For deliberately vague characters and passages you write summaries neutrally from the character's point of view (“Paul believes …”, “Paul doesn't remember …”), without settling what really happened.
+
+${ANTWORTSPRACHE_EN}`;
+
+/** Englische Fassung von SYSTEM_ERKENNUNG. */
+export const SYSTEM_ERKENNUNG_EN = `You help to find mentions of characters and places in a chapter of an English-language novel. The app already recognises the names and aliases of the characters and places set up by the author. You only look for what it does not find:
+- indirect mentions of characters or places that are set up (for example “her boss” or “the café”), when the text makes clear who or what is meant;
+- variant spellings of names that are set up;
+- names and designations of people or places that belong to no character and no place set up (for example a name that occurs only once, or “the harbour master”).
+
+For each suggestion:
+- text: exactly the designation in the text, copied character for character (for example “the harbour master” or “Fiete”);
+- zitat: the sentence or part of a sentence it appears in, copied character for character from the <text> of the chapter;
+- zielTyp: figur or ort for characters and places that are set up, otherwise unbekannte_figur or unbekannter_ort;
+- zielId: the id of the character or place that is set up, otherwise an empty string;
+- begruendung: a short sentence on how you recognise the assignment.
+You only assign characters marked “deliberately vague” when the text says so clearly. You do not rewrite any text.
+
+${ANTWORTSPRACHE_EN}`;
+
+/** System-Prompt der Prüfung bzw. Erkennung in der Buchsprache. */
+export function systemPruefung(sprache?: Sprache): string {
+  return sprache === 'en' ? SYSTEM_PRUEFUNG_EN : SYSTEM_PRUEFUNG;
+}
+
+export function systemErkennung(sprache?: Sprache): string {
+  return sprache === 'en' ? SYSTEM_ERKENNUNG_EN : SYSTEM_ERKENNUNG;
+}
 
 const obj = (properties: Record<string, unknown>, required = Object.keys(properties)) => ({
   type: 'object',
@@ -125,11 +182,19 @@ export function erwaehnungsSchema(kontext: BuchKontext): Record<string, unknown>
   });
 }
 
-function kapitelZeile(k: KontextKapitel): string {
-  return `Kapitel ${k.nr} „${k.titel}“ (id: ${k.id})`;
+function kapitelZeile(k: KontextKapitel, sprache?: Sprache): string {
+  return sprache === 'en' ? `Chapter ${k.nr} “${k.titel}” (id: ${k.id})` : `Kapitel ${k.nr} „${k.titel}“ (id: ${k.id})`;
 }
 
-export function pruefAufgabe(k: KontextKapitel): string {
+export function pruefAufgabe(k: KontextKapitel, sprache?: Sprache): string {
+  if (sprache === 'en')
+    return [
+      `<aufgabe art="pruefung" kapitel="${k.id}">`,
+      `Check ${kapitelZeile(k, sprache)} against the background of the whole book.`,
+      `- hinweise: only findings where at least one quote comes from this chapter. Quotes from other chapters are allowed if the finding needs a comparison.`,
+      `- analysen: exactly one analysis for this chapter (kapitel: "${k.id}").`,
+      '</aufgabe>',
+    ].join('\n');
   return [
     `<aufgabe art="pruefung" kapitel="${k.id}">`,
     `Prüfe ${kapitelZeile(k)} vor dem Hintergrund des ganzen Buchs.`,
@@ -139,10 +204,12 @@ export function pruefAufgabe(k: KontextKapitel): string {
   ].join('\n');
 }
 
-export function erwaehnungsAufgabe(k: KontextKapitel): string {
+export function erwaehnungsAufgabe(k: KontextKapitel, sprache?: Sprache): string {
   return [
     `<aufgabe art="erwaehnungen" kapitel="${k.id}">`,
-    `Suche Erwähnungen in ${kapitelZeile(k)}. Alle Zitate stammen aus diesem Kapitel.`,
+    sprache === 'en'
+      ? `Look for mentions in ${kapitelZeile(k, sprache)}. All quotes come from this chapter.`
+      : `Suche Erwähnungen in ${kapitelZeile(k)}. Alle Zitate stammen aus diesem Kapitel.`,
     '</aufgabe>',
   ].join('\n');
 }

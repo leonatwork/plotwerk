@@ -13,7 +13,6 @@ import {
   fadenKarten,
   fadenSpalten,
   RUHE_STANDARD,
-  SPALTEN_TITEL,
   type FadenKarte,
   type FadenSpalte,
 } from '@core/struktur/faeden';
@@ -21,15 +20,9 @@ import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, bestaetigen, Button, Chip, Dialog, Inspektor, klassen, LeerZustand, Segment, StrangPunkt, Werkzeugseite } from '../../ui';
 import { EntwurfBereich, EntwurfFeld, strangFarbe, strangKurzname } from '../akte/gemeinsam';
-import { fadenFarbe, Kapitelstreifen, kapitelVoll, kapNr, StreifenLegende } from './gemeinsam';
+import { fadenFarbe, kapitelDauer as kapitelText, Kapitelstreifen, kapitelVoll, kapNr, StreifenLegende } from './gemeinsam';
+import { f, texte, useTexte } from '../../i18n';
 import './faeden.css';
-
-const LEER_TEXT: Record<FadenSpalte, string> = {
-  offen: 'Keine offenen Fäden ohne Plan.',
-  geplant: 'Ziehe einen Faden hierher und wähle das Kapitel, in dem er sich auflöst.',
-  erledigt: 'Aufgelöste Fäden landen hier.',
-  bewusst_offen: 'Fäden, die das Buch absichtlich offen lässt.',
-};
 
 function useKarten(): { daten: ProjektDaten | null; karten: FadenKarte[] } {
   const daten = useStore((s) => s.daten);
@@ -37,8 +30,6 @@ function useKarten(): { daten: ProjektDaten | null; karten: FadenKarte[] } {
   const karten = useMemo(() => (daten ? fadenKarten(daten, faeden) : []), [daten, faeden]);
   return { daten, karten };
 }
-
-const kapitelText = (n: number) => (n === 1 ? '1 Kapitel' : `${n} Kapiteln`);
 
 function fokussiereKarte(id: Id) {
   requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-faden="${CSS.escape(id)}"]`)?.focus());
@@ -50,19 +41,20 @@ function fokussiereKarte(id: Id) {
 
 function KartenInhalt({ karte, daten }: { karte: FadenKarte; daten: ProjektDaten }) {
   const strang = karte.strang ? daten.straenge.find((s) => s.id === karte.strang) : undefined;
+  const t = useTexte().faeden.karte;
   return (
     <>
       <div className="fd-karte__kopf">
         {strang && <StrangPunkt farbe={strangFarbe(strang.farbe)} groesse={9} title={strang.name} style={{ marginTop: 4 }} />}
         <span className="fd-karte__name">{karte.name}</span>
-        {karte.quelle === 'leon' && <span className="fd-etikett fd-etikett--neutral">eigener</span>}
+        {karte.quelle === 'leon' && <span className="fd-etikett fd-etikett--neutral">{t.eigener}</span>}
       </div>
       <div className="fd-karte__meta">
         <span>
           {[
-            karte.eroeffnetIn ? `eröffnet ${kapNr(daten, karte.eroeffnetIn)}` : 'noch keinem Kapitel zugeordnet',
-            karte.zuletztIn && karte.zuletztIn !== karte.eroeffnetIn ? `zuletzt ${kapNr(daten, karte.zuletztIn)}` : '',
-            karte.aufgegriffenIn.length > 0 ? `${karte.aufgegriffenIn.length}× aufgegriffen` : '',
+            karte.eroeffnetIn ? f(t.eroeffnet, { kap: kapNr(daten, karte.eroeffnetIn) }) : t.keinKapitel,
+            karte.zuletztIn && karte.zuletztIn !== karte.eroeffnetIn ? f(t.zuletzt, { kap: kapNr(daten, karte.zuletztIn) }) : '',
+            karte.aufgegriffenIn.length > 0 ? f(t.aufgegriffen, { n: karte.aufgegriffenIn.length }) : '',
           ]
             .filter(Boolean)
             .join(' · ')}
@@ -72,26 +64,23 @@ function KartenInhalt({ karte, daten }: { karte: FadenKarte; daten: ProjektDaten
       {karte.aufloesungIn && (
         <div className="fd-karte__meta">
           <span className={klassen('fd-etikett', karte.aufloesungVerpasst || karte.aufloesungZuFrueh ? 'fd-etikett--warn' : 'fd-etikett--accent')}>
-            Auflösung {kapNr(daten, karte.aufloesungIn)}
+            {f(t.aufloesung, { kap: kapNr(daten, karte.aufloesungIn) })}
           </span>
         </div>
       )}
       {karte.notiz && <span className="fd-karte__notiz">{karte.notiz}</span>}
-      {karte.ruhend && (
-        <span className="fd-karte__warnung">
-          ruht seit {kapitelText(karte.ruhtSeit)} (Warnung ab {karte.schwelle})
-        </span>
-      )}
-      {karte.aufloesungVerpasst && <span className="fd-karte__warnung">{kapNr(daten, karte.aufloesungIn)} ist geschrieben, der Faden ist noch offen.</span>}
-      {karte.aufloesungZuFrueh && <span className="fd-karte__warnung">Die Auflösung liegt vor der Eröffnung.</span>}
+      {karte.ruhend && <span className="fd-karte__warnung">{f(t.ruht, { dauer: kapitelText(karte.ruhtSeit), schwelle: karte.schwelle })}</span>}
+      {karte.aufloesungVerpasst && <span className="fd-karte__warnung">{f(t.verpasst, { kap: kapNr(daten, karte.aufloesungIn) })}</span>}
+      {karte.aufloesungZuFrueh && <span className="fd-karte__warnung">{t.zuFrueh}</span>}
     </>
   );
 }
 
 function kartenLabel(karte: FadenKarte, daten: ProjektDaten): string {
-  const teile = [karte.name, SPALTEN_TITEL[karte.spalte], `eröffnet ${kapNr(daten, karte.eroeffnetIn)}`];
-  if (karte.aufloesungIn) teile.push(`Auflösung ${kapNr(daten, karte.aufloesungIn)}`);
-  if (karte.ruhend) teile.push(`ruht seit ${kapitelText(karte.ruhtSeit)}`);
+  const t = texte().faeden;
+  const teile = [karte.name, t.spalten[karte.spalte], f(t.karte.eroeffnet, { kap: kapNr(daten, karte.eroeffnetIn) })];
+  if (karte.aufloesungIn) teile.push(f(t.karte.aufloesung, { kap: kapNr(daten, karte.aufloesungIn) }));
+  if (karte.ruhend) teile.push(f(t.karte.ruhtKurz, { dauer: kapitelText(karte.ruhtSeit) }));
   return teile.join(', ');
 }
 
@@ -108,6 +97,7 @@ function Karte({
 }) {
   const waehle = useStore((s) => s.struktur.waehleFaden);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: karte.id, data: { karte } });
+  const t = useTexte();
   return (
     <div
       ref={setNodeRef}
@@ -118,7 +108,7 @@ function Karte({
       data-faden={karte.id}
       aria-pressed={gewaehlt}
       aria-label={kartenLabel(karte, daten)}
-      aria-roledescription="verschiebbare Karte"
+      aria-roledescription={t.faeden.karte.ziehbar}
       className={klassen(
         'fd-karte',
         karte.ruhend && 'fd-karte--ruhend',
@@ -136,11 +126,12 @@ function Karte({
 
 function Spalte({ spalte, anzahl, children, ziel }: { spalte: FadenSpalte; anzahl: number; children: ReactNode; ziel: boolean }) {
   const { setNodeRef, isOver } = useDroppable({ id: spalte });
+  const titel = useTexte().faeden.spalten[spalte];
   return (
-    <section ref={setNodeRef} className={klassen('fd-spalte', ziel && isOver && 'fd-spalte--ziel')} aria-label={`${SPALTEN_TITEL[spalte]}, ${anzahl}`} data-spalte={spalte}>
+    <section ref={setNodeRef} className={klassen('fd-spalte', ziel && isOver && 'fd-spalte--ziel')} aria-label={`${titel}, ${anzahl}`} data-spalte={spalte}>
       <div className="fd-spalte__kopf">
         <span className="fd-label" style={spalte === 'geplant' ? { color: 'var(--accent-dark)' } : undefined}>
-          {SPALTEN_TITEL[spalte]}
+          {titel}
         </span>
         <span className="fd-leise">{anzahl}</span>
       </div>
@@ -170,6 +161,7 @@ function KapitelAuswahl({
   label?: string;
   autoFocus?: boolean;
 }) {
+  const t = useTexte();
   return (
     <select
       id={id}
@@ -185,7 +177,7 @@ function KapitelAuswahl({
       {daten.projekt.kapitel.map((k) => (
         <option key={k} value={k}>
           {kapitelVoll(daten, k)}
-          {(daten.kapitel[k]?.text ?? '').trim() === '' ? ' (geplant)' : ''}
+          {(daten.kapitel[k]?.text ?? '').trim() === '' ? t.faeden.kapitelAuswahl.geplant : ''}
         </option>
       ))}
     </select>
@@ -198,6 +190,8 @@ function NeuerFadenDialog({ daten }: { daten: ProjektDaten }) {
   const vorschlag = useStore((s) => s.auswahl.kapitel);
   const [name, setName] = useState('');
   const [kapitel, setKapitel] = useState<Id | undefined>(vorschlag && daten.projekt.kapitel.includes(vorschlag) ? vorschlag : undefined);
+  const t = useTexte();
+  const tn = t.faeden.neu;
   const anlegen = async () => {
     if (!name.trim()) return;
     setzeOffen(false);
@@ -206,14 +200,14 @@ function NeuerFadenDialog({ daten }: { daten: ProjektDaten }) {
   };
   return (
     <Dialog
-      titel="Neuer Faden"
+      titel={tn.titel}
       onSchliessen={() => setzeOffen(false)}
       breite={440}
       aktionen={
         <>
-          <Button onClick={() => setzeOffen(false)}>Abbrechen</Button>
+          <Button onClick={() => setzeOffen(false)}>{t.gemeinsam.abbrechen}</Button>
           <Button variante="primaer" disabled={!name.trim()} onClick={() => void anlegen()}>
-            Anlegen
+            {tn.anlegen}
           </Button>
         </>
       }
@@ -226,14 +220,14 @@ function NeuerFadenDialog({ daten }: { daten: ProjektDaten }) {
         }}
       >
         <label className="pw-feld">
-          <span className="pw-feld__label">Name</span>
-          <input className="pl-eingabe" data-autofocus autoFocus placeholder="z. B. Pauls Bleistifte" value={name} onChange={(e) => setName(e.target.value)} />
+          <span className="pw-feld__label">{tn.name}</span>
+          <input className="pl-eingabe" data-autofocus autoFocus placeholder={tn.namePlatzhalter} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <label className="pw-feld">
-          <span className="pw-feld__label">Eröffnet in</span>
-          <KapitelAuswahl daten={daten} wert={kapitel} onChange={setKapitel} leer="– noch kein Kapitel –" />
+          <span className="pw-feld__label">{tn.eroeffnetIn}</span>
+          <KapitelAuswahl daten={daten} wert={kapitel} onChange={setKapitel} leer={tn.keinKapitel} />
         </label>
-        <span className="fd-leise">Eigene Fäden stehen nur in plan/faeden.md. Die Prüfung findet lose Enden im Text unabhängig davon.</span>
+        <span className="fd-leise">{tn.hinweis}</span>
       </form>
     </Dialog>
   );
@@ -250,6 +244,8 @@ function vorschlagAufloesung(daten: ProjektDaten, karte: FadenKarte): Id | undef
 function AufloesungDialog({ daten, karte, onSchliessen }: { daten: ProjektDaten; karte: FadenKarte; onSchliessen(): void }) {
   const verschieben = useStore((s) => s.struktur.fadenVerschieben);
   const [kapitel, setKapitel] = useState<Id | undefined>(() => vorschlagAufloesung(daten, karte));
+  const t = useTexte();
+  const ta = t.faeden.aufloesung;
   const planen = async () => {
     if (!kapitel) return;
     onSchliessen();
@@ -258,14 +254,14 @@ function AufloesungDialog({ daten, karte, onSchliessen }: { daten: ProjektDaten;
   };
   return (
     <Dialog
-      titel="Auflösung planen"
+      titel={ta.titel}
       onSchliessen={onSchliessen}
       breite={440}
       aktionen={
         <>
-          <Button onClick={onSchliessen}>Abbrechen</Button>
+          <Button onClick={onSchliessen}>{t.gemeinsam.abbrechen}</Button>
           <Button variante="primaer" disabled={!kapitel} onClick={() => void planen()}>
-            Planen
+            {ta.planen}
           </Button>
         </>
       }
@@ -278,9 +274,11 @@ function AufloesungDialog({ daten, karte, onSchliessen }: { daten: ProjektDaten;
         }}
       >
         <span style={{ fontSize: 13, lineHeight: 1.5 }}>
-          In welchem Kapitel löst sich <strong>{karte.name}</strong> auf?
+          {ta.frageVor}
+          <strong>{karte.name}</strong>
+          {ta.frageNach}
         </span>
-        <KapitelAuswahl daten={daten} wert={kapitel} onChange={setKapitel} leer="– Kapitel wählen –" label="Kapitel der Auflösung" autoFocus />
+        <KapitelAuswahl daten={daten} wert={kapitel} onChange={setKapitel} leer={ta.kapitelWaehlen} label={ta.kapitelLabel} autoFocus />
       </form>
     </Dialog>
   );
@@ -307,30 +305,30 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
   const waehle = useStore((s) => s.struktur.waehleFaden);
   const oeffne = useStore((s) => s.oeffne);
   const karte = auswahl ? karten.find((k) => k.id === auswahl) : undefined;
+  const t = useTexte();
+  const ti = t.faeden.inspektor;
 
   if (!karte) {
     const ruhend = karten.filter((k) => k.ruhend);
     return (
-      <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label="Faden">
+      <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={ti.label}>
         <div className="fd-abschnitt" style={{ gap: 14 }}>
-          <span style={{ fontSize: 13, color: 'var(--ink-quiet)', lineHeight: 1.5 }}>
-            Wähle eine Karte, um die Auflösung zu planen, eine Notiz zu schreiben oder den Status zu ändern.
-          </span>
+          <span style={{ fontSize: 13, color: 'var(--ink-quiet)', lineHeight: 1.5 }}>{ti.leer}</span>
           {ruhend.length > 0 && (
             <div className="fd-abschnitt">
-              <Abschnittslabel>Ruhen zu lange</Abschnittslabel>
+              <Abschnittslabel>{ti.ruhenZuLange}</Abschnittslabel>
               {ruhend.map((k) => (
                 <button key={k.id} type="button" className="pl-link" style={{ fontSize: 13 }} onClick={() => waehle(k.id)}>
-                  {k.name} · seit {kapitelText(k.ruhtSeit)}
+                  {f(ti.seit, { name: k.name, dauer: kapitelText(k.ruhtSeit) })}
                 </button>
               ))}
             </div>
           )}
           <div className="fd-abschnitt">
-            <Abschnittslabel>Kapitelstreifen</Abschnittslabel>
+            <Abschnittslabel>{ti.kapitelstreifen}</Abschnittslabel>
             <StreifenLegende />
           </div>
-          <span className="fd-leise">Karten ziehen oder mit ⌥← / ⌥→ in die Nachbarspalte legen. Pfeiltasten wandern zwischen den Karten, Enter wählt.</span>
+          <span className="fd-leise">{ti.tastatur}</span>
         </div>
       </Inspektor>
     );
@@ -339,15 +337,15 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
   const strang = karte.strang ? daten.straenge.find((s) => s.id === karte.strang) : undefined;
   const status: 'offen' | 'erledigt' | 'bewusst_offen' = karte.status;
   return (
-    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label="Faden">
+    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={ti.label}>
       <div key={karte.id} className="fd-abschnitt" style={{ gap: 16 }}>
         <div className="fd-abschnitt" style={{ gap: 6 }}>
-          <span className="fd-label">{karte.quelle === 'leon' ? 'Eigener Faden' : 'Loses Ende aus der Prüfung'}</span>
+          <span className="fd-label">{karte.quelle === 'leon' ? ti.eigener : ti.ausPruefung}</span>
           {karte.quelle === 'leon' ? (
             <EntwurfFeld
               className="pl-eingabe fd-inspektor-titel"
               style={{ height: 'auto', padding: '2px 6px', marginLeft: -7, border: '1px solid transparent', background: 'transparent' }}
-              aria-label="Name des Fadens"
+              aria-label={ti.nameLabel}
               wert={karte.name}
               onSpeichern={(name) => name.trim() && void aendern(karte.id, { name: name.trim() })}
             />
@@ -364,61 +362,61 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
 
         <Segment<'offen' | 'erledigt' | 'bewusst_offen'>
           rolle="group"
-          label="Status"
+          label={ti.status}
           voll
           wert={status}
           onChange={(w) => void verschieben(karte.id, w === 'offen' ? (karte.aufloesungIn ? 'geplant' : 'offen') : w)}
           optionen={[
-            { wert: 'offen', label: 'Offen' },
-            { wert: 'erledigt', label: 'Erledigt' },
-            { wert: 'bewusst_offen', label: 'Bewusst offen' },
+            { wert: 'offen', label: ti.offen },
+            { wert: 'erledigt', label: ti.erledigt },
+            { wert: 'bewusst_offen', label: ti.bewusstOffen },
           ]}
         />
 
         {(karte.ruhend || karte.aufloesungVerpasst || karte.aufloesungZuFrueh) && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 10px', borderRadius: 8, background: 'var(--ruhend)', color: 'var(--warm-dark)', fontSize: 12, lineHeight: 1.45 }}>
-            {karte.ruhend && <span>Ruht seit {kapitelText(karte.ruhtSeit)} – Warnung ab {karte.schwelle}.</span>}
-            {karte.aufloesungVerpasst && <span>{kapitelVoll(daten, karte.aufloesungIn)} ist geschrieben, der Faden ist noch offen.</span>}
-            {karte.aufloesungZuFrueh && <span>Die geplante Auflösung liegt vor der Eröffnung.</span>}
+            {karte.ruhend && <span>{f(ti.ruhtWarnung, { dauer: kapitelText(karte.ruhtSeit), schwelle: karte.schwelle })}</span>}
+            {karte.aufloesungVerpasst && <span>{f(t.faeden.karte.verpasst, { kap: kapitelVoll(daten, karte.aufloesungIn) })}</span>}
+            {karte.aufloesungZuFrueh && <span>{ti.zuFrueh}</span>}
           </div>
         )}
 
         <div className="fd-abschnitt">
-          <Abschnittslabel>Verlauf</Abschnittslabel>
+          <Abschnittslabel>{ti.verlauf}</Abschnittslabel>
           <Kapitelstreifen karte={karte} daten={daten} gross onKapitel={(k) => oeffne('kapitel', { kapitel: k })} />
           <StreifenLegende />
         </div>
 
         <div className="fd-abschnitt">
-          <Zeile label="Eröffnet in">
+          <Zeile label={ti.eroeffnetIn}>
             {karte.quelle === 'leon' ? (
-              <KapitelAuswahl daten={daten} wert={karte.eroeffnetIn} onChange={(k) => void aendern(karte.id, { eroeffnetIn: k })} leer="– noch kein Kapitel –" label="Eröffnet in" />
+              <KapitelAuswahl daten={daten} wert={karte.eroeffnetIn} onChange={(k) => void aendern(karte.id, { eroeffnetIn: k })} leer={t.faeden.neu.keinKapitel} label={ti.eroeffnetIn} />
             ) : (
               kapitelVoll(daten, karte.eroeffnetIn)
             )}
           </Zeile>
           {karte.quelle === 'analyse' && (
-            <Zeile label="Aufgegriffen">{karte.aufgegriffenIn.length ? karte.aufgegriffenIn.map((k) => kapNr(daten, k)).join(', ') : 'noch nicht'}</Zeile>
+            <Zeile label={ti.aufgegriffen}>{karte.aufgegriffenIn.length ? karte.aufgegriffenIn.map((k) => kapNr(daten, k)).join(', ') : ti.nochNicht}</Zeile>
           )}
-          {karte.status === 'offen' && karte.zuletztIn && <Zeile label="Ruht seit">{karte.ruhtSeit === 0 ? 'im letzten Kapitel erwähnt' : kapitelText(karte.ruhtSeit)}</Zeile>}
+          {karte.status === 'offen' && karte.zuletztIn && <Zeile label={ti.ruhtSeit}>{karte.ruhtSeit === 0 ? ti.imLetzten : kapitelText(karte.ruhtSeit)}</Zeile>}
         </div>
 
         <div className="fd-abschnitt">
           <label className="fd-label" htmlFor="fd-aufloesung">
-            Geplante Auflösung
+            {ti.geplanteAufloesung}
           </label>
           <KapitelAuswahl
             id="fd-aufloesung"
             daten={daten}
             wert={karte.aufloesungIn}
             onChange={(k) => void aendern(karte.id, { aufloesungIn: k })}
-            leer="– noch nicht geplant –"
+            leer={ti.nochNichtGeplant}
           />
           <label className="fd-label" htmlFor="fd-strang">
-            Strang
+            {ti.strang}
           </label>
           <select id="fd-strang" className="pl-select" value={karte.strang ?? ''} onChange={(e) => void aendern(karte.id, { strang: e.target.value || undefined })}>
-            <option value="">– kein Strang –</option>
+            <option value="">{ti.keinStrang}</option>
             {daten.straenge.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -426,14 +424,14 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
             ))}
           </select>
           <label className="fd-label" htmlFor="fd-schwelle">
-            Warnen nach … Kapiteln Ruhe
+            {ti.schwelle}
           </label>
           <EntwurfFeld
             id="fd-schwelle"
             className="pl-eingabe"
             inputMode="numeric"
             style={{ width: 130 }}
-            placeholder={`${daten.fadenplanung?.ruheSchwelle ?? RUHE_STANDARD} (Standard)`}
+            placeholder={f(ti.standard, { n: daten.fadenplanung?.ruheSchwelle ?? RUHE_STANDARD })}
             wert={karte.plan?.ruheSchwelle !== undefined ? String(karte.plan.ruheSchwelle) : ''}
             onSpeichern={(w) => {
               const n = Number.parseInt(w.trim(), 10);
@@ -441,14 +439,14 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
             }}
           />
           <label className="fd-label" htmlFor="fd-notiz">
-            Notiz
+            {ti.notiz}
           </label>
           <EntwurfBereich
             id="fd-notiz"
             className="pl-bereich"
             rows={3}
             autoHoehe
-            placeholder="Wie soll sich der Faden auflösen?"
+            placeholder={ti.notizPlatzhalter}
             wert={karte.notiz ?? ''}
             onSpeichern={(notiz) => void aendern(karte.id, { notiz })}
           />
@@ -457,7 +455,7 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
         <div className="fd-aktionen">
           {karte.eroeffnetIn && (
             <button type="button" className="pl-link" onClick={() => oeffne('kapitel', { kapitel: karte.eroeffnetIn })}>
-              Eröffnung im Kapitel-Überblick
+              {ti.eroeffnungZeigen}
             </button>
           )}
           {karte.quelle === 'leon' && (
@@ -466,10 +464,10 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
               className="pl-link"
               style={{ marginLeft: 'auto' }}
               onClick={async () => {
-                if (await bestaetigen(`Faden „${karte.name}“ löschen?`, { knopf: 'Löschen', titel: 'Faden' })) void loeschen(karte.id);
+                if (await bestaetigen(f(ti.loeschenFrage, { name: karte.name }), { knopf: t.gemeinsam.loeschen, titel: ti.label })) void loeschen(karte.id);
               }}
             >
-              Faden löschen
+              {ti.loeschen}
             </button>
           )}
         </div>
@@ -489,10 +487,11 @@ function Leiste({ daten, karten }: { daten: ProjektDaten; karten: FadenKarte[] }
   const schwelle = daten.fadenplanung?.ruheSchwelle ?? RUHE_STANDARD;
   const ruhend = karten.filter((k) => k.ruhend).length;
   const mitStrang = daten.straenge.filter((s) => karten.some((k) => k.strang === s.id));
+  const t = useTexte().faeden.leiste;
   return (
-    <div className="fd-leiste" role="toolbar" aria-label="Filter">
+    <div className="fd-leiste" role="toolbar" aria-label={t.label}>
       <Chip variante="knopf" aktiv={filter.strang === null} onClick={() => setzeFilter({ strang: null })}>
-        Alle Stränge
+        {t.alleStraenge}
       </Chip>
       {mitStrang.map((s) => (
         <Chip key={s.id} variante="knopf" punkt={strangFarbe(s.farbe)} aktiv={filter.strang === s.id} onClick={() => setzeFilter({ strang: filter.strang === s.id ? null : s.id })}>
@@ -501,22 +500,22 @@ function Leiste({ daten, karten }: { daten: ProjektDaten; karten: FadenKarte[] }
       ))}
       <span className="fd-leiste__trenner" aria-hidden="true" />
       <Chip variante="knopf" aktiv={filter.nurRuhend} onClick={() => setzeFilter({ nurRuhend: !filter.nurRuhend })}>
-        Nur ruhende ({ruhend})
+        {f(t.nurRuhende, { n: ruhend })}
       </Chip>
       <div className="fd-leiste__rechts">
-        <span id="fd-schwelle-label">Warnung ab</span>
+        <span id="fd-schwelle-label">{t.warnungAb}</span>
         <div role="group" aria-labelledby="fd-schwelle-label" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <button type="button" className="pl-kleinknopf" aria-label="Schwelle verringern" disabled={schwelle <= 1} onClick={() => void setzeSchwelle(schwelle - 1)}>
+          <button type="button" className="pl-kleinknopf" aria-label={t.verringern} disabled={schwelle <= 1} onClick={() => void setzeSchwelle(schwelle - 1)}>
             −
           </button>
           <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600, color: 'var(--ink)' }} aria-live="polite">
             {schwelle}
           </span>
-          <button type="button" className="pl-kleinknopf" aria-label="Schwelle erhöhen" onClick={() => void setzeSchwelle(schwelle + 1)}>
+          <button type="button" className="pl-kleinknopf" aria-label={t.erhoehen} onClick={() => void setzeSchwelle(schwelle + 1)}>
             +
           </button>
         </div>
-        <span>Kapiteln Ruhe</span>
+        <span>{t.kapitelRuhe}</span>
       </div>
     </div>
   );
@@ -537,6 +536,8 @@ export default function Ansicht() {
   const [ziehend, setZiehend] = useState<FadenKarte | null>(null);
   const [aufloesungFuer, setAufloesungFuer] = useState<Id | null>(null);
   const sensoren = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const t = useTexte();
+  const ta = t.faeden.ansicht;
 
   const sichtbar = useMemo(
     () => karten.filter((k) => (filter.strang === null || k.strang === filter.strang) && (!filter.nurRuhend || k.ruhend)),
@@ -605,13 +606,17 @@ export default function Ansicht() {
 
   return (
     <Werkzeugseite
-      titel="Fäden"
-      hinweis={karten.length ? `${karten.length} Fäden · ${offen} offen${ruhend ? ` · ${ruhend} ruhen zu lange` : ''}` : 'Lose Enden des Buchs'}
+      titel={ta.titel}
+      hinweis={
+        karten.length
+          ? [f(ta.anzahl, { n: karten.length }), f(ta.offen, { n: offen }), ruhend ? f(ta.ruhend, { n: ruhend }) : ''].filter(Boolean).join(' · ')
+          : ta.leerHinweis
+      }
       inspektor={karten.length ? <FadenInspektor daten={daten} karten={karten} /> : undefined}
     >
       {karten.length === 0 ? (
-        <LeerZustand titel="Noch keine Fäden" aktionen={<Button onClick={() => setzeNeuOffen(true)}>+ Faden</Button>}>
-          Lose Enden entstehen bei der Prüfung der Kapitel. Du kannst auch selbst einen Faden anlegen, den du später auflösen willst.
+        <LeerZustand titel={ta.leerTitel} aktionen={<Button onClick={() => setzeNeuOffen(true)}>{ta.plusFaden}</Button>}>
+          {ta.leerText}
         </LeerZustand>
       ) : (
         <>
@@ -621,7 +626,7 @@ export default function Ansicht() {
               {FADEN_SPALTEN.map((sp) => (
                 <Spalte key={sp} spalte={sp} anzahl={spalten[sp].length} ziel={!!ziehend && ziehend.spalte !== sp}>
                   {spalten[sp].length === 0 ? (
-                    <div className="fd-spalte__leer">{filter.strang || filter.nurRuhend ? 'Keine Fäden für diesen Filter.' : LEER_TEXT[sp]}</div>
+                    <div className="fd-spalte__leer">{filter.strang || filter.nurRuhend ? ta.keineFuerFilter : t.faeden.leer[sp]}</div>
                   ) : (
                     spalten[sp].map((k) => <Karte key={k.id} karte={k} daten={daten} gewaehlt={auswahl === k.id} onTaste={taste} />)
                   )}
@@ -646,10 +651,11 @@ export default function Ansicht() {
 
 export function Titelaktionen() {
   const setzeNeuOffen = useStore((s) => s.struktur.setzeFadenNeuOffen);
-  return <Button onClick={() => setzeNeuOffen(true)}>+ Faden</Button>;
+  const t = useTexte();
+  return <Button onClick={() => setzeNeuOffen(true)}>{t.faeden.ansicht.plusFaden}</Button>;
 }
 
 export function kontext(state: Store): string {
   void state;
-  return 'Fäden';
+  return texte().faeden.ansicht.titel;
 }

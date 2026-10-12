@@ -40,13 +40,20 @@ fn schluessel(pfad: &Path) -> PathBuf {
 }
 
 fn filtername(endungen: &[String]) -> String {
+    filtername_in(crate::sprache::aktuell(), endungen)
+}
+
+fn filtername_in(sprache: crate::sprache::Sprache, endungen: &[String]) -> String {
+    let en = sprache == crate::sprache::Sprache::En;
     let e: Vec<_> = endungen.iter().map(|e| e.to_lowercase()).collect();
     if e.iter().all(|x| x == "docx") {
-        "Word-Dokument".into()
+        if en { "Word Document" } else { "Word-Dokument" }.into()
     } else if e.iter().all(|x| x == "pdf") {
         "PDF".into()
+    } else if e.iter().all(|x| x == "epub") {
+        "EPUB".into()
     } else {
-        "Dokument".into()
+        if en { "Document" } else { "Dokument" }.into()
     }
 }
 
@@ -67,7 +74,7 @@ pub async fn datei_waehlen(
         .dialog()
         .file()
         .set_parent(&fenster)
-        .set_title("Datei wählen");
+        .set_title(crate::sprache::t("Datei wählen", "Choose File"));
     if !endungen.is_empty() {
         let refs: Vec<&str> = endungen.iter().map(String::as_str).collect();
         dialog = dialog.add_filter(filtername(&endungen), &refs);
@@ -77,7 +84,7 @@ pub async fn datei_waehlen(
     };
     let pfad = gewaehlt
         .into_path()
-        .map_err(|e| format!("Datei nicht lesbar: {e}"))?;
+        .map_err(|e| crate::tf!("Datei nicht lesbar: {e}", "File not readable: {e}"))?;
     sperre(&zustand.extern_lesen).insert(schluessel(&pfad));
     Ok(Some(GewaehlteDatei {
         name: pfad
@@ -96,13 +103,23 @@ pub async fn datei_lesen_extern(
 ) -> Result<Response, String> {
     let p = schluessel(Path::new(&pfad));
     if !sperre(&zustand.extern_lesen).remove(&p) {
-        return Err("Diese Datei wurde nicht über den Dialog gewählt.".into());
+        return Err(crate::sprache::t(
+            "Diese Datei wurde nicht über den Dialog gewählt.",
+            "This file was not chosen in the dialog.",
+        )
+        .into());
     }
-    let meta = std::fs::metadata(&p).map_err(|e| format!("Datei nicht lesbar: {e}"))?;
+    let meta = std::fs::metadata(&p)
+        .map_err(|e| crate::tf!("Datei nicht lesbar: {e}", "File not readable: {e}"))?;
     if meta.len() > MAX_GROESSE {
-        return Err("Die Datei ist zu groß (über 200 MB).".into());
+        return Err(crate::sprache::t(
+            "Die Datei ist zu groß (über 200 MB).",
+            "The file is too large (over 200 MB).",
+        )
+        .into());
     }
-    let daten = std::fs::read(&p).map_err(|e| format!("Datei nicht lesbar: {e}"))?;
+    let daten = std::fs::read(&p)
+        .map_err(|e| crate::tf!("Datei nicht lesbar: {e}", "File not readable: {e}"))?;
     Ok(Response::new(daten))
 }
 
@@ -123,7 +140,7 @@ pub async fn datei_speichern(
         .dialog()
         .file()
         .set_parent(&fenster)
-        .set_title("Exportieren")
+        .set_title(crate::sprache::t("Exportieren", "Export"))
         .set_file_name(&name)
         .set_can_create_directories(true);
     if let Some(e) = &endung {
@@ -132,9 +149,12 @@ pub async fn datei_speichern(
     let Some(gewaehlt) = dialog.blocking_save_file() else {
         return Ok(None);
     };
-    let pfad = gewaehlt
-        .into_path()
-        .map_err(|e| format!("Speicherort nicht verwendbar: {e}"))?;
+    let pfad = gewaehlt.into_path().map_err(|e| {
+        crate::tf!(
+            "Speicherort nicht verwendbar: {e}",
+            "Location not usable: {e}"
+        )
+    })?;
     sperre(&zustand.extern_schreiben).insert(schluessel(&pfad));
     Ok(Some(pfad.to_string_lossy().into_owned()))
 }
@@ -147,22 +167,27 @@ pub async fn datei_schreiben_extern(
     request: Request<'_>,
 ) -> Result<(), String> {
     let InvokeBody::Raw(daten) = request.body() else {
-        return Err("Binärdaten erwartet.".into());
+        return Err(crate::sprache::t("Binärdaten erwartet.", "Binary data expected.").into());
     };
     let kodiert = request
         .headers()
         .get("x-pfad")
         .and_then(|v| v.to_str().ok())
-        .ok_or("Zielpfad fehlt.")?;
+        .ok_or(crate::sprache::t("Zielpfad fehlt.", "Target path missing."))?;
     let pfad = percent_decode_str(kodiert)
         .decode_utf8()
-        .map_err(|_| "Zielpfad ungültig.")?
+        .map_err(|_| crate::sprache::t("Zielpfad ungültig.", "Invalid target path."))?
         .into_owned();
     let p = schluessel(Path::new(&pfad));
     if !sperre(&zustand.extern_schreiben).remove(&p) {
-        return Err("Dieser Speicherort wurde nicht über den Dialog gewählt.".into());
+        return Err(crate::sprache::t(
+            "Dieser Speicherort wurde nicht über den Dialog gewählt.",
+            "This location was not chosen in the dialog.",
+        )
+        .into());
     }
-    schreiben_atomar(&p, daten).map_err(|e| format!("Datei nicht gespeichert: {e}"))
+    schreiben_atomar(&p, daten)
+        .map_err(|e| crate::tf!("Datei nicht gespeichert: {e}", "File not saved: {e}"))
 }
 
 #[cfg(test)]
@@ -174,6 +199,9 @@ mod tests {
         assert_eq!(filtername(&["docx".into()]), "Word-Dokument");
         assert_eq!(filtername(&["PDF".into()]), "PDF");
         assert_eq!(filtername(&["md".into(), "docx".into()]), "Dokument");
+        let en = crate::sprache::Sprache::En;
+        assert_eq!(filtername_in(en, &["docx".into()]), "Word Document");
+        assert_eq!(filtername_in(en, &["md".into()]), "Document");
     }
 
     #[test]

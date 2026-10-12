@@ -1,10 +1,11 @@
 /** Bereich „Zeitleiste“ (G1 Zeit & Zustand): Kapitel/Szenen auf Tages- und Uhrzeit-Achse, Zustandsspuren. Besitzer: G1. */
-import { SICHERHEIT_FARBE, SICHERHEIT_NAME, WOCHENTAG_NAME } from '@core/zeit/index';
+import { SICHERHEIT_FARBE } from '@core/zeit/index';
 import type { ZeitSicherheit } from '@core/model/types';
+import { f, texte, useTexte, vergleich } from '../../i18n';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { Button, Checkbox, LeerZustand, Segment, Werkzeugseite } from '../../ui';
-import { farbe, SicherheitPunkt, useZeitDaten } from './gemeinsam';
+import { farbe, SicherheitPunkt, sicherheitName, useZeitDaten, wochentagName } from './gemeinsam';
 import { ZeitInspektor } from './Inspektor';
 import { Leiste } from './Leiste';
 import './zeitleiste.css';
@@ -16,43 +17,43 @@ function Werkzeugzeile({ figur }: { figur?: string }) {
   const spuren = useStore((s) => s.zeit.spuren);
   const setzeSpur = useStore((s) => s.zeit.setzeSpur);
   const setzeFigur = useStore((s) => s.zeit.setzeFigur);
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, 'de') : a.rolle === 'haupt' ? -1 : 1));
+  const t = useTexte().zeitleiste.ansicht;
+  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
   const hatSzenen = Object.values(daten.plaene).some((p) => (p.szenen?.length ?? 0) >= 2);
   return (
     <div className="zl-werkzeuge">
       <Segment<'kapitel' | 'szenen'>
-        label="Einheit"
+        label={t.einheit}
         rolle="group"
         groesse="klein"
         hintergrund="selected"
         wert={szenen && hatSzenen ? 'szenen' : 'kapitel'}
         onChange={(w) => setzeSzenen(w === 'szenen')}
         optionen={[
-          { wert: 'kapitel', label: 'Kapitel' },
-          { wert: 'szenen', label: hatSzenen ? 'Szenen' : 'Szenen (keine geplant)' },
+          { wert: 'kapitel', label: t.kapitel },
+          { wert: 'szenen', label: hatSzenen ? t.szenen : t.szenenKeine },
         ]}
       />
       <Checkbox checked={spuren.ort} onChange={(e) => setzeSpur('ort', e.target.checked)}>
-        Ort
+        {t.ort}
       </Checkbox>
       <Checkbox checked={spuren.zustand} disabled={!figuren.length} onChange={(e) => setzeSpur('zustand', e.target.checked)}>
-        Zustand von
+        {t.zustandVon}
       </Checkbox>
       {figuren.length > 0 && (
-        <select className="zl-select" aria-label="Figur für die Zustandsspur" value={figur ?? ''} disabled={!spuren.zustand} onChange={(e) => setzeFigur(e.target.value || null)}>
-          {figuren.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-              {f.rolle === 'haupt' ? '' : ' (Nebenfigur)'}
+        <select className="zl-select" aria-label={t.figurFuerSpur} value={figur ?? ''} disabled={!spuren.zustand} onChange={(e) => setzeFigur(e.target.value || null)}>
+          {figuren.map((fig) => (
+            <option key={fig.id} value={fig.id}>
+              {fig.rolle === 'haupt' ? fig.name : f(t.nebenfigur, { name: fig.name })}
             </option>
           ))}
         </select>
       )}
-      <div className="zl-werkzeuge__rechts zl-legende" aria-label="Sicherheit">
+      <div className="zl-werkzeuge__rechts zl-legende" aria-label={t.sicherheit}>
         {(['fest', 'ungefaehr', 'unklar'] as ZeitSicherheit[]).map((s) => (
           <span key={s} className="zl-legende__eintrag" style={farbe(SICHERHEIT_FARBE[s])}>
             <SicherheitPunkt sicherheit={s} />
-            {SICHERHEIT_NAME[s]}
+            {sicherheitName(s)}
           </span>
         ))}
       </div>
@@ -65,13 +66,15 @@ export default function Ansicht() {
   const zd = useZeitDaten();
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const setzeBereich = useStore((s) => s.setzeBereich);
+  const tz = useTexte().zeitleiste;
+  const t = tz.ansicht;
   if (!daten || !zd) return null;
 
   if (!daten.projekt.kapitel.length) {
     return (
-      <Werkzeugseite titel="Zeitleiste">
-        <LeerZustand titel="Noch keine Kapitel" aktionen={<Button onClick={() => setzeBereich('akte')}>Kapitel planen</Button>}>
-          Sobald es Kapitel gibt, stehen sie hier auf einer Tages- und Uhrzeit-Achse – mit Ort und Zustand der Hauptfigur darunter.
+      <Werkzeugseite titel={tz.titel}>
+        <LeerZustand titel={t.leerTitel} aktionen={<Button onClick={() => setzeBereich('akte')}>{t.leerAktion}</Button>}>
+          {t.leerText}
         </LeerZustand>
       </Werkzeugseite>
     );
@@ -81,43 +84,37 @@ export default function Ansicht() {
   const hinweise = new Set([...zd.hinweise.values()].flat().map((h) => h.schluessel)).size;
   const offeneVorschlaege = zd.zeitVorschlaege.length + zd.zustandVorschlaege.length;
   const kopf = [
-    `${mitTag} von ${zd.einheiten.length} ${zd.einheiten.some((e) => e.szene) ? 'Karten' : 'Kapiteln'} mit Tag`,
-    zd.beginn.wochentag ? `Tag 1 = ${WOCHENTAG_NAME[zd.beginn.wochentag]}` : '',
+    f(zd.einheiten.some((e) => e.szene) ? t.kopfKarten : t.kopfKapitel, { mit: mitTag, n: zd.einheiten.length }),
+    zd.beginn.wochentag ? f(t.tag1, { wochentag: wochentagName(zd.beginn.wochentag) }) : '',
   ]
     .filter(Boolean)
     .join(' · ');
 
   return (
-    <Werkzeugseite titel="Zeitleiste" hinweis={kopf} inspektor={<ZeitInspektor zd={zd} />}>
+    <Werkzeugseite titel={tz.titel} hinweis={kopf} inspektor={<ZeitInspektor zd={zd} />}>
       <div className="zl-seite">
         <Werkzeugzeile figur={zd.figur} />
         {mitTag === 0 && (
           <div className="zl-banner" role="status">
-            <span>
-              Noch kein Kapitel hat einen Tag. Wähle eine Karte und trag im Inspektor Tag und Tageszeit ein – oder lass dir Zeitpunkte mit Beleg vorschlagen.
-            </span>
+            <span>{t.ohneTag}</span>
             <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
-              Zeitpunkte vorschlagen …
+              {t.zeitpunkteVorschlagen}
             </Button>
           </div>
         )}
         {hinweise > 0 && (
           <div className="zl-banner zl-banner--warn" role="status">
-            <span>
-              {hinweise === 1 ? 'Ein Zeitwiderspruch' : `${hinweise} Zeitwidersprüche`} – Karten mit „!“ zeigen, wo. Die Prüfung läuft lokal, ohne KI.
-            </span>
+            <span>{f(t.widersprueche, { n: hinweise })}</span>
             <Button klein onClick={() => setzeBereich('hinweise')}>
-              Hinweise ansehen
+              {t.hinweiseAnsehen}
             </Button>
           </div>
         )}
         {offeneVorschlaege > 0 && mitTag > 0 && (
           <div className="zl-banner" role="status">
-            <span>
-              {offeneVorschlaege === 1 ? 'Ein Vorschlag der KI wartet' : `${offeneVorschlaege} Vorschläge der KI warten`} auf deine Entscheidung (Karten mit „KI“).
-            </span>
+            <span>{f(t.vorschlaegeWarten, { n: offeneVorschlaege })}</span>
             <Button klein onClick={() => oeffneDialog('zeit-vorschlaege')}>
-              Alle ansehen
+              {t.alleAnsehen}
             </Button>
           </div>
         )}
@@ -130,17 +127,19 @@ export default function Ansicht() {
 export function Titelaktionen() {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const bereit = useStore((s) => !!s.daten);
+  const t = useTexte().zeitleiste.ansicht;
   return (
     <Button disabled={!bereit} onClick={() => oeffneDialog('zeit-vorschlaege')}>
-      Vorschlagen …
+      {t.vorschlagen}
     </Button>
   );
 }
 
 export function kontext(state: Store): string {
+  const t = texte().zeitleiste;
   const auswahl = state.zeit.auswahl;
-  if (!auswahl || !state.daten) return 'Zeitleiste';
+  if (!auswahl || !state.daten) return t.titel;
   const kapitel = auswahl.includes('#') ? auswahl.slice(0, auswahl.indexOf('#')) : auswahl;
   const nr = state.daten.projekt.kapitel.indexOf(kapitel) + 1;
-  return nr > 0 ? `Zeitleiste · Kap. ${nr}` : 'Zeitleiste';
+  return nr > 0 ? f(t.kontextKap, { nr }) : t.titel;
 }

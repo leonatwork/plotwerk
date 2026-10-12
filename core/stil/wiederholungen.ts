@@ -2,7 +2,8 @@
  * Wiederholungen im Kapiteltext (G4, lokal, ohne KI): häufige Wörter, wiederholte Satzanfänge und das
  * gleiche Wort in kurzer Distanz. Das Ergebnis markiert nur Stellen – es schlägt nie einen anderen Text vor.
  */
-import { saetze, STOPPWOERTER, woerter, type Satz, type Wort } from './woerter';
+import type { Sprache } from '../i18n';
+import { istStoppwort, saetze, woerter, type Satz, type Wort } from './woerter';
 
 export interface Stelle {
   start: number;
@@ -65,14 +66,16 @@ export interface StilOptionen {
   grenze?: number;
   /** kürzeste Wortlänge für Häufigkeit und Nähe (Standard 4) */
   mindestLaenge?: number;
+  /** Buchsprache (Stoppwörter, Stammformen, Abkürzungen); Standard Deutsch */
+  sprache?: Sprache;
 }
 
 const STANDARD_ABSTAND = 30;
 
-function ignorierMenge(ignorieren: Iterable<string> | undefined): Set<string> {
+function ignorierMenge(ignorieren: Iterable<string> | undefined, sprache: Sprache = 'de'): Set<string> {
   const menge = new Set<string>();
   for (const name of ignorieren ?? []) {
-    for (const w of woerter(name)) {
+    for (const w of woerter(name, sprache)) {
       menge.add(w.klein);
       menge.add(w.stamm);
     }
@@ -80,10 +83,10 @@ function ignorierMenge(ignorieren: Iterable<string> | undefined): Set<string> {
   return menge;
 }
 
-function zaehlbar(w: Wort, ignoriert: Set<string>, mindestLaenge: number): boolean {
+function zaehlbar(w: Wort, ignoriert: Set<string>, mindestLaenge: number, sprache: Sprache = 'de'): boolean {
   if (w.text.length < mindestLaenge) return false;
   if (/\p{N}/u.test(w.text)) return false;
-  if (STOPPWOERTER.has(w.klein)) return false;
+  if (istStoppwort(w.klein, sprache)) return false;
   if (ignoriert.has(w.klein) || ignoriert.has(w.stamm)) return false;
   // Genitiv eines ignorierten Namens („Pauls“)
   if (/s$/u.test(w.klein) && ignoriert.has(w.klein.slice(0, -1))) return false;
@@ -110,12 +113,13 @@ function haeufigsteForm(liste: Wort[]): string {
 }
 
 export function haeufigeWoerter(text: string, optionen: StilOptionen = {}): HaeufigesWort[] {
-  const alle = woerter(text);
-  const ignoriert = ignorierMenge(optionen.ignorieren);
+  const sprache = optionen.sprache ?? 'de';
+  const alle = woerter(text, sprache);
+  const ignoriert = ignorierMenge(optionen.ignorieren, optionen.sprache);
   const mindest = optionen.mindestLaenge ?? 4;
   const gruppen = new Map<string, Wort[]>();
   for (const w of alle) {
-    if (!zaehlbar(w, ignoriert, mindest)) continue;
+    if (!zaehlbar(w, ignoriert, mindest, optionen.sprache)) continue;
     const g = gruppen.get(w.stamm);
     if (g) g.push(w);
     else gruppen.set(w.stamm, [w]);
@@ -131,7 +135,7 @@ export function haeufigeWoerter(text: string, optionen: StilOptionen = {}): Haeu
 
 export function naheWiederholungen(text: string, optionen: StilOptionen = {}): NaheWiederholung[] {
   const abstand = Math.max(1, optionen.abstand ?? STANDARD_ABSTAND);
-  const ignoriert = ignorierMenge(optionen.ignorieren);
+  const ignoriert = ignorierMenge(optionen.ignorieren, optionen.sprache);
   const mindest = optionen.mindestLaenge ?? 4;
   const letzte = new Map<string, Wort[]>();
   const ergebnis: NaheWiederholung[] = [];
@@ -141,8 +145,8 @@ export function naheWiederholungen(text: string, optionen: StilOptionen = {}): N
     for (let i = 1; i < gruppe.length; i++) min = Math.min(min, gruppe[i]!.nr - gruppe[i - 1]!.nr);
     ergebnis.push({ wort: gruppe[0]!.text, stamm: gruppe[0]!.stamm, stellen: gruppe.map(stelle), abstand: min });
   };
-  for (const w of woerter(text)) {
-    if (!zaehlbar(w, ignoriert, mindest)) continue;
+  for (const w of woerter(text, optionen.sprache)) {
+    if (!zaehlbar(w, ignoriert, mindest, optionen.sprache)) continue;
     const gruppe = letzte.get(w.stamm);
     if (gruppe && w.nr - gruppe[gruppe.length - 1]!.nr <= abstand) {
       gruppe.push(w);
@@ -200,16 +204,16 @@ export function satzanfangStatistik(liste: Satz[], grenze = 5): SatzanfangStatis
 }
 
 /** Alle Stellen eines Wortes (gleiche Stammform) – für die Hervorhebung eines Wortes aus der Liste. */
-export function stellenVon(text: string, stammform: string): Stelle[] {
-  return woerter(text)
+export function stellenVon(text: string, stammform: string, sprache: Sprache = 'de'): Stelle[] {
+  return woerter(text, sprache)
     .filter((w) => w.stamm === stammform || w.klein === stammform)
     .map(stelle);
 }
 
 export function stilBericht(text: string, optionen: StilOptionen = {}): StilBericht {
-  const liste = saetze(text);
+  const liste = saetze(text, optionen.sprache);
   return {
-    woerter: woerter(text).length,
+    woerter: woerter(text, optionen.sprache).length,
     saetze: liste.length,
     haeufig: haeufigeWoerter(text, optionen),
     nah: naheWiederholungen(text, optionen),

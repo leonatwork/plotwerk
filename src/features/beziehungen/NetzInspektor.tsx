@@ -2,11 +2,12 @@
 import { useMemo } from 'react';
 import type { Index } from '@core/index/index';
 import type { BeziehungsKategorie, Id, ProjektDaten } from '@core/model/types';
+import { f, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Chip, Inspektor, klassen, RealitaetsUmschalter, Segment } from '../../ui';
 import { GruppenInspektor } from '../gruppen';
 import { EntwurfFeld } from './EntwurfFeld';
-import { farbSatz, GRUPPENTYP_LABEL, KATEGORIE_LABEL, KATEGORIEN, kapitelIndex, kapitelTitel, kapLabel } from './gemeinsam';
+import { farbSatz, KATEGORIEN, kapitelIndex, kapitelTitel, kapLabel } from './gemeinsam';
 import {
   aktuellerEintrag,
   beziehungsPaare,
@@ -28,6 +29,7 @@ interface Props {
 
 export function NetzInspektor(props: Props) {
   const auswahl = useStore((s) => s.netzAuswahl);
+  const t = useTexte();
   let inhalt;
   if (auswahl?.typ === 'figur' && props.daten.figuren[auswahl.id]) inhalt = <FigurTeil {...props} id={auswahl.id} />;
   else if (auswahl?.typ === 'beziehung') inhalt = <BeziehungTeil {...props} paar={auswahl.paar} eintrag={auswahl.eintrag} />;
@@ -38,7 +40,7 @@ export function NetzInspektor(props: Props) {
       key={auswahl ? `${auswahl.typ}:${auswahl.typ === 'beziehung' ? auswahl.paar : auswahl.id}` : 'uebersicht'}
       breite={300}
       hintergrund="weiss"
-      label="Inspektor Beziehungen"
+      label={t.beziehungen.inspektor.label}
       style={{ gap: 12 }}
     >
       {inhalt}
@@ -47,37 +49,41 @@ export function NetzInspektor(props: Props) {
 }
 
 function Legende({ ansicht }: { ansicht: NetzAnsicht }) {
+  const t = useTexte();
+  const ti = t.beziehungen.inspektor;
   const flaechen = [...ansicht.flaechen].sort((a, b) => a.rechteck.x - b.rechteck.x);
   return (
     <div className="pw-bz-legende">
-      <strong>Legende</strong>
-      <span>Gestrichelte Karte: Existenz nicht gesichert oder nur erwähnt</span>
+      <strong>{ti.legende}</strong>
+      <span>{ti.legendeGestrichelt}</span>
       {flaechen.length > 0 && (
         <span>
-          {flaechen.map((f) => `${f.farben.name} Fläche: ${GRUPPENTYP_LABEL[f.gruppe.typ]} ${f.gruppe.name}`).join(' · ')}
+          {flaechen
+            .map((x) => f(ti.flaecheEintrag, { flaeche: ti.flaeche[x.farben.name], typ: t.beziehungen.gruppenTyp[x.gruppe.typ], name: x.gruppe.name }))
+            .join(' · ')}
         </span>
       )}
       {ansicht.ausgeblendet.length > 0 && (
-        <span>Ausgeblendet über Filter: {ansicht.ausgeblendet.map((f) => f.name).join(', ')}</span>
+        <span>{f(ti.ausgeblendet, { namen: ansicht.ausgeblendet.map((x) => x.name).join(', ') })}</span>
       )}
     </div>
   );
 }
 
 function Uebersicht({ daten, ansicht, standIdx }: Props) {
+  const ti = useTexte().beziehungen.inspektor;
   const figuren = ansicht.karten.length + ansicht.ohnePosition.length;
   return (
     <>
-      <Abschnittslabel>Stand</Abschnittslabel>
-      <strong className="pw-bz-name">Ende {kapLabel(daten, daten.projekt.kapitel[standIdx] ?? '')}</strong>
+      <Abschnittslabel>{ti.stand}</Abschnittslabel>
+      <strong className="pw-bz-name">{f(ti.standEnde, { kap: kapLabel(daten, daten.projekt.kapitel[standIdx] ?? '') })}</strong>
       <span className="pw-bz-text">
-        {figuren === 1 ? 'Eine Figur' : `${figuren} Figuren`} und{' '}
-        {ansicht.paare.length === 1 ? 'eine Beziehung' : `${ansicht.paare.length} Beziehungen`} sind bis hierhin bekannt.
+        {f(ti.bekannt, {
+          figuren: f(ti.figurenAnzahl, { n: figuren }),
+          beziehungen: f(ti.beziehungenAnzahl, { n: ansicht.paare.length }),
+        })}
       </span>
-      <span className="pw-bz-text">
-        Klicke eine Karte, Linie oder Fläche an. Neue Beziehung: vom Punkt am Kartenrand auf eine andere Karte ziehen oder
-        „+ Beziehung“.
-      </span>
+      <span className="pw-bz-text">{ti.hilfe}</span>
       <Legende ansicht={ansicht} />
     </>
   );
@@ -89,46 +95,51 @@ function FigurTeil({ daten, index, ansicht, standIdx, id }: Props & { id: Id }) 
   const oeffne = useStore((s) => s.oeffne);
   const beziehungAnlegen = useStore((s) => s.beziehungAnlegen);
   const figurImNetzSetzen = useStore((s) => s.figurImNetzSetzen);
-  const f = daten.figuren[id]!;
+  const t = useTexte();
+  const ti = t.beziehungen.inspektor;
+  const figur = daten.figuren[id]!;
   const paare = useMemo(() => beziehungsPaare(daten).filter((p) => p.a === id || p.b === id), [daten, id]);
   const partner = new Set(paare.map((p) => (p.a === id ? p.b : p.a)));
   const kandidaten = Object.values(daten.figuren)
     .filter((x) => x.id !== id && !partner.has(x.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => vergleich(a.name, b.name));
   const sichtbar = figurSichtbar(daten, index, id, standIdx);
 
   return (
     <>
-      <Abschnittslabel>Ausgewählt</Abschnittslabel>
-      <strong className="pw-bz-name">{f.name}</strong>
+      <Abschnittslabel>{ti.ausgewaehlt}</Abschnittslabel>
+      <strong className="pw-bz-name">{figur.name}</strong>
       <span className="pw-bz-text">{figurBisher(daten, index, id, standIdx)}</span>
       <div className="pw-bz-feld">
-        <span className="pw-bz-feldlabel">Existenz</span>
+        <span className="pw-bz-feldlabel">{ti.existenz}</span>
         <RealitaetsUmschalter
           variante="segment"
           groesse="hoch"
-          label="Existenz"
-          wert={f.existenz}
-          onChange={(existenz) => void speichereFigur({ ...f, existenz })}
+          label={ti.existenz}
+          wert={figur.existenz}
+          onChange={(existenz) => void speichereFigur({ ...figur, existenz })}
         />
       </div>
       <div className="pw-bz-feld">
         <label className="pw-bz-feldlabel" htmlFor={`wahrheit-${id}`}>
-          Wahrheit hinter den Kulissen <span style={{ fontWeight: 600 }}>(nur für dich, erscheint nie im Text)</span>
+          {ti.wahrheit} <span style={{ fontWeight: 600 }}>{ti.wahrheitZusatz}</span>
         </label>
         <EntwurfFeld
           key={`wahrheit-${id}`}
           id={`wahrheit-${id}`}
           mehrzeilig
           zeilen={5}
-          placeholder="Was weißt nur du über diese Figur?"
-          wert={f.wahrheit}
+          placeholder={ti.wahrheitPlatzhalter}
+          wert={figur.wahrheit}
           onSpeichern={(wahrheit) => void speichereFigur({ ...daten.figuren[id]!, wahrheit })}
           style={{ padding: 10 }}
         />
       </div>
       <div className="pw-bz-feld">
-        <span className="pw-bz-feldlabel">Beziehungen{sichtbar ? '' : ' (noch nicht eingeführt)'}</span>
+        <span className="pw-bz-feldlabel">
+          {ti.beziehungen}
+          {sichtbar ? '' : ti.nochNichtEingefuehrtZusatz}
+        </span>
         {paare.map((p) => {
           const anderer = daten.figuren[p.a === id ? p.b : p.a]!;
           const akt = aktuellerEintrag(daten, p, standIdx);
@@ -142,23 +153,23 @@ function FigurTeil({ daten, index, ansicht, standIdx, id }: Props & { id: Id }) 
               onClick={() => waehleImNetz({ typ: 'beziehung', paar: p.schluessel })}
             >
               <span>
-                <strong>{anderer.name}</strong> · {e.beziehung.art || 'ohne Bezeichnung'}
+                <strong>{anderer.name}</strong> · {e.beziehung.art || t.beziehungen.logik.ohneBezeichnung}
               </span>
               <span className="pw-bz-zeile__neben">
                 {akt
                   ? akt.beziehung.abKapitel
-                    ? `seit ${kapLabel(daten, akt.beziehung.abKapitel)}`
+                    ? f(ti.seit, { kap: kapLabel(daten, akt.beziehung.abKapitel) })
                     : ''
-                  : `ab ${kapLabel(daten, erster.beziehung.abKapitel ?? '')}`}
+                  : f(ti.ab, { kap: kapLabel(daten, erster.beziehung.abKapitel ?? '') })}
               </span>
             </button>
           );
         })}
-        {paare.length === 0 && <span className="pw-bz-text">Noch keine Beziehungen.</span>}
+        {paare.length === 0 && <span className="pw-bz-text">{ti.keineBeziehungen}</span>}
         {kandidaten.length > 0 && (
           <select
             className="pw-bz-select"
-            aria-label="Beziehung hinzufügen"
+            aria-label={ti.beziehungHinzufuegen}
             value=""
             onChange={async (e) => {
               const zu = e.target.value;
@@ -167,7 +178,7 @@ function FigurTeil({ daten, index, ansicht, standIdx, id }: Props & { id: Id }) 
               if (r) waehleImNetz({ typ: 'beziehung', paar: paarSchluessel(id, zu), eintrag: r });
             }}
           >
-            <option value="">+ Beziehung zu …</option>
+            <option value="">{ti.beziehungZu}</option>
             {kandidaten.map((k) => (
               <option key={k.id} value={k.id}>
                 {k.name}
@@ -178,11 +189,11 @@ function FigurTeil({ daten, index, ansicht, standIdx, id }: Props & { id: Id }) 
       </div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginLeft: -10 }}>
         <Button variante="text" onClick={() => oeffne('figuren', { figur: id })}>
-          Figurenkarte öffnen
+          {ti.figurenkarteOeffnen}
         </Button>
-        {f.netz && (
+        {figur.netz && (
           <Button variante="leise" onClick={() => void figurImNetzSetzen(id, null).then(() => waehleImNetz(null))}>
-            Aus dem Netz nehmen
+            {ti.ausDemNetz}
           </Button>
         )}
       </div>
@@ -203,9 +214,12 @@ function BeziehungTeil({
   const bezeichnungHinzufuegen = useStore((s) => s.bezeichnungHinzufuegen);
   const waehleImNetz = useStore((s) => s.waehleImNetz);
   const markiere = useStore((s) => s.markiere);
+  const t = useTexte();
+  const ti = t.beziehungen.inspektor;
+  const ohneBezeichnung = t.beziehungen.logik.ohneBezeichnung;
   const paar = useMemo(() => beziehungsPaare(daten).find((p) => p.schluessel === schluessel), [daten, schluessel]);
   const liste = useMemo(() => (paar ? belege(daten, index, paar.a, paar.b) : []), [daten, index, paar]);
-  if (!paar) return <span className="pw-bz-text">Diese Beziehung gibt es nicht mehr.</span>;
+  if (!paar) return <span className="pw-bz-text">{ti.gibtEsNichtMehr}</span>;
 
   const aktuell = aktuellerEintrag(daten, paar, standIdx);
   const gewaehlt: BeziehungsEintrag =
@@ -227,18 +241,18 @@ function BeziehungTeil({
 
   return (
     <>
-      <Abschnittslabel farbe={farben.dunkel}>Beziehung · {KATEGORIE_LABEL[b.kategorie]}</Abschnittslabel>
+      <Abschnittslabel farbe={farben.dunkel}>{f(ti.beziehungKategorie, { kategorie: t.beziehungen.kategorie[b.kategorie] })}</Abschnittslabel>
       <strong className="pw-bz-name">
         {von.name} – {zu.name}
       </strong>
       <span className="pw-bz-text">
         {aktuell
-          ? `Stand Ende Kap. ${standIdx + 1}: ${aktuell.beziehung.art || 'ohne Bezeichnung'}`
-          : `Noch nicht eingeführt (ab ${kapLabel(daten, paar.eintraege[0]!.beziehung.abKapitel ?? '')}).`}
+          ? f(ti.standEndeArt, { nr: standIdx + 1, art: aktuell.beziehung.art || ohneBezeichnung })
+          : f(ti.nochNichtEingefuehrtAb, { kap: kapLabel(daten, paar.eintraege[0]!.beziehung.abKapitel ?? '') })}
       </span>
 
       <div className="pw-bz-feld">
-        <span className="pw-bz-feldlabel">Verlauf</span>
+        <span className="pw-bz-feldlabel">{ti.verlauf}</span>
         {paar.eintraege.map((e) => (
           <button
             key={`${e.von}-${e.index}`}
@@ -247,9 +261,9 @@ function BeziehungTeil({
             aria-pressed={e === gewaehlt}
             onClick={() => waehleEintrag(e)}
           >
-            <span>{e.beziehung.art || <em>ohne Bezeichnung</em>}</span>
+            <span>{e.beziehung.art || <em>{ohneBezeichnung}</em>}</span>
             <span className="pw-bz-zeile__neben">
-              {e.beziehung.abKapitel ? `ab ${kapLabel(daten, e.beziehung.abKapitel)}` : 'von Anfang an'}
+              {e.beziehung.abKapitel ? f(ti.ab, { kap: kapLabel(daten, e.beziehung.abKapitel) }) : ti.vonAnfangAn}
             </span>
           </button>
         ))}
@@ -259,36 +273,36 @@ function BeziehungTeil({
           style={{ alignSelf: 'flex-start', marginLeft: -10 }}
           onClick={async () => waehleEintrag(await bezeichnungHinzufuegen(letzte.von, letzte.zu, naechstes))}
         >
-          + Neue Bezeichnung ab späterem Kapitel
+          {ti.neueBezeichnung}
         </Button>
       </div>
 
       <div className="pw-bz-feld">
         <label className="pw-bz-feldlabel" htmlFor={`art-${schl}`}>
-          Art
+          {ti.art}
         </label>
         <EntwurfFeld
           key={`art-${schl}`}
           id={`art-${schl}`}
           wert={b.art}
-          placeholder="z. B. Kollege, erstes Treffen"
+          placeholder={ti.artPlatzhalter}
           autoFocus={!b.art}
           onSpeichern={(art) => aendern({ art: art.trim() })}
         />
       </div>
       <div className="pw-bz-feld">
-        <span className="pw-bz-feldlabel">Kategorie</span>
+        <span className="pw-bz-feldlabel">{ti.kategorie}</span>
         <Segment<BeziehungsKategorie>
           rolle="group"
           voll
-          label="Kategorie"
+          label={ti.kategorie}
           wert={b.kategorie}
           onChange={(kategorie) => aendern({ kategorie })}
-          optionen={KATEGORIEN.map((k) => ({ wert: k, label: KATEGORIE_LABEL[k] }))}
+          optionen={KATEGORIEN.map((k) => ({ wert: k, label: t.beziehungen.kategorie[k] }))}
         />
       </div>
       <div className="pw-bz-feld">
-        <span className="pw-bz-feldlabel">Strang</span>
+        <span className="pw-bz-feldlabel">{ti.strang}</span>
         <div className="pw-bz-chips">
           {daten.straenge.map((s) => (
             <Chip
@@ -305,7 +319,7 @@ function BeziehungTeil({
       </div>
       <div className="pw-bz-feld">
         <label className="pw-bz-feldlabel" htmlFor={`ab-${schl}`}>
-          Gilt ab Kapitel
+          {ti.giltAb}
         </label>
         <select
           id={`ab-${schl}`}
@@ -313,7 +327,7 @@ function BeziehungTeil({
           value={b.abKapitel ?? ''}
           onChange={(e) => aendern({ abKapitel: e.target.value || undefined })}
         >
-          <option value="">von Anfang an</option>
+          <option value="">{ti.vonAnfangAn}</option>
           {daten.projekt.kapitel.map((k) => (
             <option key={k} value={k}>
               {kapitelTitel(daten, k)}
@@ -322,11 +336,11 @@ function BeziehungTeil({
         </select>
       </div>
       <Checkbox checked={!!b.unsicher} onChange={(e) => aendern({ unsicher: e.target.checked || undefined })}>
-        Gestrichelt: nur erwähnt oder unsicher
+        {ti.gestrichelt}
       </Checkbox>
       <div className="pw-bz-feld">
         <label className="pw-bz-feldlabel" htmlFor={`notiz-${schl}`}>
-          Notiz
+          {ti.notiz}
         </label>
         <EntwurfFeld
           key={`notiz-${schl}`}
@@ -339,19 +353,19 @@ function BeziehungTeil({
       </div>
 
       <div className="pw-bz-feld">
-        <span className="pw-bz-feldlabel">Belege aus dem Text</span>
-        {liste.length === 0 && <span className="pw-bz-text">Kein Kapitel, in dem beide vorkommen.</span>}
+        <span className="pw-bz-feldlabel">{ti.belege}</span>
+        {liste.length === 0 && <span className="pw-bz-text">{ti.keineBelege}</span>}
         {liste.map((l) => (
           <button
             key={l.kapitel}
             type="button"
             className="pw-bz-beleg"
-            title="Stelle im Text öffnen"
+            title={ti.stelleOeffnen}
             onClick={() => markiere({ kapitel: l.kapitel, anker: l.anker })}
           >
             <span className="pw-bz-beleg__kap">
               {kapitelTitel(daten, l.kapitel)}
-              {kapitelIndex(daten, l.kapitel) > standIdx ? ' · nach dem Stand' : ''}
+              {kapitelIndex(daten, l.kapitel) > standIdx ? ti.nachDemStand : ''}
             </span>
             <span className="pw-bz-beleg__text">{l.text}</span>
           </button>
@@ -364,7 +378,7 @@ function BeziehungTeil({
         style={{ alignSelf: 'flex-start', marginLeft: -10 }}
         onClick={() => void beziehungEntfernen(gewaehlt.von, gewaehlt.index)}
       >
-        {paar.eintraege.length > 1 ? 'Diese Bezeichnung entfernen' : 'Beziehung entfernen'}
+        {paar.eintraege.length > 1 ? ti.bezeichnungEntfernen : ti.beziehungEntfernen}
       </Button>
     </>
   );
@@ -373,7 +387,8 @@ function BeziehungTeil({
 function GruppeTeil({ ansicht, id }: Props & { id: Id }) {
   const waehleImNetz = useStore((s) => s.waehleImNetz);
   const gruppeImNetzSetzen = useStore((s) => s.gruppeImNetzSetzen);
-  const hatFlaeche = ansicht.flaechen.some((f) => f.gruppe.id === id);
+  const ti = useTexte().beziehungen.inspektor;
+  const hatFlaeche = ansicht.flaechen.some((x) => x.gruppe.id === id);
   return (
     <>
       <GruppenInspektor gruppe={id} onFigur={(f) => waehleImNetz({ typ: 'figur', id: f })} />
@@ -383,7 +398,7 @@ function GruppeTeil({ ansicht, id }: Props & { id: Id }) {
           style={{ alignSelf: 'flex-start', marginLeft: -10 }}
           onClick={() => void gruppeImNetzSetzen(id, null).then(() => waehleImNetz(null))}
         >
-          Fläche aus dem Netz nehmen
+          {ti.flaecheAusDemNetz}
         </Button>
       )}
       <Legende ansicht={ansicht} />

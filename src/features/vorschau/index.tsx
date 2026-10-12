@@ -7,6 +7,7 @@
  *   <VorschauEbene />           einmal im App-Rahmen einhängen (lädt die Ansicht erst beim Öffnen)
  */
 import { Component, lazy, Suspense, type ErrorInfo, type ReactNode } from 'react';
+import { texte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button } from '../../ui';
 import { schliesseVorschau, useVorschau } from './zustand';
@@ -26,9 +27,10 @@ class VorschauFehlergrenze extends Component<{ children: ReactNode }, { fehler: 
   }
   render() {
     if (!this.state.fehler) return this.props.children;
+    const t = texte();
     return (
-      <div role="alertdialog" aria-label="Buch-Vorschau" className="pw-fehler pw-fehler--voll" style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'var(--surface)' }}>
-        <strong>Die Vorschau konnte nicht angezeigt werden.</strong>
+      <div role="alertdialog" aria-label={t.vorschau.titel} className="pw-fehler pw-fehler--voll" style={{ position: 'fixed', inset: 0, zIndex: 90, background: 'var(--surface)' }}>
+        <strong>{t.vorschau.fehler}</strong>
         <code>{this.state.fehler.message}</code>
         <Button
           variante="primaer"
@@ -37,7 +39,7 @@ class VorschauFehlergrenze extends Component<{ children: ReactNode }, { fehler: 
             schliesseVorschau();
           }}
         >
-          Schließen
+          {t.gemeinsam.schliessen}
         </Button>
       </div>
     );

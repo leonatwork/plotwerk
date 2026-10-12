@@ -3,6 +3,7 @@
  */
 import { ankerErzeugen, ankerFinden, findeZitat, klartext, type Bereich } from '@core/text/index';
 import type { BeziehungsKategorie, GruppenTyp, Id, ProjektDaten, Strang, TextAnker } from '@core/model/types';
+import { f, texte } from '../../i18n';
 
 /** Kapitel-ID → Nummer (1-basiert, Reihenfolge aus projekt.kapitel). */
 export function kapitelNummern(daten: ProjektDaten): Record<Id, number> {
@@ -15,10 +16,11 @@ export function kapitelIndex(daten: ProjektDaten, id: Id | null | undefined): nu
   return id ? daten.projekt.kapitel.indexOf(id) : -1;
 }
 
-/** „Kap. 7“ bzw. „Kap. ?“ für unbekannte IDs. */
+/** „Kap. 7“ bzw. „Kap. ?“ für unbekannte IDs (in der Oberflächensprache). */
 export function kapLabel(daten: ProjektDaten, id: Id): string {
   const i = kapitelIndex(daten, id);
-  return i >= 0 ? `Kap. ${i + 1}` : 'Kap. ?';
+  const t = texte();
+  return i >= 0 ? f(t.gemeinsam.kapitelKurz, { nr: i + 1 }) : t.beziehungen.kapUnbekannt;
 }
 
 /** „Kap. 7 · Rot“ */
@@ -63,9 +65,11 @@ export interface FarbSatz {
   dunkel: string;
   /** gestrichelter Rand der Platzhalterkarte */
   gestrichelt: string;
-  /** Name für die Legende („Blaue Fläche“) */
-  name: string;
+  /** Name für die Legende („Blaue Fläche“): Schlüssel in t.beziehungen.inspektor.flaeche */
+  name: FarbName;
 }
+
+export type FarbName = 'blau' | 'rosa' | 'ocker' | 'violett' | 'grau' | 'neutral' | 'farbig';
 
 const mische = (farbe: string, anteil: number, mit = 'var(--surface)') => `color-mix(in srgb, ${farbe} ${anteil}%, ${mit})`;
 
@@ -77,7 +81,7 @@ const BEKANNT: Record<string, FarbSatz> = {
     flaecheLinie: 'var(--arbeit-flaeche-line)',
     dunkel: 'var(--arbeit-dark)',
     gestrichelt: 'var(--arbeit-line)',
-    name: 'Blaue',
+    name: 'blau',
   },
   '#c2405c': {
     farbe: 'var(--strang-dates)',
@@ -86,7 +90,7 @@ const BEKANNT: Record<string, FarbSatz> = {
     flaecheLinie: 'var(--accent-line)',
     dunkel: 'var(--accent-dark)',
     gestrichelt: 'var(--accent-line)',
-    name: 'Rosa',
+    name: 'rosa',
   },
   '#a86a12': {
     farbe: 'var(--strang-warm)',
@@ -95,7 +99,7 @@ const BEKANNT: Record<string, FarbSatz> = {
     flaecheLinie: 'var(--notiz-line)',
     dunkel: 'var(--warm-dark)',
     gestrichelt: 'var(--notiz-line)',
-    name: 'Ockerfarbene',
+    name: 'ocker',
   },
   '#6a4c9c': {
     farbe: 'var(--strang-violett)',
@@ -104,7 +108,7 @@ const BEKANNT: Record<string, FarbSatz> = {
     flaecheLinie: mische('var(--strang-violett)', 30),
     dunkel: 'var(--vage-dark)',
     gestrichelt: mische('var(--strang-violett)', 55),
-    name: 'Violette',
+    name: 'violett',
   },
   '#4a4a4f': {
     farbe: 'var(--strang-organisation)',
@@ -113,7 +117,7 @@ const BEKANNT: Record<string, FarbSatz> = {
     flaecheLinie: 'var(--organisation-line)',
     dunkel: 'var(--organisation-dark)',
     gestrichelt: 'var(--organisation-dashed)',
-    name: 'Graue',
+    name: 'grau',
   },
 };
 
@@ -124,7 +128,7 @@ export const NEUTRAL: FarbSatz = {
   flaecheLinie: 'var(--line)',
   dunkel: 'var(--ink-soft)',
   gestrichelt: 'var(--dotted)',
-  name: 'Neutrale',
+  name: 'neutral',
 };
 
 /** Farbsatz zu einer Strangfarbe (Hex aus plan/straenge.md). */
@@ -141,15 +145,12 @@ export function farbSatz(hex: string | undefined | null): FarbSatz {
     flaecheLinie: mische(f, 30),
     dunkel: mische(f, 75, 'var(--ink)'),
     gestrichelt: mische(f, 55),
-    name: 'Farbige',
+    name: 'farbig',
   };
 }
 
-export const KATEGORIE_LABEL: Record<BeziehungsKategorie, string> = {
-  arbeit: 'Arbeit',
-  dates: 'Dates',
-  sonstige: 'Sonstige',
-};
+/** Bezeichnungen der Kategorien in der aktuellen Oberflächensprache (wird bei jedem Zugriff gelesen). */
+export const KATEGORIE_LABEL: Readonly<Record<BeziehungsKategorie, string>> = sprachabhaengig(() => texte().beziehungen.kategorie);
 
 export const KATEGORIEN: BeziehungsKategorie[] = ['arbeit', 'dates', 'sonstige'];
 
@@ -164,12 +165,21 @@ export function strangVon(daten: ProjektDaten, id: Id | undefined | null): Stran
   return id ? daten.straenge.find((s) => s.id === id) : undefined;
 }
 
-export const GRUPPENTYP_LABEL: Record<GruppenTyp, string> = {
-  antagonist: 'Antagonist',
-  firma: 'Firma',
-  familie: 'Familie',
-  sonstige: 'Gruppe',
-};
+/** Bezeichnungen der Gruppentypen in der aktuellen Oberflächensprache (wird bei jedem Zugriff gelesen). */
+export const GRUPPENTYP_LABEL: Readonly<Record<GruppenTyp, string>> = sprachabhaengig(() => texte().beziehungen.gruppenTyp);
+
+/** Objekt, dessen Einträge bei jedem Zugriff aus dem aktuellen Wörterbuch kommen (für exportierte Beschriftungs-Konstanten). */
+export function sprachabhaengig<T extends object>(quelle: () => T): Readonly<T> {
+  return new Proxy({} as T, {
+    get: (_, k) => Reflect.get(quelle(), k),
+    has: (_, k) => Reflect.has(quelle(), k),
+    ownKeys: () => Reflect.ownKeys(quelle()),
+    getOwnPropertyDescriptor: (_, k) => {
+      const d = Reflect.getOwnPropertyDescriptor(quelle(), k);
+      return d ? { ...d, configurable: true } : undefined;
+    },
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Textstellen

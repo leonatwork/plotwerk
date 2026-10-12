@@ -7,6 +7,7 @@ import type { Figur, Hinweis, HinweisEntscheidung, Id, Zitat } from '@core/model
 import { ankerErzeugen, findeZitat, klartext } from '@core/text/index';
 import { ankerFuerZitat } from '../../features/beziehungen/gemeinsam';
 import { schreibweisenZiel, STANDARD_FILTER, type HinweisFilter } from '../../features/hinweise/logik';
+import { f as fmt, texte } from '../../i18n';
 import type { Store } from '../store';
 
 export type { HinweisFilter };
@@ -31,7 +32,7 @@ const jetzt = () => new Date().toISOString();
 export const createHinweiseSlice: StateCreator<Store, [], [], HinweiseSlice> = (set, get) => {
   const daten = () => {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   };
 
@@ -71,7 +72,7 @@ export const createHinweiseSlice: StateCreator<Store, [], [], HinweiseSlice> = (
     async unbekannteFigurAnlegen(hinweis, name) {
       const d = daten();
       const n = name.trim();
-      if (!n) throw new Error('Name fehlt');
+      if (!n) throw new Error(texte().state.fehler.nameFehlt);
       const id = get().neueId(n, Object.keys(d.figuren));
       const figur: Figur = {
         id,
@@ -93,7 +94,7 @@ export const createHinweiseSlice: StateCreator<Store, [], [], HinweiseSlice> = (
     async unbekanntZuordnen(hinweis, figurId, name) {
       const d = daten();
       const f = d.figuren[figurId];
-      if (!f) throw new Error(`Figur „${figurId}“ nicht gefunden`);
+      if (!f) throw new Error(fmt(texte().state.fehler.figurFehlt, { id: figurId }));
       const n = name.trim();
       const bekannt = [f.name, ...f.aliase].some((x) => x.toLocaleLowerCase('de') === n.toLocaleLowerCase('de'));
       if (n && !bekannt) await get().speichereFigur({ ...f, aliase: [...f.aliase, n] });

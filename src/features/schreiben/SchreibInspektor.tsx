@@ -3,8 +3,9 @@
  * Plan (S-08, S-09), Erkannt (S-10, KI-Vorschläge aus src/features/ki), Hinweise (S-13).
  */
 import type { MotivTreffer } from '@core/erkennung/index';
-import type { AbweichungsEntscheidung, Erwaehnung, Figur, Hinweis, HinweisTyp, Id, Motiv, Ort, ProjektDaten } from '@core/model/types';
+import type { AbweichungsEntscheidung, Erwaehnung, Figur, Hinweis, Id, Motiv, Ort, ProjektDaten } from '@core/model/types';
 import { lazy, Suspense, useEffect, useId, useMemo, useState } from 'react';
+import { datum, f, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Chip, Inspektor, Karte, Radio, Segment, StrangPunkt } from '../../ui';
 import { SzenenKarte } from '../faeden/Szenen';
@@ -20,28 +21,13 @@ let gemerkterTab: Tab = 'plan';
 
 const KiVorschlaege = lazy(() => import('../ki/ErwaehnungsVorschlaege').then((m) => ({ default: m.ErwaehnungsVorschlaege })));
 
-const ENTSCHEIDUNG: Record<AbweichungsEntscheidung, string> = {
-  plan_anpassen: 'Plan angepasst',
-  alternative: 'Als Alternative gemerkt',
-  spaeter: 'Später entscheiden',
-};
-
-const HINWEIS_TYP: Record<HinweisTyp, string> = {
-  pruefen: 'Prüfen',
-  schreibweise: 'Schreibweise',
-  offener_faden: 'Offener Faden',
-  unbekannt: 'Unbekannt',
-  struktur: 'Struktur',
-  zeitleiste: 'Zeitleiste',
-  sprache: 'Sprache',
-};
-
-const datumFormat = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
-
 function datumText(iso: string): string {
   const d = new Date(iso.length === 10 ? `${iso}T12:00:00` : iso);
-  return Number.isNaN(d.getTime()) ? iso : datumFormat.format(d);
+  return Number.isNaN(d.getTime()) ? iso : datum(d, { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/** Vorlage mit Anzahl `{n}` (wo `f` als Schleifenvariable belegt ist) */
+const fmtText = (vorlage: string, n: number) => f(vorlage, { n });
 
 // ---------------------------------------------------------------------------
 // Erkannte Figuren und Orte
@@ -87,7 +73,7 @@ export function erkanntListe(erwaehnungen: Erwaehnung[], typ: 'figur' | 'ort', d
       variante: varianten[0] ?? null,
     });
   }
-  return ergebnis.sort((a, b) => a.anzahl === b.anzahl ? a.name.localeCompare(b.name, 'de') : b.anzahl - a.anzahl);
+  return ergebnis.sort((a, b) => a.anzahl === b.anzahl ? vergleich(a.name, b.name) : b.anzahl - a.anzahl);
 }
 
 function ErkanntChips({ kapitelId, mitAnzahl }: { kapitelId: Id; mitAnzahl?: boolean }) {
@@ -96,9 +82,10 @@ function ErkanntChips({ kapitelId, mitAnzahl }: { kapitelId: Id; mitAnzahl?: boo
   const oeffne = useStore((s) => s.oeffne);
   const figuren = useMemo(() => (daten && live ? erkanntListe(live, 'figur', daten) : []), [daten, live]);
   const orte = useMemo(() => (daten && live ? erkanntListe(live, 'ort', daten) : []), [daten, live]);
+  const T = useTexte().schreiben.inspektor;
   if (!daten) return null;
   const fokus = fokusFiguren(daten.plaene[kapitelId], daten.figuren);
-  if (!figuren.length && !orte.length) return <span className="pw-s-leise">Noch keine Figuren oder Orte im Text erkannt.</span>;
+  if (!figuren.length && !orte.length) return <span className="pw-s-leise">{T.keineErkannt}</span>;
   return (
     <>
       {figuren.length > 0 && (
@@ -111,13 +98,13 @@ function ErkanntChips({ kapitelId, mitAnzahl }: { kapitelId: Id; mitAnzahl?: boo
                 key={f.id}
                 variante={unsicher ? 'gestrichelt' : 'gefuellt'}
                 farbe={fokus.has(f.id) ? 'accent' : 'neutral'}
-                title={`${f.anzahl}× im Text · Karte öffnen`}
+                title={fmtText(T.imTextKarte, f.anzahl)}
                 onClick={() => oeffne('figuren', { figur: f.id })}
               >
                 {f.variante ?? f.name}
-                {f.nurErwaehnt && ' · erwähnt'}
+                {f.nurErwaehnt && T.erwaehnt}
                 {mitAnzahl && <span style={{ color: 'var(--ink-quiet)' }}>{f.anzahl}</span>}
-                {f.variante && <b className="pw-s-schreibweise">· Schreibweise?</b>}
+                {f.variante && <b className="pw-s-schreibweise">{T.schreibweise}</b>}
               </Chip>
             );
           })}
@@ -126,10 +113,10 @@ function ErkanntChips({ kapitelId, mitAnzahl }: { kapitelId: Id; mitAnzahl?: boo
       {orte.length > 0 && (
         <div className="pw-s-chips">
           {orte.map((o) => (
-            <Chip key={o.id} variante="umrandet" title={`${o.anzahl}× im Text · Ort öffnen`} onClick={() => oeffne('orte', { ort: o.id })}>
+            <Chip key={o.id} variante="umrandet" title={fmtText(T.imTextOrt, o.anzahl)} onClick={() => oeffne('orte', { ort: o.id })}>
               {o.variante ?? o.name}
               {mitAnzahl && <span style={{ color: 'var(--ink-quiet)' }}>{o.anzahl}</span>}
-              {o.variante && <b className="pw-s-schreibweise">· Schreibweise?</b>}
+              {o.variante && <b className="pw-s-schreibweise">{T.schreibweise}</b>}
             </Chip>
           ))}
         </div>
@@ -150,7 +137,7 @@ export function motivZaehlung(motive: Motiv[], treffer: MotivTreffer[]): { motiv
       const eigene = treffer.filter((t) => t.motiv === motiv.id);
       return { motiv, anzahl: eigene.length, erster: eigene[0]?.treffer ?? null };
     })
-    .sort((a, b) => b.anzahl - a.anzahl || a.motiv.name.localeCompare(b.motiv.name, 'de'));
+    .sort((a, b) => b.anzahl - a.anzahl || vergleich(a.motiv.name, b.motiv.name));
 }
 
 function MotiveAbschnitt({ kapitelId }: { kapitelId: Id }) {
@@ -159,6 +146,8 @@ function MotiveAbschnitt({ kapitelId }: { kapitelId: Id }) {
   const speichern = useStore((s) => s.speichereMotive);
   const neueId = useStore((s) => s.neueId);
   const [neu, setNeu] = useState('');
+  const t = useTexte();
+  const T = t.schreiben.inspektor;
   const zaehlung = useMemo(() => motivZaehlung(motive, treffer ?? []), [motive, treffer]);
   const im = zaehlung.filter((z) => z.anzahl > 0);
   const nicht = zaehlung.filter((z) => z.anzahl === 0);
@@ -170,24 +159,24 @@ function MotiveAbschnitt({ kapitelId }: { kapitelId: Id }) {
     void speichern([...motive, { id: neueId(name, motive.map((m) => m.id)), name, aliase: [] }]);
   };
   return (
-    <section className="pw-s-abschnitt" aria-label="Motive">
-      <Abschnittslabel>Motive</Abschnittslabel>
+    <section className="pw-s-abschnitt" aria-label={T.motive}>
+      <Abschnittslabel>{T.motive}</Abschnittslabel>
       {im.length > 0 ? (
         <div className="pw-s-chips">
           {im.map((z) => (
-            <Chip key={z.motiv.id} variante="umrandet" title={`${z.anzahl}× im Text · erste Stelle zeigen`} onClick={() => z.erster && markiereZitat(kapitelId, z.erster)}>
+            <Chip key={z.motiv.id} variante="umrandet" title={f(T.motivImText, { n: z.anzahl })} onClick={() => z.erster && markiereZitat(kapitelId, z.erster)}>
               {z.motiv.name}
               <span style={{ color: 'var(--ink-quiet)' }}>{z.anzahl}</span>
             </Chip>
           ))}
         </div>
       ) : (
-        <span className="pw-s-leise">{motive.length ? 'Keines deiner Motive kommt in diesem Kapitel vor.' : 'Noch keine Motive angelegt.'}</span>
+        <span className="pw-s-leise">{motive.length ? T.keinMotivHier : T.keineMotive}</span>
       )}
       {nicht.length > 0 && (
         <div className="pw-s-chips">
           {nicht.map((z) => (
-            <Chip key={z.motiv.id} variante="gestrichelt" title="Kommt in diesem Kapitel nicht vor">
+            <Chip key={z.motiv.id} variante="gestrichelt" title={T.motivNichtHier}>
               {z.motiv.name}
             </Chip>
           ))}
@@ -203,13 +192,13 @@ function MotiveAbschnitt({ kapitelId }: { kapitelId: Id }) {
         <input
           className="pw-textfeld"
           style={{ flex: 1, height: 28, fontSize: 12 }}
-          aria-label="Neues Motiv"
-          placeholder="Motiv hinzufügen, z. B. Bleistifte …"
+          aria-label={T.neuesMotiv}
+          placeholder={T.motivPlatzhalter}
           value={neu}
           onChange={(e) => setNeu(e.target.value)}
         />
         <Button type="submit" klein disabled={!neu.trim()}>
-          Hinzufügen
+          {t.gemeinsam.hinzufuegen}
         </Button>
       </form>
     </section>
@@ -223,15 +212,16 @@ function MotiveAbschnitt({ kapitelId }: { kapitelId: Id }) {
 function PlanNotiz({ kapitelId, notiz }: { kapitelId: Id; notiz: string }) {
   const speichern = useStore((s) => s.planNotizSpeichern);
   const [entwurf, setEntwurf] = useState<string | null>(null);
+  const T = useTexte().schreiben.inspektor;
   if (entwurf !== null)
     return (
       <VerweisFeld
-        label="Plan-Notiz"
+        label={T.planNotiz}
         wert={entwurf}
         zeilen={3}
         autoFocus
         kontext={{ typ: 'plan', id: kapitelId }}
-        placeholder="Was soll hier passieren? ([[ für Verweise)"
+        placeholder={T.planNotizPlatzhalter}
         onChange={setEntwurf}
         onKeyDown={(e) => {
           if (e.key === 'Escape') setEntwurf(null);
@@ -248,7 +238,7 @@ function PlanNotiz({ kapitelId, notiz }: { kapitelId: Id; notiz: string }) {
       role="button"
       tabIndex={0}
       className="pw-s-plannotiz"
-      title="Plan-Notiz bearbeiten"
+      title={T.planNotizBearbeiten}
       onClick={() => setEntwurf(notiz)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -257,7 +247,7 @@ function PlanNotiz({ kapitelId, notiz }: { kapitelId: Id; notiz: string }) {
         }
       }}
     >
-      {notiz.trim() ? <VerweisText text={notiz} /> : '[Deine Notiz aus der Planung]'}
+      {notiz.trim() ? <VerweisText text={notiz} /> : T.planNotizLeer}
     </div>
   );
 }
@@ -265,30 +255,31 @@ function PlanNotiz({ kapitelId, notiz }: { kapitelId: Id; notiz: string }) {
 function Abweichungen({ kapitelId }: { kapitelId: Id }) {
   const abweichungen = useStore((s) => s.daten?.plaene[kapitelId]?.abweichungen);
   const entscheiden = useStore((s) => s.abweichungEntscheiden);
+  const T = useTexte().schreiben.inspektor;
   if (!abweichungen?.length) return null;
   return (
     <>
       {abweichungen.map((a) => (
         <div key={a.id} className="pw-s-abweichung">
           <span className="pw-s-abweichung__kopf">
-            <span>Abweichung · {datumText(a.datum)}</span>
-            <span>{ENTSCHEIDUNG[a.entscheidung]}</span>
+            <span>{f(T.abweichung, { datum: datumText(a.datum) })}</span>
+            <span>{T.entscheidung[a.entscheidung]}</span>
           </span>
           <span style={{ lineHeight: 1.45 }}>
             <VerweisText text={a.notiz} />
           </span>
           {a.entscheidung === 'plan_anpassen' && a.alterPlan && (
             <span className="pw-s-leise">
-              Alter Plan: <span className="pw-s-abweichung__alt">{verweiseAlsText(a.alterPlan)}</span>
+              {T.alterPlan} <span className="pw-s-abweichung__alt">{verweiseAlsText(a.alterPlan)}</span>
             </span>
           )}
           {a.entscheidung === 'spaeter' && (
             <div className="pw-s-abweichung__aktionen">
               <Button klein onClick={() => void entscheiden(kapitelId, a.id, 'plan_anpassen', true)}>
-                Plan anpassen
+                {T.planAnpassen}
               </Button>
               <Button klein onClick={() => void entscheiden(kapitelId, a.id, 'alternative')}>
-                Als Alternative merken
+                {T.alsAlternative}
               </Button>
             </div>
           )}
@@ -307,6 +298,8 @@ function AbweichungFormular({ kapitelId }: { kapitelId: Id }) {
   const [fehler, setFehler] = useState<string | null>(null);
   const name = useId();
   const feldId = useId();
+  const t = useTexte();
+  const T = t.schreiben.inspektor;
 
   useEffect(() => {
     setOffen(false);
@@ -324,50 +317,50 @@ function AbweichungFormular({ kapitelId }: { kapitelId: Id }) {
   if (!offen)
     return (
       <Button breit onClick={() => setOffen(true)}>
-        Ich weiche hier ab
+        {T.abweichen}
       </Button>
     );
 
   return (
-    <Karte akzent aria-label="Ich weiche hier ab">
-      <strong className="pw-s-abw-titel">Ich weiche hier ab</strong>
+    <Karte akzent aria-label={T.abweichen}>
+      <strong className="pw-s-abw-titel">{T.abweichen}</strong>
       <label htmlFor={feldId} className="pw-feld__label">
-        Was läuft anders als geplant?
+        {T.wasAnders}
       </label>
       <VerweisFeld
         id={feldId}
         className="pw-s-abw-feld"
-        label="Was läuft anders als geplant?"
+        label={T.wasAnders}
         wert={notiz}
         zeilen={3}
         autoFocus
         kontext={{ typ: 'plan', id: kapitelId }}
-        placeholder="Kurz notieren, was dir gerade eingefallen ist …"
+        placeholder={T.abweichungPlatzhalter}
         onChange={setNotiz}
         onKeyDown={(e) => {
           if (e.key === 'Escape') zuruecksetzen();
         }}
       />
       <fieldset className="pw-s-fieldset">
-        <legend>Was passiert mit dem Plan?</legend>
+        <legend>{T.wasMitPlan}</legend>
         <Radio name={name} checked={entscheidung === 'plan_anpassen'} onChange={() => setEntscheidung('plan_anpassen')}>
-          Plan anpassen
+          {T.planAnpassen}
         </Radio>
         <Radio name={name} checked={entscheidung === 'alternative'} onChange={() => setEntscheidung('alternative')}>
-          Als Alternative merken
+          {T.alsAlternative}
         </Radio>
         <Radio name={name} checked={entscheidung === 'spaeter'} onChange={() => setEntscheidung('spaeter')}>
-          Später entscheiden
+          {T.spaeter}
         </Radio>
       </fieldset>
       {entscheidung === 'plan_anpassen' && (
         <Checkbox checked={uebernehmen} onChange={(e) => setUebernehmen(e.target.checked)}>
-          Notiz als neue Plan-Notiz übernehmen
+          {T.alsPlanNotiz}
         </Checkbox>
       )}
       {fehler && <span className="pw-s-status__fehler">{fehler}</span>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-        <Button onClick={zuruecksetzen}>Abbrechen</Button>
+        <Button onClick={zuruecksetzen}>{t.gemeinsam.abbrechen}</Button>
         <Button
           variante="primaer"
           disabled={!notiz.trim()}
@@ -380,7 +373,7 @@ function AbweichungFormular({ kapitelId }: { kapitelId: Id }) {
             }
           }}
         >
-          Speichern
+          {t.gemeinsam.speichern}
         </Button>
       </div>
     </Karte>
@@ -390,12 +383,13 @@ function AbweichungFormular({ kapitelId }: { kapitelId: Id }) {
 function PlanTab({ kapitelId }: { kapitelId: Id }) {
   const daten = useStore((s) => s.daten);
   const oeffne = useStore((s) => s.oeffne);
+  const T = useTexte().schreiben.inspektor;
   if (!daten) return null;
   const plan = daten.plaene[kapitelId];
   if (!plan)
     return (
       <>
-        <span className="pw-s-leise">Für dieses Kapitel gibt es noch keinen Plan.</span>
+        <span className="pw-s-leise">{T.keinPlan}</span>
         {/* Szenen lassen sich auch ohne Plan anlegen; der Store legt den Plan beim ersten Speichern an. */}
         <SzenenKarte kapitelId={kapitelId} />
         <RechercheLeiste ziel={{ typ: 'kapitel', id: kapitelId }} />
@@ -406,8 +400,8 @@ function PlanTab({ kapitelId }: { kapitelId: Id }) {
   return (
     <>
       <Karte>
-        <Abschnittslabel>Geplante Szene</Abschnittslabel>
-        <strong className="pw-s-szene">{plan.szene || <span style={{ color: 'var(--ink-quiet)' }}>Noch keine Szene geplant</span>}</strong>
+        <Abschnittslabel>{T.geplanteSzene}</Abschnittslabel>
+        <strong className="pw-s-szene">{plan.szene || <span style={{ color: 'var(--ink-quiet)' }}>{T.keineSzene}</span>}</strong>
         {straenge.map((s) => (
           <span key={s.id} className="pw-s-strang">
             <StrangPunkt farbe={s.farbe} groesse={10} />
@@ -435,7 +429,7 @@ function PlanTab({ kapitelId }: { kapitelId: Id }) {
       <Abweichungen kapitelId={kapitelId} />
       <AbweichungFormular kapitelId={kapitelId} />
       <section className="pw-s-abschnitt">
-        <Abschnittslabel>Erkannt in diesem Kapitel</Abschnittslabel>
+        <Abschnittslabel>{T.erkanntHier}</Abschnittslabel>
         <ErkanntChips kapitelId={kapitelId} />
       </section>
     </>
@@ -451,6 +445,7 @@ function ErkanntTab({ kapitelId }: { kapitelId: Id }) {
   const live = useStore((s) => (s.schreibenLive?.kapitel === kapitelId ? s.schreibenLive.erwaehnungen : null));
   const speicherePlan = useStore((s) => s.speicherePlan);
   const oeffne = useStore((s) => s.oeffne);
+  const T = useTexte().schreiben.inspektor;
   if (!daten) return null;
   const plan = daten.plaene[kapitelId];
   const erkannteFiguren = new Set((live ?? []).filter((e) => e.zielTyp === 'figur').map((e) => e.ziel));
@@ -461,22 +456,22 @@ function ErkanntTab({ kapitelId }: { kapitelId: Id }) {
   return (
     <>
       <section className="pw-s-abschnitt">
-        <Abschnittslabel>Figuren und Orte im Text</Abschnittslabel>
+        <Abschnittslabel>{T.figurenOrteImText}</Abschnittslabel>
         <ErkanntChips kapitelId={kapitelId} mitAnzahl />
-        <span className="pw-s-leise">Gestrichelt: nur erwähnt oder Existenz unsicher. Im Text unterstrichen; ⌘-Klick öffnet die Karte.</span>
+        <span className="pw-s-leise">{T.erkanntHilfe}</span>
       </section>
       <MotiveAbschnitt kapitelId={kapitelId} />
       {plan && (nichtImPlan.length > 0 || orteNichtImPlan.length > 0) && (
         <section className="pw-s-abschnitt">
-          <Abschnittslabel>Im Text, aber nicht im Plan</Abschnittslabel>
+          <Abschnittslabel>{T.nichtImPlan}</Abschnittslabel>
           <div className="pw-s-chips">
             {nichtImPlan.map((id) => (
-              <Chip key={id} variante="gestrichelt" title="Zum Kapitelplan hinzufügen" onClick={() => void speicherePlan({ ...plan, figuren: [...plan.figuren, id] })}>
+              <Chip key={id} variante="gestrichelt" title={T.zumPlan} onClick={() => void speicherePlan({ ...plan, figuren: [...plan.figuren, id] })}>
                 + {daten.figuren[id]!.name}
               </Chip>
             ))}
             {orteNichtImPlan.map((id) => (
-              <Chip key={id} variante="gestrichelt" title="Zum Kapitelplan hinzufügen" onClick={() => void speicherePlan({ ...plan, orte: [...plan.orte, id] })}>
+              <Chip key={id} variante="gestrichelt" title={T.zumPlan} onClick={() => void speicherePlan({ ...plan, orte: [...plan.orte, id] })}>
                 + {daten.orte[id]!.name}
               </Chip>
             ))}
@@ -485,7 +480,7 @@ function ErkanntTab({ kapitelId }: { kapitelId: Id }) {
       )}
       {nichtErkannt.length > 0 && (
         <section className="pw-s-abschnitt">
-          <Abschnittslabel>Geplant, aber nicht im Text</Abschnittslabel>
+          <Abschnittslabel>{T.nichtImText}</Abschnittslabel>
           <div className="pw-s-chips">
             {nichtErkannt.map((id) => (
               <Chip key={id} variante="gestrichelt" onClick={() => oeffne('figuren', { figur: id })}>
@@ -493,7 +488,7 @@ function ErkanntTab({ kapitelId }: { kapitelId: Id }) {
               </Chip>
             ))}
           </div>
-          <span className="pw-s-leise">Ich-Erzähler und indirekte Erwähnungen findet die exakte Erkennung nicht.</span>
+          <span className="pw-s-leise">{T.erzaehlerHilfe}</span>
         </section>
       )}
       <Suspense fallback={null}>
@@ -513,6 +508,8 @@ function HinweisKarte({ hinweis, kapitelId }: { hinweis: Hinweis; kapitelId: Id 
   const hinweisEntscheiden = useStore((s) => s.hinweisEntscheiden);
   const oeffne = useStore((s) => s.oeffne);
   const [nichtGefunden, setNichtGefunden] = useState(false);
+  const t = useTexte();
+  const T = t.schreiben.inspektor;
   const hier = hinweis.zitate.filter((z) => z.kapitel === kapitelId);
   const anderswo = hinweis.zitate.filter((z) => z.kapitel !== kapitelId);
   const zeigen = () => {
@@ -534,14 +531,14 @@ function HinweisKarte({ hinweis, kapitelId }: { hinweis: Hinweis; kapitelId: Id 
       }}
     >
       <span className="pw-s-hinweis__typ">
-        {HINWEIS_TYP[hinweis.typ]}
-        {hinweis.offen && <span style={{ color: 'var(--real-offen)' }}>· offen</span>}
-        {hinweis.quelle === 'ki' && <span style={{ marginLeft: 'auto', fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>KI</span>}
+        {T.hinweisTyp[hinweis.typ]}
+        {hinweis.offen && <span style={{ color: 'var(--real-offen)' }}>{T.offen}</span>}
+        {hinweis.quelle === 'ki' && <span style={{ marginLeft: 'auto', fontWeight: 400, letterSpacing: 0, textTransform: 'none' }}>{T.ki}</span>}
       </span>
       <span className="pw-s-hinweis__titel">{hinweis.titel}</span>
       {hier.map((z, i) => (
         <span key={i} className="pw-s-hinweis__zitat">
-          „{z.text}“
+          {f(t.schreiben.zitat, { text: z.text })}
         </span>
       ))}
       {hinweis.erklaerung && <span className="pw-s-hinweis__text">{hinweis.erklaerung}</span>}
@@ -555,10 +552,10 @@ function HinweisKarte({ hinweis, kapitelId }: { hinweis: Hinweis; kapitelId: Id 
             markiere({ kapitel: z.kapitel, anker: { kapitel: z.kapitel, exakt: z.text, davor: '', danach: '' } });
           }}
         >
-          → Kap. {(daten?.projekt.kapitel.indexOf(z.kapitel) ?? -1) + 1} · {daten?.kapitel[z.kapitel]?.titel ?? z.kapitel}
+          → {f(t.gemeinsam.kapitelKurz, { nr: (daten?.projekt.kapitel.indexOf(z.kapitel) ?? -1) + 1 })} · {daten?.kapitel[z.kapitel]?.titel ?? z.kapitel}
         </button>
       ))}
-      {nichtGefunden && <span className="pw-s-status__fehler">Die Stelle steht so nicht mehr im Text.</span>}
+      {nichtGefunden && <span className="pw-s-status__fehler">{T.stelleFehlt}</span>}
       <span className="pw-s-hinweis__aktionen">
         <button
           type="button"
@@ -568,7 +565,7 @@ function HinweisKarte({ hinweis, kapitelId }: { hinweis: Hinweis; kapitelId: Id 
             void hinweisEntscheiden(hinweis.schluessel, 'absicht');
           }}
         >
-          Ist Absicht
+          {T.istAbsicht}
         </button>
         <button
           type="button"
@@ -578,7 +575,7 @@ function HinweisKarte({ hinweis, kapitelId }: { hinweis: Hinweis; kapitelId: Id 
             void hinweisEntscheiden(hinweis.schluessel, 'erledigt');
           }}
         >
-          Erledigt
+          {T.erledigt}
         </button>
         <button
           type="button"
@@ -588,7 +585,7 @@ function HinweisKarte({ hinweis, kapitelId }: { hinweis: Hinweis; kapitelId: Id 
             oeffne('hinweise', { hinweis: hinweis.schluessel });
           }}
         >
-          In Hinweisen öffnen
+          {T.inHinweisen}
         </button>
       </span>
     </div>
@@ -606,13 +603,14 @@ export function useKapitelHinweise(kapitelId: Id): Hinweis[] {
 
 function HinweiseTab({ kapitelId }: { kapitelId: Id }) {
   const hinweise = useKapitelHinweise(kapitelId);
-  if (!hinweise.length) return <span className="pw-s-leise">Keine offenen Hinweise zu diesem Kapitel.</span>;
+  const T = useTexte().schreiben.inspektor;
+  if (!hinweise.length) return <span className="pw-s-leise">{T.keineHinweise}</span>;
   return (
     <>
       {hinweise.map((h) => (
         <HinweisKarte key={h.schluessel} hinweis={h} kapitelId={kapitelId} />
       ))}
-      <span className="pw-s-leise">Klick markiert die Stelle im Text.</span>
+      <span className="pw-s-leise">{T.hinweisHilfe}</span>
     </>
   );
 }
@@ -623,21 +621,22 @@ export function SchreibInspektor({ kapitelId }: { kapitelId: Id }) {
   const [tab, setTab] = useState<Tab>(gemerkterTab);
   const anzahl = useKapitelHinweise(kapitelId).length;
   const tabId = useId();
-  const wechseln = (t: Tab) => {
-    gemerkterTab = t;
-    setTab(t);
+  const T = useTexte().schreiben.inspektor;
+  const wechseln = (neu: Tab) => {
+    gemerkterTab = neu;
+    setTab(neu);
   };
   return (
-    <Inspektor label="Seitenleiste">
+    <Inspektor label={T.label}>
       <Segment<Tab>
-        label="Seitenleiste"
+        label={T.label}
         wert={tab}
         onChange={wechseln}
         optionen={[
-          { wert: 'plan', label: 'Plan', steuert: `${tabId}-plan` },
-          { wert: 'erkannt', label: 'Erkannt', steuert: `${tabId}-erkannt` },
-          { wert: 'hinweise', label: anzahl ? `Hinweise · ${anzahl}` : 'Hinweise', steuert: `${tabId}-hinweise` },
-          { wert: 'stil', label: 'Stil', steuert: `${tabId}-stil` },
+          { wert: 'plan', label: T.tabs.plan, steuert: `${tabId}-plan` },
+          { wert: 'erkannt', label: T.tabs.erkannt, steuert: `${tabId}-erkannt` },
+          { wert: 'hinweise', label: anzahl ? f(T.tabs.hinweiseAnzahl, { n: anzahl }) : T.tabs.hinweise, steuert: `${tabId}-hinweise` },
+          { wert: 'stil', label: T.tabs.stil, steuert: `${tabId}-stil` },
         ]}
       />
       <div id={`${tabId}-${tab}`} role="tabpanel" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

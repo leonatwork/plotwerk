@@ -1,10 +1,21 @@
 import type { Realitaet } from '@core/model/types';
+import { texte, useTexte } from '../i18n';
 import { Segment } from './Segment';
 
-export const REALITAET_LABEL: Record<Realitaet, string> = {
-  gesichert: 'gesichert',
-  offen: 'noch offen',
-  bewusst_vage: 'bewusst vage',
+/**
+ * Beschriftung der Realitätsebenen in der aktuellen Oberflächensprache (liest bei jedem Zugriff
+ * t.gemeinsam.realitaet). Für Komponenten besser direkt `t.gemeinsam.realitaet[wert]` nutzen.
+ */
+export const REALITAET_LABEL: Readonly<Record<Realitaet, string>> = {
+  get gesichert() {
+    return texte().gemeinsam.realitaet.gesichert;
+  },
+  get offen() {
+    return texte().gemeinsam.realitaet.offen;
+  },
+  get bewusst_vage() {
+    return texte().gemeinsam.realitaet.bewusst_vage;
+  },
 };
 
 export const REALITAET_FARBE: Record<Realitaet, string> = {
@@ -25,21 +36,23 @@ export interface RealitaetsUmschalterProps {
   label?: string;
 }
 
-export function RealitaetsUmschalter({ wert, onChange, variante = 'chips', groesse = 'normal', label = 'Realitätsebene' }: RealitaetsUmschalterProps) {
+export function RealitaetsUmschalter({ wert, onChange, variante = 'chips', groesse = 'normal', label }: RealitaetsUmschalterProps) {
+  const t = useTexte();
+  const name = label ?? t.ui.realitaet.label;
   if (variante === 'segment')
     return (
       <Segment
         rolle="group"
-        label={label}
+        label={name}
         voll
         groesse={groesse}
         wert={wert}
         onChange={onChange}
-        optionen={STUFEN.map((s) => ({ wert: s, label: REALITAET_LABEL[s], farbe: REALITAET_FARBE[s] }))}
+        optionen={STUFEN.map((s) => ({ wert: s, label: t.gemeinsam.realitaet[s], farbe: REALITAET_FARBE[s] }))}
       />
     );
   return (
-    <div role="group" aria-label={label} className="pw-realitaet">
+    <div role="group" aria-label={name} className="pw-realitaet">
       {STUFEN.map((s) => {
         const aktiv = s === wert;
         return (
@@ -51,7 +64,7 @@ export function RealitaetsUmschalter({ wert, onChange, variante = 'chips', groes
             style={aktiv ? { background: REALITAET_FARBE[s], borderColor: REALITAET_FARBE[s] } : undefined}
             onClick={() => onChange(s)}
           >
-            {REALITAET_LABEL[s]}
+            {t.gemeinsam.realitaet[s]}
           </button>
         );
       })}

@@ -2,8 +2,9 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
+import { f, texte, useI18n, useTexte } from '../../i18n';
 import { Button, Chip, LeerZustand, Segment } from '../../ui';
-import { KATEGORIE_LABEL, KATEGORIEN, kategorieFarbe, kapitelTitel } from './gemeinsam';
+import { KATEGORIEN, kategorieFarbe, kapitelTitel } from './gemeinsam';
 import { aktStufen, freiePosition, KARTE, netzBerechnen, standIndex, standNotiz, STANDARD_FLAECHE } from './logik';
 import { Netz } from './Netz';
 import { NetzInspektor } from './NetzInspektor';
@@ -30,6 +31,8 @@ export default function Ansicht() {
   const netzAuswahl = useStore((s) => s.netzAuswahl);
   const schliesseVorschlagsPanel = useStore((s) => s.schliesseVorschlagsPanel);
   const flaeche = useRef<HTMLDivElement>(null);
+  const { t, sprache } = useI18n();
+  const ta = t.beziehungen.ansicht;
 
   // Auswahl im Netz (Karte, Linie, Fläche) zeigt wieder den Inspektor statt der Vorschläge –
   // nicht aber die Übernahme der Auswahl aus anderen Bereichen (unten)
@@ -58,10 +61,11 @@ export default function Ansicht() {
   }, [globaleGruppe, waehleImNetz]);
 
   const standIdx = daten ? standIndex(daten, stand) : 0;
-  const stufen = useMemo(() => (daten ? aktStufen(daten) : []), [daten]);
+  // Beschriftungen aus logik.ts folgen der Oberflächensprache: beim Umschalten neu berechnen
+  const stufen = useMemo(() => (daten ? aktStufen(daten) : []), [daten, sprache]);
   const ansicht = useMemo(
     () => (daten ? netzBerechnen(daten, index, standIdx, filter) : null),
-    [daten, index, standIdx, filter],
+    [daten, index, standIdx, filter, sprache],
   );
   if (!daten || !ansicht) return null;
 
@@ -74,22 +78,22 @@ export default function Ansicht() {
     return (
       <div className="pw-bz">
         <LeerZustand
-          titel="Beziehungsnetz"
+          titel={ta.titel}
           aktionen={
             anzahl > 0 && mitText && offeneVorschlaege.anzahl === 0 ? (
               <Button variante="primaer" onClick={() => oeffneVorschlaege({ dialog: true })} disabled={vorschlagLaeuft}>
-                Figuren und Beziehungen vorschlagen
+                {ta.vorschlagen}
               </Button>
             ) : undefined
           }
         >
           {anzahl === 0
-            ? 'Noch keine Kapitel.'
+            ? ta.keineKapitel
             : offeneVorschlaege.anzahl > 0
-              ? `Noch keine Figuren. Rechts stehen ${offeneVorschlaege.anzahl === 1 ? 'ein Vorschlag' : `${offeneVorschlaege.anzahl} Vorschläge`} der KI, jeweils mit Beleg. Übernimm sie einzeln oder alle auf einmal; das Netz entsteht dabei.`
+              ? f(ta.leerMitVorschlaegen, { n: offeneVorschlaege.anzahl })
               : mitText
-              ? 'Noch keine Figuren. Die KI kann Figuren, Orte und Beziehungen aus dem Text vorschlagen, jeweils mit Beleg. Du übernimmst oder verwirfst jeden Vorschlag. Oder lege Figuren selbst im Bereich „Figuren“ an.'
-              : 'Noch keine Figuren. Lege Figuren im Bereich „Figuren“ an.'}
+              ? ta.leerMitText
+              : ta.leerOhneText}
         </LeerZustand>
         {panel && <VorschlaegePanel daten={daten} />}
         <VorschlagDialog />
@@ -121,13 +125,13 @@ export default function Ansicht() {
       <div className="pw-bz-haupt">
         <div className="pw-bz-kopf">
           <div className="pw-bz-kopf__titel">
-            <h1>Beziehungsnetz</h1>
+            <h1>{ta.titel}</h1>
             <span className="pw-bz-kopf__notiz">{standNotiz(standIdx)}</span>
           </div>
           {stufen.length > 0 && (
             <Segment
               rolle="group"
-              label="Stand der Geschichte"
+              label={ta.standDerGeschichte}
               groesse="gross"
               hintergrund="selected"
               voll={false}
@@ -144,7 +148,7 @@ export default function Ansicht() {
 
         <div className="pw-bz-leiste">
           <label className="pw-bz-regler">
-            <span>Kapitel</span>
+            <span>{ta.kapitel}</span>
             <input
               type="range"
               min={1}
@@ -156,28 +160,28 @@ export default function Ansicht() {
             />
             <output>{kapitelTitel(daten, standKapitel)}</output>
           </label>
-          <div className="pw-bz-filter" role="group" aria-label="Filter">
-            <span>Filter</span>
+          <div className="pw-bz-filter" role="group" aria-label={ta.filter}>
+            <span>{ta.filter}</span>
             {KATEGORIEN.map((k) => (
               <Chip key={k} variante="knopf" punkt={kategorieFarbe(k).farbe} aktiv={filter[k]} onClick={() => umschalteNetzFilter(k)}>
-                {KATEGORIE_LABEL[k]}
+                {t.beziehungen.kategorie[k]}
               </Chip>
             ))}
           </div>
           {ablage.length > 0 && (
             <div className="pw-bz-ablage">
-              <span>Nicht im Netz:</span>
+              <span>{ta.nichtImNetz}</span>
               {ablage.map((a) => (
-                <Chip key={`${a.art}-${a.id}`} variante="gestrichelt" onClick={() => platzieren(a.art, a.id)} title="Ins Netz legen">
+                <Chip key={`${a.art}-${a.id}`} variante="gestrichelt" onClick={() => platzieren(a.art, a.id)} title={ta.insNetzLegen}>
                   + {a.name}
                 </Chip>
               ))}
             </div>
           )}
-          {verbinden && <span className="pw-bz-hinweis">Von einer Karte auf eine andere ziehen oder beide anklicken · Esc bricht ab</span>}
+          {verbinden && <span className="pw-bz-hinweis">{ta.verbindenHinweis}</span>}
           {!panel && offeneVorschlaege.anzahl > 0 && (
-            <button type="button" className="pw-vs-chip" onClick={() => oeffneVorschlaege()} title="Vorschläge der KI ansehen">
-              {offeneVorschlaege.anzahl === 1 ? '1 Vorschlag der KI' : `${offeneVorschlaege.anzahl} Vorschläge der KI`}
+            <button type="button" className="pw-vs-chip" onClick={() => oeffneVorschlaege()} title={ta.vorschlaegeAnsehen}>
+              {f(ta.vorschlaegeChip, { n: offeneVorschlaege.anzahl })}
             </button>
           )}
         </div>
@@ -195,17 +199,18 @@ export function Titelaktionen() {
   const mitText = useStore((s) => !!s.daten && s.daten.projekt.kapitel.some((id) => s.daten!.kapitel[id]?.text.trim()));
   const laeuft = useStore((s) => s.vorschlagLaeuft);
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
+  const ta = useTexte().beziehungen.ansicht;
   return (
     <>
       <Button
         disabled={!bereit || !mitText}
         onClick={() => oeffneVorschlaege({ dialog: true })}
-        title="Die KI schlägt Figuren, Orte und Beziehungen mit Belegen aus dem Text vor"
+        title={ta.vorschlagenTitel}
       >
-        {laeuft ? 'KI liest …' : 'Beziehungen vorschlagen'}
+        {laeuft ? ta.kiLiest : ta.beziehungenVorschlagen}
       </Button>
       <Button variante="primaer" aria-pressed={verbinden} disabled={!bereit} onClick={() => setzeNetzVerbinden(!verbinden)}>
-        {verbinden ? 'Verbinden beenden' : '+ Beziehung'}
+        {verbinden ? ta.verbindenBeenden : ta.plusBeziehung}
       </Button>
     </>
   );
@@ -213,5 +218,5 @@ export function Titelaktionen() {
 
 export function kontext(state: Store): string {
   void state;
-  return 'Beziehungen';
+  return texte().beziehungen.ansicht.kontext;
 }

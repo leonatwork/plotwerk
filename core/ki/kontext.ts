@@ -6,9 +6,14 @@
  * Orte (name, aliase), Gruppen (name, typ, status) und Realitätseinträge (stufe, text, Zitat).
  * Nie: wahrheit, notizen, kurz, beschreibung, Anmerkungen, Ideen, Abweichungen, Akte, Stränge.
  * Plan-Felder sind seit Leons Entscheidung vom 2026-10-09 freigegeben (F-05).
+ *
+ * Buchsprache (angaben.sprache, nur als Sprache der Beschriftungen, nicht als Feld): Für englische Bücher sind die
+ * Beschriftungen im Prefix englisch („Characters:“, „Existence: …“, „Planned scene: …“); Tags und Attribute
+ * (<angaben>, <buch>, <kapitel nr id titel>, <text>, <realitaetsebene>, <plan>) bleiben gleich.
  */
 import type { GruppenTyp, Id, ProjektDaten, Realitaet, TextAnker } from '../model/types';
 import { klartext, textHash } from '../text';
+import { kiSprache, type Sprache } from './sprache';
 
 export interface KontextKapitel {
   id: Id;
@@ -65,6 +70,8 @@ export interface BuchKontext {
   realitaet: KontextRealitaet[];
   /** gerenderter, stabiler Prefix (geht mit cache_control an das Modell) */
   text: string;
+  /** Buchsprache: Sprache der Prompts und der Antworten (fehlt = Deutsch) */
+  sprache?: Sprache;
 }
 
 const STUFE_TEXT: Record<Realitaet, string> = {
@@ -78,6 +85,56 @@ const GRUPPEN_TYP: Record<GruppenTyp, string> = {
   firma: 'Firma',
   familie: 'Familie',
   sonstige: 'Gruppe',
+};
+
+/** Beschriftungen des Prefix je Buchsprache (Tags bleiben gleich). */
+const BESCHRIFTUNG = {
+  de: {
+    einleitung: 'Angaben des Autors zu Figuren, Orten und Gruppen. Alles Weitere erfährst du nur aus dem Text.',
+    planHinweis: 'Zeilen „Planung“ beschreiben, was der Autor vorhat. Sie gehören nicht zum Buch.',
+    figuren: 'Figuren:',
+    orte: 'Orte:',
+    gruppen: 'Gruppen:',
+    keine: '- (keine angelegt)',
+    auch: 'auch',
+    haupt: 'Hauptfigur',
+    neben: 'Nebenfigur',
+    existenz: 'Existenz',
+    planung: 'Planung',
+    imText: 'im Text',
+    geplant: 'geplant, noch nicht im Text',
+    textstelle: (s: string) => `Textstelle: „${s}“`,
+    ohneBeschreibung: '(ohne Beschreibung)',
+    szene: 'Geplante Szene',
+    notiz: 'Was hier passieren soll',
+    stufe: STUFE_TEXT,
+    gruppenTyp: GRUPPEN_TYP,
+  },
+  en: {
+    einleitung: "The author's notes on characters, places and groups. Everything else you learn only from the text.",
+    planHinweis: 'Lines “Plan” describe what the author intends. They are not part of the book.',
+    figuren: 'Characters:',
+    orte: 'Places:',
+    gruppen: 'Groups:',
+    keine: '- (none set up)',
+    auch: 'also',
+    haupt: 'main character',
+    neben: 'minor character',
+    existenz: 'Existence',
+    planung: 'Plan',
+    imText: 'in the text',
+    geplant: 'planned, not yet in the text',
+    textstelle: (s: string) => `Passage: “${s}”`,
+    ohneBeschreibung: '(no description)',
+    szene: 'Planned scene',
+    notiz: 'What should happen here',
+    stufe: {
+      gesichert: 'established',
+      offen: 'still open',
+      bewusst_vage: 'deliberately vague – intentionally ambiguous, never report as a contradiction',
+    } satisfies Record<Realitaet, string>,
+    gruppenTyp: { antagonist: 'Antagonist', firma: 'Company', familie: 'Family', sonstige: 'Group' } satisfies Record<GruppenTyp, string>,
+  },
 };
 
 function attr(s: string): string {
@@ -101,7 +158,8 @@ export function planText(s: string | undefined): string {
     .trim();
 }
 
-export function baueBuchKontext(daten: ProjektDaten): BuchKontext {
+/** `sprache`: Buchsprache (Standard: projekt.angaben.sprache, leer = Deutsch). */
+export function baueBuchKontext(daten: ProjektDaten, sprache: Sprache = kiSprache(daten.projekt.angaben)): BuchKontext {
   const kapitel: KontextKapitel[] = daten.projekt.kapitel
     .map((id, i) => {
       const k = daten.kapitel[id];
@@ -148,7 +206,8 @@ export function baueBuchKontext(daten: ProjektDaten): BuchKontext {
     realitaet.push({ kapitel: r.anker.kapitel, stufe: r.stufe, text: '', anker: r.anker });
   }
 
-  return { kapitel, figuren, orte, gruppen, realitaet, text: renderBuch(kapitel, figuren, orte, gruppen, realitaet) };
+  const text = renderBuch(kapitel, figuren, orte, gruppen, realitaet, sprache);
+  return { kapitel, figuren, orte, gruppen, realitaet, text, sprache };
 }
 
 function renderBuch(
@@ -157,35 +216,37 @@ function renderBuch(
   orte: KontextOrt[],
   gruppen: KontextGruppe[],
   realitaet: KontextRealitaet[],
+  sprache: Sprache,
 ): string {
+  const B = BESCHRIFTUNG[sprache];
   const z: string[] = [];
   z.push('<angaben>');
-  z.push('Angaben des Autors zu Figuren, Orten und Gruppen. Alles Weitere erfährst du nur aus dem Text.');
-  z.push('Zeilen „Planung“ beschreiben, was der Autor vorhat. Sie gehören nicht zum Buch.');
+  z.push(B.einleitung);
+  z.push(B.planHinweis);
   z.push('');
-  z.push('Figuren:');
-  if (figuren.length === 0) z.push('- (keine angelegt)');
+  z.push(B.figuren);
+  if (figuren.length === 0) z.push(B.keine);
   for (const f of figuren) {
     const teile = [`${f.name} (id: ${f.id})`];
-    if (f.aliase.length) teile.push(`auch: ${f.aliase.join(', ')}`);
-    teile.push(f.rolle === 'haupt' ? 'Hauptfigur' : 'Nebenfigur');
-    teile.push(`Existenz: ${STUFE_TEXT[f.existenz]}`);
+    if (f.aliase.length) teile.push(`${B.auch}: ${f.aliase.join(', ')}`);
+    teile.push(f.rolle === 'haupt' ? B.haupt : B.neben);
+    teile.push(`${B.existenz}: ${B.stufe[f.existenz]}`);
     z.push(`- ${teile.join(' · ')}`);
-    for (const p of f.plan) z.push(`  Planung · ${p.feld}: ${p.wert}`);
+    for (const p of f.plan) z.push(`  ${B.planung} · ${p.feld}: ${p.wert}`);
   }
   z.push('');
-  z.push('Orte:');
-  if (orte.length === 0) z.push('- (keine angelegt)');
+  z.push(B.orte);
+  if (orte.length === 0) z.push(B.keine);
   for (const o of orte) {
     const teile = [`${o.name} (id: ${o.id})`];
-    if (o.aliase.length) teile.push(`auch: ${o.aliase.join(', ')}`);
+    if (o.aliase.length) teile.push(`${B.auch}: ${o.aliase.join(', ')}`);
     z.push(`- ${teile.join(' · ')}`);
   }
   z.push('');
-  z.push('Gruppen:');
-  if (gruppen.length === 0) z.push('- (keine angelegt)');
+  z.push(B.gruppen);
+  if (gruppen.length === 0) z.push(B.keine);
   for (const g of gruppen) {
-    z.push(`- ${g.name} (id: ${g.id}) · ${GRUPPEN_TYP[g.typ]} · ${g.status === 'im_text' ? 'im Text' : 'geplant, noch nicht im Text'}`);
+    z.push(`- ${g.name} (id: ${g.id}) · ${B.gruppenTyp[g.typ]} · ${g.status === 'im_text' ? B.imText : B.geplant}`);
   }
   z.push('</angaben>');
   z.push('');
@@ -204,15 +265,15 @@ function renderBuch(
     if (eintraege.length) {
       z.push('<realitaetsebene>');
       for (const r of eintraege) {
-        const was = [r.text.trim(), r.anker?.exakt ? `Textstelle: „${r.anker.exakt}“` : ''].filter(Boolean).join(' – ');
-        z.push(`- ${STUFE_TEXT[r.stufe]}: ${was || '(ohne Beschreibung)'}`);
+        const was = [r.text.trim(), r.anker?.exakt ? B.textstelle(r.anker.exakt) : ''].filter(Boolean).join(' – ');
+        z.push(`- ${B.stufe[r.stufe]}: ${was || B.ohneBeschreibung}`);
       }
       z.push('</realitaetsebene>');
     }
     if (k.plan.szene || k.plan.notiz) {
       z.push('<plan>');
-      if (k.plan.szene) z.push(`Geplante Szene: ${k.plan.szene}`);
-      if (k.plan.notiz) z.push(`Was hier passieren soll: ${k.plan.notiz}`);
+      if (k.plan.szene) z.push(`${B.szene}: ${k.plan.szene}`);
+      if (k.plan.notiz) z.push(`${B.notiz}: ${k.plan.notiz}`);
       z.push('</plan>');
     }
     z.push('</kapitel>');
@@ -232,17 +293,30 @@ export interface GelesenerKontext {
   gruppen: { id: Id; name: string }[];
 }
 
-/** Liest einen mit baueBuchKontext gerenderten Prefix zurück (für den Demo-Transport und Tests). */
+/** Englische Stufen-Beschriftung → deutsche (GelesenerKontext nennt Stufen immer deutsch, z. B. „bewusst vage …“). */
+function stufeDeutsch(s: string): string {
+  const t = s.trim();
+  for (const [stufe, text] of Object.entries(BESCHRIFTUNG.en.stufe)) if (text === t) return STUFE_TEXT[stufe as Realitaet];
+  return t;
+}
+
+const ABSCHNITT: Record<string, string> = { Characters: 'Figuren', Places: 'Orte', Groups: 'Gruppen' };
+
+/**
+ * Liest einen mit baueBuchKontext gerenderten Prefix zurück (für den Demo-Transport und Tests). Versteht deutsche
+ * und englische Beschriftungen; Stufen kommen immer in der deutschen Form zurück.
+ */
 export function leseBuchKontext(prefix: string): GelesenerKontext {
   const ergebnis: GelesenerKontext = { kapitel: [], figuren: [], orte: [], gruppen: [] };
   const angaben = /<angaben>\n([\s\S]*?)\n<\/angaben>/.exec(prefix)?.[1] ?? '';
   let abschnitt = '';
   for (const zeile of angaben.split('\n')) {
-    if (/^(Figuren|Orte|Gruppen):$/.test(zeile)) {
-      abschnitt = zeile.slice(0, -1);
+    if (/^(Figuren|Orte|Gruppen|Characters|Places|Groups):$/.test(zeile)) {
+      const name = zeile.slice(0, -1);
+      abschnitt = ABSCHNITT[name] ?? name;
       continue;
     }
-    const planZeile = /^  Planung · ([^:]+): (.*)$/.exec(zeile);
+    const planZeile = /^  (?:Planung|Plan) · ([^:]+): (.*)$/.exec(zeile);
     if (planZeile && abschnitt === 'Figuren') {
       ergebnis.figuren[ergebnis.figuren.length - 1]?.plan.push({ feld: planZeile[1] ?? '', wert: planZeile[2] ?? '' });
       continue;
@@ -250,8 +324,9 @@ export function leseBuchKontext(prefix: string): GelesenerKontext {
     const m = /^- (.+?) \(id: ([^)]+)\)(.*)$/.exec(zeile);
     if (!m) continue;
     const [, name = '', id = '', rest = ''] = m;
-    const aliase = /· auch: ([^·]+)/.exec(rest)?.[1]?.split(',').map((a) => a.trim()).filter(Boolean) ?? [];
-    if (abschnitt === 'Figuren') ergebnis.figuren.push({ id, name, aliase, existenz: /Existenz: ([^·]+)/.exec(rest)?.[1]?.trim() ?? '', plan: [] });
+    const aliase = /· (?:auch|also): ([^·]+)/.exec(rest)?.[1]?.split(',').map((a) => a.trim()).filter(Boolean) ?? [];
+    if (abschnitt === 'Figuren')
+      ergebnis.figuren.push({ id, name, aliase, existenz: stufeDeutsch(/(?:Existenz|Existence): ([^·]+)/.exec(rest)?.[1] ?? ''), plan: [] });
     else if (abschnitt === 'Orte') ergebnis.orte.push({ id, name, aliase });
     else if (abschnitt === 'Gruppen') ergebnis.gruppen.push({ id, name });
   }
@@ -261,7 +336,7 @@ export function leseBuchKontext(prefix: string): GelesenerKontext {
       .split('\n')
       .map((z) => /^- ([^:]+): (.*)$/.exec(z))
       .filter((x): x is RegExpExecArray => !!x)
-      .map((x) => ({ stufe: x[1] ?? '', text: x[2] ?? '' }));
+      .map((x) => ({ stufe: stufeDeutsch(x[1] ?? ''), text: x[2] ?? '' }));
     const plan = m[6] ?? '';
     ergebnis.kapitel.push({
       id: attrLesen(m[2] ?? ''),
@@ -269,7 +344,10 @@ export function leseBuchKontext(prefix: string): GelesenerKontext {
       titel: attrLesen(m[3] ?? ''),
       text: m[4] ?? '',
       realitaet,
-      plan: { szene: /^Geplante Szene: (.*)$/m.exec(plan)?.[1] ?? '', notiz: /^Was hier passieren soll: (.*)$/m.exec(plan)?.[1] ?? '' },
+      plan: {
+        szene: /^(?:Geplante Szene|Planned scene): (.*)$/m.exec(plan)?.[1] ?? '',
+        notiz: /^(?:Was hier passieren soll|What should happen here): (.*)$/m.exec(plan)?.[1] ?? '',
+      },
     });
   }
   return ergebnis;

@@ -9,6 +9,7 @@
  */
 import type { Content, ContentText, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { leseMarkdown, SZENENTRENNER, type Lauf } from '../docx/markdown';
+import { localeVon, type Sprache } from '../i18n';
 import type { Kapitel } from '../model/types';
 
 export interface PdfSchrift {
@@ -27,6 +28,8 @@ export interface PdfOptionen {
   schriften?: PdfSchrift[];
   /** Titelseite mit dem Buchtitel (Standard: ja, wenn ein Titel vorhanden ist) */
   titelseite?: boolean;
+  /** Buchsprache (Sprachkennung des PDF); Standard Deutsch */
+  sprache?: Sprache;
 }
 
 interface PdfMake {
@@ -151,6 +154,7 @@ export async function exportierePdfMit(kapitel: Kapitel[], buchtitel: string, op
 
   const def: TDocumentDefinitions = {
     info: { title: buchtitel, creator: 'Plotwerk', producer: 'Plotwerk' },
+    language: localeVon(optionen.sprache ?? 'de'),
     pageSize: 'A4',
     pageMargins: [71, 71, 71, 85],
     content: inhalt.length ? inhalt : [{ text: '' }],
@@ -170,8 +174,8 @@ export async function exportierePdfMit(kapitel: Kapitel[], buchtitel: string, op
 }
 
 /** PDF mit den über pdfSchriftenSetzen() festgelegten Schriften (sonst Times). */
-export async function exportierePdf(kapitel: Kapitel[], buchtitel: string): Promise<Uint8Array> {
-  return exportierePdfMit(kapitel, buchtitel, { schriften: registriert ?? undefined });
+export async function exportierePdf(kapitel: Kapitel[], buchtitel: string, sprache: Sprache = 'de'): Promise<Uint8Array> {
+  return exportierePdfMit(kapitel, buchtitel, { schriften: registriert ?? undefined, sprache });
 }
 
 /** Seitenzahl eines PDF (Zählung der /Type /Page-Objekte). */

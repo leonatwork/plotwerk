@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deutscheStimmen, satzAb, stimmenRang, vorleseSaetze, waehleStimme, type StimmeInfo } from './vorlesen';
+import { deutscheStimmen, satzAb, stimmenFuer, stimmenRang, vorleseSaetze, waehleStimme, type StimmeInfo } from './vorlesen';
 
 const stimme = (name: string, lang: string, extra: Partial<StimmeInfo> = {}): StimmeInfo => ({
   voiceURI: `com.apple.voice.${name}`,
@@ -53,5 +53,20 @@ describe('Vorlesen: Stimmen', () => {
     expect(waehleStimme(stimmen, 'gibt-es-nicht')?.name).toBe('Markus (Premium)');
     expect(waehleStimme(stimmen, null)?.name).toBe('Markus (Premium)');
     expect(waehleStimme([stimme('Samantha', 'en-US')], null)).toBeNull();
+  });
+
+  it('wählt bei englischer Buchsprache eine englische Stimme (en-US vor en-GB)', () => {
+    const mit = [...stimmen, stimme('Daniel', 'en-GB'), stimme('Ava (Premium)', 'en_US')];
+    expect(stimmenFuer(mit, 'en').map((s) => s.name)).toEqual(['Ava (Premium)', 'Samantha', 'Daniel']);
+    expect(waehleStimme(mit, null, 'en')?.name).toBe('Ava (Premium)');
+    // eine gewählte deutsche Stimme liest kein englisches Buch
+    expect(waehleStimme(mit, 'com.apple.voice.Anna', 'en')?.name).toBe('Ava (Premium)');
+    expect(waehleStimme(mit, 'com.apple.voice.Daniel', 'en')?.name).toBe('Daniel');
+    expect(stimmenRang(stimme('Anna', 'de-DE'), 'en')).toBeLessThan(0);
+  });
+
+  it('teilt englische Sätze ohne Abkürzungen wie „Mr.“ zu trennen', () => {
+    const text = 'Mr. Smith left. Then he came back! "Why?" she asked.';
+    expect(vorleseSaetze(text, 0, text.length, 'en').map((s) => s.text)).toEqual(['Mr. Smith left.', 'Then he came back!', '"Why?" she asked.']);
   });
 });

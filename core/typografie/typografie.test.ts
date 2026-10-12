@@ -80,3 +80,54 @@ describe('typografieBeimTippen (ganze Sätze)', () => {
     expect(tippe(eingabe)).toBe(erwartet);
   });
 });
+
+describe('typografieBeimTippen (Englisch)', () => {
+  const en: [string, string, Ersetzung | null][] = [
+    ['', '"', { loeschen: 0, einfuegen: '“' }],
+    ['He said ', '"', { loeschen: 0, einfuegen: '“' }],
+    ['He said “Hello', '"', { loeschen: 0, einfuegen: '”' }],
+    ['“I was going to—', '"', { loeschen: 0, einfuegen: '”' }],
+    ['(', '"', { loeschen: 0, einfuegen: '“' }],
+    ['don', "'", { loeschen: 0, einfuegen: '’' }],
+    ['Chris', "'", { loeschen: 0, einfuegen: '’' }],
+    ['She calls it ', "'", { loeschen: 0, einfuegen: '‘' }],
+    ['She calls it ‘art', "'", { loeschen: 0, einfuegen: '’' }],
+    ['the ‘', '9', { loeschen: 1, einfuegen: '’9' }],
+    ['rock ‘n', "'", { loeschen: 2, einfuegen: '’n’' }],
+    ['tell ‘em', ' ', { loeschen: 3, einfuegen: '’em ' }],
+    ['‘til', ',', { loeschen: 4, einfuegen: '’til,' }],
+    ['He waited -', '-', { loeschen: 1, einfuegen: '—' }],
+    ['He waited -', ' ', { loeschen: 1, einfuegen: '— ' }],
+    ['Why..', '.', { loeschen: 2, einfuegen: '…' }],
+    ['see https://example.com/a-', '-', null],
+    ['Hello', 'a', null],
+  ];
+  it.each(en)('%j + %j', (davor, eingabe, erwartet) => {
+    expect(typografieBeimTippen(davor, eingabe, 'en')).toEqual(erwartet);
+  });
+
+  function tippeEn(eingaben: string): string {
+    let text = '';
+    for (const z of eingaben) {
+      const e = typografieBeimTippen(text, z, 'en');
+      text = e ? text.slice(0, text.length - e.loeschen) + e.einfuegen : text + z;
+    }
+    return text;
+  }
+
+  it.each([
+    ['"Don\'t," she said -- and left...', '“Don’t,” she said — and left…'],
+    ["She calls it 'art'--I don't.", 'She calls it ‘art’—I don’t.'],
+    ["the '90s and rock 'n' roll", 'the ’90s and rock ’n’ roll'],
+    ['"I was going to--"', '“I was going to—”'],
+    ["James' car and James's dog", 'James’ car and James’s dog'],
+    ["'Tell 'em,' he said.", '‘Tell ’em,’ he said.'],
+  ])('%s', (eingabe, erwartet) => {
+    expect(tippeEn(eingabe)).toBe(erwartet);
+  });
+
+  it('ohne Sprache bleibt es deutsch', () => {
+    expect(typografieBeimTippen('', '"')).toEqual({ loeschen: 0, einfuegen: '„' });
+    expect(typografieBeimTippen('Er wartet -', '-', 'de')).toEqual({ loeschen: 1, einfuegen: '–' });
+  });
+});

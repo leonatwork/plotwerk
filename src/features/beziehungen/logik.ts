@@ -5,10 +5,11 @@
 import type { Index } from '@core/index/index';
 import type { Beziehung, BeziehungsKategorie, Erwaehnung, Figur, Gruppe, Id, ProjektDaten, Spur, TextAnker } from '@core/model/types';
 import { ankerErzeugen, findeZitat, klartext } from '@core/text/index';
+/** `fmt` statt `f`: `f` heißt hier oft eine Figur. */
+import { f as fmt, texte } from '../../i18n';
 import {
   ausschnitt,
   farbSatz,
-  GRUPPENTYP_LABEL,
   kapitelIndex,
   kapLabel,
   kategorieFarbe,
@@ -38,6 +39,7 @@ export interface Stufe {
 /** Ein Segment je Akt mit zugeordneten Kapiteln: „Akt I · Kap. 1–4“. */
 export function aktStufen(daten: ProjektDaten): Stufe[] {
   const stufen: Stufe[] = [];
+  const t = texte();
   const akte = [...daten.akte].sort((a, b) => a.nummer - b.nummer);
   for (const akt of akte) {
     const idx = daten.projekt.kapitel
@@ -48,7 +50,10 @@ export function aktStufen(daten: ProjektDaten): Stufe[] {
     const bis = Math.max(...idx) + 1;
     stufen.push({
       akt: akt.nummer,
-      label: `Akt ${roemisch(akt.nummer)} · ${von === bis ? `Kap. ${von}` : `Kap. ${von}–${bis}`}`,
+      label: fmt(t.beziehungen.logik.aktStufe, {
+        akt: roemisch(akt.nummer),
+        kapitel: von === bis ? fmt(t.gemeinsam.kapitelKurz, { nr: von }) : fmt(t.beziehungen.logik.kapBereich, { von, bis }),
+      }),
       bisKapitel: daten.projekt.kapitel[bis - 1]!,
       bisIndex: bis - 1,
     });
@@ -63,7 +68,7 @@ export function standIndex(daten: ProjektDaten, stand: Id | null | undefined): n
 }
 
 export function standNotiz(standIdx: number): string {
-  return `Stand Ende Kap. ${standIdx + 1}: was der Leser bis hierhin weiß`;
+  return fmt(texte().beziehungen.logik.standNotiz, { nr: standIdx + 1 });
 }
 
 /** Figur noch nicht im Text (kein Vorkommen). */
@@ -256,6 +261,8 @@ function rechteckVon(f: Figur): Rechteck | null {
 const einWort = (s: string) => !/\s/.test(s.trim()) && s.trim().length > 0 && s.trim().length <= 24;
 
 export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: number, filter: NetzFilter): NetzAnsicht {
+  const t = texte();
+  const tl = t.beziehungen.logik;
   const figuren = Object.values(daten.figuren);
   const sichtbar = new Set(figuren.filter((f) => figurSichtbar(daten, index, f.id, standIdx)).map((f) => f.id));
 
@@ -324,13 +331,13 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
       untertitel = f.kurz ?? '';
     } else if (f.existenz !== 'gesichert') {
       variante = 'unsicher';
-      untertitel = 'existiert sie?';
+      untertitel = tl.existiertSie;
     } else if (!erst) {
       variante = 'geplant';
-      untertitel = f.kurz ? `geplant · ${f.kurz}` : 'geplant';
+      untertitel = f.kurz ? fmt(tl.geplantMit, { kurz: f.kurz }) : tl.geplant;
     } else if (nurErwaehnt(daten, index, f.id, standIdx, eigene)) {
       variante = 'erwaehnt';
-      untertitel = f.kurz ? `erwähnt · ${f.kurz}` : 'erwähnt';
+      untertitel = f.kurz ? fmt(tl.erwaehntMit, { kurz: f.kurz }) : tl.erwaehnt;
     } else {
       variante = 'normal';
       untertitel = f.kurz ?? kapLabel(daten, erst);
@@ -350,7 +357,7 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
     }
     const farben = farbSatz(strangVon(daten, g.strang)?.farbe);
     const rechteck = { x: g.netz.x, y: g.netz.y, breite: g.netz.breite, hoehe: g.netz.hoehe };
-    flaechen.push({ gruppe: g, rechteck, farben, label: `${GRUPPENTYP_LABEL[g.typ]} · ${g.name}` });
+    flaechen.push({ gruppe: g, rechteck, farben, label: fmt(tl.flaecheLabel, { typ: t.beziehungen.gruppenTyp[g.typ], name: g.name }) });
     const mitgliedSichtbar = g.mitglieder.some((m) => rechtecke.has(m));
     if (mitgliedSichtbar) continue;
     const spuren = g.spuren
@@ -364,11 +371,11 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
       gruppe: g,
       rechteck: { x: rechteck.x + 16, y: rechteck.y + 48, breite: KARTE.breite, hoehe: KARTE.hoehe },
       variante: kandidat ? 'kandidat' : 'leer',
-      titel: kandidat ? `»${spur!.text.trim()}«` : 'noch keine Figur',
+      titel: kandidat ? fmt(tl.kandidatTitel, { text: spur!.text.trim() }) : tl.nochKeineFigur,
       untertitel: spur
         ? kandidat
-          ? `${kapLabel(daten, spur.kapitel)} · Zuordnung?`
-          : `Spur? ${spur.text}, ${kapLabel(daten, spur.kapitel)}`
+          ? fmt(tl.kandidatUnter, { kap: kapLabel(daten, spur.kapitel) })
+          : fmt(tl.spurUnter, { text: spur.text, kap: kapLabel(daten, spur.kapitel) })
         : '',
       spur,
       farben,
@@ -391,7 +398,7 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
       // Beschriftung an der Karte, an der die Beziehung steht („von“)
       bevorzugtAst: e.von,
       stil: p.stil,
-      label: e.beziehung.art.trim() || 'ohne Bezeichnung',
+      label: e.beziehung.art.trim() || tl.ohneBezeichnung,
       leer: !e.beziehung.art.trim(),
       labelFarbe: p.farben.dunkel,
     });
@@ -407,7 +414,7 @@ export function netzBerechnen(daten: ProjektDaten, index: Index, standIdx: numbe
       rb: zr,
       bevorzugtAst: `spur:${ph.gruppe.id}`,
       stil: { farbe: ph.farben.farbe, gestrichelt: true },
-      label: 'Kontakt',
+      label: tl.kontakt,
       leer: false,
       labelFarbe: ph.farben.dunkel,
     });
@@ -589,10 +596,9 @@ export function belege(daten: ProjektDaten, index: Index, a: Id, b: Id): Beleg[]
 
 /** Was der Leser bis zum Stand über eine Figur weiß (Kurzfassungen der Kapitel mit Vorkommen). */
 export function figurBisher(daten: ProjektDaten, index: Index, figur: Id, standIdx: number): string {
+  const tl = texte().beziehungen.logik;
   if (!figurSichtbar(daten, index, figur, standIdx) || istGeplant(index, figur)) {
-    return istGeplant(index, figur) && standIdx >= daten.projekt.kapitel.length - 1
-      ? 'Noch nicht im Text, nur geplant.'
-      : 'Noch nicht eingeführt.';
+    return istGeplant(index, figur) && standIdx >= daten.projekt.kapitel.length - 1 ? tl.nurGeplant : tl.nichtEingefuehrt;
   }
   const kapitel = [
     ...new Set(
@@ -604,7 +610,7 @@ export function figurBisher(daten: ProjektDaten, index: Index, figur: Id, standI
   if (kapitel.length === 0) return '';
   const teile = kapitel.map((k) => {
     const kurz = daten.analysen[k]?.kurz?.trim();
-    return kurz ? `${kapLabel(daten, k)}: ${kurz}` : `${kapLabel(daten, k)}: kommt vor.`;
+    return kurz ? fmt(tl.bisherKurz, { kap: kapLabel(daten, k), kurz }) : fmt(tl.bisherKommtVor, { kap: kapLabel(daten, k) });
   });
   return teile.join(' ');
 }

@@ -23,27 +23,41 @@ fn eintrag(anbieter: Anbieter) -> Result<Entry, String> {
 
 fn fehlertext(e: Error) -> String {
     match e {
-        Error::NoEntry => {
-            "Kein API-Schlüssel hinterlegt. Bitte in den KI-Einstellungen eintragen.".into()
+        Error::NoEntry => crate::sprache::t(
+            "Kein API-Schlüssel hinterlegt. Bitte in den KI-Einstellungen eintragen.",
+            "No API key stored. Please enter it in the AI settings.",
+        )
+        .into(),
+        Error::NoStorageAccess(_) => crate::sprache::t(
+            "Kein Zugriff auf den Schlüsselbund. Bitte den Zugriff für Plotwerk erlauben.",
+            "No access to the keychain. Please allow access for Plotwerk.",
+        )
+        .into(),
+        Error::TooLong(..) => {
+            crate::sprache::t("Der API-Schlüssel ist zu lang.", "The API key is too long.").into()
         }
-        Error::NoStorageAccess(_) => {
-            "Kein Zugriff auf den Schlüsselbund. Bitte den Zugriff für Plotwerk erlauben.".into()
-        }
-        Error::TooLong(..) => "Der API-Schlüssel ist zu lang.".into(),
-        Error::BadEncoding(_) => {
-            "Der gespeicherte API-Schlüssel ist beschädigt. Bitte neu eintragen.".into()
-        }
-        andere => format!("Schlüsselbund-Fehler: {andere}"),
+        Error::BadEncoding(_) => crate::sprache::t(
+            "Der gespeicherte API-Schlüssel ist beschädigt. Bitte neu eintragen.",
+            "The stored API key is damaged. Please enter it again.",
+        )
+        .into(),
+        andere => crate::tf!("Schlüsselbund-Fehler: {andere}", "Keychain error: {andere}"),
     }
 }
 
 pub fn setzen(anbieter: Anbieter, wert: &str) -> Result<(), String> {
     let wert = wert.trim();
     if wert.is_empty() {
-        return Err("Der API-Schlüssel ist leer.".into());
+        return Err(
+            crate::sprache::t("Der API-Schlüssel ist leer.", "The API key is empty.").into(),
+        );
     }
     if wert.chars().any(|c| c.is_control()) {
-        return Err("Der API-Schlüssel enthält ungültige Zeichen.".into());
+        return Err(crate::sprache::t(
+            "Der API-Schlüssel enthält ungültige Zeichen.",
+            "The API key contains invalid characters.",
+        )
+        .into());
     }
     eintrag(anbieter)?.set_password(wert).map_err(fehlertext)
 }

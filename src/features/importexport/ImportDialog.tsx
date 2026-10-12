@@ -4,6 +4,7 @@ import { importHinweisKapitel, importiereDocx, type ImportErgebnis } from '@core
 import type { Hinweis, Id } from '@core/model/types';
 import { klartext, wortzahl } from '@core/text/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, sprache, texte, useTexte, zahl } from '../../i18n';
 import { ImportAbgebrochen, type ImportBericht } from '../../state/slices/importexport';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Dialog, Radio, StatusPunkt, Textfeld } from '../../ui';
@@ -16,8 +17,6 @@ type Phase =
   | { art: 'vorschau'; name: string; ergebnis: ImportErgebnis }
   | { art: 'uebernimmt'; name: string; ergebnis: ImportErgebnis }
   | { art: 'fertig'; ergebnis: ImportErgebnis; bericht: ImportBericht; versatz: number };
-
-const zahl = (n: number) => n.toLocaleString('de-DE');
 
 function fehlertext(e: unknown): string {
   return e instanceof Error ? e.message : String(e);
@@ -35,6 +34,7 @@ export function ersterSatz(markdown: string): string {
 }
 
 function HinweisListe({ hinweise, oeffnen }: { hinweise: Hinweis[]; oeffnen?: (nummer: number) => void }) {
+  const T = useTexte().importexport.import;
   return (
     <div className="pw-ie-hinweise">
       {hinweise.map((h) => {
@@ -46,12 +46,14 @@ function HinweisListe({ hinweise, oeffnen }: { hinweise: Hinweis[]; oeffnen?: (n
             <span className="pw-ie-hinweis__text">{h.erklaerung}</span>
             {zitat?.text && (
               <span className="pw-ie-hinweis__zitat">
-                {h.schluessel.includes('satzende') ? `„…${zitat.text}“` : `„${zitat.text}${zitat.text.length >= 60 ? '…' : ''}“`}
+                {h.schluessel.includes('satzende')
+                  ? f(T.zitatEnde, { text: zitat.text })
+                  : f(T.zitat, { text: `${zitat.text}${zitat.text.length >= 60 ? '…' : ''}` })}
               </span>
             )}
             {oeffnen && nummer !== null && nummer > 0 && (
               <Button variante="text" klein onClick={() => oeffnen(nummer)}>
-                Kapitel öffnen
+                {T.kapitelOeffnen}
               </Button>
             )}
           </div>
@@ -66,8 +68,9 @@ export function kommentarZeile(ergebnis: ImportErgebnis): string {
   const liste = ergebnis.kommentare ?? [];
   const antworten = liste.reduce((n, k) => n + k.antworten.length, 0);
   const kapitel = liste.filter((k) => k.ueberschrift).length;
-  const teile = [antworten ? `${antworten} ${antworten === 1 ? 'Antwort' : 'Antworten'} eingeschlossen` : '', kapitel ? `${kapitel} als Notiz zum Kapitel` : ''].filter(Boolean);
-  return `${liste.length === 1 ? 'Word-Kommentar' : `${liste.length} Word-Kommentare`} als Anmerkungen übernehmen${teile.length ? ` (${teile.join(', ')})` : ''}`;
+  const T = texte().importexport.import;
+  const teile = [antworten ? f(T.antworten, { n: antworten }) : '', kapitel ? f(T.alsNotiz, { n: kapitel }) : ''].filter(Boolean);
+  return `${f(T.kommentare, { n: liste.length })}${teile.length ? ` (${teile.join(', ')})` : ''}`;
 }
 
 export function ImportDialog({ schliessen }: DialogKomponentenProps) {
@@ -76,6 +79,8 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   const importUebernehmen = useStore((s) => s.importUebernehmen);
   const oeffne = useStore((s) => s.oeffne);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
+  const t = useTexte();
+  const T = t.importexport.import;
 
   const [phase, setPhase] = useState<Phase>({ art: 'start' });
   const [ziel, setZiel] = useState<'aktuell' | 'neu'>(daten ? 'aktuell' : 'neu');
@@ -92,7 +97,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
     if (!datei) return;
     setPhase({ art: 'liest', name: datei.name });
     try {
-      const ergebnis = await importiereDocx(datei.daten);
+      const ergebnis = await importiereDocx(datei.daten, sprache());
       setProjektTitel(ergebnis.buchtitel ?? datei.name.replace(/\.docx$/i, ''));
       setVorspannAlsKapitel(false);
       setKommentareUebernehmen(true);
@@ -115,7 +120,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
       setPhase({ art: 'fertig', ergebnis, bericht, versatz: mitVorspann ? 1 : 0 });
     } catch (e) {
       if (e instanceof ImportAbgebrochen) setPhase({ art: 'vorschau', name, ergebnis });
-      else setPhase({ art: 'fehler', meldung: `Übernahme fehlgeschlagen: ${fehlertext(e)}` });
+      else setPhase({ art: 'fehler', meldung: f(texte().importexport.import.fehlgeschlagen, { fehler: fehlertext(e) }) });
     }
   }
 
@@ -136,19 +141,16 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   if (phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler') {
     inhalt = (
       <>
-        <p className="pw-ie-text">
-          Kapitel werden an Absätzen im Format „Überschrift 1“ erkannt. Fett und kursiv bleiben erhalten, der Text wird nicht verändert. Vor der
-          Übernahme siehst du eine Vorschau.
-        </p>
+        <p className="pw-ie-text">{T.erklaerung}</p>
         {daten && phase.art !== 'liest' && (
           <p className="pw-ie-text" style={{ fontSize: 12 }}>
-            Kommt die Datei mit Kommentaren und Änderungen vom Lektorat zurück?{' '}
+            {T.lektoratFrage}{' '}
             <Button variante="text" klein onClick={() => oeffneDialog('rueckimport')} style={{ height: 'auto', padding: 0 }}>
-              Lektorat aus Word übernehmen …
+              {T.lektoratLink}
             </Button>
           </p>
         )}
-        {phase.art === 'liest' && <p className="pw-ie-meldung">„{phase.name}“ wird gelesen …</p>}
+        {phase.art === 'liest' && <p className="pw-ie-meldung">{f(T.wirdGelesen, { name: phase.name })}</p>}
         {phase.art === 'fehler' && (
           <p role="alert" className="pw-ie-meldung pw-ie-meldung--fehler">
             {phase.meldung}
@@ -159,10 +161,10 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
     aktionen = (
       <>
         <Button onClick={schliessen} disabled={beschaeftigt}>
-          Abbrechen
+          {t.gemeinsam.abbrechen}
         </Button>
         <Button variante="primaer" onClick={dateiWaehlen} disabled={!backend || beschaeftigt} data-autofocus>
-          Word-Datei wählen …
+          {T.dateiWaehlen}
         </Button>
       </>
     );
@@ -179,16 +181,16 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
             {name}
           </span>
           <span className="pw-ie-kopf__zahlen">
-            {ergebnis.kapitel.length} Kapitel · {zahl(gesamt)} Wörter
+            {f(t.importexport.kapitelAnzahl, { n: ergebnis.kapitel.length })} · {f(t.gemeinsam.woerter, { n: gesamt })}
           </span>
           <Button variante="text" klein onClick={dateiWaehlen} disabled={beschaeftigt}>
-            Andere Datei …
+            {T.andereDatei}
           </Button>
         </div>
 
         {ergebnis.kapitel.length > 0 && (
-          <section className="pw-ie-abschnitt" aria-label="Kapitel">
-            <Abschnittslabel>Kapitel</Abschnittslabel>
+          <section className="pw-ie-abschnitt" aria-label={t.importexport.kapitelListe}>
+            <Abschnittslabel>{t.importexport.kapitelListe}</Abschnittslabel>
             <ol className="pw-ie-liste" style={{ margin: 0, listStyle: 'none' }}>
               {zeilen.map((z, i) => (
                 <li key={i} className="pw-ie-zeile pw-ie-zeile--zweizeilig">
@@ -202,7 +204,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
                       </span>
                     )}
                   </span>
-                  <span className="pw-ie-zeile__zahl">{z.woerter ? zahl(z.woerter) : 'geplant'}</span>
+                  <span className="pw-ie-zeile__zahl">{z.woerter ? zahl(z.woerter) : t.importexport.geplant}</span>
                 </li>
               ))}
             </ol>
@@ -211,7 +213,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
 
         {vorspannWoerter > 0 && (
           <Checkbox checked={vorspannAlsKapitel} onChange={(e) => setVorspannAlsKapitel(e.target.checked)} disabled={beschaeftigt}>
-            Text vor der ersten Überschrift ({zahl(vorspannWoerter)} {vorspannWoerter === 1 ? 'Wort' : 'Wörter'}) als Kapitel „Vorspann“ übernehmen
+            {f(T.vorspann, { n: vorspannWoerter })}
           </Checkbox>
         )}
 
@@ -222,31 +224,31 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
         )}
 
         {ergebnis.hinweise.length > 0 && (
-          <section className="pw-ie-abschnitt" aria-label="Struktur-Hinweise">
+          <section className="pw-ie-abschnitt" aria-label={T.strukturHinweise}>
             <div className="pw-ie-abschnitt__kopf">
-              <Abschnittslabel farbe="var(--warm-dark)">Struktur-Hinweise</Abschnittslabel>
+              <Abschnittslabel farbe="var(--warm-dark)">{T.strukturHinweise}</Abschnittslabel>
               <span className="pw-ie-abschnitt__zusatz">{ergebnis.hinweise.length}</span>
             </div>
             <HinweisListe hinweise={ergebnis.hinweise} />
           </section>
         )}
 
-        <section className="pw-ie-abschnitt" aria-label="Übernehmen">
-          <Abschnittslabel>Übernehmen</Abschnittslabel>
-          <div className="pw-ie-optionen" role="radiogroup" aria-label="Ziel">
+        <section className="pw-ie-abschnitt" aria-label={T.uebernehmen}>
+          <Abschnittslabel>{T.uebernehmen}</Abschnittslabel>
+          <div className="pw-ie-optionen" role="radiogroup" aria-label={T.ziel}>
             {daten && (
               <Radio name="pw-import-ziel" checked={ziel === 'aktuell'} onChange={() => setZiel('aktuell')} disabled={beschaeftigt}>
-                {projektLeer ? `In dieses Projekt „${titel}“` : `Als neue Kapitel an „${titel}“ anhängen (nach Kapitel ${daten.projekt.kapitel.length})`}
+                {projektLeer ? f(T.inDiesesProjekt, { titel }) : f(T.anhaengen, { titel, n: daten.projekt.kapitel.length })}
               </Radio>
             )}
             <Radio name="pw-import-ziel" checked={!daten || ziel === 'neu'} onChange={() => setZiel('neu')} disabled={beschaeftigt}>
-              Neues Projekt anlegen
+              {T.neuesProjekt}
             </Radio>
             {(!daten || ziel === 'neu') && (
               <div className="pw-ie-einzug">
                 <Textfeld
-                  aria-label="Titel des neuen Projekts"
-                  placeholder="Titel des Buchs"
+                  aria-label={T.titelLabel}
+                  placeholder={T.titelPlatzhalter}
                   value={projektTitel}
                   onChange={(e) => setProjektTitel(e.target.value)}
                   disabled={beschaeftigt}
@@ -259,16 +261,16 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
     );
     aktionen = (
       <>
-        {phase.art === 'uebernimmt' && <span className="pw-ie-fuss-links">Wird übernommen …</span>}
+        {phase.art === 'uebernimmt' && <span className="pw-ie-fuss-links">{T.wirdUebernommen}</span>}
         <Button onClick={schliessen} disabled={beschaeftigt}>
-          Abbrechen
+          {t.gemeinsam.abbrechen}
         </Button>
         <Button
           variante="primaer"
           onClick={() => uebernehmen(name, ergebnis)}
           disabled={beschaeftigt || anzahl === 0 || ((!daten || ziel === 'neu') && !projektTitel.trim())}
         >
-          {anzahl === 1 ? '1 Kapitel übernehmen' : `${anzahl} Kapitel übernehmen`}
+          {f(T.kapitelUebernehmen, { n: anzahl })}
         </Button>
       </>
     );
@@ -278,14 +280,15 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
     inhalt = (
       <>
         <p className="pw-ie-meldung pw-ie-meldung--erfolg" role="status">
-          {n === 1 ? '1 Kapitel' : `${n} Kapitel`} übernommen
-          {bericht.geplant > 0 ? `, davon ${bericht.geplant} ohne Text (als geplant)` : ''}
-          {bericht.anmerkungen > 0 ? `, ${bericht.anmerkungen === 1 ? '1 Word-Kommentar' : `${bericht.anmerkungen} Word-Kommentare`} als Anmerkungen` : ''}.
+          {f(T.fertigKapitel, { n })}
+          {bericht.geplant > 0 ? f(T.fertigGeplant, { n: bericht.geplant }) : ''}
+          {bericht.anmerkungen > 0 ? f(T.fertigAnmerkungen, { n: bericht.anmerkungen }) : ''}
+          {T.fertigEnde}
         </p>
         {ergebnis.hinweise.length > 0 && (
-          <section className="pw-ie-abschnitt" aria-label="Struktur-Hinweise">
+          <section className="pw-ie-abschnitt" aria-label={T.strukturHinweise}>
             <div className="pw-ie-abschnitt__kopf">
-              <Abschnittslabel farbe="var(--warm-dark)">Struktur-Hinweise</Abschnittslabel>
+              <Abschnittslabel farbe="var(--warm-dark)">{T.strukturHinweise}</Abschnittslabel>
               <span className="pw-ie-abschnitt__zusatz">{ergebnis.hinweise.length}</span>
             </div>
             <HinweisListe hinweise={ergebnis.hinweise} oeffnen={(nummer) => oeffneKapitel(bericht.ids[nummer - 1 + versatz])} />
@@ -295,9 +298,9 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
     );
     aktionen = (
       <>
-        <Button onClick={schliessen}>Fertig</Button>
+        <Button onClick={schliessen}>{t.gemeinsam.fertig}</Button>
         <Button variante="primaer" onClick={() => oeffneKapitel(bericht.ids[0])} disabled={n === 0} data-autofocus>
-          Zum ersten Kapitel
+          {T.zumErstenKapitel}
         </Button>
       </>
     );
@@ -305,7 +308,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
 
   return (
     <Dialog
-      titel="Word-Datei importieren"
+      titel={T.titel}
       onSchliessen={beschaeftigt ? () => undefined : schliessen}
       modalFest={beschaeftigt || phase.art === 'vorschau'}
       breite={phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler' ? 480 : 600}

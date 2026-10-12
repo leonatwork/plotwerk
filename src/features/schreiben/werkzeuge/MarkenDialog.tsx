@@ -4,27 +4,31 @@
  * Lokal, ohne KI.
  */
 import type { Id, Marke, Markenliste } from '@core/model/types';
-import { GRUND_TEXT, markenAlsCsv, markenAlsMarkdown, markenUebersicht, type KapitelText, type MarkeImKapitel } from '@core/stil/index';
+import { markenAlsCsv, markenAlsMarkdown, markenUebersicht, type KapitelText, type MarkeImKapitel } from '@core/stil/index';
 import { klartext } from '@core/text/index';
 import { useId, useMemo, useState, type KeyboardEvent } from 'react';
 import type { DialogKomponentenProps } from '../../../app/dialogTypen';
+import { f, sprache, useTexte, vergleich } from '../../../i18n';
+import { useBuchSprache } from '../../../i18n/buch';
 import { useStore } from '../../../state/store';
 import { Button, Dialog, Segment, Textfeld } from '../../../ui';
-import { bekannteNamen, LEERE_MARKENLISTE, markeAufnehmen, markeIgnorieren, zahlText, zeigeStelle } from './gemeinsam';
+import { bekannteNamen, LEERE_MARKENLISTE, markeAufnehmen, markeIgnorieren, zeigeStelle } from './gemeinsam';
 import './werkzeuge.css';
 
 type Ansicht = 'buch' | 'vorschlaege' | 'liste';
 let gemerkteAnsicht: Ansicht = 'buch';
 
 function KapitelChips({ eintraege, kapitel, springen }: { eintraege: MarkeImKapitel[]; kapitel: KapitelText[]; springen(k: Id, i: number): void }) {
+  const t = useTexte();
   return (
     <span className="pw-w-kapchips">
       {eintraege.map((e) => {
         const nr = kapitel.findIndex((k) => k.id === e.kapitel);
         const titel = kapitel[nr]?.titel ?? e.kapitel;
+        const kap = f(t.gemeinsam.kapitelKurz, { nr: nr + 1 });
         return (
-          <button key={e.kapitel} type="button" className="pw-w-kapchip" title={`Kap. ${nr + 1} „${titel}“ – zur ersten Stelle`} onClick={() => springen(e.kapitel, 0)}>
-            Kap. {nr + 1}
+          <button key={e.kapitel} type="button" className="pw-w-kapchip" title={f(t.schreiben.marken.kapChipTitel, { kap, titel })} onClick={() => springen(e.kapitel, 0)}>
+            {kap}
             {e.stellen.length > 1 && <span> · {e.stellen.length}×</span>}
           </button>
         );
@@ -39,6 +43,8 @@ function MarkenZeileBearbeiten({ marke, kategorien, aendern, entfernen }: { mark
   const [aliase, setAliase] = useState(marke.aliase.join(', '));
   const [kategorie, setKategorie] = useState(marke.kategorie ?? '');
   const [notiz, setNotiz] = useState(marke.notiz ?? '');
+  const t = useTexte();
+  const T = t.schreiben.marken;
   const uebernehmen = () => {
     const neu: Marke = {
       ...marke,
@@ -61,20 +67,20 @@ function MarkenZeileBearbeiten({ marke, kategorien, aendern, entfernen }: { mark
   return (
     <tr>
       <td>
-        <Textfeld aria-label="Name" value={name} onChange={(e) => setName(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
+        <Textfeld aria-label={T.name} value={name} onChange={(e) => setName(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
       </td>
       <td>
-        <Textfeld aria-label={`Weitere Schreibweisen von ${marke.name}`} placeholder="z. B. Schwip-Schwap, schwip" value={aliase} onChange={(e) => setAliase(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
+        <Textfeld aria-label={f(T.schreibweisenVon, { name: marke.name })} placeholder={T.schreibweisenPlatzhalter} value={aliase} onChange={(e) => setAliase(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
       </td>
       <td>
-        <Textfeld aria-label={`Kategorie von ${marke.name}`} list={kategorien} placeholder="Kategorie" value={kategorie} onChange={(e) => setKategorie(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
+        <Textfeld aria-label={f(T.kategorieVon, { name: marke.name })} list={kategorien} placeholder={T.kategorie} value={kategorie} onChange={(e) => setKategorie(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
       </td>
       <td>
-        <Textfeld aria-label={`Notiz zu ${marke.name}`} placeholder="Notiz" value={notiz} onChange={(e) => setNotiz(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
+        <Textfeld aria-label={f(T.notizZu, { name: marke.name })} placeholder={T.notiz} value={notiz} onChange={(e) => setNotiz(e.target.value)} onBlur={uebernehmen} onKeyDown={enter} />
       </td>
       <td>
-        <button type="button" className="pw-w-link pw-w-link--leise" onClick={entfernen} aria-label={`${marke.name} aus der Liste entfernen`}>
-          Entfernen
+        <button type="button" className="pw-w-link pw-w-link--leise" onClick={entfernen} aria-label={f(T.entfernenLabel, { name: marke.name })}>
+          {t.gemeinsam.entfernen}
         </button>
       </td>
     </tr>
@@ -101,11 +107,14 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
     [daten],
   );
   const namen = useMemo(() => (daten ? bekannteNamen(daten) : []), [daten]);
-  const uebersicht = useMemo(() => markenUebersicht(kapitel, liste, namen), [kapitel, liste, namen]);
-  const kategorien = useMemo(() => [...new Set(liste.marken.flatMap((m) => (m.kategorie ? [m.kategorie] : [])))].sort((a, b) => a.localeCompare(b, 'de')), [liste]);
+  const buchSprache = useBuchSprache();
+  const uebersicht = useMemo(() => markenUebersicht(kapitel, liste, namen, buchSprache), [kapitel, liste, namen, buchSprache]);
+  const kategorien = useMemo(() => [...new Set(liste.marken.flatMap((m) => (m.kategorie ? [m.kategorie] : [])))].sort(vergleich), [liste]);
+  const t = useTexte();
+  const T = t.schreiben.marken;
 
   if (!daten) return null;
-  const titel = daten.projekt.titel || 'Buch';
+  const titel = daten.projekt.titel || T.buch;
   const vorkommen = uebersicht.zeilen.reduce((s, z) => s + z.gesamt, 0);
 
   const wechseln = (a: Ansicht) => {
@@ -128,7 +137,7 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
       await speichereMarken(neueListe);
     } catch (e) {
       console.error('Markenliste nicht gespeichert:', e);
-      setMeldung('Die Markenliste konnte nicht gespeichert werden.');
+      setMeldung(T.nichtGespeichert);
     } finally {
       setArbeitet(false);
     }
@@ -136,13 +145,13 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
 
   const exportieren = async (art: 'md' | 'csv') => {
     if (!backend) return;
-    const inhalt = art === 'md' ? markenAlsMarkdown(uebersicht, kapitel, titel) : markenAlsCsv(uebersicht, kapitel);
+    const inhalt = art === 'md' ? markenAlsMarkdown(uebersicht, kapitel, titel, new Date(), sprache()) : markenAlsCsv(uebersicht, kapitel, sprache());
     try {
-      const ok = await backend.dateiSpeichern(`Markennamen – ${titel}.${art}`, new TextEncoder().encode(inhalt));
-      if (ok) setMeldung(`Liste als ${art === 'md' ? 'Markdown' : 'CSV'} gespeichert.`);
+      const ok = await backend.dateiSpeichern(f(T.dateiname, { titel, endung: art }), new TextEncoder().encode(inhalt));
+      if (ok) setMeldung(f(T.exportiert, { format: art === 'md' ? 'Markdown' : 'CSV' }));
     } catch (e) {
       console.error('Export fehlgeschlagen:', e);
-      setMeldung('Die Liste konnte nicht gespeichert werden.');
+      setMeldung(T.exportFehler);
     }
   };
 
@@ -160,14 +169,14 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
 
   return (
     <Dialog
-      titel="Markennamen"
+      titel={T.titel}
       onSchliessen={schliessen}
       breite={760}
       className="pw-w-dialog"
       aktionen={
         <>
           <span className="pw-w-dialog__export">
-            <span>Liste fürs Lektorat:</span>
+            <span>{T.fuersLektorat}</span>
             <Button klein disabled={!uebersicht.zeilen.length} onClick={() => void exportieren('md')}>
               Markdown
             </Button>
@@ -176,28 +185,22 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
             </Button>
           </span>
           <Button variante="primaer" onClick={schliessen}>
-            Fertig
+            {t.gemeinsam.fertig}
           </Button>
         </>
       }
     >
       <p className="pw-w-dialog__intro">
-        {liste.marken.length ? (
-          <>
-            {zahlText(liste.marken.length)} {liste.marken.length === 1 ? 'Marke' : 'Marken'} in deiner Liste · {zahlText(uebersicht.zeilen.length)} im Text mit {zahlText(vorkommen)} Vorkommen
-          </>
-        ) : (
-          'Deine Markenliste ist noch leer. Nimm Vorschläge auf oder trage Marken unter „Liste“ ein.'
-        )}
+        {liste.marken.length ? f(T.intro, { n: liste.marken.length, imText: uebersicht.zeilen.length, vorkommen }) : T.leerIntro}
       </p>
       <Segment<Ansicht>
-        label="Ansicht"
+        label={T.ansicht}
         wert={ansicht}
         onChange={wechseln}
         optionen={[
-          { wert: 'buch', label: `Im Buch · ${uebersicht.zeilen.length}`, steuert: `${tabId}-buch` },
-          { wert: 'vorschlaege', label: `Vorschläge · ${uebersicht.kandidaten.length}`, steuert: `${tabId}-vorschlaege` },
-          { wert: 'liste', label: 'Liste', steuert: `${tabId}-liste` },
+          { wert: 'buch', label: f(T.imBuch, { n: uebersicht.zeilen.length }), steuert: `${tabId}-buch` },
+          { wert: 'vorschlaege', label: f(T.vorschlaege, { n: uebersicht.kandidaten.length }), steuert: `${tabId}-vorschlaege` },
+          { wert: 'liste', label: T.liste, steuert: `${tabId}-liste` },
         ]}
       />
       {meldung && (
@@ -211,9 +214,9 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
             <table className="pw-w-tabelle">
               <thead>
                 <tr>
-                  <th>Marke</th>
-                  <th className="pw-w-zahl">Vorkommen</th>
-                  <th>Kapitel</th>
+                  <th>{T.marke}</th>
+                  <th className="pw-w-zahl">{T.vorkommen}</th>
+                  <th>{T.kapitel}</th>
                 </tr>
               </thead>
               <tbody>
@@ -223,7 +226,7 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
                       <b>{z.marke.name}</b>
                       {z.marke.kategorie && <span className="pw-w-kategorie">{z.marke.kategorie}</span>}
                       {z.schreibweisen.length > 1 && (
-                        <span className="pw-w-schreibweisen">Schreibweisen: {z.schreibweisen.map((s) => `${s.text} (${s.anzahl}×)`).join(', ')}</span>
+                        <span className="pw-w-schreibweisen">{f(T.schreibweisen, { liste: z.schreibweisen.map((s) => `${s.text} (${s.anzahl}×)`).join(', ') })}</span>
                       )}
                       {z.marke.notiz && <span className="pw-w-notiz">{z.marke.notiz}</span>}
                     </td>
@@ -236,27 +239,24 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
               </tbody>
             </table>
           ) : (
-            <p className="pw-w-leer">{liste.marken.length ? 'Keine Marke aus deiner Liste kommt im Text vor.' : 'Noch keine Marken in der Liste.'}</p>
+            <p className="pw-w-leer">{liste.marken.length ? T.keineImText : T.listeLeer}</p>
           ))}
         {ansicht === 'buch' && uebersicht.ohneTreffer.length > 0 && (
-          <p className="pw-w-leise">Ohne Vorkommen im Text: {uebersicht.ohneTreffer.map((m) => m.name).join(', ')}</p>
+          <p className="pw-w-leise">{f(T.ohneVorkommen, { liste: uebersicht.ohneTreffer.map((m) => m.name).join(', ') })}</p>
         )}
 
         {ansicht === 'vorschlaege' &&
           (uebersicht.kandidaten.length ? (
             <>
-              <p className="pw-w-leise">
-                Wörter, die nach Marken aussehen (Versalien, mehrteilige Eigennamen, typische Schreibweisen, bekannte Marken). Figuren, Orte und Motive
-                sind ausgenommen. Was du als „keine Marke“ markierst, wird nie wieder vorgeschlagen.
-              </p>
+              <p className="pw-w-leise">{T.vorschlaegeHilfe}</p>
               <table className="pw-w-tabelle">
                 <thead>
                   <tr>
-                    <th>Vorschlag</th>
-                    <th className="pw-w-zahl">Vorkommen</th>
-                    <th>Kapitel</th>
+                    <th>{T.vorschlag}</th>
+                    <th className="pw-w-zahl">{T.vorkommen}</th>
+                    <th>{T.kapitel}</th>
                     <th>
-                      <span className="pw-sr">Entscheidung</span>
+                      <span className="pw-sr">{T.entscheidung}</span>
                     </th>
                   </tr>
                 </thead>
@@ -265,7 +265,7 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
                     <tr key={k.name}>
                       <td>
                         <b>{k.name}</b>
-                        <span className="pw-w-kategorie">{GRUND_TEXT[k.grund]}</span>
+                        <span className="pw-w-kategorie">{t.schreiben.stil.grund[k.grund]}</span>
                       </td>
                       <td className="pw-w-zahl">{k.gesamt}</td>
                       <td>
@@ -273,10 +273,10 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
                       </td>
                       <td className="pw-w-aktionen">
                         <button type="button" className="pw-w-link" disabled={arbeitet} onClick={() => void markeAufnehmen(k.name)}>
-                          Aufnehmen
+                          {t.schreiben.stil.aufnehmen}
                         </button>
                         <button type="button" className="pw-w-link pw-w-link--leise" disabled={arbeitet} onClick={() => void markeIgnorieren(k.name)}>
-                          Keine Marke
+                          {t.schreiben.stil.keineMarke}
                         </button>
                       </td>
                     </tr>
@@ -285,7 +285,7 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
               </table>
             </>
           ) : (
-            <p className="pw-w-leer">Keine weiteren Vorschläge – alles, was nach einer Marke aussieht, steht schon in deiner Liste oder ist als „keine Marke“ markiert.</p>
+            <p className="pw-w-leer">{T.keineVorschlaege}</p>
           ))}
 
         {ansicht === 'liste' && (
@@ -297,21 +297,21 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
                 void hinzufuegen();
               }}
             >
-              <Textfeld aria-label="Neue Marke" placeholder="Neue Marke, z. B. Schwip Schwap" value={neu} onChange={(e) => setNeu(e.target.value)} />
+              <Textfeld aria-label={T.neueMarke} placeholder={T.neueMarkePlatzhalter} value={neu} onChange={(e) => setNeu(e.target.value)} />
               <Button type="submit" disabled={!neu.trim() || arbeitet}>
-                Hinzufügen
+                {t.gemeinsam.hinzufuegen}
               </Button>
             </form>
             {liste.marken.length > 0 ? (
               <table className="pw-w-tabelle pw-w-tabelle--formular">
                 <thead>
                   <tr>
-                    <th>Marke</th>
-                    <th>Weitere Schreibweisen</th>
-                    <th>Kategorie</th>
-                    <th>Notiz</th>
+                    <th>{T.marke}</th>
+                    <th>{T.weitereSchreibweisen}</th>
+                    <th>{T.kategorie}</th>
+                    <th>{T.notiz}</th>
                     <th>
-                      <span className="pw-sr">Entfernen</span>
+                      <span className="pw-sr">{t.gemeinsam.entfernen}</span>
                     </th>
                   </tr>
                 </thead>
@@ -328,7 +328,7 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
                 </tbody>
               </table>
             ) : (
-              <p className="pw-w-leer">Noch keine Marken in der Liste.</p>
+              <p className="pw-w-leer">{T.listeLeer}</p>
             )}
             <datalist id={kategorienId}>
               {kategorien.map((k) => (
@@ -336,23 +336,23 @@ export default function MarkenDialog({ schliessen }: DialogKomponentenProps) {
               ))}
             </datalist>
             <div className="pw-w-ignoriert">
-              <span className="pw-w-unterlabel">Nie als Marke vorschlagen</span>
+              <span className="pw-w-unterlabel">{T.nieVorschlagen}</span>
               {liste.ignoriert.length ? (
                 <span className="pw-w-kapchips">
                   {liste.ignoriert.map((w) => (
                     <span key={w} className="pw-w-ignoriert__wort">
                       {w}
-                      <button type="button" aria-label={`„${w}“ wieder vorschlagen`} onClick={() => void speichern({ ...liste, ignoriert: liste.ignoriert.filter((x) => x !== w) })}>
+                      <button type="button" aria-label={f(T.wiederVorschlagen, { wort: w })} onClick={() => void speichern({ ...liste, ignoriert: liste.ignoriert.filter((x) => x !== w) })}>
                         ×
                       </button>
                     </span>
                   ))}
                 </span>
               ) : (
-                <span className="pw-w-leise">Noch nichts.</span>
+                <span className="pw-w-leise">{T.nochNichts}</span>
               )}
             </div>
-            <p className="pw-w-leise">Gespeichert in plan/marken.md. Eine Marke wird auch mit Genitiv-s und mit Bindestrich statt Leerzeichen gefunden.</p>
+            <p className="pw-w-leise">{T.gespeichertIn}</p>
           </>
         )}
       </div>

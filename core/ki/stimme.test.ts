@@ -15,8 +15,8 @@ import {
 
 const TROCKNEN = 'Paul sieht nicht vom Zollstock auf und sagt nur: „Achtzehn auf jeder Seite.“';
 const AMERICANO = 'Ein Haus muss man in die Hand nehmen können, sagt er.';
-const ZETTEL_2 = '„Warum bist du nicht gekommen?“';
-const ZETTEL_1 = 'Auf der Vorderseite der Postkarte ist der alte Leuchtturm zu sehen, auf der Rückseite steht in blauer Tinte „Bis bald“.';
+const POSTKARTE_2 = '„Warum bist du nicht gekommen?“';
+const POSTKARTE_1 = 'Auf der Vorderseite der Postkarte ist der alte Leuchtturm zu sehen, auf der Rückseite steht in blauer Tinte „Bis bald“.';
 
 function transport(antwort: unknown, bodies: Record<string, unknown>[] = []): KiTransport {
   return {
@@ -146,15 +146,15 @@ describe('core/ki/stimme – Figurenstimme', () => {
           titel: 'Vom Spiel zum Vorwurf',
           erklaerung: 'Die erste Postkarte ist freundlich, die zweite vorwurfsvoll.',
           deutlich: true,
-          zitate: [{ kapitel: 'funkstille', text: ZETTEL_2 }],
-          vergleich: [{ kapitel: 'bis-bald', text: ZETTEL_1 }],
+          zitate: [{ kapitel: 'funkstille', text: POSTKARTE_2 }],
+          vergleich: [{ kapitel: 'bis-bald', text: POSTKARTE_1 }],
         },
         {
           titel: 'Kürzere Sätze',
           erklaerung: 'Leichte Tendenz zu kürzeren Sätzen.',
           deutlich: false,
-          zitate: [{ kapitel: 'funkstille', text: ZETTEL_2 }],
-          vergleich: [{ kapitel: 'bis-bald', text: ZETTEL_1 }],
+          zitate: [{ kapitel: 'funkstille', text: POSTKARTE_2 }],
+          vergleich: [{ kapitel: 'bis-bald', text: POSTKARTE_1 }],
         },
       ],
     };

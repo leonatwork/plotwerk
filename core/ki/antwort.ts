@@ -1,4 +1,6 @@
 /** Auswertung einer Messages-API-Antwort: stop_reason, JSON aus den Text-Blöcken, Token-Nutzung. */
+import type { Sprache } from '../i18n';
+import { meldungenIn } from './meldungen';
 
 export type KiFehlerArt = 'nicht_bereit' | 'auftrag' | 'api' | 'antwort' | 'abgebrochen';
 
@@ -51,36 +53,40 @@ export function addiere(a: Nutzung, b: Nutzung): Nutzung {
   };
 }
 
-/** Wirft KiFehler('api') bei einer Fehlerantwort; sonst Daten oder Verwerfungsgrund. */
-export function leseAntwort(roh: Record<string, unknown>): Antwort {
-  if (!roh || typeof roh !== 'object') throw new KiFehler('api', 'Leere Antwort vom KI-Dienst.');
+/**
+ * Wirft KiFehler('api') bei einer Fehlerantwort; sonst Daten oder Verwerfungsgrund.
+ * `oberflaeche`: Sprache der Meldungen (Oberflächensprache, Standard Deutsch).
+ */
+export function leseAntwort(roh: Record<string, unknown>, oberflaeche: Sprache = 'de'): Antwort {
+  const m = meldungenIn(oberflaeche);
+  if (!roh || typeof roh !== 'object') throw new KiFehler('api', m('leereAntwort'));
   if (roh.type === 'error') {
     const fehler = (roh.error ?? {}) as Record<string, unknown>;
-    const text = typeof fehler.message === 'string' ? fehler.message : 'unbekannter Fehler';
-    throw new KiFehler('api', `KI-Dienst meldet einen Fehler (${String(fehler.type ?? 'error')}): ${text}`);
+    const text = typeof fehler.message === 'string' ? fehler.message : m('unbekannterFehler');
+    throw new KiFehler('api', m('dienstFehler', { typ: String(fehler.type ?? 'error'), text }));
   }
   const nutzung = leseNutzung(roh);
   const stop = roh.stop_reason;
   if (stop === 'refusal') {
     const details = (roh.stop_details ?? {}) as Record<string, unknown>;
-    const kategorie = typeof details.category === 'string' ? `, Kategorie ${details.category}` : '';
-    return { daten: null, grund: `Das Modell hat die Anfrage abgelehnt (refusal${kategorie}).`, nutzung };
+    const grund = typeof details.category === 'string' ? m('abgelehntKategorie', { kategorie: details.category }) : m('abgelehnt');
+    return { daten: null, grund, nutzung };
   }
   if (stop === 'max_tokens') {
-    return { daten: null, grund: 'Antwort abgeschnitten: Das Token-Limit (max_tokens) wurde erreicht.', nutzung };
+    return { daten: null, grund: m('abgeschnitten'), nutzung };
   }
   if (stop !== 'end_turn' && stop !== 'stop_sequence') {
-    return { daten: null, grund: `Unerwartetes Antwortende (stop_reason: ${String(stop)}).`, nutzung };
+    return { daten: null, grund: m('unerwartetesEnde', { stop: String(stop) }), nutzung };
   }
   const bloecke = Array.isArray(roh.content) ? (roh.content as Record<string, unknown>[]) : [];
   const text = bloecke
     .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
     .map((b) => b.text as string)
     .join('');
-  if (!text.trim()) return { daten: null, grund: 'Die Antwort enthält keinen Text.', nutzung };
+  if (!text.trim()) return { daten: null, grund: m('keinText'), nutzung };
   try {
     return { daten: JSON.parse(text), nutzung };
   } catch {
-    return { daten: null, grund: 'Die Antwort ist kein gültiges JSON.', nutzung };
+    return { daten: null, grund: m('keinJson'), nutzung };
   }
 }

@@ -6,10 +6,13 @@
  *  - liest vor (Satz für Satz, der gelesene Satz ist markiert)
  */
 import type { Id } from '@core/model/types';
+import { buchSprache, localeVon } from '@core/i18n';
 import { findeMarken, markenKandidaten, stellenVon, stilBericht } from '@core/stil/index';
 import type { Editor } from '@tiptap/react';
 import { useEffect, useRef, type RefObject } from 'react';
 import type { VorlesenStatus } from '../../../state/slices/editorwerkzeuge';
+import { aktuelleBuchSprache } from '../../../i18n/buch';
+import { f, texte } from '../../../i18n';
 import { useStore } from '../../../state/store';
 import { bereichZuPositionen, klartextKarte, positionenZuBereich, type KlartextKarte } from '../klartext';
 import { docZuMarkdown } from '../markdown';
@@ -30,19 +33,20 @@ const ANALYSE_PAUSE = 150;
 
 function wiederholungsStellen(live: NonNullable<ReturnType<typeof useStore.getState>['editorwerkzeuge']['live']>, an: boolean, fokus: string | null) {
   const stellen: { start: number; ende: number; art: WiederholungsStelle['art']; titel: string }[] = [];
+  const T = texte().schreiben.werkzeuge;
   if (an) {
     for (const n of live.bericht.nah) {
-      const titel = `„${n.wort}“ ${n.stellen.length}× dicht hintereinander (${n.abstand} ${n.abstand === 1 ? 'Wort' : 'Wörter'} Abstand)`;
+      const titel = f(T.nahTitel, { wort: n.wort, anzahl: n.stellen.length, n: n.abstand });
       for (const s of n.stellen) stellen.push({ ...s, art: 'nah', titel });
     }
-    for (const f of live.bericht.satzanfaenge) {
-      const titel = `${f.saetze} Sätze hintereinander beginnen mit „${f.wort}“`;
-      for (const s of f.stellen) stellen.push({ ...s, art: 'anfang', titel });
+    for (const a of live.bericht.satzanfaenge) {
+      const titel = f(T.anfangTitel, { n: a.saetze, wort: a.wort });
+      for (const s of a.stellen) stellen.push({ ...s, art: 'anfang', titel });
     }
   }
   if (fokus) {
-    const alle = stellenVon(live.text, fokus);
-    for (const s of alle) stellen.push({ ...s, art: 'fokus', titel: `${alle.length}× in diesem Kapitel` });
+    const alle = stellenVon(live.text, fokus, aktuelleBuchSprache());
+    for (const s of alle) stellen.push({ ...s, art: 'fokus', titel: f(T.fokusTitel, { n: alle.length }) });
   }
   return stellen;
 }
@@ -96,12 +100,13 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
       karteRef.current = { doc, karte };
       const ew = s.editorwerkzeuge;
       const liste = d.marken ?? LEERE_MARKENLISTE;
+      const sprache = buchSprache(d.projekt.angaben);
       ew.setzeLive({
         kapitel: kapitelId,
         text: karte.text,
-        bericht: stilBericht(karte.text, { abstand: ew.abstand, ignorieren: eigennamen(d) }),
+        bericht: stilBericht(karte.text, { abstand: ew.abstand, ignorieren: eigennamen(d), sprache }),
         marken: findeMarken(karte.text, liste),
-        kandidaten: markenKandidaten(karte.text, liste, bekannteNamen(d)),
+        kandidaten: markenKandidaten(karte.text, liste, bekannteNamen(d), sprache),
       });
       dekorieren();
     };
@@ -185,18 +190,19 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
       if (i >= lauf.saetze.length) {
         beenden();
         setze('aus');
-        vorleseMeldung('Vorlesen beendet');
+        vorleseMeldung(texte().schreiben.werkzeuge.beendet);
         return;
       }
       lauf.i = i;
       const satz = lauf.saetze[i]!;
       const ew = useStore.getState().editorwerkzeuge;
-      const u = neueAeusserung(satz.text);
-      const stimme = waehleStimme(synth.getVoices(), ew.stimme);
+      const sprache = aktuelleBuchSprache();
+      const u = neueAeusserung(satz.text, sprache);
+      const stimme = waehleStimme(synth.getVoices(), ew.stimme, sprache);
       if (stimme) {
         u.voice = stimme;
         u.lang = stimme.lang;
-      } else u.lang = 'de-DE';
+      } else u.lang = localeVon(sprache);
       u.rate = ew.tempo;
       const t = ++token;
       u.onend = () => {
@@ -206,7 +212,7 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
         if (t !== token || e.error === 'interrupted' || e.error === 'canceled') return;
         beenden();
         setze('aus');
-        vorleseMeldung(`Vorlesen abgebrochen (${e.error})`);
+        vorleseMeldung(f(texte().schreiben.werkzeuge.abgebrochen, { fehler: e.error }));
       };
       markieren(satz);
       setzeFortschritt({ satz: i, von: lauf.saetze.length });
@@ -217,7 +223,7 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
       const synth = sprachausgabe();
       if (!synth) {
         setze('aus');
-        vorleseMeldung('Vorlesen ist hier nicht verfügbar');
+        vorleseMeldung(texte().schreiben.werkzeuge.nichtHier);
         return;
       }
       if (editor.isDestroyed) return;
@@ -230,14 +236,14 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
       const auswahl = !empty && ab === 'cursor';
       if (auswahl) {
         const b = positionenZuBereich(karte, from, to);
-        saetze = vorleseSaetze(karte.text, b.start, b.ende);
+        saetze = vorleseSaetze(karte.text, b.start, b.ende, aktuelleBuchSprache());
       } else {
-        saetze = vorleseSaetze(karte.text);
+        saetze = vorleseSaetze(karte.text, 0, karte.text.length, aktuelleBuchSprache());
         if (ab === 'cursor') i = satzAb(saetze, positionenZuBereich(karte, from, from).start);
       }
       if (!saetze.length) {
         setze('aus');
-        vorleseMeldung('Hier gibt es noch nichts vorzulesen');
+        vorleseMeldung(texte().schreiben.werkzeuge.nichtsVorzulesen);
         return;
       }
       anhalten();
@@ -271,7 +277,7 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
       if (!lauf) return;
       beenden();
       setze('aus');
-      vorleseMeldung('Vorlesen beendet – der Text wurde geändert');
+      vorleseMeldung(texte().schreiben.werkzeuge.textGeaendert);
     };
     editor.on('update', textGeaendert);
     // Escape beendet das Vorlesen (vor dem Fokus-Modus)

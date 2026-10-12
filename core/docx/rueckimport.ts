@@ -7,9 +7,10 @@
  * in den Manuskripttext übernommen.
  */
 import JSZip from 'jszip';
+import { fmt, type Sprache } from '../i18n';
 import type { Anmerkung, Id, Kapitel, LektoratsAenderung, TextAnker } from '../model/types';
 import { ankerErzeugen, ankerFinden, klartext, normalisiere, woerterZaehlen } from '../text';
-import { DocxFehler, importiereDocx, type ImportKommentar } from './importieren';
+import { DOCX_TEXTE, DocxFehler, importiereDocx, type ImportKommentar } from './importieren';
 import { kommentareAlsAnmerkungen } from './kommentare';
 import { kind, kinder, parseXml, textInhalt, wert, type XmlKnoten } from './xml';
 
@@ -263,24 +264,25 @@ async function lies(zip: JSZip, pfad: string | undefined): Promise<string | null
   return datei ? datei.async('string') : null;
 }
 
-async function leseAbsaetze(datei: Uint8Array, stand: Lesestand): Promise<WAbsatz[]> {
+async function leseAbsaetze(datei: Uint8Array, stand: Lesestand, sprache: Sprache): Promise<WAbsatz[]> {
+  const t = DOCX_TEXTE(sprache);
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(datei);
   } catch {
-    throw new DocxFehler('Die Datei ist keine gültige Word-Datei (.docx).');
+    throw new DocxFehler(t.keinDocx);
   }
   const haupt = relationen(await lies(zip, '_rels/.rels')).find((r) => r.typ.endsWith('/officeDocument'));
   const dokPfad = haupt ? pfadAufloesen('', haupt.ziel) : 'word/document.xml';
   const dokXml = await lies(zip, dokPfad);
-  if (!dokXml) throw new DocxFehler('Die Datei enthält kein Word-Dokument.');
+  if (!dokXml) throw new DocxFehler(t.keinDokument);
   const ordner = dokPfad.includes('/') ? dokPfad.slice(0, dokPfad.lastIndexOf('/')) : '';
   const name = dokPfad.slice(dokPfad.lastIndexOf('/') + 1);
   const rels = relationen(await lies(zip, `${ordner ? `${ordner}/` : ''}_rels/${name}.rels`));
   const stilRel = rels.find((r) => r.typ.endsWith('/styles'));
   const stile = leseStile((await lies(zip, stilRel ? pfadAufloesen(ordner, stilRel.ziel) : undefined)) ?? (await lies(zip, `${ordner}/styles.xml`)));
   const body = kind(kind(parseXml(dokXml), 'document'), 'body');
-  if (!body) throw new DocxFehler('Das Word-Dokument hat keinen Inhalt.');
+  if (!body) throw new DocxFehler(t.keinInhalt);
   const absaetze: WAbsatz[] = [];
   bloecke(body.kinder, stile, stand, absaetze);
   return absaetze;
@@ -402,11 +404,14 @@ function aenderungenBilden(segmente: Segment[], platzhalter: string): { ur: stri
   return { ur, aenderungen };
 }
 
-/** Liest eine zurückgeschickte .docx: Kapitel (Überschrift 1), Änderungen und Kommentare. */
-export async function leseRueckimport(datei: Uint8Array): Promise<Rueckimport> {
-  const importiert = await importiereDocx(datei);
+/**
+ * Liest eine zurückgeschickte .docx: Kapitel (Überschrift 1), Änderungen und Kommentare.
+ * `sprache`: Oberflächensprache der Fehlermeldungen (und des vorläufigen Titels „Kapitel n“).
+ */
+export async function leseRueckimport(datei: Uint8Array, sprache: Sprache = 'de'): Promise<Rueckimport> {
+  const importiert = await importiereDocx(datei, sprache);
   const stand: Lesestand = { formatierungen: 0, autoren: new Set() };
-  const absaetze = await leseAbsaetze(datei, stand);
+  const absaetze = await leseAbsaetze(datei, stand, sprache);
 
   const roh: { kopf: WAbsatz; absaetze: WAbsatz[] }[] = [];
   let vorher = 0;
@@ -427,7 +432,14 @@ export async function leseRueckimport(datei: Uint8Array): Promise<Rueckimport> {
     const platzhalter = `#${kapitel.length + 1}`;
     const { ur, aenderungen } = aenderungenBilden(kapitelSegmente(inhalt), platzhalter);
     const text = absaetzeGlaetten(ur).trim();
-    kapitel.push({ titel: titel || titelNeu || `Kapitel ${kapitel.length + 1}`, titelNeu: titelNeu || titel, text, woerter: woerterZaehlen(text), aenderungen, kommentare: 0 });
+    kapitel.push({
+      titel: titel || titelNeu || fmt(DOCX_TEXTE(sprache).kapitel, { n: kapitel.length + 1 }),
+      titelNeu: titelNeu || titel,
+      text,
+      woerter: woerterZaehlen(text),
+      aenderungen,
+      kommentare: 0,
+    });
   }
 
   const kommentare = importiert.kommentare ?? [];

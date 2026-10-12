@@ -13,19 +13,30 @@ pub struct Wurzel {
 /// keine Laufwerksbuchstaben, kein „~“ am Anfang.
 pub fn normalisieren(pfad: &str) -> Result<String, String> {
     if pfad.contains('\0') {
-        return Err(format!("Ungültiges Zeichen im Pfad: {pfad:?}"));
+        return Err(crate::tf!(
+            "Ungültiges Zeichen im Pfad: {pfad:?}",
+            "Invalid character in path: {pfad:?}"
+        ));
     }
     let roh = pfad.replace('\\', "/");
     let ist_laufwerk =
         roh.len() >= 2 && roh.as_bytes()[1] == b':' && roh.as_bytes()[0].is_ascii_alphabetic();
     if roh.starts_with('/') || ist_laufwerk || roh.starts_with('~') {
-        return Err(format!("Absoluter Pfad nicht erlaubt: {pfad}"));
+        return Err(crate::tf!(
+            "Absoluter Pfad nicht erlaubt: {pfad}",
+            "Absolute path not allowed: {pfad}"
+        ));
     }
     let mut teile = Vec::new();
     for teil in roh.split('/') {
         match teil {
             "" | "." => {}
-            ".." => return Err(format!("„..“ im Pfad nicht erlaubt: {pfad}")),
+            ".." => {
+                return Err(crate::tf!(
+                    "„..“ im Pfad nicht erlaubt: {pfad}",
+                    "“..” not allowed in path: {pfad}"
+                ))
+            }
             t => teile.push(t),
         }
     }
@@ -36,19 +47,32 @@ impl Wurzel {
     /// Projektordner (absolut, muss existieren und ein Ordner sein).
     pub fn neu(pfad: &Path) -> Result<Self, String> {
         if !pfad.is_absolute() {
-            return Err(format!(
+            return Err(crate::tf!(
                 "Projektordner muss absolut angegeben werden: {}",
+                "The project folder must be an absolute path: {}",
                 pfad.display()
             ));
         }
-        let kanonisch = pfad
-            .canonicalize()
-            .map_err(|e| format!("Projektordner nicht gefunden: {} ({e})", pfad.display()))?;
+        let kanonisch = pfad.canonicalize().map_err(|e| {
+            crate::tf!(
+                "Projektordner nicht gefunden: {} ({e})",
+                "Project folder not found: {} ({e})",
+                pfad.display()
+            )
+        })?;
         if !kanonisch.is_dir() {
-            return Err(format!("Kein Ordner: {}", kanonisch.display()));
+            return Err(crate::tf!(
+                "Kein Ordner: {}",
+                "Not a folder: {}",
+                kanonisch.display()
+            ));
         }
         if kanonisch.parent().is_none() {
-            return Err("Das Wurzelverzeichnis kann kein Projektordner sein.".into());
+            return Err(crate::sprache::t(
+                "Das Wurzelverzeichnis kann kein Projektordner sein.",
+                "The root directory cannot be a project folder.",
+            )
+            .into());
         }
         Ok(Self { pfad: kanonisch })
     }
@@ -63,18 +87,21 @@ impl Wurzel {
     pub fn aufloesen(&self, relativ: &str, leer_erlaubt: bool) -> Result<PathBuf, String> {
         let norm = normalisieren(relativ)?;
         if norm.is_empty() && !leer_erlaubt {
-            return Err("Leerer Pfad".into());
+            return Err(crate::sprache::t("Leerer Pfad", "Empty path").into());
         }
         let mut aktuell = self.pfad.clone();
         for teil in norm.split('/').filter(|t| !t.is_empty()) {
             aktuell.push(teil);
             match std::fs::symlink_metadata(&aktuell) {
                 Ok(meta) if meta.file_type().is_symlink() => {
-                    let ziel = aktuell
-                        .canonicalize()
-                        .map_err(|_| format!("Verweis ins Leere: {relativ}"))?;
+                    let ziel = aktuell.canonicalize().map_err(|_| {
+                        crate::tf!("Verweis ins Leere: {relativ}", "Broken link: {relativ}")
+                    })?;
                     if !ziel.starts_with(&self.pfad) {
-                        return Err(format!("Pfad verlässt den Projektordner: {relativ}"));
+                        return Err(crate::tf!(
+                            "Pfad verlässt den Projektordner: {relativ}",
+                            "Path leaves the project folder: {relativ}"
+                        ));
                     }
                 }
                 Ok(_) => {}

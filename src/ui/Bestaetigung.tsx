@@ -3,6 +3,7 @@
  * nicht an und liefert immer false.
  */
 import { useSyncExternalStore } from 'react';
+import { texte, useTexte } from '../i18n';
 import { Button } from './Button';
 import { Dialog } from './Dialog';
 
@@ -44,7 +45,7 @@ export function bestaetigen(text: string, optionen: BestaetigungOptionen = {}): 
 }
 
 /** Mitteilung mit einem OK-Knopf (Ersatz für window.alert). */
-export function mitteilen(text: string, titel = 'Hinweis'): Promise<void> {
+export function mitteilen(text: string, titel = texte().gemeinsam.hinweis): Promise<void> {
   return bestaetigen(text, { titel, nurOk: true }).then(() => undefined);
 }
 
@@ -57,17 +58,18 @@ export function BestaetigungHost() {
     },
     () => offen,
   );
+  const t = useTexte();
   if (!anfrage) return null;
   return (
     <Dialog
-      titel={anfrage.titel ?? 'Bist du sicher?'}
+      titel={anfrage.titel ?? t.ui.bestaetigung.titel}
       breite={420}
       onSchliessen={() => anfrage.antwort(false)}
       aktionen={
         <>
-          {!anfrage.nurOk && <Button onClick={() => anfrage.antwort(false)}>Abbrechen</Button>}
+          {!anfrage.nurOk && <Button onClick={() => anfrage.antwort(false)}>{t.gemeinsam.abbrechen}</Button>}
           <Button variante="primaer" data-autofocus onClick={() => anfrage.antwort(true)}>
-            {anfrage.knopf ?? 'OK'}
+            {anfrage.knopf ?? t.gemeinsam.ok}
           </Button>
         </>
       }

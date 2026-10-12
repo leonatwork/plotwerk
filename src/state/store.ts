@@ -46,6 +46,7 @@ import * as persistenz from '@core/projekt';
 import type { ProjektDateisystem } from '@core/projekt';
 import { aufbewahrungAnwenden, sollSchnappschuss, standGesichert, type SchnappschussAnlass } from '@core/versionen/index';
 import { waehleBackend, type Backend } from '../backend';
+import { f, sprache, texte, useSprachStore } from '../i18n';
 import { neueId as erzeugeId } from './neueId';
 import { createHinweiseSlice, type HinweiseSlice } from './slices/hinweise';
 import { createImportExportSlice, type ImportExportSlice } from './slices/importexport';
@@ -295,7 +296,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
 
   function daten(): ProjektDaten {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   }
 
@@ -324,7 +325,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
   /** Schreibt über `schreiben(fs)` (liest dort den neuesten Stand aus get()). */
   async function persistiere(pfad: string, schreiben: (fs: ProjektDateisystem) => Promise<boolean>): Promise<void> {
     const fs = get().fs;
-    if (!fs) throw new Error('Kein Projekt geöffnet');
+    if (!fs) throw new Error(texte().state.fehler.keinProjekt);
     set((s) => ({ speichern: { ...s.speichern, laufend: s.speichern.laufend + 1 } }));
     try {
       const geschrieben = await inReihe(pfad, async () => {
@@ -344,7 +345,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
 
   async function entferneDatei(pfad: string): Promise<void> {
     const fs = get().fs;
-    if (!fs) throw new Error('Kein Projekt geöffnet');
+    if (!fs) throw new Error(texte().state.fehler.keinProjekt);
     await inReihe(pfad, async () => {
       await persistenz.entferneMitSchnappschuss(fs, pfad);
       eigene.set(pfad, Date.now());
@@ -408,7 +409,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
 
   function binaerFs(): ProjektDateisystem {
     const fs = get().fs;
-    if (!fs) throw new Error('Kein Projekt geöffnet');
+    if (!fs) throw new Error(texte().state.fehler.keinProjekt);
     return fs;
   }
 
@@ -420,13 +421,18 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     const { daten: d, index, backend } = get();
     if (!d) return;
     try {
-      const neu = berechneIndex(d, index);
+      const neu = berechneIndex(d, index, sprache());
       set({ index: neu });
       backend?.indexSpeicher.speichern(neu).catch((e) => console.warn('Index nicht gespeichert:', e));
     } catch (e) {
       console.error('Index-Berechnung fehlgeschlagen:', e);
     }
   }
+
+  // Lokale Hinweise (Titel/Erklärung) entstehen in der Oberflächensprache: beim Umschalten neu berechnen.
+  useSprachStore.subscribe((jetzt, vorher) => {
+    if (jetzt.sprache !== vorher.sprache && get().daten) indexBerechnen();
+  });
 
   function indexAnstossen(): void {
     if (indexTimer) clearTimeout(indexTimer);
@@ -447,7 +453,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
       if (!fs) return;
       try {
         await alleSpeichernAbwarten();
-        const { daten: neu, warnungen } = await persistenz.ladeProjektMitBericht(fs);
+        const { daten: neu, warnungen } = await persistenz.ladeProjektMitBericht(fs, sprache());
         const alt = get().daten;
         if (!alt || get().fs !== fs) return;
         set({
@@ -520,7 +526,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     async projektLaden(fs) {
       set({ ladeStatus: 'laedt', fehler: null });
       try {
-        const { daten: d, warnungen } = await persistenz.ladeProjektMitBericht(fs);
+        const { daten: d, warnungen } = await persistenz.ladeProjektMitBericht(fs, sprache());
         let vorher: Index | null = null;
         try {
           vorher = (await get().backend?.indexSpeicher.laden()) ?? null;
@@ -690,14 +696,14 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     speichereKiLeser: (a) => speichereFeld('kiLeser', a, persistenz.PFADE.kiLeser, persistenz.speichereKiLeser),
     speichereKiFragen: (a) => speichereFeld('kiFragen', a, persistenz.PFADE.kiFragen, persistenz.speichereKiFragen),
 
-    leseBinaerDatei: (pfad) => persistenz.leseBinaer(binaerFs(), pfad),
+    leseBinaerDatei: (pfad) => persistenz.leseBinaer(binaerFs(), pfad, sprache()),
     async speichereBinaerDatei(pfad, inhalt) {
       const fs = binaerFs();
       const p = persistenz.pruefePfad(pfad);
-      if (!persistenz.binaerPfadErlaubt(p)) throw new Error(`Binärdateien nur unter recherche/: ${pfad}`);
+      if (!persistenz.binaerPfadErlaubt(p)) throw new Error(f(texte().backend.binaerNurRecherche, { pfad }));
       set((s) => ({ speichern: { ...s.speichern, laufend: s.speichern.laufend + 1 } }));
       try {
-        await inReihe(p, () => persistenz.schreibeBinaer(fs, p, inhalt));
+        await inReihe(p, () => persistenz.schreibeBinaer(fs, p, inhalt, sprache()));
         eigene.set(p, Date.now());
         set((s) => ({ speichern: { laufend: s.speichern.laufend - 1, fehler: null, zuletzt: Date.now() } }));
       } catch (e) {
@@ -709,7 +715,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
       const fs = binaerFs();
       const p = persistenz.pruefePfad(pfad);
       await inReihe(p, async () => {
-        await persistenz.entferneBinaerMitSchnappschuss(fs, p);
+        await persistenz.entferneBinaerMitSchnappschuss(fs, p, undefined, sprache());
         eigene.set(p, Date.now());
       });
     },

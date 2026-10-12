@@ -1,6 +1,7 @@
 /** Antagonisten/Gruppen (A-02): Präsenz pro Kapitel und Akt, Prüfung der Spuren. Reine Funktionen. */
 import type { Index } from '@core/index/index';
 import type { Akt, Gruppe, Id, ProjektDaten, Spur } from '@core/model/types';
+import { f, texte } from '../../i18n';
 import { ausschnitt, findeAnker, findeStelle, kapLabel, type Stelle } from '../beziehungen/gemeinsam';
 
 /** im_text: ein Mitglied kommt vor · spur: nur eine Spur · plan: nur im Kapitelplan (Strang) · leer */
@@ -50,6 +51,7 @@ export interface AktPraesenz {
 
 export function praesenzProAkt(daten: ProjektDaten, index: Index, g: Gruppe): AktPraesenz[] {
   const kap = praesenzProKapitel(daten, index, g);
+  const t = texte().gruppen.praesenz;
   return [...daten.akte]
     .sort((a, b) => a.nummer - b.nummer)
     .map((akt) => {
@@ -60,11 +62,11 @@ export function praesenzProAkt(daten: ProjektDaten, index: Index, g: Gruppe): Ak
           .map((k) => k.nummer)
           .join(', ');
       const teile = [
-        liste('im_text') && `im Text: Kap. ${liste('im_text')}`,
-        liste('spur') && `Spur: Kap. ${liste('spur')}`,
-        liste('plan') && `im Plan: Kap. ${liste('plan')}`,
+        liste('im_text') && f(t.imText, { liste: liste('im_text') }),
+        liste('spur') && f(t.spur, { liste: liste('spur') }),
+        liste('plan') && f(t.plan, { liste: liste('plan') }),
       ].filter(Boolean);
-      return { akt, kapitel: eigene, geplant: g.praesenz[akt.nummer] ?? '', imText: teile.join(' · ') || 'noch nicht im Text' };
+      return { akt, kapitel: eigene, geplant: g.praesenz[akt.nummer] ?? '', imText: teile.join(' · ') || t.nochNicht };
     });
 }
 

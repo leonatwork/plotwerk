@@ -8,19 +8,19 @@ import { useMemo, useState } from 'react';
 import { offeneStimmen, redeDerFigur, stimmenDerFigur, type StimmenEintrag } from '@core/figuren/index';
 import { STIMME_MIN_REDE } from '@core/ki/index';
 import type { Id, ProjektDaten, Zitat } from '@core/model/types';
+import { datum, f as fmt, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button, Inspektor, Segment, Zaehler } from '../../ui';
 import { zitatAnker } from '../akte/gemeinsam';
 import '../ki/ki.css';
 import { BoegenStil } from './BoegenStil';
-
-const STATUS_TEXT = { neu: 'offen', absicht: 'Ist Absicht', erledigt: 'Erledigt' } as const;
+import { kapMitTitel, zitat as zitatText } from './texte';
 
 function datumText(iso: string | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+  return datum(d, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 /** Knopf „Stimme“ in der Titelleiste der Figurenkarte (blendet die Spalte ein/aus, zeigt offene Beobachtungen). */
@@ -30,17 +30,18 @@ export function StimmeKnopf() {
   const offen = useStore((s) => s.figurenbogen.stimmeSpalte);
   const setze = useStore((s) => s.figurenbogen.setzeStimmeSpalte);
   const zahl = daten && figur ? offeneStimmen(daten, figur) : 0;
+  const ts = useTexte().figuren.stimme;
   return (
     <Button
       klein
       variante={offen ? 'primaer' : 'sekundaer'}
       aria-pressed={offen}
-      title="Figurenstimme: Stellen, an denen die Figur auffällig anders klingt"
+      title={ts.knopfTitel}
       onClick={() => setze(!offen)}
       disabled={!figur}
     >
-      Stimme
-      {zahl > 0 && <Zaehler wert={zahl} label="offene Beobachtungen" style={{ marginLeft: 6 }} />}
+      {ts.knopf}
+      {zahl > 0 && <Zaehler wert={zahl} label={ts.offeneLabel} style={{ marginLeft: 6 }} />}
     </Button>
   );
 }
@@ -49,17 +50,16 @@ function ZitatKnopf({ daten, zitat, auffaellig }: { daten: ProjektDaten; zitat: 
   const markiere = useStore((s) => s.markiere);
   const nr = daten.projekt.kapitel.indexOf(zitat.kapitel) + 1;
   const titel = daten.kapitel[zitat.kapitel]?.titel ?? zitat.kapitel;
+  const t = useTexte().figuren;
   return (
     <button
       type="button"
       className={`fb-zitat-knopf${auffaellig ? ' fb-zitat-knopf--auffaellig' : ''}`}
-      title="Im Text zeigen"
+      title={t.imTextZeigen}
       onClick={() => markiere({ kapitel: zitat.kapitel, anker: zitatAnker(daten, zitat.kapitel, zitat.text) })}
     >
-      <span className="fb-zitat-knopf__kap">
-        Kap. {nr || '?'} „{titel}“
-      </span>
-      »{zitat.text}«
+      <span className="fb-zitat-knopf__kap">{kapMitTitel(nr || '?', titel)}</span>
+      {zitatText(zitat.text)}
     </button>
   );
 }
@@ -70,30 +70,31 @@ function Beobachtung({ daten, eintrag }: { daten: ProjektDaten; eintrag: Stimmen
   const { beobachtung: b, status, gueltig } = eintrag;
   // Link nur, wenn die Beobachtung in der Hinweise-Ansicht auftaucht (core/index führt sie zusammen)
   const inHinweisen = useStore((s) => s.index.hinweise.some((h) => h.schluessel === b.schluessel));
+  const ts = useTexte().figuren.stimme;
   return (
     <article className={`fb-beobachtung${status !== 'neu' || !gueltig ? ' fb-beobachtung--alt' : ''}`} aria-label={b.titel}>
       <span className="fb-reihe" style={{ gap: 6 }}>
         <span className="pl-etikett" style={{ background: 'var(--chip)', color: 'var(--ink-soft)' }}>
-          Stimme · KI
+          {ts.etikett}
         </span>
         {status !== 'neu' && (
           <span className="pl-etikett" style={{ background: 'var(--chip-accent)', color: 'var(--accent-dark)' }}>
-            {STATUS_TEXT[status]}
+            {ts.status[status]}
           </span>
         )}
         {!gueltig && (
-          <span className="pl-etikett" style={{ background: 'var(--ruhend)', color: 'var(--warm-dark)' }} title="Mindestens ein Zitat steht so nicht mehr im Text">
-            Text geändert
+          <span className="pl-etikett" style={{ background: 'var(--ruhend)', color: 'var(--warm-dark)' }} title={ts.textGeaendertTitel}>
+            {ts.textGeaendert}
           </span>
         )}
       </span>
       <h3>{b.titel}</h3>
       <p>{b.erklaerung}</p>
-      <span className="fb-label">Auffällig</span>
+      <span className="fb-label">{ts.auffaellig}</span>
       {b.zitate.map((z, i) => (
         <ZitatKnopf key={`z${i}`} daten={daten} zitat={z} auffaellig />
       ))}
-      <span className="fb-label">Sonst</span>
+      <span className="fb-label">{ts.sonst}</span>
       {b.vergleich.map((z, i) => (
         <ZitatKnopf key={`v${i}`} daten={daten} zitat={z} />
       ))}
@@ -101,20 +102,20 @@ function Beobachtung({ daten, eintrag }: { daten: ProjektDaten; eintrag: Stimmen
         {status === 'neu' ? (
           <span className="fb-reihe">
             <Button klein onClick={() => void entscheiden(b.schluessel, 'absicht')}>
-              Ist Absicht
+              {ts.absicht}
             </Button>
             <Button klein onClick={() => void entscheiden(b.schluessel, 'erledigt')}>
-              Erledigt
+              {ts.erledigt}
             </Button>
           </span>
         ) : (
           <Button klein variante="leise" onClick={() => void entscheiden(b.schluessel, null)}>
-            Wieder öffnen
+            {ts.wiederOeffnen}
           </Button>
         )}
         {inHinweisen && (
           <button type="button" className="pl-link" onClick={() => oeffne('hinweise', { hinweis: b.schluessel })}>
-            In Hinweise
+            {ts.inHinweise}
           </button>
         )}
       </span>
@@ -133,6 +134,8 @@ export function StimmeSpalte({ daten, figur }: { daten: ProjektDaten; figur: Id 
   const [filter, setFilter] = useState<'offen' | 'entschieden'>('offen');
   const f = daten.figuren[figur];
   const rede = useMemo(() => redeDerFigur(daten, figur), [daten, figur]);
+  const t = useTexte();
+  const ts = t.figuren.stimme;
   if (!f) return null;
   const alle = stimmenDerFigur(daten, figur);
   const offen = alle.filter((e) => e.status === 'neu' && e.gueltig);
@@ -143,39 +146,37 @@ export function StimmeSpalte({ daten, figur }: { daten: ProjektDaten; figur: Id 
   const laeuft = lauf?.figur === figur;
 
   return (
-    <Inspektor breite={330} label="Figurenstimme">
+    <Inspektor breite={330} label={ts.spalteLabel}>
       <BoegenStil />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <strong style={{ fontSize: 14 }}>Stimme von {f.name}</strong>
-        <button type="button" className="pl-zeile-weg" style={{ opacity: 1 }} aria-label="Spalte Stimme schließen" onClick={() => setze(false)}>
+        <strong style={{ fontSize: 14 }}>{fmt(ts.titel, { name: f.name })}</strong>
+        <button type="button" className="pl-zeile-weg" style={{ opacity: 1 }} aria-label={ts.schliessen} onClick={() => setze(false)}>
           ×
         </button>
       </div>
+      <span className="fb-leise">{fmt(ts.erklaerung, { name: f.name })}</span>
       <span className="fb-leise">
-        Die KI meldet Stellen, an denen {f.name} in Rede oder Ton auffällig anders klingt als sonst – mit der auffälligen und einer typischen Stelle. Sie schlägt
-        keine Formulierungen vor.
-      </span>
-      <span className="fb-leise">
-        Lokal gefunden: {rede.stellen.length === 1 ? '1 Redestelle' : `${rede.stellen.length} Redestellen`}
-        {rede.kapitel.length > 0 && ` in ${rede.kapitel.length === 1 ? '1 Kapitel' : `${rede.kapitel.length} Kapiteln`}`} (Zuordnung geschätzt)
-        {rede.stellen.length < STIMME_MIN_REDE && ' – vermutlich zu wenig für einen Vergleich.'}
+        {rede.kapitel.length > 0
+          ? fmt(ts.lokalIn, { stellen: fmt(ts.redestellen, { n: rede.stellen.length }), kapitel: fmt(ts.kapitelAnzahl, { n: rede.kapitel.length }) })
+          : fmt(ts.lokal, { stellen: fmt(ts.redestellen, { n: rede.stellen.length }) })}
+        {rede.stellen.length < STIMME_MIN_REDE && ` ${ts.zuWenigAnhang}`}
       </span>
       {f.existenz === 'bewusst_vage' && (
-        <div className="fb-vage">{f.name} ist bewusst vage angelegt. Die KI meldet nur sehr deutliche Brüche und legt nicht fest, wer die Figur ist.</div>
+        <div className="fb-vage">{fmt(ts.vage, { name: f.name })}</div>
       )}
 
       {laeuft ? (
         <div className="fb-reihe" aria-live="polite">
           <span className="fb-leise" style={{ flex: 1 }}>
-            Die KI liest die Rede von {f.name} …
+            {fmt(ts.liest, { name: f.name })}
           </span>
           <Button klein onClick={abbrechen}>
-            Abbrechen
+            {t.gemeinsam.abbrechen}
           </Button>
         </div>
       ) : (
-        <Button variante="primaer" onClick={() => oeffneDialog('stimme-pruefen', { figur })} disabled={!!lauf} title={lauf ? 'Es läuft schon eine Prüfung.' : undefined}>
-          {geprueft ? 'Erneut prüfen …' : 'Stimme prüfen …'}
+        <Button variante="primaer" onClick={() => oeffneDialog('stimme-pruefen', { figur })} disabled={!!lauf} title={lauf ? ts.laeuftSchon : undefined}>
+          {geprueft ? ts.erneut : ts.pruefen}
         </Button>
       )}
       {fehler && !laeuft && (
@@ -186,37 +187,37 @@ export function StimmeSpalte({ daten, figur }: { daten: ProjektDaten; figur: Id 
       {ergebnis?.figur === figur && !laeuft && (
         <span className="fb-leise" role="status">
           {ergebnis.zuWenigRede
-            ? `${f.name} spricht zu wenig für einen Vergleich.`
+            ? fmt(ts.zuWenigRede, { name: f.name })
             : ergebnis.neu > 0
-              ? `${ergebnis.neu === 1 ? '1 neue Beobachtung' : `${ergebnis.neu} neue Beobachtungen`}.`
-              : 'Keine neuen Auffälligkeiten.'}
+              ? fmt(ts.neueBeobachtungen, { n: ergebnis.neu })
+              : ts.keineNeuen}
         </span>
       )}
       {ablageLauf && alle.length > 0 && (
         <span className="fb-leise">
-          Letzte Prüfung: {[datumText(ablageLauf.datum), ablageLauf.modell].filter(Boolean).join(' · ')}
+          {fmt(ts.letztePruefung, { info: [datumText(ablageLauf.datum), ablageLauf.modell].filter(Boolean).join(' · ') })}
         </span>
       )}
 
       {alle.length > 0 && (
         <Segment<'offen' | 'entschieden'>
-          label="Beobachtungen filtern"
+          label={ts.filterLabel}
           rolle="group"
           voll
           wert={filter}
           onChange={setFilter}
           optionen={[
-            { wert: 'offen', label: `Offen · ${offen.length}` },
-            { wert: 'entschieden', label: `Entschieden · ${entschieden.length}` },
+            { wert: 'offen', label: fmt(ts.filterOffen, { n: offen.length }) },
+            { wert: 'entschieden', label: fmt(ts.filterEntschieden, { n: entschieden.length }) },
           ]}
         />
       )}
       {alle.length === 0 ? (
         <span className="fb-leise" style={{ paddingTop: 6 }}>
-          {geprueft ? 'Keine Auffälligkeiten gemeldet.' : 'Noch nicht geprüft.'}
+          {geprueft ? ts.keineGemeldet : ts.nochNicht}
         </span>
       ) : liste.length === 0 ? (
-        <span className="fb-leise">{filter === 'offen' ? 'Nichts mehr offen.' : 'Noch nichts entschieden.'}</span>
+        <span className="fb-leise">{filter === 'offen' ? ts.nichtsOffen : ts.nichtsEntschieden}</span>
       ) : (
         liste.map((e) => <Beobachtung key={e.beobachtung.schluessel} daten={daten} eintrag={e} />)
       )}

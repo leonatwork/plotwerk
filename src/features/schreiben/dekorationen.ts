@@ -8,6 +8,7 @@ import { Extension, nodeInputRule } from '@tiptap/core';
 import type { Id, Realitaet } from '@core/model/types';
 import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
+import { f, texte } from '../../i18n';
 
 export interface FigurStelle {
   from: number;
@@ -53,11 +54,6 @@ export const markierungKey = new PluginKey<DecorationSet>('pw-markierung');
 export const ebenenKey = new PluginKey<DecorationSet>('pw-ebenen');
 export const lektoratKey = new PluginKey<DecorationSet>('pw-lektorat');
 
-const EBENE_TITEL: Record<Realitaet, string> = {
-  gesichert: 'Realitätsebene: gesichert',
-  offen: 'Realitätsebene: noch offen',
-  bewusst_vage: 'Realitätsebene: bewusst vage – die Prüfung meldet hier keinen Widerspruch',
-};
 
 function gemappt(key: PluginKey<DecorationSet>, leeren = false) {
   return {
@@ -72,13 +68,14 @@ function gemappt(key: PluginKey<DecorationSet>, leeren = false) {
 }
 
 export function figurDekorationen(stellen: FigurStelle[]): Decoration[] {
+  const vorlage = texte().schreiben.deko.figur;
   return stellen
     .filter((s) => s.to > s.from)
     .map((s) =>
       Decoration.inline(
         s.from,
         s.to,
-        { class: s.fokus ? 'pw-s-figur pw-s-figur--fokus' : 'pw-s-figur', 'data-figur': s.figur, title: `${s.name} · ⌘-Klick öffnet die Karte` },
+        { class: s.fokus ? 'pw-s-figur pw-s-figur--fokus' : 'pw-s-figur', 'data-figur': s.figur, title: f(vorlage, { name: s.name }) },
         { figur: s.figur },
       ),
     );
@@ -98,9 +95,10 @@ export function notizDekorationen(stellen: NotizStelle[]): Decoration[] {
 }
 
 export function ebenenDekorationen(stellen: EbenenStelle[]): Decoration[] {
+  const titel = texte().schreiben.deko.ebene;
   return stellen
     .filter((s) => s.to > s.from)
-    .map((s) => Decoration.inline(s.from, s.to, { class: `pw-s-ebene pw-s-ebene--${s.stufe}`, title: EBENE_TITEL[s.stufe] }));
+    .map((s) => Decoration.inline(s.from, s.to, { class: `pw-s-ebene pw-s-ebene--${s.stufe}`, title: titel[s.stufe] }));
 }
 
 export function lektoratDekorationen(stellen: LektoratStelle[]): Decoration[] {

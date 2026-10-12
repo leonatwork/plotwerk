@@ -4,6 +4,7 @@
  * ProjektDateisystem, Schreibfunktionen aus core/projekt, Tauri oder den Store.
  * HTTP-Details für den Rust-Kern: core/ki/README.md.
  */
+import type { Sprache } from '../i18n';
 import type { Hinweis, Id, KapitelAnalyse, KiEinstellungen, ProjektDaten, TextAnker, Verweis } from '../model/types';
 import type { ProjektLeser } from '../projekt/fs';
 import { ladeProjekt } from '../projekt/lesen';
@@ -16,14 +17,15 @@ import {
   prefixZaehlBody,
   pruefAufgabe,
   pruefSchema,
-  SYSTEM_ERKENNUNG,
-  SYSTEM_PRUEFUNG,
+  systemErkennung,
+  systemPruefung,
   zaehlBody,
   type KiRolle,
 } from './anfrage';
 import { addiere, KiFehler, LEERE_NUTZUNG, leseAntwort, type Nutzung } from './antwort';
 import { AUSGABE_SCHAETZUNG, kostenUsd, preisFuer } from './kosten';
 import { baueBuchKontext, type BuchKontext, type KontextKapitel } from './kontext';
+import { meldungenIn } from './meldungen';
 import { Pruefer } from './pruefung';
 import { kiModell } from './anbieter';
 
@@ -39,6 +41,7 @@ export {
   STANDARD_MODELLE,
 } from './anbieter';
 export { KiFehler, type KiFehlerArt } from './antwort';
+export { kiMeldungen, type KiMeldung } from './meldungen';
 export { KI_HINWEIS_TYPEN, MAX_TOKENS, EFFORT, type KiRolle } from './anfrage';
 export { baueBuchKontext, leseBuchKontext, type BuchKontext, type GelesenerKontext } from './kontext';
 export { ersatztextGrund, loseEndeId } from './pruefung';
@@ -106,6 +109,8 @@ export interface PruefOptionen {
   /** Abbruch zwischen zwei Anfragen */
   signal?: AbortSignal;
   jetzt?(): Date;
+  /** Sprache der Meldungen (Fehler, Verwerfungsgründe); Standard Deutsch. Hinweise selbst: Buchsprache. */
+  oberflaeche?: Sprache;
 }
 
 export interface ErwaehnungsVorschlag {
@@ -165,16 +170,17 @@ interface Lauf {
   uebersprungen: Id[];
 }
 
-async function planeLauf(leser: ProjektLeser, auftrag: PruefAuftrag, einstellungen: KiEinstellungen): Promise<Lauf> {
+async function planeLauf(leser: ProjektLeser, auftrag: PruefAuftrag, einstellungen: KiEinstellungen, oberflaeche: Sprache): Promise<Lauf> {
+  const m = meldungenIn(oberflaeche);
   const daten = await ladeProjekt(leser);
   const kontext = baueBuchKontext(daten);
   const rolle: KiRolle = auftrag.tiefencheck ? 'tiefencheck' : 'pruefung';
   let kandidaten: KontextKapitel[];
   if (auftrag.umfang === 'kapitel') {
-    if (!auftrag.kapitel) throw new KiFehler('auftrag', 'Kein Kapitel gewählt.');
+    if (!auftrag.kapitel) throw new KiFehler('auftrag', m('keinKapitelGewaehlt'));
     const k = kontext.kapitel.find((x) => x.id === auftrag.kapitel);
-    if (!k) throw new KiFehler('auftrag', `Das Kapitel „${auftrag.kapitel}“ gibt es nicht.`);
-    if (!k.text.trim()) throw new KiFehler('auftrag', `Kap. ${k.nr} „${k.titel}“ hat noch keinen Text.`);
+    if (!k) throw new KiFehler('auftrag', m('kapitelFehlt', { kapitel: auftrag.kapitel }));
+    if (!k.text.trim()) throw new KiFehler('auftrag', m('kapitelOhneText', { nr: k.nr, titel: k.titel }));
     kandidaten = [k];
   } else {
     kandidaten = kontext.kapitel.filter((k) => k.text.trim());
@@ -193,9 +199,9 @@ async function planeLauf(leser: ProjektLeser, auftrag: PruefAuftrag, einstellung
 function pruefAnfrage(lauf: Lauf, k: KontextKapitel): Record<string, unknown> {
   return baueAnfrage({
     modell: lauf.modell,
-    system: SYSTEM_PRUEFUNG,
+    system: systemPruefung(lauf.kontext.sprache),
     kontext: lauf.kontext,
-    aufgabe: pruefAufgabe(k),
+    aufgabe: pruefAufgabe(k, lauf.kontext.sprache),
     schema: pruefSchema(lauf.kontext),
     effort: EFFORT[lauf.rolle],
   });
@@ -211,14 +217,15 @@ async function zaehle(transport: KiTransport, body: Record<string, unknown>): Pr
   return { tokens: Math.ceil(JSON.stringify(body).length / 3), gezaehlt: false };
 }
 
-/** Schätzung vor dem Start: Anfragen, Tokens (count_tokens, sonst Zeichen/3) und grobe Kosten. */
+/** Schätzung vor dem Start: Anfragen, Tokens (count_tokens, sonst Zeichen/3) und grobe Kosten. `oberflaeche`: Sprache der KiFehler. */
 export async function schaetzeLauf(
   leser: ProjektLeser,
   auftrag: PruefAuftrag,
   transport: KiTransport,
   einstellungen: KiEinstellungen,
+  oberflaeche: Sprache = 'de',
 ): Promise<Schaetzung> {
-  const lauf = await planeLauf(leser, auftrag, einstellungen);
+  const lauf = await planeLauf(leser, auftrag, einstellungen, oberflaeche);
   const basis: Schaetzung = {
     rolle: lauf.rolle,
     modell: lauf.modell,
@@ -234,7 +241,7 @@ export async function schaetzeLauf(
   const erstes = lauf.kapitel[0];
   if (!erstes) return basis;
   const voll = await zaehle(transport, zaehlBody(pruefAnfrage(lauf, erstes)));
-  const prefix = await zaehle(transport, prefixZaehlBody({ modell: lauf.modell, system: SYSTEM_PRUEFUNG, kontext: lauf.kontext }));
+  const prefix = await zaehle(transport, prefixZaehlBody({ modell: lauf.modell, system: systemPruefung(lauf.kontext.sprache), kontext: lauf.kontext }));
   const n = lauf.kapitel.length;
   const prefixTokens = Math.min(prefix.tokens, voll.tokens);
   const rest = voll.tokens - prefixTokens;
@@ -257,8 +264,9 @@ export async function schaetzeTokens(
   auftrag: PruefAuftrag,
   transport: KiTransport,
   einstellungen: KiEinstellungen,
+  oberflaeche: Sprache = 'de',
 ): Promise<number> {
-  return (await schaetzeLauf(leser, auftrag, transport, einstellungen)).eingabeTokens;
+  return (await schaetzeLauf(leser, auftrag, transport, einstellungen, oberflaeche)).eingabeTokens;
 }
 
 export async function pruefe(
@@ -268,7 +276,9 @@ export async function pruefe(
   einstellungen: KiEinstellungen,
   optionen: PruefOptionen = {},
 ): Promise<PruefErgebnis> {
-  const lauf = await planeLauf(leser, auftrag, einstellungen);
+  const oberflaeche = optionen.oberflaeche ?? 'de';
+  const m = meldungenIn(oberflaeche);
+  const lauf = await planeLauf(leser, auftrag, einstellungen, oberflaeche);
   const ergebnis: PruefErgebnis = {
     hinweise: [],
     analysen: [],
@@ -283,11 +293,11 @@ export async function pruefe(
   const gesamt = lauf.kapitel.length;
   if (gesamt === 0) return ergebnis;
   if (!(await transport.bereit())) {
-    throw new KiFehler('nicht_bereit', 'Die KI ist noch nicht eingerichtet: API-Schlüssel oder Endpoint fehlt.');
+    throw new KiFehler('nicht_bereit', m('nichtBereit'));
   }
 
   const entschieden = new Set(lauf.daten.entscheidungen.hinweise.map((h) => h.schluessel));
-  const pruefer = new Pruefer(lauf.kontext, entschieden);
+  const pruefer = new Pruefer(lauf.kontext, entschieden, oberflaeche);
   const schluessel = new Set<string>();
   const entschiedenGesehen = new Set<string>();
   let nutzung: Nutzung = LEERE_NUTZUNG;
@@ -295,30 +305,30 @@ export async function pruefe(
 
   for (const [i, k] of lauf.kapitel.entries()) {
     if (optionen.signal?.aborted) {
-      ergebnis.fehler = 'Die Prüfung wurde abgebrochen.';
+      ergebnis.fehler = m('pruefungAbgebrochen');
       break;
     }
     optionen.fortschritt?.({ erledigt: i, gesamt, kapitel: k.id, titel: k.titel });
-    const name = `Kap. ${k.nr} „${k.titel}“`;
+    const name = m('kapitelName', { nr: k.nr, titel: k.titel });
     let antwort;
     try {
       // Abbruch nur zwischen zwei Anfragen (PruefOptionen): eine laufende Kapitel-Anfrage wird noch ausgewertet.
-      antwort = leseAntwort(await transport.senden(pruefAnfrage(lauf, k)));
+      antwort = leseAntwort(await transport.senden(pruefAnfrage(lauf, k)), oberflaeche);
     } catch (e) {
       const text = fehlertext(e);
       if (i === 0) throw e instanceof KiFehler ? e : new KiFehler('api', text);
-      ergebnis.fehler = `${name}: ${text}`;
+      ergebnis.fehler = m('mitName', { name, text });
       break;
     }
     nutzung = addiere(nutzung, antwort.nutzung);
     ergebnis.geprueft!.push(k.id);
     if (antwort.daten === null) {
-      ergebnis.verworfen.push({ grund: `${name}: ${antwort.grund ?? 'keine Daten'}`, roh: null });
+      ergebnis.verworfen.push({ grund: m('mitName', { name, text: antwort.grund ?? m('keineDaten') }), roh: null });
       continue;
     }
     const d = antwort.daten as Record<string, unknown>;
     if (!d || !Array.isArray(d.hinweise) || !Array.isArray(d.analysen)) {
-      ergebnis.verworfen.push({ grund: `${name}: Die Antwort passt nicht zum Schema.`, roh: antwort.daten });
+      ergebnis.verworfen.push({ grund: m('mitName', { name, text: m('schemaFalsch') }), roh: antwort.daten });
       continue;
     }
     const aufgabe = new Set([k.id]);
@@ -345,7 +355,7 @@ export async function pruefe(
         ergebnis.verworfen.push(r);
       }
     }
-    if (!analyseDa) ergebnis.verworfen.push({ grund: `${name}: keine gültige Analyse geliefert`, roh: d.analysen });
+    if (!analyseDa) ergebnis.verworfen.push({ grund: m('mitName', { name, text: m('keineAnalyse') }), roh: d.analysen });
   }
 
   optionen.fortschritt?.({ erledigt: ergebnis.geprueft!.length, gesamt, kapitel: null, titel: '' });
@@ -359,11 +369,14 @@ function enthaelt(aussen: Bereich, innen: Bereich): boolean {
   return innen.start >= aussen.start && innen.ende <= aussen.ende;
 }
 
+/** Gleicher Name (ohne Artikel der/die/das/the), auch mit Genitiv-s bzw. Possessiv („Pauls“, „Paul’s“, „James’“). */
 function gleichName(text: string, namen: string[]): boolean {
-  const t = normalisiere(text).text.trim().toLocaleLowerCase('de').replace(/^(der|die|das)\s+/, '');
+  const ohneArtikel = (s: string) => normalisiere(s).text.trim().toLocaleLowerCase('de').replace(/^(der|die|das|the)\s+/, '');
+  const t = ohneArtikel(text);
   return namen.some((n) => {
-    const m = normalisiere(n).text.trim().toLocaleLowerCase('de').replace(/^(der|die|das)\s+/, '');
-    return m.length > 0 && (t === m || t === `${m}s` || t === `${m}'` || t === `${m}’`);
+    // normalisiert: ’ und ' sind "
+    const m = ohneArtikel(n);
+    return m.length > 0 && (t === m || t === `${m}s` || t === `${m}"` || t === `${m}"s`);
   });
 }
 
@@ -372,32 +385,34 @@ export async function schlageErwaehnungenVor(
   kapitel: Id,
   transport: KiTransport,
   einstellungen: KiEinstellungen,
+  oberflaeche: Sprache = 'de',
 ): Promise<ErwaehnungsVorschlag[]> {
+  const m = meldungenIn(oberflaeche);
   const daten = await ladeProjekt(leser);
   const kontext = baueBuchKontext(daten);
   const k = kontext.kapitel.find((x) => x.id === kapitel);
-  if (!k) throw new KiFehler('auftrag', `Das Kapitel „${kapitel}“ gibt es nicht.`);
+  if (!k) throw new KiFehler('auftrag', m('kapitelFehlt', { kapitel }));
   if (!k.text.trim()) return [];
   if (!(await transport.bereit())) {
-    throw new KiFehler('nicht_bereit', 'Die KI ist noch nicht eingerichtet: API-Schlüssel oder Endpoint fehlt.');
+    throw new KiFehler('nicht_bereit', m('nichtBereit'));
   }
   const body = baueAnfrage({
     modell: deploymentFuer(einstellungen, 'erkennung'),
-    system: SYSTEM_ERKENNUNG,
+    system: systemErkennung(kontext.sprache),
     kontext,
-    aufgabe: erwaehnungsAufgabe(k),
+    aufgabe: erwaehnungsAufgabe(k, kontext.sprache),
     schema: erwaehnungsSchema(kontext),
     effort: EFFORT.erkennung,
   });
   let antwort;
   try {
-    antwort = leseAntwort(await transport.senden(body));
+    antwort = leseAntwort(await transport.senden(body), oberflaeche);
   } catch (e) {
     throw e instanceof KiFehler ? e : new KiFehler('api', fehlertext(e));
   }
-  if (antwort.daten === null) throw new KiFehler('antwort', antwort.grund ?? 'Keine Daten.');
+  if (antwort.daten === null) throw new KiFehler('antwort', antwort.grund ?? m('keineDatenSatz'));
   const liste = (antwort.daten as Record<string, unknown> | null)?.vorschlaege;
-  if (!Array.isArray(liste)) throw new KiFehler('antwort', 'Die Antwort passt nicht zum Schema.');
+  if (!Array.isArray(liste)) throw new KiFehler('antwort', m('schemaFalsch'));
 
   const alleNamen = [
     ...kontext.figuren.flatMap((f) => [f.name, ...f.aliase, ...f.formen]),

@@ -9,8 +9,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from 'react';
 import type { Id, ProjektDaten, RechercheArt, RechercheEintrag, Verweis } from '@core/model/types';
 import {
-  ART_MEHRZAHL,
-  ART_NAME,
   fehlendeZiele,
   filtereEintraege,
   freieDateien,
@@ -23,10 +21,10 @@ import {
   verweiseAlsText,
   verwendeteZiele,
   zielInfo,
-  ZIEL_ART_NAME,
   type ArtFilter,
   type ZielArt,
 } from '@core/recherche/index';
+import { f, sprache, texte, useTexte, type Woerterbuch } from '../../i18n';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button, Dialog, Inspektor, klassen, LeerZustand, Segment, Werkzeugseite } from '../../ui';
@@ -41,10 +39,6 @@ import { ZielWahl } from './ZielWahl';
 // Hilfen
 // ---------------------------------------------------------------------------
 
-function anzahlText(n: number, eins: string, viele: string): string {
-  return `${n} ${n === 1 ? eins : viele}`;
-}
-
 /** Fokus liegt in einem Eingabefeld (dann keine Bereichs-Kürzel). */
 function inEingabe(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
@@ -58,8 +52,9 @@ function auszug(text: string, max = 220): string {
 
 async function eintragEntfernenFragen(e: RechercheEintrag): Promise<void> {
   const r = useStore.getState().recherche;
-  const datei = e.art === 'bild' && e.datei ? ' Die Bilddatei wird aus dem Projektordner entfernt (eine Kopie bleibt unter .versionen/).' : '';
-  const ok = await bestaetigen(`„${e.titel}“ aus der Recherche entfernen?${datei}`, { titel: 'Eintrag entfernen', knopf: 'Entfernen' });
+  const t = texte();
+  const datei = e.art === 'bild' && e.datei ? ` ${t.recherche.entfernen.bildDatei}` : '';
+  const ok = await bestaetigen(`${f(t.recherche.entfernen.frage, { titel: e.titel })}${datei}`, { titel: t.recherche.entfernen.titel, knopf: t.gemeinsam.entfernen });
   if (ok) await r.entfernen(e.id);
 }
 
@@ -67,19 +62,22 @@ async function eintragEntfernenFragen(e: RechercheEintrag): Promise<void> {
 // Filterleiste
 // ---------------------------------------------------------------------------
 
-const ZIEL_GRUPPEN: [ZielArt, string][] = [
-  ['figur', 'Figuren'],
-  ['ort', 'Orte'],
-  ['kapitel', 'Kapitel'],
-  ['szene', 'Szenen'],
-  ['plan', 'Plan-Karten'],
-  ['gruppe', 'Gruppen'],
-  ['idee', 'Ideen'],
-];
+/** Reihenfolge der Zielgruppen in der Auswahl „Geheftet an“ (Namen aus dem Wörterbuch) */
+const ZIEL_GRUPPEN: ZielArt[] = ['figur', 'ort', 'kapitel', 'szene', 'plan', 'gruppe', 'idee'];
+
+/** „2 Bilder · 1 Link“ */
+function artZaehler(t: Woerterbuch, eintraege: RechercheEintrag[]): string {
+  return (['bild', 'link', 'notiz'] as RechercheArt[])
+    .map((a) => [a, eintraege.filter((e) => e.art === a).length] as const)
+    .filter(([, n]) => n > 0)
+    .map(([a, n]) => f(t.recherche.artAnzahl[a], { n }))
+    .join(' · ');
+}
 
 function Filterleiste({ daten, eintraege, sucheRef }: { daten: ProjektDaten; eintraege: RechercheEintrag[]; sucheRef: React.RefObject<HTMLInputElement> }) {
+  const t = useTexte();
   const r = useStore((s) => s.recherche);
-  const ziele = useMemo(() => verwendeteZiele(daten, eintraege), [daten, eintraege]);
+  const ziele = useMemo(() => verwendeteZiele(daten, eintraege, sprache()), [daten, eintraege]);
   const schlagworte = useMemo(() => schlagwortListe(eintraege), [eintraege]);
   const zaehl = (a: RechercheArt) => eintraege.filter((e) => e.art === a).length;
   const zielWert = r.ziel ?? '';
@@ -87,7 +85,7 @@ function Filterleiste({ daten, eintraege, sucheRef }: { daten: ProjektDaten; ein
   const gefiltert = !!(r.suche || r.art !== 'alle' || r.ziel || r.schlagwort);
 
   return (
-    <div className="rc-filter" role="toolbar" aria-label="Recherche filtern">
+    <div className="rc-filter" role="toolbar" aria-label={t.recherche.filter.label}>
       <span className="rc-filter__suche">
         <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
           <circle cx="11" cy="11" r="6.5" />
@@ -97,8 +95,8 @@ function Filterleiste({ daten, eintraege, sucheRef }: { daten: ProjektDaten; ein
           ref={sucheRef}
           type="search"
           className="rc-filter__feld"
-          placeholder="Suchen (⌘F)"
-          aria-label="Recherche durchsuchen"
+          placeholder={t.recherche.filter.suche}
+          aria-label={t.recherche.filter.sucheLabel}
           value={r.suche}
           onChange={(e) => r.setzeSuche(e.target.value)}
           onKeyDown={(e) => {
@@ -114,33 +112,33 @@ function Filterleiste({ daten, eintraege, sucheRef }: { daten: ProjektDaten; ein
         />
       </span>
       <Segment<ArtFilter>
-        label="Art"
+        label={t.recherche.filter.art}
         rolle="group"
         hintergrund="selected"
         wert={r.art}
         onChange={r.setzeArt}
         optionen={[
-          { wert: 'alle', label: 'Alle' },
+          { wert: 'alle', label: t.gemeinsam.alle },
           ...(['bild', 'link', 'notiz'] as RechercheArt[]).map((a) => ({
             wert: a,
             label: (
               <span className="rc-segment-label">
-                {ART_MEHRZAHL[a]} <span className="rc-filter__zahl">{zaehl(a)}</span>
+                {t.recherche.artMehrzahl[a]} <span className="rc-filter__zahl">{zaehl(a)}</span>
               </span>
             ),
           })),
         ]}
       />
       <label className="rc-filter__wahl">
-        <span className="pw-sr">Geheftet an</span>
+        <span className="pw-sr">{t.recherche.geheftetAn}</span>
         <select value={zielWert} onChange={(e) => r.setzeZiel(e.target.value ? schluesselAlsVerweis(e.target.value) : null)} className={klassen(r.ziel && 'rc-filter__wahl--aktiv')}>
-          <option value="">Alle Ziele</option>
-          {zielFehlt && r.ziel && <option value={r.ziel}>{zielInfo(daten, schluesselAlsVerweis(r.ziel)!).name ?? r.ziel}</option>}
-          {ZIEL_GRUPPEN.map(([art, name]) => {
+          <option value="">{t.recherche.filter.alleZiele}</option>
+          {zielFehlt && r.ziel && <option value={r.ziel}>{zielInfo(daten, schluesselAlsVerweis(r.ziel)!, sprache()).name ?? r.ziel}</option>}
+          {ZIEL_GRUPPEN.map((art) => {
             const liste = ziele.filter((z) => z.art === art);
             if (!liste.length) return null;
             return (
-              <optgroup key={art} label={name}>
+              <optgroup key={art} label={t.recherche.zielGruppe[art]}>
                 {liste.map((z) => (
                   <option key={verweisSchluessel(z.verweis)} value={verweisSchluessel(z.verweis)}>
                     {z.name} ({z.anzahl})
@@ -153,9 +151,9 @@ function Filterleiste({ daten, eintraege, sucheRef }: { daten: ProjektDaten; ein
       </label>
       {schlagworte.length > 0 && (
         <label className="rc-filter__wahl">
-          <span className="pw-sr">Schlagwort</span>
+          <span className="pw-sr">{t.recherche.filter.schlagwort}</span>
           <select value={r.schlagwort ?? ''} onChange={(e) => r.setzeSchlagwort(e.target.value || null)} className={klassen(r.schlagwort && 'rc-filter__wahl--aktiv')}>
-            <option value="">Alle Schlagworte</option>
+            <option value="">{t.recherche.filter.alleSchlagworte}</option>
             {r.schlagwort && !schlagworte.some((s) => s.wert.toLocaleLowerCase('de') === r.schlagwort!.toLocaleLowerCase('de')) && <option value={r.schlagwort}>{r.schlagwort}</option>}
             {schlagworte.map((s) => (
               <option key={s.wert} value={s.wert}>
@@ -167,19 +165,19 @@ function Filterleiste({ daten, eintraege, sucheRef }: { daten: ProjektDaten; ein
       )}
       {gefiltert && (
         <Button variante="text" klein onClick={r.filterZuruecksetzen}>
-          Filter zurücksetzen
+          {t.recherche.filter.zuruecksetzen}
         </Button>
       )}
       <span style={{ flex: 1 }} />
       <Segment<'raster' | 'liste'>
-        label="Darstellung"
+        label={t.recherche.filter.darstellung}
         rolle="group"
         hintergrund="selected"
         wert={r.darstellung}
         onChange={r.setzeDarstellung}
         optionen={[
-          { wert: 'raster', label: <span className="rc-segment-label" title="Raster"><IconRaster size={14} /><span className="pw-sr">Raster</span></span> },
-          { wert: 'liste', label: <span className="rc-segment-label" title="Liste"><IconListe size={14} /><span className="pw-sr">Liste</span></span> },
+          { wert: 'raster', label: <span className="rc-segment-label" title={t.recherche.filter.raster}><IconRaster size={14} /><span className="pw-sr">{t.recherche.filter.raster}</span></span> },
+          { wert: 'liste', label: <span className="rc-segment-label" title={t.recherche.filter.liste}><IconListe size={14} /><span className="pw-sr">{t.recherche.filter.liste}</span></span> },
         ]}
       />
     </div>
@@ -204,12 +202,13 @@ function Ziele({ eintrag, max = 2 }: { eintrag: RechercheEintrag; max?: number }
 }
 
 function Medium({ eintrag }: { eintrag: RechercheEintrag }) {
+  const t = useTexte();
   if (eintrag.art === 'bild') return <RechercheBild pfad={eintrag.datei} alt="" className="rc-kachel__medium" />;
   if (eintrag.art === 'link')
     return (
       <div className="rc-kachel__medium rc-kachel__medium--link" aria-hidden="true">
         <IconLink size={22} />
-        <span className="rc-kachel__host">{linkHost(eintrag.url) || 'Link'}</span>
+        <span className="rc-kachel__host">{linkHost(eintrag.url) || t.recherche.art.link}</span>
       </div>
     );
   return (
@@ -229,7 +228,8 @@ interface EintragElementProps {
 }
 
 function Kachel({ eintrag, gewaehlt, fokussierbar, onWaehlen, onOeffnen, setzeRef }: EintragElementProps) {
-  const neben = eintrag.art === 'link' ? linkHost(eintrag.url) : ART_NAME[eintrag.art];
+  const t = useTexte();
+  const neben = eintrag.art === 'link' ? linkHost(eintrag.url) : t.recherche.art[eintrag.art];
   return (
     <li
       ref={setzeRef}
@@ -286,6 +286,7 @@ function Zeile({ eintrag, gewaehlt, fokussierbar, onWaehlen, onOeffnen, setzeRef
 }
 
 function Sammlung({ liste, onLupe }: { liste: RechercheEintrag[]; onLupe(id: Id): void }) {
+  const t = useTexte();
   const r = useStore((s) => s.recherche);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const elemente = useRef(new Map<Id, HTMLElement>());
@@ -373,7 +374,7 @@ function Sammlung({ liste, onLupe }: { liste: RechercheEintrag[]; onLupe(id: Id)
     <ul
       ref={container}
       role="listbox"
-      aria-label={`Recherche-Einträge (${liste.length})`}
+      aria-label={f(t.recherche.sammlung.label, { n: liste.length })}
       aria-orientation={raster ? undefined : 'vertical'}
       className={klassen('rc-sammlung', raster ? 'rc-sammlung--raster' : 'rc-sammlung--liste')}
       onKeyDown={taste}
@@ -413,6 +414,8 @@ function Abschnitt({ titel, children, rechts }: { titel: string; children: React
 }
 
 function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintrag; daten: ProjektDaten; onLupe(): void }) {
+  const t = useTexte();
+  const ti = t.recherche.inspektor;
   const r = useStore((s) => s.recherche);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const [heftenOffen, setHeftenOffen] = useState(false);
@@ -420,15 +423,15 @@ function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintra
   useEffect(() => setHeftenOffen(false), [eintrag.id]);
 
   return (
-    <Inspektor label="Recherche-Eintrag" breite={330}>
+    <Inspektor label={ti.label} breite={330}>
       {eintrag.art === 'bild' && (
-        <button type="button" className="rc-insp__bild" onClick={onLupe} title="Groß zeigen (Leertaste)" aria-label={`${eintrag.titel} groß zeigen`}>
+        <button type="button" className="rc-insp__bild" onClick={onLupe} title={ti.grossZeigen} aria-label={f(ti.grossZeigenLabel, { titel: eintrag.titel })}>
           <RechercheBild pfad={eintrag.datei} alt={eintrag.titel} einpassen="contain" />
         </button>
       )}
       <div className="rc-insp__titelblock">
         <span className="rc-insp__art">
-          <ArtSymbol art={eintrag.art} size={12} /> {ART_NAME[eintrag.art]} · {datumKurz(eintrag.erstellt)}
+          <ArtSymbol art={eintrag.art} size={12} /> {t.recherche.art[eintrag.art]} · {datumKurz(eintrag.erstellt)}
         </span>
         <h2 className="rc-insp__titel">{eintrag.titel}</h2>
       </div>
@@ -438,14 +441,14 @@ function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintra
           <span className="rc-insp__url" title={eintrag.url}>
             {eintrag.url}
           </span>
-          <Button klein icon={<IconExtern size={13} />} onClick={() => void linkOeffnen(eintrag.url)} title="Im Standardbrowser öffnen (⌘↩)">
-            Im Browser öffnen
+          <Button klein icon={<IconExtern size={13} />} onClick={() => void linkOeffnen(eintrag.url)} title={ti.browserTitel}>
+            {t.recherche.imBrowserOeffnen}
           </Button>
         </div>
       )}
 
       {eintrag.text.trim() && (
-        <Abschnitt titel={eintrag.art === 'notiz' ? 'Notiz' : 'Beschreibung'}>
+        <Abschnitt titel={eintrag.art === 'notiz' ? t.recherche.notiz : t.recherche.beschreibung}>
           <div className="rc-insp__notiz">
             <VerweisText text={eintrag.text} />
           </div>
@@ -453,16 +456,16 @@ function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintra
       )}
 
       <Abschnitt
-        titel="Geheftet an"
+        titel={t.recherche.geheftetAn}
         rechts={
           !heftenOffen && (
             <Button variante="text" klein onClick={() => setHeftenOffen(true)}>
-              + Heften
+              {ti.heften}
             </Button>
           )
         }
       >
-        {eintrag.verweise.length === 0 && !heftenOffen && <p className="rc-insp__leer">Noch an nichts geheftet.</p>}
+        {eintrag.verweise.length === 0 && !heftenOffen && <p className="rc-insp__leer">{ti.nichtsGeheftet}</p>}
         {eintrag.verweise.length > 0 && (
           <div className="rc-ziele">
             {eintrag.verweise.map((v) => (
@@ -470,23 +473,23 @@ function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintra
             ))}
           </div>
         )}
-        {fehlend.length > 0 && <p className="rc-insp__leer">{anzahlText(fehlend.length, 'Ziel gibt', 'Ziele gibt')} es nicht mehr.</p>}
+        {fehlend.length > 0 && <p className="rc-insp__leer">{f(ti.fehlend, { n: fehlend.length })}</p>}
         {heftenOffen && (
           <ZielWahl
             gewaehlt={eintrag.verweise}
             autoFocus
             onWaehlen={(v: Verweis) => void r.heften(eintrag.id, v)}
             onAbbrechen={() => setHeftenOffen(false)}
-            placeholder="Figur, Ort, Kapitel, Szene … (Esc schließt)"
+            placeholder={ti.heftenPlatzhalter}
           />
         )}
       </Abschnitt>
 
       {(eintrag.schlagworte?.length ?? 0) > 0 && (
-        <Abschnitt titel="Schlagworte">
+        <Abschnitt titel={t.recherche.schlagworte}>
           <div className="rc-ziele">
             {eintrag.schlagworte!.map((s) => (
-              <button key={s} type="button" className={klassen('rc-schlagwort', r.schlagwort === s && 'rc-schlagwort--aktiv')} onClick={() => r.setzeSchlagwort(r.schlagwort === s ? null : s)} title="Nach diesem Schlagwort filtern">
+              <button key={s} type="button" className={klassen('rc-schlagwort', r.schlagwort === s && 'rc-schlagwort--aktiv')} onClick={() => r.setzeSchlagwort(r.schlagwort === s ? null : s)} title={ti.schlagwortFiltern}>
                 {s}
               </button>
             ))}
@@ -495,17 +498,17 @@ function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintra
       )}
 
       {eintrag.art === 'bild' && eintrag.datei && (
-        <Abschnitt titel="Datei">
+        <Abschnitt titel={ti.datei}>
           <span className="rc-insp__datei">{eintrag.datei}</span>
         </Abschnitt>
       )}
 
       <div className="rc-insp__aktionen">
-        <Button onClick={() => oeffneDialog('recherche-eintrag', { id: eintrag.id })} title="Bearbeiten (↩)">
-          Bearbeiten
+        <Button onClick={() => oeffneDialog('recherche-eintrag', { id: eintrag.id })} title={ti.bearbeitenTitel}>
+          {t.gemeinsam.bearbeiten}
         </Button>
-        <Button variante="leise" onClick={() => void eintragEntfernenFragen(eintrag)} title="Entfernen (⌫)">
-          Entfernen
+        <Button variante="leise" onClick={() => void eintragEntfernenFragen(eintrag)} title={ti.entfernenTitel}>
+          {t.gemeinsam.entfernen}
         </Button>
       </div>
     </Inspektor>
@@ -513,37 +516,37 @@ function EintragInspektor({ eintrag, daten, onLupe }: { eintrag: RechercheEintra
 }
 
 function UebersichtInspektor({ eintraege }: { eintraege: RechercheEintrag[] }) {
+  const t = useTexte();
+  const tu = t.recherche.uebersicht;
   return (
-    <Inspektor label="Recherche" breite={330}>
+    <Inspektor label={t.recherche.titel} breite={330}>
       <div className="rc-insp__titelblock">
-        <span className="pw-label">Recherche-Ablage</span>
-        <p className="rc-insp__hilfe">
-          {eintraege.length ? 'Wähle einen Eintrag, um ihn zu sehen, zu heften oder zu bearbeiten.' : 'Bilder, Links und Notizen zum Buch – an Figuren, Orte, Kapitel und Szenen geheftet.'}
-        </p>
+        <span className="pw-label">{tu.titel}</span>
+        <p className="rc-insp__hilfe">{eintraege.length ? tu.hilfeMitEintraegen : tu.hilfeLeer}</p>
       </div>
-      <Abschnitt titel="Ablegen">
+      <Abschnitt titel={tu.ablegen}>
         <ul className="rc-insp__liste">
-          <li>Bilder aus dem Finder hierher ziehen oder mit ⌘V einfügen – sie werden nach recherche/dateien/ kopiert.</li>
-          <li>Adressen aus dem Browser ziehen oder einfügen. Plotwerk lädt die Seiten nie selbst.</li>
-          <li>In Notizen verweist [[ auf Figuren, Orte und Kapitel.</li>
+          <li>{tu.ablegenBilder}</li>
+          <li>{tu.ablegenAdressen}</li>
+          <li>{tu.ablegenVerweise}</li>
         </ul>
       </Abschnitt>
-      <Abschnitt titel="Tastatur">
+      <Abschnitt titel={tu.tastatur}>
         <dl className="rc-insp__tasten">
           <dt>⌘N</dt>
-          <dd>Neuer Eintrag</dd>
+          <dd>{tu.neuerEintrag}</dd>
           <dt>⌘F</dt>
-          <dd>Suchen</dd>
+          <dd>{tu.suchen}</dd>
           <dt>← ↑ → ↓</dt>
-          <dd>Eintrag wählen</dd>
+          <dd>{tu.waehlen}</dd>
           <dt>↩</dt>
-          <dd>Bearbeiten</dd>
-          <dt>Leertaste</dt>
-          <dd>Bild groß zeigen</dd>
+          <dd>{tu.bearbeiten}</dd>
+          <dt>{tu.leertaste}</dt>
+          <dd>{tu.bildGross}</dd>
           <dt>⌘↩</dt>
-          <dd>Link im Browser öffnen</dd>
+          <dd>{tu.linkOeffnen}</dd>
           <dt>⌫</dt>
-          <dd>Entfernen</dd>
+          <dd>{tu.entfernen}</dd>
         </dl>
       </Abschnitt>
     </Inspektor>
@@ -555,6 +558,8 @@ function UebersichtInspektor({ eintraege }: { eintraege: RechercheEintrag[] }) {
 // ---------------------------------------------------------------------------
 
 function Lupe({ bilder, id, onWechsel, onSchliessen }: { bilder: RechercheEintrag[]; id: Id; onWechsel(id: Id): void; onSchliessen(): void }) {
+  const t = useTexte();
+  const tl = t.recherche.lupe;
   const i = Math.max(0, bilder.findIndex((b) => b.id === id));
   const bild = bilder[i];
   const geh = useCallback(
@@ -590,22 +595,20 @@ function Lupe({ bilder, id, onWechsel, onSchliessen }: { bilder: RechercheEintra
       aktionen={
         <>
           {bilder.length > 1 && (
-            <span className="rc-lupe__zaehler">
-              {i + 1} von {bilder.length}
-            </span>
+            <span className="rc-lupe__zaehler">{f(tl.zaehler, { i: i + 1, n: bilder.length })}</span>
           )}
           {bilder.length > 1 && (
             <>
-              <Button onClick={() => geh(-1)} aria-label="Vorheriges Bild" title="Vorheriges Bild (←)">
+              <Button onClick={() => geh(-1)} aria-label={tl.vorheriges} title={tl.vorherigesTitel}>
                 ‹
               </Button>
-              <Button onClick={() => geh(1)} aria-label="Nächstes Bild" title="Nächstes Bild (→)">
+              <Button onClick={() => geh(1)} aria-label={tl.naechstes} title={tl.naechstesTitel}>
                 ›
               </Button>
             </>
           )}
           <Button variante="primaer" onClick={onSchliessen} data-autofocus>
-            Schließen
+            {t.gemeinsam.schliessen}
           </Button>
         </>
       }
@@ -620,6 +623,7 @@ function Lupe({ bilder, id, onWechsel, onSchliessen }: { bilder: RechercheEintra
 // ---------------------------------------------------------------------------
 
 function FreieDateien({ daten }: { daten: ProjektDaten }) {
+  const t = useTexte();
   const fs = useStore((s) => s.fs);
   const r = useStore((s) => s.recherche);
   const [frei, setFrei] = useState<string[]>([]);
@@ -643,41 +647,49 @@ function FreieDateien({ daten }: { daten: ProjektDaten }) {
     <div className="rc-freie" role="status">
       <IconBild size={14} />
       <span>
-        {anzahlText(frei.length, 'Bild liegt', 'Bilder liegen')} in recherche/dateien/ ohne Eintrag ({frei.map((p) => p.replace(/^.*\//, '')).slice(0, 3).join(', ')}
-        {frei.length > 3 ? ' …' : ''}).
+        {f(t.recherche.freieDateien.text, {
+          n: frei.length,
+          dateien: `${frei
+            .map((p) => p.replace(/^.*\//, ''))
+            .slice(0, 3)
+            .join(', ')}${frei.length > 3 ? ' …' : ''}`,
+        })}
       </span>
       <Button klein onClick={() => void r.dateienUebernehmen(frei)}>
-        Als Einträge übernehmen
+        {t.recherche.freieDateien.uebernehmen}
       </Button>
     </div>
   );
 }
 
 function Leer({ onNeu }: { onNeu(art: RechercheArt): void }) {
+  const t = useTexte();
+  const tl = t.recherche.leer;
   return (
     <LeerZustand
-      titel="Noch keine Recherche"
+      titel={tl.titel}
       aktionen={
         <>
           <Button icon={<IconBild size={14} />} onClick={() => onNeu('bild')}>
-            Bild …
+            {tl.bild}
           </Button>
           <Button icon={<IconLink size={14} />} onClick={() => onNeu('link')}>
-            Link …
+            {tl.link}
           </Button>
           <Button icon={<IconNotiz size={14} />} onClick={() => onNeu('notiz')}>
-            Notiz …
+            {tl.notiz}
           </Button>
         </>
       }
     >
-      Ziehe Bilder oder Adressen hierher oder füge sie mit ⌘V ein. Alles liegt im Projektordner unter recherche/ und lässt sich an Figuren, Orte, Kapitel und
-      Szenen heften.
+      {tl.text}
     </LeerZustand>
   );
 }
 
 export default function Ansicht() {
+  const t = useTexte();
+  const ta = t.recherche.ansicht;
   const daten = useStore((s) => s.daten);
   const r = useStore((s) => s.recherche);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
@@ -748,17 +760,16 @@ export default function Ansicht() {
 
   if (!daten) return null;
 
-  const zaehler = (['bild', 'link', 'notiz'] as RechercheArt[])
-    .map((a) => [a, eintraege.filter((e) => e.art === a).length] as const)
-    .filter(([, n]) => n > 0)
-    .map(([a, n]) => `${n} ${n === 1 ? ART_NAME[a] : ART_MEHRZAHL[a]}`)
-    .join(' · ');
-  const hinweis = eintraege.length ? (liste.length === eintraege.length ? zaehler : `${liste.length} von ${anzahlText(eintraege.length, 'Eintrag', 'Einträgen')}`) : 'Bilder, Links und Notizen';
-  const zielName = ziel ? zielInfo(daten, ziel).name : null;
+  const hinweis = eintraege.length
+    ? liste.length === eintraege.length
+      ? artZaehler(t, eintraege)
+      : f(ta.gefiltert, { anzahl: liste.length, n: eintraege.length })
+    : ta.hinweisLeer;
+  const zielName = ziel ? zielInfo(daten, ziel, sprache()).name : null;
 
   return (
     <Werkzeugseite
-      titel="Recherche"
+      titel={t.recherche.titel}
       hinweis={hinweis}
       hintergrund="canvas"
       inspektor={gewaehlt ? <EintragInspektor key={gewaehlt.id} eintrag={gewaehlt} daten={daten} onLupe={() => setLupe(gewaehlt.id)} /> : <UebersichtInspektor eintraege={eintraege} />}
@@ -786,14 +797,14 @@ export default function Ansicht() {
           <Leer onNeu={neu} />
         ) : liste.length === 0 ? (
           <LeerZustand
-            titel="Nichts gefunden"
+            titel={t.recherche.nichtsGefunden}
             aktionen={
               <Button onClick={r.filterZuruecksetzen} data-autofocus>
-                Filter zurücksetzen
+                {t.recherche.filter.zuruecksetzen}
               </Button>
             }
           >
-            {r.suche ? `Kein Eintrag passt zu „${r.suche}“.` : 'Kein Eintrag passt zu diesen Filtern.'}
+            {r.suche ? f(ta.keinTreffer, { suche: r.suche }) : ta.keinTrefferFilter}
           </LeerZustand>
         ) : (
           <div className="rc-scroll">
@@ -802,12 +813,12 @@ export default function Ansicht() {
         )}
         {ziehen && (
           <div className="rc-bereich__ziehen" aria-hidden="true">
-            <span>Loslassen zum Ablegen{zielName ? ` – wird an ${zielName} geheftet` : ''}</span>
+            <span>{zielName ? f(ta.loslassenZiel, { name: zielName }) : ta.loslassen}</span>
           </div>
         )}
         {legtAb && (
           <div className="rc-bereich__status" role="status">
-            Wird abgelegt …
+            {ta.legtAb}
           </div>
         )}
       </div>
@@ -827,21 +838,27 @@ export default function Ansicht() {
 }
 
 export function Titelaktionen() {
+  const t = useTexte();
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const ziel = useStore((s) => s.recherche.ziel);
   return (
-    <Button variante="primaer" onClick={() => oeffneDialog('recherche-eintrag', { verweis: ziel ? (schluesselAlsVerweis(ziel) ?? undefined) : undefined })} title="Neuer Eintrag (⌘N)">
-      + Neuer Eintrag
+    <Button
+      variante="primaer"
+      onClick={() => oeffneDialog('recherche-eintrag', { verweis: ziel ? (schluesselAlsVerweis(ziel) ?? undefined) : undefined })}
+      title={t.recherche.ansicht.neuerEintragTitel}
+    >
+      {t.recherche.ansicht.neuerEintrag}
     </Button>
   );
 }
 
 export function kontext(state: Store): string {
+  const t = texte();
   const daten = state.daten;
   const id = state.recherche.gewaehlt;
   const e = id ? daten?.recherche?.eintraege.find((x) => x.id === id) : undefined;
-  if (e) return `Recherche · ${e.titel}`;
+  if (e) return f(t.recherche.kontext.eintrag, { titel: e.titel });
   const ziel = state.recherche.ziel ? schluesselAlsVerweis(state.recherche.ziel) : null;
-  const name = ziel && daten ? zielInfo(daten, ziel).name : null;
-  return name ? `Recherche · ${ZIEL_ART_NAME[zielInfo(daten!, ziel!).art]} ${name}` : 'Recherche';
+  const name = ziel && daten ? zielInfo(daten, ziel, sprache()).name : null;
+  return name ? f(t.recherche.kontext.ziel, { art: t.recherche.zielArt[zielInfo(daten!, ziel!).art], name }) : t.recherche.titel;
 }

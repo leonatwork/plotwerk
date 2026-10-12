@@ -13,19 +13,20 @@ import {
   bogenVon,
   kapitelTitel,
   naechstesKapitel,
-  stufenOrt,
   stufenSpuren,
   stufeVerschieben,
   type KapitelAuftritt,
 } from '@core/figuren/index';
 import type { Index } from '@core/index/index';
 import type { BogenStufe, Id, ProjektDaten } from '@core/model/types';
+import { f as fmt, texte, useTexte, vergleich as vergleiche } from '../../i18n';
 import { indexBereit } from '../../state/slices/planung';
 import { useStore } from '../../state/store';
 import { Avatar, bestaetigen, Button, LeerZustand } from '../../ui';
-import { ART_TEXT, AuswahlMenue, figurDarstellung, stelleAnker, zitatAnker } from '../akte/gemeinsam';
+import { AuswahlMenue, figurDarstellung, stelleAnker, zitatAnker } from '../akte/gemeinsam';
 import { BoegenStil } from './BoegenStil';
 import { StufenBearbeitung } from './BoegenStufe';
+import { aktGruppenTitel, kapMitTitel, stufenOrtText, zitat } from './texte';
 
 const SPALTE_NAME = 200;
 
@@ -44,6 +45,8 @@ export function FigurenBoegen({ daten, figur }: { daten: ProjektDaten; figur?: I
   const gewaehlt = useStore((s) => s.figurenbogen.gewaehlteStufe);
   const waehleStufe = useStore((s) => s.figurenbogen.waehleStufe);
   const [neu, setNeu] = useState<string | null>(null);
+  const t = useTexte().figuren;
+  const tb = t.boegen;
 
   const figuren = gezeigteFiguren(daten, figur, vergleich);
   const kapitel = daten.projekt.kapitel;
@@ -57,58 +60,56 @@ export function FigurenBoegen({ daten, figur }: { daten: ProjektDaten; figur?: I
   const mitBogen = (daten.boegen ?? []).filter((b) => b.stufen.length > 0 && daten.figuren[b.figur]).map((b) => b.figur);
   const frei = Object.values(daten.figuren)
     .filter((f) => !figuren.includes(f.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => vergleiche(a.name, b.name));
   const fehlendMitBogen = mitBogen.filter((id) => !figuren.includes(id));
 
   if (Object.keys(daten.figuren).length === 0) {
     return (
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>
-        <LeerZustand titel="Noch keine Figuren">Lege links eine Figur an. Danach kannst du hier ihre Entwicklung durchs Buch planen.</LeerZustand>
+        <LeerZustand titel={t.ansicht.leerTitel}>{tb.leerFigurenText}</LeerZustand>
       </div>
     );
   }
   if (kapitel.length === 0) {
     return (
       <div style={{ flex: 1, minWidth: 0, display: 'flex' }}>
-        <LeerZustand titel="Noch keine Kapitel">Ein Bogen läuft durch die Kapitel des Buchs. Lege zuerst Kapitel an.</LeerZustand>
+        <LeerZustand titel={tb.leerKapitelTitel}>{tb.leerKapitelText}</LeerZustand>
       </div>
     );
   }
 
   return (
-    <div className="fb-seite" aria-label="Figuren-Bögen">
+    <div className="fb-seite" aria-label={tb.seite}>
       <BoegenStil />
       <div className="fb-kopf">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <h1 className="fb-titel">Bögen</h1>
-          <span className="fb-leise">
-            Deine geplanten Stufen je Kapitel oder Akt, darunter die Auftritte im Text. Klick auf einen Punkt springt zur Stelle.
-          </span>
+          <h1 className="fb-titel">{tb.titel}</h1>
+          <span className="fb-leise">{tb.untertitel}</span>
         </div>
         <div className="fb-reihe">
           <AuswahlMenue
-            knopf="+ Figur vergleichen"
-            leer="Alle Figuren sind schon zu sehen"
+            knopf={tb.vergleichen}
+            leer={tb.alleZuSehen}
             optionen={frei.map((f) => ({ wert: f.id, label: f.name, suche: f.aliase.join(' ') }))}
             onWaehle={(id) => setzeVergleich([...vergleich, id])}
           />
           {fehlendMitBogen.length > 0 && (
             <Button klein variante="text" onClick={() => setzeVergleich([...vergleich, ...fehlendMitBogen])}>
-              Alle Bögen zeigen
+              {tb.alleBoegen}
             </Button>
           )}
           {vergleich.some((v) => v !== figur) && (
             <Button klein variante="leise" onClick={() => setzeVergleich([])}>
-              Vergleich leeren
+              {tb.vergleichLeeren}
             </Button>
           )}
         </div>
       </div>
 
-      {!indexBereit(index) && <span className="fb-leise">Der Text wird noch ausgewertet – die Auftritte erscheinen gleich.</span>}
+      {!indexBereit(index) && <span className="fb-leise">{tb.auswerten}</span>}
 
       {figuren.length === 0 ? (
-        <LeerZustand titel="Keine Figur gewählt">Wähle links eine Figur oder füge oben eine zum Vergleich hinzu.</LeerZustand>
+        <LeerZustand titel={tb.keineFigurTitel}>{tb.keineFigurText}</LeerZustand>
       ) : (
         <Raster
           daten={daten}
@@ -143,27 +144,29 @@ export function FigurenBoegen({ daten, figur }: { daten: ProjektDaten; figur?: I
 }
 
 function Legende() {
+  const t = useTexte().figuren;
+  const tl = t.boegen.legende;
   return (
-    <div className="fb-legende" aria-label="Legende">
+    <div className="fb-legende" aria-label={tl.label}>
       <span>
-        <span className="fb-punkt" aria-hidden /> tritt auf
+        <span className="fb-punkt" aria-hidden /> {t.art.auftritt}
       </span>
       <span>
-        <span className="fb-punkt fb-punkt--nachricht" aria-hidden /> per Nachricht
+        <span className="fb-punkt fb-punkt--nachricht" aria-hidden /> {t.art.nachricht}
       </span>
       <span>
-        <span className="fb-punkt fb-punkt--erwaehnt" aria-hidden /> nur erwähnt
+        <span className="fb-punkt fb-punkt--erwaehnt" aria-hidden /> {tl.nurErwaehnt}
       </span>
       <span>
-        <span className="fb-punkt fb-punkt--unbestimmt" aria-hidden /> im Text, Art offen
+        <span className="fb-punkt fb-punkt--unbestimmt" aria-hidden /> {tl.artOffen}
       </span>
       <span>
         <span className="fb-beleg-marke" style={{ position: 'static' }} aria-hidden>
           1
         </span>{' '}
-        Belege deiner Stufen
+        {tl.belege}
       </span>
-      <span>Stufen: ⌥← ⌥→ verschieben · Entf löschen</span>
+      <span>{tl.tasten}</span>
     </div>
   );
 }
@@ -182,6 +185,7 @@ function Raster({ daten, index, figuren, hauptfigur, gewaehlt, onNeu }: RasterPr
   const gruppen = aktGruppen(daten);
   const aktAnfang = new Set(gruppen.map((g) => g.von).filter((v) => v > 0));
   const bereit = indexBereit(index);
+  const tb = useTexte().figuren.boegen;
 
   const zeilen = useMemo(() => {
     let zeile = 3;
@@ -200,12 +204,12 @@ function Raster({ daten, index, figuren, hauptfigur, gewaehlt, onNeu }: RasterPr
         className="fb-raster"
         style={{ gridTemplateColumns: `${SPALTE_NAME}px repeat(${kapitel.length}, minmax(0, 1fr))`, minWidth: SPALTE_NAME + kapitel.length * 56 }}
         role="group"
-        aria-label="Bögen der Figuren über die Kapitel"
+        aria-label={tb.rasterLabel}
       >
         <div className="fb-ecke" style={{ gridRow: '1 / span 2', gridColumn: 1 }} />
         {gruppen.map((g) => (
-          <div key={`${g.von}`} className="fb-akt" style={{ gridRow: 1, gridColumn: `${g.von + 2} / ${g.bis + 3}`, borderLeft: g.von === 0 ? 0 : undefined }} title={g.titel}>
-            {g.titel}
+          <div key={`${g.von}`} className="fb-akt" style={{ gridRow: 1, gridColumn: `${g.von + 2} / ${g.bis + 3}`, borderLeft: g.von === 0 ? 0 : undefined }} title={aktGruppenTitel(daten, g)}>
+            {aktGruppenTitel(daten, g)}
           </div>
         ))}
         {kapitel.map((k, i) => (
@@ -213,7 +217,7 @@ function Raster({ daten, index, figuren, hauptfigur, gewaehlt, onNeu }: RasterPr
             key={k}
             className={`fb-kapitelkopf${aktAnfang.has(i) ? ' fb-kapitelkopf--aktgrenze' : ''}`}
             style={{ gridRow: 2, gridColumn: i + 2 }}
-            title={`Kap. ${i + 1} „${kapitelTitel(daten, k)}“`}
+            title={kapMitTitel(i + 1, kapitelTitel(daten, k))}
           >
             {i + 1}
           </div>
@@ -269,6 +273,8 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
   const bogen = bogenVon(daten.boegen, figur);
   const zeileAuftritte = start + spuren;
   const stil = { '--fb-farbe': farbe } as CSSProperties;
+  const t = useTexte().figuren;
+  const tb = t.boegen;
 
   // Belege je Kapitel (aus allen Stufen)
   const belege = new Map<Id, { stufe: BogenStufe; exakt: string; anker: BogenStufe['belege'][number] }[]>();
@@ -283,7 +289,7 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
   const linie = mitAuftritt.length > 1 ? { von: mitAuftritt[0]!, bis: mitAuftritt[mitAuftritt.length - 1]! } : null;
 
   const neueStufe = async () => {
-    const id = await fb.stufeAnlegen(figur, { titel: 'Neue Stufe', kapitel: naechstesKapitel(daten, bogen) });
+    const id = await fb.stufeAnlegen(figur, { titel: texte().figuren.boegen.neueStufe, kapitel: naechstesKapitel(daten, bogen) });
     onNeu(figur, id);
   };
 
@@ -302,7 +308,7 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
       ziel?.focus();
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
-      if (await bestaetigen(`Stufe „${s.titel}“ aus dem Bogen von ${f.name} löschen?`, { knopf: 'Löschen' })) await fb.stufeEntfernen(figur, s.id);
+      if (await bestaetigen(fmt(texte().figuren.boegen.loeschenFrage, { titel: s.titel, name: f.name }), { knopf: texte().gemeinsam.loeschen })) await fb.stufeEntfernen(figur, s.id);
     } else if (e.key === 'Escape' && gewaehlt === s.id) {
       e.preventDefault();
       fb.waehleStufe(null);
@@ -320,7 +326,7 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
             type="button"
             className="pl-link"
             style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
-            title="Figurenkarte öffnen"
+            title={tb.karteOeffnen}
             onClick={() => {
               waehle({ figur });
               fb.setzeFigurenAnsicht('karte');
@@ -333,8 +339,8 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
               type="button"
               className="pl-zeile-weg"
               style={{ opacity: 1, marginLeft: 'auto' }}
-              aria-label={`${f.name} aus dem Vergleich nehmen`}
-              title="Aus dem Vergleich nehmen"
+              aria-label={fmt(tb.ausVergleichLabel, { name: f.name })}
+              title={tb.ausVergleich}
               onClick={() => fb.setzeVergleich(fb.vergleich.filter((v) => v !== figur))}
             >
               ×
@@ -342,11 +348,11 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
           )}
         </span>
         <span className="fb-leise">
-          {anzahlStufen === 1 ? '1 Stufe' : `${anzahlStufen} Stufen`} · {bereit ? `${auftritte.size} Kap. im Text` : '…'}
-          {ohnePlatz > 0 && ` · ${ohnePlatz} ohne Kapitel`}
+          {fmt(tb.stufen, { n: anzahlStufen })} · {bereit ? fmt(tb.kapImText, { n: auftritte.size }) : '…'}
+          {ohnePlatz > 0 && ` · ${fmt(tb.ohneKapitel, { n: ohnePlatz })}`}
         </span>
         <Button klein variante="leise" onClick={() => void neueStufe()} style={{ alignSelf: 'flex-start', paddingLeft: 0 }}>
-          + Stufe
+          {tb.plusStufe}
         </Button>
       </div>
 
@@ -356,15 +362,17 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
       {plaetze.length === 0 && (
         <div className="fb-stufenzelle" style={{ gridRow: start, gridColumn: `2 / ${kapitel.length + 2}` }}>
           <button type="button" className="fb-leerstufe" onClick={() => void neueStufe()}>
-            Noch keine Stufen. + Erste Stufe planen, z. B. „im Lot“ → „ohne Schlaf“
+            {tb.leerStufe}
           </button>
         </div>
       )}
       {plaetze.map(({ stufe: s, spanne, spur, giltBis }) => {
         const n = s.belege.length;
         const anteil = ((spanne.bis - spanne.von + 1) / (giltBis - spanne.von + 1)) * 100;
-        const gilt = giltBis > spanne.bis ? ` · gilt bis Kap. ${giltBis + 1}` : '';
-        const titel = `${s.titel} · ${stufenOrt(daten, s)}${gilt}${n ? ` · ${n === 1 ? '1 Beleg' : `${n} Belege`}` : ''}${s.notiz ? `\n${s.notiz}` : ''}`;
+        const ort = stufenOrtText(daten, s);
+        const gilt = giltBis > spanne.bis ? ` · ${fmt(tb.giltBis, { nr: giltBis + 1 })}` : '';
+        const belegText = fmt(t.karte.bogen.belege, { n });
+        const titel = `${s.titel} · ${ort}${gilt}${n ? ` · ${belegText}` : ''}${s.notiz ? `\n${s.notiz}` : ''}`;
         return (
           <div key={s.id} className="fb-stufenzelle" style={{ gridRow: start + spur, gridColumn: `${spanne.von + 2} / ${giltBis + 3}`, ...stil, '--fb-anteil': `${anteil}%` } as CSSProperties}>
             <button
@@ -373,7 +381,7 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
               data-fb-stufe={`${figur}/${s.id}`}
               data-fb-figur={figur}
               aria-pressed={gewaehlt === s.id}
-              aria-label={`Stufe „${s.titel}“ von ${f.name}, ${stufenOrt(daten, s)}${n ? `, ${n} Belege` : ''}`}
+              aria-label={`${fmt(tb.stufeLabel, { titel: s.titel, name: f.name, ort })}${n ? `, ${belegText}` : ''}`}
               aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight Delete"
               title={titel}
               onClick={() => fb.waehleStufe(gewaehlt === s.id ? null : { figur, stufe: s.id })}
@@ -401,16 +409,16 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
         const a = auftritte.get(k);
         const b = belege.get(k);
         const ohneText = !daten.kapitel[k]?.text.trim();
-        const kap = `Kap. ${i + 1} „${kapitelTitel(daten, k)}“`;
+        const kap = kapMitTitel(i + 1, kapitelTitel(daten, k));
         return (
           <div key={`a-${k}`} className={`fb-zelle${aktAnfang.has(i) ? ' fb-aktgrenze' : ''}`} style={{ gridRow: zeileAuftritte, gridColumn: i + 2, ...stil }}>
-            {ohneText && !a && <span className="fb-ohnetext" title={`${kap} · noch kein Text`} />}
+            {ohneText && !a && <span className="fb-ohnetext" title={`${kap} · ${t.karte.auftritte.keinText}`} />}
             {a && (
               <button
                 type="button"
                 className={`fb-punkt fb-punkt--${a.art === 'auftritt' ? 'auftritt' : a.art}`}
-                title={`${kap} · ${ART_TEXT[a.art]} · ${a.anzahl}× genannt – im Text zeigen`}
-                aria-label={`${f.name} in ${kap}: ${ART_TEXT[a.art]}, ${a.anzahl}-mal genannt. Im Text zeigen`}
+                title={fmt(tb.punktTitel, { kap, art: t.art[a.art], n: a.anzahl })}
+                aria-label={fmt(tb.punktLabel, { name: f.name, kap, art: t.art[a.art], n: a.anzahl })}
                 onClick={() => springe(k, a)}
               />
             )}
@@ -419,8 +427,8 @@ function FigurBogen({ daten, index, figur, start, plaetze, spuren, anzahlStufen,
                 type="button"
                 className="fb-beleg-marke"
                 style={{ pointerEvents: 'auto', border: 0, cursor: 'pointer', font: 'inherit', fontSize: 9, fontWeight: 700 }}
-                title={b.map((x) => `${x.stufe.titel}: »${x.exakt}«`).join('\n')}
-                aria-label={`${b.length === 1 ? '1 Beleg' : `${b.length} Belege`} in ${kap} – ersten Beleg im Text zeigen`}
+                title={b.map((x) => `${x.stufe.titel}: ${zitat(x.exakt)}`).join('\n')}
+                aria-label={fmt(tb.belegLabel, { belege: fmt(t.karte.bogen.belege, { n: b.length }), kap })}
                 onClick={() => markiere({ kapitel: k, anker: b[0]!.anker.davor || b[0]!.anker.danach ? b[0]!.anker : zitatAnker(daten, k, b[0]!.exakt) })}
               >
                 {b.length}

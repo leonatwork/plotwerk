@@ -1,6 +1,8 @@
 /** Eingabefeld mit `[[`-Vorschlägen und Anzeige von Text mit Verweisen (S-07). */
 import { useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { Verweis } from '@core/model/types';
+import { useTexte } from '../../i18n';
+import { useBuchSprache } from '../../i18n/buch';
 import { useStore } from '../../state/store';
 import { klassen } from '../../ui';
 import './verweisfeld.css';
@@ -29,6 +31,8 @@ export interface VerweisFeldProps {
 
 export function VerweisFeld({ wert, onChange, kontext, label, placeholder, autoFocus, onKeyDown, onBlur, className, zeilen = 1, id, feldKlasse, feldStil }: VerweisFeldProps) {
   const daten = useStore((s) => s.daten);
+  const t = useTexte();
+  const buchLang = useBuchSprache();
   const ref = useRef<HTMLTextAreaElement>(null);
   const listenId = useId();
   const [cursor, setCursor] = useState<number | null>(null);
@@ -107,7 +111,7 @@ export function VerweisFeld({ wert, onChange, kontext, label, placeholder, autoF
         aria-controls={vorschlaege.length ? listenId : undefined}
         aria-activedescendant={vorschlaege.length ? `${listenId}-${aktiverIndex}` : undefined}
         spellCheck
-        lang="de"
+        lang={buchLang}
         onChange={(e) => {
           setZu(false);
           setAktiv(0);
@@ -123,7 +127,7 @@ export function VerweisFeld({ wert, onChange, kontext, label, placeholder, autoF
         }}
       />
       {vorschlaege.length > 0 && (
-        <ul id={listenId} role="listbox" aria-label="Verweise" className="pw-s-verweisliste" onMouseDown={(e) => e.preventDefault()}>
+        <ul id={listenId} role="listbox" aria-label={t.schreiben.verweise.listeLabel} className="pw-s-verweisliste" onMouseDown={(e) => e.preventDefault()}>
           {vorschlaege.map((v, i) => (
             <li
               key={`${v.typ}:${v.id}`}
@@ -134,7 +138,7 @@ export function VerweisFeld({ wert, onChange, kontext, label, placeholder, autoF
               onClick={() => waehlen(v)}
             >
               <span>{v.anzeige}</span>
-              <span>{v.art}</span>
+              <span>{t.schreiben.verweise.art[v.typ]}</span>
             </li>
           ))}
         </ul>
@@ -147,16 +151,17 @@ export function VerweisFeld({ wert, onChange, kontext, label, placeholder, autoF
 export function VerweisText({ text }: { text: string }) {
   const daten = useStore((s) => s.daten);
   const oeffne = useStore((s) => s.oeffne);
+  const t = useTexte();
   const teile = useMemo(() => verweiseZerlegen(text), [text]);
   return (
     <>
-      {teile.map((t, i) => {
-        if (t.art === 'text') return <span key={i}>{t.text}</span>;
-        const name = daten ? zielName(daten, t.verweis) : null;
+      {teile.map((teil, i) => {
+        if (teil.art === 'text') return <span key={i}>{teil.text}</span>;
+        const name = daten ? zielName(daten, teil.verweis) : null;
         if (!name)
           return (
-            <span key={i} className="pw-s-verweis pw-s-verweis--fehlt" title="Dieses Ziel gibt es nicht mehr">
-              {t.anzeige}
+            <span key={i} className="pw-s-verweis pw-s-verweis--fehlt" title={t.schreiben.verweise.fehlt}>
+              {teil.anzeige}
             </span>
           );
         return (
@@ -166,7 +171,7 @@ export function VerweisText({ text }: { text: string }) {
             className="pw-s-verweis"
             onClick={(e) => {
               e.stopPropagation();
-              verweisOeffnen({ oeffne }, t.verweis);
+              verweisOeffnen({ oeffne }, teil.verweis);
             }}
           >
             {name}

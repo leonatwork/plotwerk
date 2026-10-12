@@ -22,6 +22,7 @@ import {
 import type { Beziehung, Figur, FigurVorschlag, Id, KiVorschlaege, Ort, ProjektDaten } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
 import { belegteFlaechen, figurAusVorschlag, kreisPositionen } from '../../features/beziehungen/vorschlagLogik';
+import { sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from './ki';
 
@@ -63,7 +64,7 @@ export interface VorschlaegeSlice {
 export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlice> = (set, get) => {
   function daten(): ProjektDaten {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet.');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   }
 
@@ -79,7 +80,7 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
   /** Nur-Lese-Sicht auf das Projekt (harte Regel 1: core/ki bekommt nie das schreibende Dateisystem). */
   async function leser(): Promise<ProjektLeser> {
     const fs = get().fs;
-    if (!fs || !get().daten) throw new KiFehler('auftrag', 'Kein Projekt geöffnet.');
+    if (!fs || !get().daten) throw new KiFehler('auftrag', texte().state.fehler.keinProjekt);
     await get().editorSichern();
     await get().alleSpeichernAbwarten();
     return { lesen: (p) => fs.lesen(p), auflisten: (o) => fs.auflisten(o), existiert: (p) => fs.existiert(p) };
@@ -87,7 +88,7 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
 
   function transport() {
     const b = get().backend;
-    if (!b) throw new KiFehler('nicht_bereit', 'Die App ist noch nicht bereit.');
+    if (!b) throw new KiFehler('nicht_bereit', texte().state.fehler.nichtBereit);
     return b.ki;
   }
 
@@ -251,7 +252,7 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
     },
 
     async vorschlaegeSchaetzen(optionen) {
-      return schaetzeVorschlaege(await leser(), transport(), get().kiEinstellungen(), { tiefencheck: !!optionen?.tiefencheck });
+      return schaetzeVorschlaege(await leser(), transport(), get().kiEinstellungen(), { tiefencheck: !!optionen?.tiefencheck, oberflaeche: sprache() });
     },
 
     async vorschlaegeHolen(optionen) {
@@ -259,7 +260,7 @@ export const createVorschlaegeSlice: StateCreator<Store, [], [], VorschlaegeSlic
       const tiefencheck = !!optionen?.tiefencheck;
       set({ vorschlagLaeuft: true, vorschlagFehler: null, vorschlagErgebnis: null, vorschlagPanel: true });
       try {
-        const e = await schlageVorschlaegeVor(await leser(), transport(), get().kiEinstellungen(), { tiefencheck });
+        const e = await schlageVorschlaegeVor(await leser(), transport(), get().kiEinstellungen(), { tiefencheck, oberflaeche: sprache() });
         const { ablage: neueAblage, neu, aktualisiert } = mischeVorschlaege(get().daten?.kiVorschlaege, e, { datum: e.datum, modell: e.modell });
         await get().speichereKiVorschlaege(neueAblage);
         const { figuren: _f, orte: _o, beziehungen: _b, ...rest } = e;

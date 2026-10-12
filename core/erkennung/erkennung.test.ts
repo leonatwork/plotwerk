@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { ladeDemo } from '../index/demoLeser.testhilfe';
 import type { Figur, Kapitel, Ort, ProjektDaten } from '../model/types';
 import { findeZitat, klartext } from '../text';
-import { erkenneInText, erkenneKapitel, motiveImText, schreibweisenHinweise, type ErkennungsDaten } from './index';
+import { erkenneInText, erkenneKapitel, erkennungsSignatur, motiveImText, schreibweisenHinweise, type ErkennungsDaten } from './index';
 
 let daten: ProjektDaten;
 beforeAll(async () => {
@@ -194,5 +194,56 @@ describe('motiveImText (S-10)', () => {
     expect(t.map((x) => x.treffer)).toEqual(['Brief', 'Briefe', 'Brief']);
     for (const x of t) expect(text.slice(x.start, x.ende)).toBe(x.treffer);
     expect(motiveImText(text, [{ id: 'leer', name: ' ', aliase: [] }])).toEqual([]);
+  });
+
+  it('englische Endungen bei englischer Buchsprache', () => {
+    const motive = [{ id: 'pencil', name: 'pencil', aliase: [] }];
+    const text = 'A pencil, two pencils, the pencil’s tip, pencile, a penciller.';
+    expect(motiveImText(text, motive, 'en').map((x) => x.treffer)).toEqual(['pencil', 'pencils', 'pencil’s']);
+  });
+});
+
+describe('Erkennung (englische Buchsprache)', () => {
+  const basis = erkDaten(
+    [figur('lotte', 'Lotte'), figur('paul', 'Paul'), figur('james', 'James'), figur('miller', 'Miller'), figur('fremde', 'The Stranger')],
+    [ort('pub', 'Red Lion')],
+  );
+  const en: ErkennungsDaten = { ...basis, projekt: { angaben: { sprache: 'en-GB' } } };
+
+  it.each([
+    ['Lotte’s bag and Lotte\'s coat, Annabell', ['lotte:Lotte’s', "lotte:Lotte's"]],
+    ['James’ hat, James’s car and James\'s dog', ['james:James’', 'james:James’s', "james:James's"]],
+    ['the Millers’ house', ['miller:Millers’']],
+    ['Pauls car', []],
+    ['“Come here, Paul”, she said. “Paul”', ['paul:Paul', 'paul:Paul']],
+    ['“I saw James”', ['james:James']],
+    ['The Stranger left; the Stranger came back', ['fremde:The Stranger', 'fremde:the Stranger']],
+    ['At the Red Lion’s door', ['pub:Red Lion’s']],
+  ])('%s', (text, erwartet) => {
+    expect(namen(text, en)).toEqual(erwartet);
+  });
+
+  it('deutsche Regeln gelten für deutsche Bücher weiter (Genitiv ohne Apostroph)', () => {
+    expect(namen('Pauls Auto', basis)).toEqual(['paul:Pauls']);
+    expect(namen('Pauls Auto', { ...basis, projekt: { angaben: { sprache: 'de-AT' } } })).toEqual(['paul:Pauls']);
+  });
+
+  it('Buchsprache fließt in die Erkennungssignatur (deutsch unverändert)', () => {
+    expect(erkennungsSignatur(en)).not.toBe(erkennungsSignatur(basis));
+    expect(erkennungsSignatur({ ...basis, projekt: { angaben: { sprache: 'de' } } })).toBe(erkennungsSignatur(basis));
+  });
+
+  it('Schreibweisen: englische Funktionswörter am Satzanfang gehören nicht zum Namen', () => {
+    const d: ProjektDaten = {
+      ...daten,
+      projekt: { ...daten.projekt, kapitel: ['a'], angaben: { sprache: 'en' } },
+      kapitel: { a: { id: 'a', titel: 'A', text: 'Then Peter Parkerson came. When Peter Parkersen left, nobody cared.' } },
+      figuren: {},
+      orte: {},
+      entscheidungen: { ...daten.entscheidungen, schreibweisen: [] },
+    };
+    const h = schreibweisenHinweise(d);
+    expect(h).toHaveLength(1);
+    expect(h[0]!.zitate.map((z) => z.text)).toEqual(['Peter Parkerson', 'Peter Parkersen']);
   });
 });

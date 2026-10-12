@@ -144,6 +144,20 @@ function bodyBereinigen(body: string): string {
   return body.replace(/^\n+/, '').replace(/\s+$/, '');
 }
 
+/** Fehlertext von parseFrontmatter, wenn das YAML keine Zuordnung ist (wird in ladeProjektMitBericht übersetzt). */
+export const FRONTMATTER_KEINE_ZUORDNUNG = 'Frontmatter ist keine Zuordnung';
+
+/**
+ * Warnungen beim Laden in der Oberflächensprache. lesen.ts importiert bewusst nichts außer yaml/model/fs
+ * (core/ki liest über diese Datei, siehe core/ki/importe.test.ts) – daher hier ohne core/i18n;
+ * der Typ entspricht `Sprache` aus core/i18n.
+ */
+type LadeSprache = 'de' | 'en';
+const LADE_TEXTE = {
+  de: { frontmatter: (fehler: string) => `Frontmatter nicht lesbar: ${fehler}`, keineZuordnung: 'Frontmatter ist keine Zuordnung' },
+  en: { frontmatter: (fehler: string) => `Front matter not readable: ${fehler}`, keineZuordnung: 'front matter is not a key–value mapping' },
+} as const;
+
 export function parseFrontmatter(text: string): Frontmatter {
   const t = zeilenumbrueche(text);
   const m = FRONTMATTER.exec(t);
@@ -152,7 +166,7 @@ export function parseFrontmatter(text: string): Frontmatter {
     const roh: unknown = yamlParse(m[1] ?? '');
     if (roh === null || roh === undefined) return { daten: {}, body: bodyBereinigen(t.slice(m[0].length)) };
     if (!istObjekt(roh)) {
-      return { daten: {}, body: bodyBereinigen(t), fehler: 'Frontmatter ist keine Zuordnung' };
+      return { daten: {}, body: bodyBereinigen(t), fehler: FRONTMATTER_KEINE_ZUORDNUNG };
     }
     return { daten: roh, body: bodyBereinigen(t.slice(m[0].length)) };
   } catch (e) {
@@ -1099,8 +1113,9 @@ export function standardPlan(kapitel: Kapitel): KapitelPlan {
  * Manuskriptdatei sind nur geplant (text ''). Manuskript-/Plandateien, die in projekt.kapitel fehlen,
  * werden hinten angehängt (nur im Speicher). Jedes Kapitel hat danach einen Plan (ggf. Standardplan).
  */
-export async function ladeProjektMitBericht(leser: ProjektLeser): Promise<LadeBericht> {
+export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSprache = 'de'): Promise<LadeBericht> {
   const warnungen: LadeBericht['warnungen'] = [];
+  const t = LADE_TEXTE[sprache] ?? LADE_TEXTE.de;
 
   async function lies<T>(pfad: string, parse: (text: string) => T): Promise<T | null> {
     const text = await leser.lesen(pfad);
@@ -1117,7 +1132,8 @@ export async function ladeProjektMitBericht(leser: ProjektLeser): Promise<LadeBe
     const text = await leser.lesen(pfad);
     if (text === null) return null;
     const fm = parseFrontmatter(text);
-    if (fm.fehler) warnungen.push({ pfad, grund: `Frontmatter nicht lesbar: ${fm.fehler}` });
+    if (fm.fehler)
+      warnungen.push({ pfad, grund: t.frontmatter(fm.fehler === FRONTMATTER_KEINE_ZUORDNUNG ? t.keineZuordnung : fm.fehler) });
     return parse(text, idAusPfad(pfad));
   }
 

@@ -24,6 +24,7 @@ import {
   type OffeneTage,
 } from '@core/statistik';
 import type { StateCreator } from 'zustand';
+import { texte } from '../../i18n';
 import type { DialogId, Store } from '../store';
 
 export type StatistikAnsicht = 'ueberblick' | 'fassungen';
@@ -191,11 +192,11 @@ export const createStatistikSlice: StateCreator<Store, [], [], StatistikSlice> =
 
       async fassungSichern({ name, notiz, kapitel }) {
         const titel = name.trim();
-        if (!titel) throw new Error('Bitte gib der Fassung einen Namen.');
+        if (!titel) throw new Error(texte().state.statistik.fassungOhneName);
         await get().editorSichern();
         await get().alleSpeichernAbwarten();
         const d = get().daten;
-        if (!d) throw new Error('Kein Projekt geöffnet');
+        if (!d) throw new Error(texte().state.fehler.keinProjekt);
         const ids = kapitel === 'buch' ? kapitelFuerFassung(d) : kapitel.filter((id) => d.kapitel[id]);
         const dateien: BenannteFassung['dateien'] = [];
         for (const id of ids) {
@@ -203,7 +204,7 @@ export const createStatistikSlice: StateCreator<Store, [], [], StatistikSlice> =
           const version = await get().schnappschuss(pfad, 'benannt');
           if (version) dateien.push({ pfad, version });
         }
-        if (dateien.length === 0) throw new Error('Es gibt noch kein Kapitel mit Text, das gesichert werden könnte.');
+        if (dateien.length === 0) throw new Error(texte().state.statistik.keinKapitelMitText);
         const vorhandene = get().daten?.fassungen ?? [];
         const fassung = neueFassung(
           get().neueId(titel, vorhandene.map((f) => f.id)),
@@ -239,22 +240,23 @@ export const createStatistikSlice: StateCreator<Store, [], [], StatistikSlice> =
         const d = s.daten;
         const fs = s.fs;
         const f = d?.fassungen?.find((x) => x.id === id);
-        if (!d || !fs || !f) throw new Error('Diese Fassung gibt es nicht mehr.');
+        const t = texte().state.statistik;
+        if (!d || !fs || !f) throw new Error(t.fassungFehlt);
         const ergebnis: WiederherstellErgebnis = { wiederhergestellt: [], uebersprungen: [] };
         await ohneZaehlen(async () => {
           for (const kid of auswahl ?? fassungsKapitel(f)) {
             const version = fassungsVersion(f, kid);
             if (!version) {
-              ergebnis.uebersprungen.push({ id: kid, grund: 'gehört nicht zur Fassung' });
+              ergebnis.uebersprungen.push({ id: kid, grund: t.nichtInFassung });
               continue;
             }
             if (!get().daten?.projekt.kapitel.includes(kid)) {
-              ergebnis.uebersprungen.push({ id: kid, grund: 'Kapitel ist nicht mehr im Buch' });
+              ergebnis.uebersprungen.push({ id: kid, grund: t.nichtImBuch });
               continue;
             }
             const inhalt = await fs.lesen(version);
             if (inhalt === null) {
-              ergebnis.uebersprungen.push({ id: kid, grund: 'Schnappschuss fehlt' });
+              ergebnis.uebersprungen.push({ id: kid, grund: t.schnappschussFehlt });
               continue;
             }
             if (persistenz.parseKapitel(inhalt, kid).text === get().daten?.kapitel[kid]?.text) continue;

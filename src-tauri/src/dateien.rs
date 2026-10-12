@@ -30,9 +30,12 @@ fn temp_pfad(ziel: &Path) -> PathBuf {
 /// Schreibt atomar: temporäre Datei im selben Ordner, write_all, sync_all, rename.
 /// Legt fehlende Ordner an.
 pub fn schreiben_atomar(ziel: &Path, inhalt: &[u8]) -> std::io::Result<()> {
-    let ordner = ziel
-        .parent()
-        .ok_or_else(|| std::io::Error::new(ErrorKind::InvalidInput, "Pfad ohne Ordner"))?;
+    let ordner = ziel.parent().ok_or_else(|| {
+        std::io::Error::new(
+            ErrorKind::InvalidInput,
+            crate::sprache::t("Pfad ohne Ordner", "Path without folder"),
+        )
+    })?;
     fs::create_dir_all(ordner)?;
     if ziel.is_dir() {
         return Err(std::io::Error::new(
@@ -64,12 +67,17 @@ pub fn schreiben_atomar(ziel: &Path, inhalt: &[u8]) -> std::io::Result<()> {
 
 fn io_fehler(aktion: &str, pfad: &str, e: std::io::Error) -> String {
     let grund = match e.kind() {
-        ErrorKind::PermissionDenied => "keine Berechtigung".to_string(),
-        ErrorKind::NotFound => "nicht gefunden".to_string(),
-        ErrorKind::StorageFull => "Speicher voll".to_string(),
+        ErrorKind::PermissionDenied => {
+            crate::sprache::t("keine Berechtigung", "permission denied").to_string()
+        }
+        ErrorKind::NotFound => crate::sprache::t("nicht gefunden", "not found").to_string(),
+        ErrorKind::StorageFull => crate::sprache::t("Speicher voll", "disk full").to_string(),
         _ => e.to_string(),
     };
-    format!("{aktion} fehlgeschlagen: {pfad} ({grund})")
+    crate::tf!(
+        "{aktion} fehlgeschlagen: {pfad} ({grund})",
+        "{aktion} failed: {pfad} ({grund})"
+    )
 }
 
 /// Inhalt als UTF-8 oder None, wenn die Datei fehlt. Ein UTF-8-BOM wird entfernt.
@@ -77,22 +85,30 @@ pub fn lesen(wurzel: &Wurzel, pfad: &str) -> Result<Option<String>, String> {
     let abs = wurzel.aufloesen(pfad, false)?;
     match fs::read(&abs) {
         Ok(bytes) => {
-            let text = String::from_utf8(bytes)
-                .map_err(|_| format!("Datei ist kein UTF-8-Text: {pfad}"))?;
+            let text = String::from_utf8(bytes).map_err(|_| {
+                crate::tf!(
+                    "Datei ist kein UTF-8-Text: {pfad}",
+                    "File is not UTF-8 text: {pfad}"
+                )
+            })?;
             Ok(Some(match text.strip_prefix('\u{feff}') {
                 Some(rest) => rest.to_string(),
                 None => text,
             }))
         }
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
-        Err(e) if abs.is_dir() => Err(format!("Ist ein Ordner, keine Datei: {pfad} ({e})")),
-        Err(e) => Err(io_fehler("Lesen", pfad, e)),
+        Err(e) if abs.is_dir() => Err(crate::tf!(
+            "Ist ein Ordner, keine Datei: {pfad} ({e})",
+            "Is a folder, not a file: {pfad} ({e})"
+        )),
+        Err(e) => Err(io_fehler(crate::sprache::t("Lesen", "Reading"), pfad, e)),
     }
 }
 
 pub fn schreiben(wurzel: &Wurzel, pfad: &str, inhalt: &str) -> Result<PathBuf, String> {
     let abs = wurzel.aufloesen(pfad, false)?;
-    schreiben_atomar(&abs, inhalt.as_bytes()).map_err(|e| io_fehler("Speichern", pfad, e))?;
+    schreiben_atomar(&abs, inhalt.as_bytes())
+        .map_err(|e| io_fehler(crate::sprache::t("Speichern", "Saving"), pfad, e))?;
     Ok(abs)
 }
 
@@ -112,7 +128,10 @@ fn binaer_pruefen(pfad: &str) -> Result<(), String> {
     if binaer_erlaubt(&norm) {
         Ok(())
     } else {
-        Err(format!("Binärdateien nur unter recherche/: {pfad}"))
+        Err(crate::tf!(
+            "Binärdateien nur unter recherche/: {pfad}",
+            "Binary files only under recherche/: {pfad}"
+        ))
     }
 }
 
@@ -123,8 +142,11 @@ pub fn lesen_binaer(wurzel: &Wurzel, pfad: &str) -> Result<Option<Vec<u8>>, Stri
     match fs::read(&abs) {
         Ok(bytes) => Ok(Some(bytes)),
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(None),
-        Err(e) if abs.is_dir() => Err(format!("Ist ein Ordner, keine Datei: {pfad} ({e})")),
-        Err(e) => Err(io_fehler("Lesen", pfad, e)),
+        Err(e) if abs.is_dir() => Err(crate::tf!(
+            "Ist ein Ordner, keine Datei: {pfad} ({e})",
+            "Is a folder, not a file: {pfad} ({e})"
+        )),
+        Err(e) => Err(io_fehler(crate::sprache::t("Lesen", "Reading"), pfad, e)),
     }
 }
 
@@ -132,7 +154,8 @@ pub fn lesen_binaer(wurzel: &Wurzel, pfad: &str) -> Result<Option<Vec<u8>>, Stri
 pub fn schreiben_binaer(wurzel: &Wurzel, pfad: &str, daten: &[u8]) -> Result<PathBuf, String> {
     binaer_pruefen(pfad)?;
     let abs = wurzel.aufloesen(pfad, false)?;
-    schreiben_atomar(&abs, daten).map_err(|e| io_fehler("Speichern", pfad, e))?;
+    schreiben_atomar(&abs, daten)
+        .map_err(|e| io_fehler(crate::sprache::t("Speichern", "Saving"), pfad, e))?;
     Ok(abs)
 }
 
@@ -145,12 +168,19 @@ pub fn existiert(wurzel: &Wurzel, pfad: &str) -> Result<bool, String> {
 pub fn entfernen(wurzel: &Wurzel, pfad: &str) -> Result<PathBuf, String> {
     let abs = wurzel.aufloesen(pfad, false)?;
     match fs::symlink_metadata(&abs) {
-        Ok(m) if m.is_dir() => Err(format!("Ordner werden nicht entfernt: {pfad}")),
+        Ok(m) if m.is_dir() => Err(crate::tf!(
+            "Ordner werden nicht entfernt: {pfad}",
+            "Folders are not removed: {pfad}"
+        )),
         Ok(_) => fs::remove_file(&abs)
             .map(|_| abs.clone())
-            .map_err(|e| io_fehler("Entfernen", pfad, e)),
+            .map_err(|e| io_fehler(crate::sprache::t("Entfernen", "Removing"), pfad, e)),
         Err(e) if e.kind() == ErrorKind::NotFound => Ok(abs),
-        Err(e) => Err(io_fehler("Entfernen", pfad, e)),
+        Err(e) => Err(io_fehler(
+            crate::sprache::t("Entfernen", "Removing"),
+            pfad,
+            e,
+        )),
     }
 }
 

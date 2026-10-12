@@ -11,6 +11,8 @@ use tauri::AppHandle;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::UpdaterExt;
 
+use crate::sprache::{aktuell, t, Sprache};
+
 pub const MENUE_ID: &str = "app:aktualisieren";
 
 /// Wartezeit nach dem Start, damit die Prüfung das Öffnen des Projekts nicht bremst.
@@ -48,8 +50,13 @@ async fn pruefen(app: AppHandle, gefragt: bool) {
             meldung(
                 &app,
                 MessageDialogKind::Error,
-                "Update nicht möglich",
-                &format!("Die Suche nach Updates ist fehlgeschlagen.\n\n{fehler}"),
+                t("Update nicht möglich", "Update not possible"),
+                &match aktuell() {
+                    Sprache::De => {
+                        format!("Die Suche nach Updates ist fehlgeschlagen.\n\n{fehler}")
+                    }
+                    Sprache::En => format!("Checking for updates failed.\n\n{fehler}"),
+                },
             );
         }
     }
@@ -67,20 +74,32 @@ async fn pruefen_und_installieren(app: &AppHandle, gefragt: bool) -> Result<(), 
             meldung(
                 app,
                 MessageDialogKind::Info,
-                "Plotwerk ist aktuell",
-                &format!(
-                    "Du verwendest die neueste Version ({}).",
-                    installierte_version(app)
-                ),
+                t("Plotwerk ist aktuell", "Plotwerk is up to date"),
+                &match aktuell() {
+                    Sprache::De => format!(
+                        "Du verwendest die neueste Version ({}).",
+                        installierte_version(app)
+                    ),
+                    Sprache::En => format!(
+                        "You are using the latest version ({}).",
+                        installierte_version(app)
+                    ),
+                },
             );
         }
         return Ok(());
     };
 
-    let mut text = format!(
-        "Plotwerk {} ist verfügbar (installiert: {}).",
-        update.version, update.current_version
-    );
+    let mut text = match aktuell() {
+        Sprache::De => format!(
+            "Plotwerk {} ist verfügbar (installiert: {}).",
+            update.version, update.current_version
+        ),
+        Sprache::En => format!(
+            "Plotwerk {} is available (installed: {}).",
+            update.version, update.current_version
+        ),
+    };
     if let Some(notizen) = update
         .body
         .as_deref()
@@ -90,18 +109,22 @@ async fn pruefen_und_installieren(app: &AppHandle, gefragt: bool) -> Result<(), 
         text.push_str("\n\n");
         text.push_str(notizen);
     }
-    text.push_str("\n\nPlotwerk speichert alles und startet nach der Installation neu.");
+    text.push_str("\n\n");
+    text.push_str(t(
+        "Plotwerk speichert alles und startet nach der Installation neu.",
+        "Plotwerk saves everything and restarts after the installation.",
+    ));
 
     let app_frage = app.clone();
     let installieren = tauri::async_runtime::spawn_blocking(move || {
         app_frage
             .dialog()
             .message(text)
-            .title("Update verfügbar")
+            .title(t("Update verfügbar", "Update available"))
             .kind(MessageDialogKind::Info)
             .buttons(MessageDialogButtons::OkCancelCustom(
-                "Installieren".into(),
-                "Später".into(),
+                t("Installieren", "Install").into(),
+                t("Später", "Later").into(),
             ))
             .blocking_show()
     })

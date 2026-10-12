@@ -7,15 +7,16 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { EFFORT, figurVerweisAufloesen, formatiereUsd, offeneVorschlaege, type OffeneVorschlaege, type Schaetzung } from '@core/ki/index';
 import type { BeziehungsVorschlag, FigurVorschlag, KiVorschlaege, OrtVorschlag, ProjektDaten, VorschlagsVerweis, Zitat } from '@core/model/types';
+import { f, liste, useTexte, zahl as zahlFormat, sprache } from '../../i18n';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import type { VorschlagsArt } from '../../state/slices/vorschlaege';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Dialog, IconSchliessen, Inspektor, StrangPunkt, Zaehler } from '../../ui';
-import { ankerFuerZitat, KATEGORIE_LABEL, kategorieFarbe, kapitelTitel, kapLabel } from './gemeinsam';
+import { ankerFuerZitat, kategorieFarbe, kapitelTitel, kapLabel } from './gemeinsam';
 import '../ki/ki.css';
 import './vorschlaege.css';
 
-const zahl = (n: number) => Math.round(n).toLocaleString('de-DE');
+const zahl = (n: number) => zahlFormat(Math.round(n));
 const LEER: OffeneVorschlaege = { figuren: [], orte: [], beziehungen: [], anzahl: 0 };
 
 /** Offene KI-Vorschläge des geladenen Projekts (für Zähler in Netz und Figurenliste). */
@@ -24,13 +25,10 @@ export function useOffeneVorschlaege(): OffeneVorschlaege {
   return useMemo(() => (daten ? offeneVorschlaege(daten.kiVorschlaege, daten) : LEER), [daten]);
 }
 
-function anzahlText(n: number, eins: string, viele: string): string {
-  return n === 1 ? `1 ${eins}` : `${n} ${viele}`;
-}
-
 function FehlerKasten({ fehler }: { fehler: KiFehlerAnzeige }) {
   const schliesseDialog = useStore((s) => s.schliesseVorschlagsDialog);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
+  const t = useTexte();
   return (
     <div className="pw-ki-hinweis" role="alert">
       <span>{fehler.text}</span>
@@ -42,7 +40,7 @@ function FehlerKasten({ fehler }: { fehler: KiFehlerAnzeige }) {
             oeffneDialog('ki-einstellungen');
           }}
         >
-          Einstellungen öffnen
+          {t.gemeinsam.einstellungenOeffnen}
         </Button>
       )}
     </div>
@@ -70,6 +68,8 @@ function VorschlagDialogInhalt() {
   const [tiefencheck, setTiefencheck] = useState(false);
   const [schaetzung, setSchaetzung] = useState<{ wert?: Schaetzung; fehler?: KiFehlerAnzeige; laedt: boolean }>({ laedt: true });
   const phase = laeuft ? 'laeuft' : ergebnis ? 'fertig' : 'vorbereiten';
+  const t = useTexte();
+  const tv = t.beziehungen.vorschlaege;
 
   useEffect(() => {
     if (phase !== 'vorbereiten' || !daten) return;
@@ -85,55 +85,60 @@ function VorschlagDialogInhalt() {
     // daten absichtlich nicht: die Schätzung gilt für den Stand beim Öffnen
   }, [phase, tiefencheck, schaetzen]);
 
-  const titel = 'Figuren und Beziehungen vorschlagen';
+  const titel = tv.dialogTitel;
   if (!daten) return null;
 
   if (phase === 'laeuft') {
     return (
-      <Dialog titel={titel} onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>Im Hintergrund weiter</Button>}>
+      <Dialog titel={titel} onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>{tv.imHintergrund}</Button>}>
         <div className="pw-ki-abschnitt" aria-live="polite">
-          <p className="pw-ki-text">Die KI liest das ganze Buch und sammelt Figuren, Orte und Beziehungen …</p>
-          <div className="pw-ki-balken pw-vs-balken" role="progressbar" aria-label="Vorschläge werden erstellt">
+          <p className="pw-ki-text">{tv.liestBuch}</p>
+          <div className="pw-ki-balken pw-vs-balken" role="progressbar" aria-label={tv.werdenErstellt}>
             <span />
           </div>
-          <p className="pw-ki-klein">Eine Anfrage für das ganze Buch. Die KI ändert keinen Text und legt nichts an.</p>
+          <p className="pw-ki-klein">{tv.eineAnfrage}</p>
         </div>
       </Dialog>
     );
   }
 
   if (phase === 'fertig' && ergebnis) {
-    const t = ergebnis.tokens;
+    const tok = ergebnis.tokens;
     return (
       <Dialog
-        titel="Vorschläge sind da"
+        titel={tv.sindDa}
         onSchliessen={schliessen}
         aktionen={
           <Button variante="primaer" onClick={schliessen}>
-            Vorschläge ansehen
+            {tv.ansehen}
           </Button>
         }
       >
         <div className="pw-ki-reihe" style={{ gap: 18, alignItems: 'baseline', flexWrap: 'wrap' }}>
-          <span className="pw-ki-zahl">{anzahlText(ergebnis.neu, 'Vorschlag neu', 'Vorschläge neu')}</span>
+          <span className="pw-ki-zahl">{f(tv.neu, { n: ergebnis.neu })}</span>
           <span className="pw-ki-text">
-            {anzahlText(ergebnis.verworfen.length, 'verworfen', 'verworfen')}
-            {ergebnis.aktualisiert > 0 && ` · ${ergebnis.aktualisiert} schon offen`}
-            {ergebnis.bereitsAngelegt > 0 && ` · ${ergebnis.bereitsAngelegt} schon angelegt`}
-            {ergebnis.bereitsEntschieden > 0 && ` · ${ergebnis.bereitsEntschieden} bereits entschieden`}
+            {f(tv.verworfen, { n: ergebnis.verworfen.length })}
+            {ergebnis.aktualisiert > 0 && f(tv.schonOffen, { n: ergebnis.aktualisiert })}
+            {ergebnis.bereitsAngelegt > 0 && f(tv.schonAngelegt, { n: ergebnis.bereitsAngelegt })}
+            {ergebnis.bereitsEntschieden > 0 && f(tv.bereitsEntschieden, { n: ergebnis.bereitsEntschieden })}
           </span>
         </div>
         <dl className="pw-ki-zeilen">
-          <dt>Modell</dt>
+          <dt>{tv.modell}</dt>
           <dd>{ergebnis.modell}</dd>
-          <dt>Verbrauch</dt>
+          <dt>{tv.verbrauch}</dt>
           <dd>
-            {zahl(t.eingabe)} Eingabe · {zahl(t.cacheGelesen)} aus dem Cache · {zahl(t.ausgabe)} Ausgabe · {formatiereUsd(ergebnis.kostenUsd)}
+            {f(tv.verbrauchWert, {
+              eingabe: zahl(tok.eingabe),
+              cache: zahl(tok.cacheGelesen),
+              ausgabe: zahl(tok.ausgabe),
+              kosten: formatiereUsd(ergebnis.kostenUsd, sprache()),
+            })}
           </dd>
         </dl>
         {ergebnis.verworfen.length > 0 && (
           <details className="pw-ki-details">
-            <summary>Gründe für Verworfenes anzeigen</summary>
+            <summary>{tv.gruendeAnzeigen}</summary>
             <ul className="pw-ki-gruende">
               {ergebnis.verworfen.map((v, i) => (
                 <li key={i}>{v.grund}</li>
@@ -141,9 +146,7 @@ function VorschlagDialogInhalt() {
             </ul>
           </details>
         )}
-        <p className="pw-ki-klein">
-          Verworfen wird, was kein wörtliches Zitat hat, auf unbekannte Figuren verweist oder Formulierungen vorschlägt.
-        </p>
+        <p className="pw-ki-klein">{tv.verworfenErklaerung}</p>
       </Dialog>
     );
   }
@@ -155,47 +158,42 @@ function VorschlagDialogInhalt() {
       onSchliessen={schliessen}
       aktionen={
         <>
-          <Button onClick={schliessen}>Abbrechen</Button>
+          <Button onClick={schliessen}>{t.gemeinsam.abbrechen}</Button>
           <Button variante="primaer" disabled={!s || schaetzung.laedt || !!schaetzung.fehler} onClick={() => void holen({ tiefencheck })}>
-            Vorschläge holen
+            {tv.holen}
           </Button>
         </>
       }
     >
-      <p className="pw-ki-text">
-        Die KI liest das ganze Buch und schlägt Figuren, Orte und Beziehungen vor, jeweils mit wörtlichem Beleg. Sie legt nichts an
-        und ändert keinen Text: Du übernimmst oder verwirfst jeden Vorschlag einzeln.
-      </p>
+      <p className="pw-ki-text">{tv.einleitung}</p>
       {fehler && <FehlerKasten fehler={fehler} />}
       <Checkbox checked={tiefencheck} onChange={(e) => setTiefencheck(e.target.checked)}>
-        Tiefencheck mit Opus – gründlicher, teurer
+        {tv.tiefencheck}
       </Checkbox>
       <div className="pw-ki-kasten" aria-live="polite">
         {schaetzung.fehler ? (
           <FehlerKasten fehler={schaetzung.fehler} />
         ) : !s || schaetzung.laedt ? (
-          <p className="pw-ki-klein">Tokens werden geschätzt …</p>
+          <p className="pw-ki-klein">{tv.schaetzen}</p>
         ) : (
           <>
             <dl className="pw-ki-zeilen">
-              <dt>Modell</dt>
-              <dd>
-                {s.modell} · Effort {EFFORT[s.rolle]}
-              </dd>
-              <dt>Anfragen</dt>
-              <dd>1 für das ganze Buch · {anzahlText(s.kapitel.length, 'Kapitel', 'Kapitel')} mit Text</dd>
-              <dt>Eingabe</dt>
-              <dd>≈ {zahl(s.eingabeTokens)} Tokens</dd>
-              <dt>Ausgabe</dt>
-              <dd>≈ {zahl(s.ausgabeTokens)} Tokens (mit Denken, großzügig)</dd>
-              <dt>Kosten</dt>
-              <dd>{formatiereUsd(s.kostenUsd)} (grob, Listenpreis)</dd>
+              <dt>{tv.modell}</dt>
+              <dd>{f(tv.modellWert, { modell: s.modell, effort: EFFORT[s.rolle] })}</dd>
+              <dt>{tv.anfragen}</dt>
+              <dd>{f(tv.anfragenWert, { n: s.kapitel.length })}</dd>
+              <dt>{tv.eingabe}</dt>
+              <dd>{f(tv.eingabeWert, { n: zahl(s.eingabeTokens) })}</dd>
+              <dt>{tv.ausgabe}</dt>
+              <dd>{f(tv.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
+              <dt>{tv.kosten}</dt>
+              <dd>{f(tv.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
             </dl>
-            {!s.gezaehlt && <p className="pw-ki-klein">count_tokens war nicht erreichbar, geschätzt über die Zeichenzahl.</p>}
+            {!s.gezaehlt && <p className="pw-ki-klein">{tv.nichtGezaehlt}</p>}
           </>
         )}
       </div>
-      {backendArt === 'demo' && <p className="pw-ki-klein">Browser-Demo: Die Antworten kommen vom Demo-Transport, es gehen keine Daten ins Netz.</p>}
+      {backendArt === 'demo' && <p className="pw-ki-klein">{tv.demo}</p>}
     </Dialog>
   );
 }
@@ -206,6 +204,7 @@ function VorschlagDialogInhalt() {
 
 function Belege({ daten, belege }: { daten: ProjektDaten; belege: Zitat[] }) {
   const markiere = useStore((s) => s.markiere);
+  const tv = useTexte().beziehungen.vorschlaege;
   return (
     <div className="pw-vs-belege">
       {belege.map((b) => (
@@ -213,11 +212,11 @@ function Belege({ daten, belege }: { daten: ProjektDaten; belege: Zitat[] }) {
           key={`${b.kapitel}|${b.text}`}
           type="button"
           className="pw-bz-beleg"
-          title="Stelle im Text öffnen"
+          title={tv.stelleOeffnen}
           onClick={() => markiere({ kapitel: b.kapitel, anker: ankerFuerZitat(daten, b.kapitel, b.text) })}
         >
           <span className="pw-bz-beleg__kap">{kapitelTitel(daten, b.kapitel)}</span>
-          <span className="pw-bz-beleg__text">„{b.text}“</span>
+          <span className="pw-bz-beleg__text">{f(tv.zitat, { text: b.text })}</span>
         </button>
       ))}
     </div>
@@ -235,15 +234,16 @@ interface EintragProps {
 
 function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children }: EintragProps) {
   const beschaeftigt = arbeitet !== null;
+  const tv = useTexte().beziehungen.vorschlaege;
   return (
     <article className="pw-vs-eintrag" aria-busy={arbeitet === schluessel || undefined}>
       {children}
       <div className="pw-vs-knoepfe">
         <Button klein onClick={() => aktion(schluessel, 'uebernehmen', art)} disabled={beschaeftigt} title={uebernehmenTitel}>
-          Übernehmen
+          {tv.uebernehmen}
         </Button>
         <Button klein variante="leise" onClick={() => aktion(schluessel, 'verwerfen', art)} disabled={beschaeftigt}>
-          Verwerfen
+          {tv.verwerfen}
         </Button>
       </div>
     </article>
@@ -258,12 +258,13 @@ function verweisName(ablage: KiVorschlaege, daten: ProjektDaten, r: VorschlagsVe
 }
 
 function Abschnitt({ titel, anzahl, children }: { titel: string; anzahl: number; children: ReactNode }) {
+  const tv = useTexte().beziehungen.vorschlaege;
   if (anzahl === 0) return null;
   return (
     <section className="pw-vs-abschnitt" aria-label={titel}>
       <div className="pw-vs-abschnitt__kopf">
         <Abschnittslabel as="h3">{titel}</Abschnittslabel>
-        <Zaehler wert={anzahl} label={`offene Vorschläge ${titel}`} style={{ background: 'var(--chip)', color: 'var(--ink-soft)' }} />
+        <Zaehler wert={anzahl} label={f(tv.offeneVorschlaege, { titel })} style={{ background: 'var(--chip)', color: 'var(--ink-soft)' }} />
       </div>
       {children}
     </section>
@@ -284,6 +285,8 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [meldung, setMeldung] = useState<string | null>(null);
   const [aktionsFehler, setAktionsFehler] = useState<string | null>(null);
+  const t = useTexte();
+  const tv = t.beziehungen.vorschlaege;
 
   async function ausfuehren(schluessel: string, arbeit: () => Promise<string | null>) {
     setArbeitet(schluessel);
@@ -311,26 +314,30 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
   const alle = () =>
     void ausfuehren('alle', async () => {
       const r = await alleUebernehmen();
-      return `Übernommen: ${anzahlText(r.figuren, 'Figur', 'Figuren')}, ${anzahlText(r.orte, 'Ort', 'Orte')}, ${anzahlText(r.beziehungen, 'Beziehung', 'Beziehungen')}.`;
+      return f(tv.uebernommen, {
+        figuren: f(tv.figurenAnzahl, { n: r.figuren }),
+        orte: f(tv.orteAnzahl, { n: r.orte }),
+        beziehungen: f(tv.beziehungenAnzahl, { n: r.beziehungen }),
+      });
     });
 
   const a = ablage ?? { version: 1 as const, figuren: [], orte: [], beziehungen: [] };
 
   return (
-    <Inspektor breite={320} hintergrund="weiss" label="Vorschläge der KI" className="pw-vs" style={{ gap: 12 }}>
+    <Inspektor breite={320} hintergrund="weiss" label={tv.panelTitel} className="pw-vs" style={{ gap: 12 }}>
       <div className="pw-vs-kopf">
-        <Abschnittslabel>Vorschläge der KI</Abschnittslabel>
-        <button type="button" className="pw-vs-schliessen" aria-label="Vorschläge schließen" title="Schließen" onClick={schliessen}>
+        <Abschnittslabel>{tv.panelTitel}</Abschnittslabel>
+        <button type="button" className="pw-vs-schliessen" aria-label={tv.schliessen} title={t.gemeinsam.schliessen} onClick={schliessen}>
           <IconSchliessen size={12} />
         </button>
       </div>
-      <strong className="pw-bz-name">{offen.anzahl === 0 ? 'Nichts offen' : anzahlText(offen.anzahl, 'Vorschlag', 'Vorschläge')}</strong>
-      <span className="pw-bz-text">Aus dem Text abgeleitet, jeweils mit wörtlichem Beleg. Angelegt wird nur, was du übernimmst.</span>
+      <strong className="pw-bz-name">{offen.anzahl === 0 ? tv.nichtsOffen : f(tv.anzahl, { n: offen.anzahl })}</strong>
+      <span className="pw-bz-text">{tv.abgeleitet}</span>
 
       {laeuft && (
         <div className="pw-ki-abschnitt" aria-live="polite" style={{ gap: 6 }}>
-          <span className="pw-vs-klein">Die KI liest das Buch …</span>
-          <div className="pw-ki-balken pw-vs-balken" role="progressbar" aria-label="Vorschläge werden erstellt">
+          <span className="pw-vs-klein">{tv.liestDasBuch}</span>
+          <div className="pw-ki-balken pw-vs-balken" role="progressbar" aria-label={tv.werdenErstellt}>
             <span />
           </div>
         </div>
@@ -348,47 +355,51 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
       {ergebnis && !laeuft && (
         <span className="pw-vs-klein">
-          Letzter Lauf: {ergebnis.neu} neu · {ergebnis.verworfen.length} verworfen · {formatiereUsd(ergebnis.kostenUsd)}
+          {f(tv.letzterLauf, { neu: ergebnis.neu, verworfen: ergebnis.verworfen.length, kosten: formatiereUsd(ergebnis.kostenUsd, sprache()) })}
         </span>
       )}
 
       {offen.anzahl > 0 && (
         <div className="pw-vs-aktionen">
           <Button variante="primaer" onClick={alle} disabled={arbeitet !== null}>
-            Alle übernehmen
+            {tv.alleUebernehmen}
           </Button>
-          <span className="pw-vs-klein">Figuren, dann Orte, dann Beziehungen</span>
+          <span className="pw-vs-klein">{tv.reihenfolge}</span>
         </div>
       )}
 
-      <Abschnitt titel="Figuren" anzahl={offen.figuren.length}>
-        {offen.figuren.map((f: FigurVorschlag) => (
-          <Eintrag key={f.schluessel} art="figur" schluessel={f.schluessel} arbeitet={arbeitet} aktion={aktion}>
+      <Abschnitt titel={tv.figuren} anzahl={offen.figuren.length}>
+        {offen.figuren.map((fv: FigurVorschlag) => (
+          <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
             <div className="pw-vs-zeile">
-              <strong>{f.name}</strong>
-              <span className="pw-vs-meta">{f.rolle === 'haupt' ? 'Hauptfigur' : 'Nebenfigur'}</span>
+              <strong>{fv.name}</strong>
+              <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : tv.nebenfigur}</span>
             </div>
-            {f.kurz && <span className="pw-vs-kurz">{f.kurz}</span>}
-            {f.aliase.length > 0 && <span className="pw-vs-meta">auch: {f.aliase.join(', ')}</span>}
-            <Belege daten={daten} belege={f.belege} />
+            {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
+            {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
+            <Belege daten={daten} belege={fv.belege} />
           </Eintrag>
         ))}
       </Abschnitt>
 
-      <Abschnitt titel="Orte" anzahl={offen.orte.length}>
+      <Abschnitt titel={tv.orte} anzahl={offen.orte.length}>
         {offen.orte.map((o: OrtVorschlag) => (
           <Eintrag key={o.schluessel} art="ort" schluessel={o.schluessel} arbeitet={arbeitet} aktion={aktion}>
             <div className="pw-vs-zeile">
               <strong>{o.name}</strong>
-              {o.in && <span className="pw-vs-meta">in {o.in.typ === 'angelegt' ? (daten.orte[o.in.id]?.name ?? o.in.name) : o.in.name}</span>}
+              {o.in && (
+                <span className="pw-vs-meta">
+                  {f(tv.inOrt, { name: o.in.typ === 'angelegt' ? (daten.orte[o.in.id]?.name ?? o.in.name) : o.in.name })}
+                </span>
+              )}
             </div>
-            {o.aliase.length > 0 && <span className="pw-vs-meta">auch: {o.aliase.join(', ')}</span>}
+            {o.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: o.aliase.join(', ') })}</span>}
             <Belege daten={daten} belege={o.belege} />
           </Eintrag>
         ))}
       </Abschnitt>
 
-      <Abschnitt titel="Beziehungen" anzahl={offen.beziehungen.length}>
+      <Abschnitt titel={tv.beziehungen} anzahl={offen.beziehungen.length}>
         {offen.beziehungen.map((b: BeziehungsVorschlag) => {
           const von = verweisName(a, daten, b.von);
           const zu = verweisName(a, daten, b.zu);
@@ -401,7 +412,7 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
               schluessel={b.schluessel}
               arbeitet={arbeitet}
               aktion={aktion}
-              uebernehmenTitel={neue.length ? `Legt auch ${neue.length === 1 ? 'die Figur' : 'die Figuren'} ${neue.join(' und ')} an` : undefined}
+              uebernehmenTitel={neue.length ? f(tv.legtAuchAn, { n: neue.length, namen: liste(neue) }) : undefined}
             >
               <div className="pw-vs-zeile">
                 <strong>
@@ -413,12 +424,12 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
                   {b.art}
                 </span>
                 <span className="pw-vs-meta">
-                  <StrangPunkt farbe={farbe.farbe} /> {KATEGORIE_LABEL[b.kategorie]}
-                  {b.abKapitel ? ` · ab ${kapLabel(daten, b.abKapitel)}` : ''}
-                  {b.unsicher ? ' · gestrichelt' : ''}
+                  <StrangPunkt farbe={farbe.farbe} /> {t.beziehungen.kategorie[b.kategorie]}
+                  {b.abKapitel ? f(tv.abKap, { kap: kapLabel(daten, b.abKapitel) }) : ''}
+                  {b.unsicher ? tv.gestricheltZusatz : ''}
                 </span>
               </div>
-              {neue.length > 0 && <span className="pw-vs-neu">+ neue Figur: {neue.join(', ')}</span>}
+              {neue.length > 0 && <span className="pw-vs-neu">{f(tv.neueFigur, { namen: neue.join(', ') })}</span>}
               {b.begruendung && <span className="pw-vs-kurz">{b.begruendung}</span>}
               <Belege daten={daten} belege={b.belege} />
             </Eintrag>
@@ -429,10 +440,9 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       {offen.anzahl === 0 && !laeuft && (
         <div className="pw-vs-aktionen">
           <span className="pw-bz-text">
-            {ablage ? 'Alle Vorschläge sind entschieden.' : 'Noch keine Vorschläge geholt.'} Ein neuer Lauf bringt nur Neues, Verworfenes
-            kommt nicht wieder.
+            {ablage ? tv.alleEntschieden : tv.nochKeine} {tv.neuerLauf}
           </span>
-          <Button onClick={() => oeffneVorschlaege({ dialog: true })}>Beziehungen vorschlagen</Button>
+          <Button onClick={() => oeffneVorschlaege({ dialog: true })}>{t.beziehungen.ansicht.beziehungenVorschlagen}</Button>
         </div>
       )}
     </Inspektor>

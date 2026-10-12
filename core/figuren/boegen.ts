@@ -2,8 +2,13 @@
  * Figuren-Bögen (G3): je Figur eine Linie durchs Buch mit geplanten Entwicklungsstufen (plan/boegen.md).
  * Besitzer: G3 Figuren. Reines TypeScript ohne DOM/Tauri. Plan-Daten, gehen nicht an die KI (E12).
  */
+import { fmt, texteJe, type Sprache } from '../i18n';
 import type { BogenStufe, Erwaehnung, ErwaehnungsArt, Figurenbogen, Id, ProjektDaten, TextAnker } from '../model/types';
 import { ankerErzeugen, ankerFinden, findeZitat, klartext, normalisiere } from '../text';
+import { BELEG_TEXTE } from '../zeit/beleg';
+
+/** Beschriftungen (Oberflächensprache). */
+const T = texteJe({ kap: 'Kap. {nr}', akt: 'Akt {nr}', ohneKapitel: 'ohne Kapitel', ohneAkt: 'ohne Akt' }, { kap: 'Ch. {nr}', akt: 'Act {nr}', ohneKapitel: 'no chapter', ohneAkt: 'no act' });
 
 export function leererBogen(figur: Id): Figurenbogen {
   return { figur, stufen: [] };
@@ -77,13 +82,14 @@ export function sortiereStufen(daten: ProjektDaten, stufen: BogenStufe[]): Bogen
 }
 
 /** Beschriftung des Platzes: „Kap. 3“ bzw. „Akt II“. */
-export function stufenOrt(daten: ProjektDaten, stufe: BogenStufe): string {
+export function stufenOrt(daten: ProjektDaten, stufe: BogenStufe, sprache: Sprache = 'de'): string {
+  const t = T(sprache);
   if (stufe.kapitel) {
     const i = daten.projekt.kapitel.indexOf(stufe.kapitel);
-    if (i >= 0) return `Kap. ${i + 1}`;
+    if (i >= 0) return fmt(t.kap, { nr: i + 1 });
   }
-  if (stufe.akt !== undefined) return daten.akte.find((a) => a.nummer === stufe.akt)?.titel || `Akt ${stufe.akt}`;
-  return 'ohne Kapitel';
+  if (stufe.akt !== undefined) return daten.akte.find((a) => a.nummer === stufe.akt)?.titel || fmt(t.akt, { nr: stufe.akt });
+  return t.ohneKapitel;
 }
 
 /** Stufe ein Kapitel bzw. einen Akt weiter (richtung 1) oder zurück (-1); null am Rand. */
@@ -145,15 +151,16 @@ function kapitelKlartext(daten: ProjektDaten, kapitel: Id): string {
 }
 
 /** Beleg (E4-Anker) für ein wörtliches Zitat aus einem Kapitel; sonst ein lesbarer Fehler. */
-export function belegAusZitat(daten: ProjektDaten, kapitel: Id, zitat: string): { anker: TextAnker } | { fehler: string } {
+export function belegAusZitat(daten: ProjektDaten, kapitel: Id, zitat: string, sprache: Sprache = 'de'): { anker: TextAnker } | { fehler: string } {
+  const t = BELEG_TEXTE(sprache);
   const nr = daten.projekt.kapitel.indexOf(kapitel) + 1;
-  const name = nr > 0 ? `Kap. ${nr}` : `„${kapitel}“`;
+  const name = nr > 0 ? fmt(t.kap, { nr }) : fmt(t.unbekannt, { id: kapitel });
   const text = kapitelKlartext(daten, kapitel);
-  if (!text.trim()) return { fehler: `${name} hat noch keinen Text.` };
-  if (normalisiere(zitat).text.replace(/\s/g, '').length < 3) return { fehler: 'Das Zitat ist zu kurz.' };
+  if (!text.trim()) return { fehler: fmt(t.ohneText, { name }) };
+  if (normalisiere(zitat).text.replace(/\s/g, '').length < 3) return { fehler: t.zuKurz };
   const treffer = findeZitat(text, zitat);
   const erster = treffer[0];
-  if (!erster) return { fehler: `Die Stelle steht so nicht in ${name}.` };
+  if (!erster) return { fehler: fmt(t.nichtGefunden, { name }) };
   return { anker: ankerErzeugen(kapitel, text, erster.start, erster.ende) };
 }
 
@@ -224,7 +231,8 @@ export interface AktGruppe {
 }
 
 /** Aufeinanderfolgende Kapitel mit gleichem Akt als Gruppen (Kopfzeile des Rasters). */
-export function aktGruppen(daten: ProjektDaten): AktGruppe[] {
+export function aktGruppen(daten: ProjektDaten, sprache: Sprache = 'de'): AktGruppe[] {
+  const t = T(sprache);
   const gruppen: AktGruppe[] = [];
   daten.projekt.kapitel.forEach((k, i) => {
     const akt = daten.plaene[k]?.akt ?? null;
@@ -233,7 +241,7 @@ export function aktGruppen(daten: ProjektDaten): AktGruppe[] {
       letzte.bis = i;
       return;
     }
-    const titel = akt === null ? 'ohne Akt' : daten.akte.find((a) => a.nummer === akt)?.titel || `Akt ${akt}`;
+    const titel = akt === null ? t.ohneAkt : daten.akte.find((a) => a.nummer === akt)?.titel || fmt(t.akt, { nr: akt });
     gruppen.push({ akt, titel, von: i, bis: i });
   });
   return gruppen;

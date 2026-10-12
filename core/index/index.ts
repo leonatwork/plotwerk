@@ -12,11 +12,12 @@ import type {
   Zitat,
 } from '../model/types';
 import { stimmenHinweise } from '../figuren/stimme';
+import type { Sprache } from '../i18n';
 import { strukturHinweise } from '../struktur';
 import { zeitHinweise } from '../zeit';
 import { absaetze, absatzIndex, ankerFinden, findeZitat, klartext, textHash, wortzahl, zitatSchluessel, type Bereich } from '../text';
 
-export { HINWEIS_TYP_NAME, HINWEIS_TYP_REIHE } from './hinweisTypen';
+export { HINWEIS_TYP_NAME, HINWEIS_TYP_REIHE, hinweisTypName, hinweisTypNamen } from './hinweisTypen';
 
 export interface Index {
   erwaehnungen: Erwaehnung[];
@@ -164,11 +165,17 @@ function kiHinweisGueltig(h: Hinweis, daten: ProjektDaten): boolean {
   });
 }
 
-function hinweiseBerechnen(daten: ProjektDaten): Hinweis[] {
+function hinweiseBerechnen(daten: ProjektDaten, sprache: Sprache): Hinweis[] {
   const entscheidungen = new Map((daten.entscheidungen?.hinweise ?? []).map((e) => [e.schluessel, e.entscheidung]));
   const stellen = markierteStellen(daten);
-  // lokal berechnet (Struktur, Schreibweisen, Zeitprüfung) bzw. aus eigenen KI-Ablagen (Figurenstimme, bereits geprüft)
-  const lokal = [...strukturHinweise(daten), ...schreibweisenHinweise(daten), ...zeitHinweise(daten), ...stimmenHinweise(daten)];
+  // lokal berechnet (Struktur, Schreibweisen, Zeitprüfung) bzw. aus eigenen KI-Ablagen (Figurenstimme, bereits geprüft);
+  // Titel/Erklärung in der Oberflächensprache, Schlüssel sprachunabhängig
+  const lokal = [
+    ...strukturHinweise(daten, sprache),
+    ...schreibweisenHinweise(daten, sprache),
+    ...zeitHinweise(daten, sprache),
+    ...stimmenHinweise(daten, sprache),
+  ];
   const ki = (daten.kiHinweise ?? [])
     .filter((h) => kiHinweisGueltig(h, daten))
     .map((h) => ({ ...h, quelle: 'ki' as const, schluessel: hinweisSchluessel(h.typ, h.zitate), alterSchluessel: h.schluessel }));
@@ -191,8 +198,11 @@ function hinweiseBerechnen(daten: ProjektDaten): Hinweis[] {
   return ergebnis;
 }
 
-/** Berechnet den Index; mit `vorher` werden nur Kapitel mit geändertem Hash neu erkannt. */
-export function berechneIndex(daten: ProjektDaten, vorher?: Index | null): Index {
+/**
+ * Berechnet den Index; mit `vorher` werden nur Kapitel mit geändertem Hash neu erkannt.
+ * `sprache`: Oberflächensprache für Titel/Erklärung der lokalen Hinweise (Schlüssel bleiben gleich).
+ */
+export function berechneIndex(daten: ProjektDaten, vorher?: Index | null, sprache: Sprache = 'de'): Index {
   const reihe = reihenfolge(daten);
   const erkennungsHash = erkennungsSignatur(daten);
   const wiederverwendbar = !!vorher && vorher.erkennungsHash === erkennungsHash;
@@ -230,7 +240,7 @@ export function berechneIndex(daten: ProjektDaten, vorher?: Index | null): Index
     erwaehnungen,
     erstesVorkommen,
     faeden: faedenBerechnen(daten, reihe),
-    hinweise: hinweiseBerechnen(daten),
+    hinweise: hinweiseBerechnen(daten, sprache),
     wortzahlen,
     textHashes,
     erkennungsHash,

@@ -14,6 +14,7 @@ import {
   Tab,
   TextRun,
 } from 'docx';
+import { texteJe, type Sprache } from '../i18n';
 import type { Kapitel } from '../model/types';
 import { leseMarkdown, SZENENTRENNER, type Lauf } from './markdown';
 
@@ -22,7 +23,15 @@ export interface DocxOptionen {
   schrift?: string;
   /** Titelseite mit dem Buchtitel (Standard: ja, wenn ein Titel vorhanden ist) */
   titelseite?: boolean;
+  /** Buchsprache (Sprachkennung für die Rechtschreibprüfung in Word, Namen der Formatvorlagen); Standard Deutsch */
+  sprache?: Sprache;
 }
+
+/** Namen der eigenen Formatvorlagen (die IDs bleiben gleich) und Sprachkennung des Dokuments. */
+const STIL_NAMEN = texteJe(
+  { ersterAbsatz: 'Erster Absatz', szenentrenner: 'Szenentrenner', sprache: 'de-DE' },
+  { ersterAbsatz: 'First Paragraph', szenentrenner: 'Scene Break', sprache: 'en-US' },
+);
 
 export const DOCX_SCHRIFTEN = ['Newsreader', 'Times New Roman', 'Georgia'] as const;
 
@@ -78,6 +87,7 @@ function kapitelAbsaetze(k: Kapitel, ersteSeite: boolean): Paragraph[] {
 /** Erzeugt die .docx-Datei; `kapitel` in Buchreihenfolge. */
 export async function exportiereDocxMit(kapitel: Kapitel[], buchtitel: string, optionen: DocxOptionen = {}): Promise<Uint8Array> {
   const schrift = optionen.schrift?.trim() || 'Newsreader';
+  const namen = STIL_NAMEN(optionen.sprache);
   const titelseite = (optionen.titelseite ?? true) && buchtitel.trim() !== '';
   const kinder: Paragraph[] = [];
   if (titelseite) kinder.push(new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(buchtitel.trim())] }));
@@ -93,7 +103,7 @@ export async function exportiereDocxMit(kapitel: Kapitel[], buchtitel: string, o
     styles: {
       default: {
         document: {
-          run: { ...lauf, size: 12 * PT, language: { value: 'de-DE' } },
+          run: { ...lauf, size: 12 * PT, language: { value: namen.sprache } },
           paragraph: { spacing: { ...zeilen, before: 0, after: 0 }, indent: { firstLine: Math.round(0.6 * CM) } },
         },
         title: {
@@ -116,7 +126,7 @@ export async function exportiereDocxMit(kapitel: Kapitel[], buchtitel: string, o
       paragraphStyles: [
         {
           id: 'ErsterAbsatz',
-          name: 'Erster Absatz',
+          name: namen.ersterAbsatz,
           basedOn: 'Normal',
           next: 'Normal',
           quickFormat: true,
@@ -124,7 +134,7 @@ export async function exportiereDocxMit(kapitel: Kapitel[], buchtitel: string, o
         },
         {
           id: 'Szenentrenner',
-          name: 'Szenentrenner',
+          name: namen.szenentrenner,
           basedOn: 'Normal',
           next: 'ErsterAbsatz',
           quickFormat: true,

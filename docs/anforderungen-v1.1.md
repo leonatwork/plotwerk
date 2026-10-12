@@ -328,7 +328,7 @@ Verbindliche Vorlage sind die Mac-Screens in `docs/design/screens/*.dc.html` (Sc
 | strang-dates | #C2405C | Dates und Begegnungen |
 | strang-warm | #A86A12 | Strang in Ocker |
 | strang-violett | #6A4C9C | Strang in Violett |
-| strang-organisation | #4A4A4F | Antagonist Organisation |
+| strang-organisation | #4A4A4F | Antagonist Konsortium |
 | real-gesichert | #2F6B45 | Realitätsebene gesichert |
 | real-offen | #A86A12 | Realitätsebene noch offen |
 | real-vage | #6A4C9C | Realitätsebene bewusst vage |
@@ -390,7 +390,7 @@ Jede Phase liefert eine benutzbare App und endet mit einer Abnahme am echten Man
 
 - [ ] Endgültiger Name der App (Plotwerk ist Arbeitstitel)
 - [ ] Akt-Grenzen, Quintessenzen und Wendepunkte schreibt Leon selbst; die Werte im Demo-Projekt sind Vorschläge
-- [ ] Name, Mitglieder und erste Szene der Organisation
+- [ ] Name, Mitglieder und erste Szene des Konsortiums
 - [ ] Azure Foundry: Abo und Deployments für Haiku, Sonnet und Opus 5.5 anlegen, in den Einstellungen eintragen, erste Prüfung live laufen lassen (Region ist entschieden: egal) – alternativ Claude API: Schlüssel in den Einstellungen hinterlegen und erste Prüfung live laufen lassen
 - [x] F-05: Plan-Felder von Figuren und Kapitelplänen dürfen an das Modell (Leon, 2026-10-09); Wahrheit und Notizen bleiben gesperrt
 - [ ] Sprach-Hinweise (Tempus, „Sie“) sind als Kann umgesetzt; behalten oder abschalten?

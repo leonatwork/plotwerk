@@ -6,17 +6,14 @@
  */
 import type { Id, ProjektDaten, Verweis, VerweisTyp } from '@core/model/types';
 import type { Bereich, Store } from '../../state/store';
+import { f, sprache, texte, vergleich } from '../../i18n';
 
 export const VERWEIS_TYPEN: VerweisTyp[] = ['figur', 'ort', 'kapitel', 'plan', 'idee', 'gruppe'];
 
-export const VERWEIS_ART: Record<VerweisTyp, string> = {
-  figur: 'Figur',
-  ort: 'Ort',
-  kapitel: 'Kapitel',
-  plan: 'Plan',
-  idee: 'Idee',
-  gruppe: 'Gruppe',
-};
+/** Art des Verweisziels als Text („Figur“, „Kapitel“ …) in der Oberflächensprache. */
+export function verweisArten(): Record<VerweisTyp, string> {
+  return texte().schreiben.verweise.art;
+}
 
 const MUSTER = /\[\[(figur|ort|kapitel|plan|idee|gruppe):([^|\]\n]+)(?:\|([^\]\n]*))?\]\]/g;
 
@@ -58,7 +55,12 @@ export function verweiseAlsText(text: string): string {
 export function kapitelAnzeige(daten: ProjektDaten, id: Id): string {
   const nr = daten.projekt.kapitel.indexOf(id) + 1;
   const titel = daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel ?? id;
-  return nr > 0 ? `Kap. ${nr} · ${titel}` : titel;
+  return nr > 0 ? `${kapKurz(nr)} · ${titel}` : titel;
+}
+
+/** „Kap. 3“ / „Ch. 3“ */
+function kapKurz(nr: number): string {
+  return f(texte().gemeinsam.kapitelKurz, { nr });
 }
 
 /** Aktuelle Anzeige eines Verweisziels; null, wenn es das Ziel nicht mehr gibt. */
@@ -83,20 +85,25 @@ export function zielName(daten: ProjektDaten, v: Verweis): string | null {
 
 export function alleVerweisZiele(daten: ProjektDaten): VerweisVorschlag[] {
   const liste: VerweisVorschlag[] = [];
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, 'de') : a.rolle === 'haupt' ? -1 : 1));
-  for (const f of figuren) liste.push({ typ: 'figur', id: f.id, anzeige: f.name, art: VERWEIS_ART.figur, suche: [f.name, ...f.aliase] });
-  for (const o of Object.values(daten.orte).sort((a, b) => a.name.localeCompare(b.name, 'de')))
-    liste.push({ typ: 'ort', id: o.id, anzeige: o.name, art: VERWEIS_ART.ort, suche: [o.name, ...o.aliase] });
+  const art = verweisArten();
+  const englisch = sprache() === 'en';
+  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  for (const fig of figuren) liste.push({ typ: 'figur', id: fig.id, anzeige: fig.name, art: art.figur, suche: [fig.name, ...fig.aliase] });
+  for (const o of Object.values(daten.orte).sort((a, b) => vergleich(a.name, b.name)))
+    liste.push({ typ: 'ort', id: o.id, anzeige: o.name, art: art.ort, suche: [o.name, ...o.aliase] });
   daten.projekt.kapitel.forEach((id, i) => {
     const titel = daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel ?? id;
-    liste.push({ typ: 'kapitel', id, anzeige: `Kap. ${i + 1} · ${titel}`, art: VERWEIS_ART.kapitel, suche: [titel, `Kap. ${i + 1}`, `Kapitel ${i + 1}`] });
+    const nr = i + 1;
+    // „Kap. 2“/„Kapitel 2“ immer, in der englischen Oberfläche auch „Ch. 2“/„Chapter 2“
+    const suche = [titel, `Kap. ${nr}`, `Kapitel ${nr}`, ...(englisch ? [`Ch. ${nr}`, `Chapter ${nr}`] : [])];
+    liste.push({ typ: 'kapitel', id, anzeige: `${kapKurz(nr)} · ${titel}`, art: art.kapitel, suche });
   });
   for (const id of daten.projekt.kapitel) {
     const p = daten.plaene[id];
-    if (p?.szene) liste.push({ typ: 'plan', id, anzeige: p.szene, art: VERWEIS_ART.plan, suche: [p.szene, p.titel] });
+    if (p?.szene) liste.push({ typ: 'plan', id, anzeige: p.szene, art: art.plan, suche: [p.szene, p.titel] });
   }
-  for (const i of daten.ideen) liste.push({ typ: 'idee', id: i.id, anzeige: i.titel, art: VERWEIS_ART.idee, suche: [i.titel] });
-  for (const g of Object.values(daten.gruppen)) liste.push({ typ: 'gruppe', id: g.id, anzeige: g.name, art: VERWEIS_ART.gruppe, suche: [g.name] });
+  for (const i of daten.ideen) liste.push({ typ: 'idee', id: i.id, anzeige: i.titel, art: art.idee, suche: [i.titel] });
+  for (const g of Object.values(daten.gruppen)) liste.push({ typ: 'gruppe', id: g.id, anzeige: g.name, art: art.gruppe, suche: [g.name] });
   return liste;
 }
 
@@ -171,7 +178,7 @@ export function kapitelVerweise(text: string, daten: ProjektDaten): Id[] {
   for (const t of verweiseZerlegen(text)) {
     if (t.art === 'verweis' && (t.verweis.typ === 'kapitel' || t.verweis.typ === 'plan') && daten.projekt.kapitel.includes(t.verweis.id)) ids.push(t.verweis.id);
     if (t.art === 'text')
-      for (const m of t.text.matchAll(/\bKap(?:itel|\.)\s*(\d{1,3})\b/g)) {
+      for (const m of t.text.matchAll(/\b(?:Kap(?:itel|\.)|Ch(?:apter|\.))\s*(\d{1,3})\b/g)) {
         const id = daten.projekt.kapitel[Number(m[1]) - 1];
         if (id) ids.push(id);
       }

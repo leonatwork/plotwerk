@@ -7,17 +7,17 @@ import { useStore } from '../../state/store';
 import { Abschnittslabel, klassen, StatusPunkt } from '../../ui';
 import { titelFokussieren } from './bruecke';
 import { useKapitelWoerter } from './Statusleiste';
-
-const zahl = new Intl.NumberFormat('de-DE');
+import { f, useTexte, zahl } from '../../i18n';
 
 function KapitelEintrag({ id, nummer, aktiv }: { id: Id; nummer: number; aktiv: boolean }) {
+  const T = useTexte().schreiben.kapitelListe;
   const titel = useStore((s) => s.daten?.kapitel[id]?.titel ?? s.daten?.plaene[id]?.titel ?? id);
   const status: KapitelStatus = useStore((s) => s.daten?.plaene[id]?.status ?? 'geplant');
   const woerter = useKapitelWoerter(id);
   const waehle = useStore((s) => s.waehle);
   const setzeBereich = useStore((s) => s.setzeBereich);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const rechts = status === 'geplant' ? 'geplant' : status === 'entwurf' ? 'Entwurf' : woerter !== undefined ? zahl.format(woerter) : '';
+  const rechts = status === 'geplant' ? T.geplant : status === 'entwurf' ? T.entwurf : woerter !== undefined ? zahl(woerter) : '';
   return (
     <button
       ref={setNodeRef}
@@ -25,8 +25,8 @@ function KapitelEintrag({ id, nummer, aktiv }: { id: Id; nummer: number; aktiv: 
       {...attributes}
       {...listeners}
       aria-current={aktiv ? 'true' : undefined}
-      aria-roledescription="verschiebbares Kapitel"
-      title={`${nummer} ${titel} – ziehen zum Verschieben`}
+      aria-roledescription={T.rolle}
+      title={f(T.eintragTitel, { nr: nummer, titel })}
       className={klassen('pw-s-kapitel__eintrag', isDragging && 'pw-s-kapitel__eintrag--ziehen')}
       style={{ transform: CSS.Transform.toString(transform && { ...transform, x: 0, scaleX: 1, scaleY: 1 }), transition }}
       onClick={() => {
@@ -48,6 +48,7 @@ export function KapitelListe() {
   const gewaehlt = useStore((s) => s.auswahl.kapitel);
   const verschieben = useStore((s) => s.kapitelVerschieben);
   const planen = useStore((s) => s.kapitelPlanen);
+  const t = useTexte();
   const sensoren = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, {
@@ -65,13 +66,13 @@ export function KapitelListe() {
 
   return (
     <div className="pw-s-kapitel">
-      <Abschnittslabel className="pw-s-kapitel__label">Kapitel</Abschnittslabel>
+      <Abschnittslabel className="pw-s-kapitel__label">{t.gemeinsam.kapitelMehrzahl}</Abschnittslabel>
       <DndContext
         sensors={sensoren}
         collisionDetection={closestCenter}
         onDragEnd={beimLoslassen}
         accessibility={{
-          screenReaderInstructions: { draggable: 'Leertaste zum Aufnehmen, Pfeiltasten zum Verschieben, Leertaste zum Ablegen, Escape zum Abbrechen.' },
+          screenReaderInstructions: { draggable: t.schreiben.kapitelListe.ziehenHilfe },
         }}
       >
         <SortableContext items={reihenfolge} strategy={verticalListSortingStrategy}>
@@ -89,7 +90,7 @@ export function KapitelListe() {
           void laeuft;
         }}
       >
-        + Kapitel planen
+        {t.schreiben.kapitelListe.neu}
       </button>
     </div>
   );

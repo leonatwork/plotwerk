@@ -7,6 +7,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ANBIETER_NAME, CLAUDE_API_ENDPOINT, STANDARD_MODELLE } from '@core/ki/index';
 import type { KiAnbieter, KiEinstellungen, KiModelle } from '@core/model/types';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, setzeSprachWahl, texte, useSprachWahl, useTexte, type SprachWahl } from '../../i18n';
 import { kiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Dialog, Feld, Segment, StrangPunkt, Textfeld } from '../../ui';
@@ -28,17 +29,14 @@ export function endpointFehler(wert: string): string | null {
   try {
     url = new URL(e);
   } catch {
-    return 'Das ist keine gültige Adresse.';
+    return texte().ki.einstellungen.ungueltig;
   }
-  if (url.protocol !== 'https:') return 'Der Endpoint muss mit https:// beginnen.';
+  if (url.protocol !== 'https:') return texte().ki.einstellungen.https;
   return null;
 }
 
-const ROLLEN = [
-  { schluessel: 'erkennung', label: 'Erkennung (Haiku)' },
-  { schluessel: 'pruefung', label: 'Prüfung (Sonnet)' },
-  { schluessel: 'tiefencheck', label: 'Tiefencheck (Opus)' },
-] as const;
+/** Modellrollen; Beschriftung aus t.ki.einstellungen.rollen */
+const ROLLEN = ['erkennung', 'pruefung', 'tiefencheck'] as const;
 
 const ANBIETER_OPTIONEN = [
   { wert: 'foundry' as const, label: ANBIETER_NAME.foundry },
@@ -78,24 +76,45 @@ function ModellFelder({
   deaktiviert: boolean;
   onChange(m: KiModelle): void;
 }) {
+  const t = useTexte();
   return (
     <div className="pw-ki-felder pw-ki-felder--drei">
       {ROLLEN.map((r) => (
-        <Feld key={r.schluessel} label={r.label}>
+        <Feld key={r} label={t.ki.einstellungen.rollen[r]}>
           {(id) => (
             <Textfeld
               id={id}
-              value={modelle[r.schluessel]}
+              value={modelle[r]}
               disabled={deaktiviert}
-              placeholder={STANDARD_MODELLE[r.schluessel]}
+              placeholder={STANDARD_MODELLE[r]}
               spellCheck={false}
               autoComplete="off"
-              onChange={(e) => onChange({ ...modelle, [r.schluessel]: e.target.value })}
+              onChange={(e) => onChange({ ...modelle, [r]: e.target.value })}
             />
           )}
         </Feld>
       ))}
     </div>
+  );
+}
+
+/** Sprache der Oberfläche: gilt sofort, App-Einstellung (nicht im Projekt). */
+export function SprachWahlAbschnitt() {
+  const t = useTexte();
+  const { wahl, system } = useSprachWahl();
+  const optionen: { wert: SprachWahl; label: string }[] = [
+    { wert: 'system', label: f(t.sprache.systemMit, { sprache: t.sprache[system] }) },
+    { wert: 'de', label: t.sprache.de },
+    { wert: 'en', label: t.sprache.en },
+  ];
+  return (
+    <section className="pw-ki-abschnitt" aria-labelledby="einstellungen-sprache">
+      <Abschnittslabel as="h3" id="einstellungen-sprache">
+        {t.sprache.abschnitt}
+      </Abschnittslabel>
+      <Segment label={t.sprache.label} rolle="group" voll groesse="hoch" wert={wahl} onChange={(w) => void setzeSprachWahl(w)} optionen={optionen} />
+      <p className="pw-ki-klein">{t.sprache.erklaerung}</p>
+    </section>
   );
 }
 
@@ -116,6 +135,8 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
   const [schluesselFehler, setSchluesselFehler] = useState<string | null>(null);
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [speicherFehler, setSpeicherFehler] = useState<string | null>(null);
+  const t = useTexte();
+  const T = t.ki.einstellungen;
 
   const anbieter = werte.anbieter;
   const name = ANBIETER_NAME[anbieter];
@@ -157,7 +178,7 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
     try {
       const ersetzt = schluesselStatus === 'vorhanden';
       await schluesselSetzen(neuerSchluessel, anbieter);
-      setSchluesselMeldung(ersetzt ? 'Schlüssel ersetzt.' : 'Schlüssel hinterlegt.');
+      setSchluesselMeldung(ersetzt ? texte().ki.einstellungen.schluesselErsetzt : texte().ki.einstellungen.schluesselHinterlegt);
     } catch (err) {
       setSchluesselFehler(kiFehlerAnzeige(err).text);
     } finally {
@@ -172,7 +193,7 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
     setSchluesselMeldung(null);
     try {
       await schluesselLoeschen(anbieter);
-      setSchluesselMeldung('Schlüssel gelöscht.');
+      setSchluesselMeldung(texte().ki.einstellungen.schluesselGeloescht);
     } catch (err) {
       setSchluesselFehler(kiFehlerAnzeige(err).text);
     } finally {
@@ -182,28 +203,30 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
 
   return (
     <Dialog
-      titel="Einstellungen"
+      titel={T.titel}
       onSchliessen={schliessen}
       breite={600}
       aktionen={
         <>
-          <Button onClick={schliessen}>Abbrechen</Button>
+          <Button onClick={schliessen}>{t.gemeinsam.abbrechen}</Button>
           <Button variante="primaer" onClick={() => void sichern()} disabled={ohneProjekt || !!fehler || !geaendert}>
-            Sichern
+            {t.gemeinsam.sichern}
           </Button>
         </>
       }
     >
+      <SprachWahlAbschnitt />
+
       <section className="pw-ki-abschnitt" aria-labelledby="ki-anbieter">
         <Abschnittslabel as="h3" id="ki-anbieter">
-          KI-Prüfung · Anbieter
+          {T.anbieterAbschnitt}
         </Abschnittslabel>
-        <Segment label="KI-Anbieter" rolle="group" voll groesse="hoch" wert={anbieter} onChange={anbieterWaehlen} optionen={ANBIETER_OPTIONEN} />
-        {ohneProjekt && <p className="pw-ki-klein">Die KI-Einstellungen stehen in projekt.md. Öffne zuerst ein Projekt.</p>}
+        <Segment label={T.anbieterLabel} rolle="group" voll groesse="hoch" wert={anbieter} onChange={anbieterWaehlen} optionen={ANBIETER_OPTIONEN} />
+        {ohneProjekt && <p className="pw-ki-klein">{T.ohneProjekt}</p>}
 
         {anbieter === 'foundry' ? (
           <>
-            <Feld label="Endpoint">
+            <Feld label={T.endpoint}>
               {(id) => (
                 <Textfeld
                   id={id}
@@ -218,14 +241,14 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
               )}
             </Feld>
             <p className="pw-ki-klein" style={fehler ? { color: 'var(--accent-dark)' } : undefined}>
-              {fehler ?? 'Basis-URL aus Foundry, ohne /v1/messages.'}
+              {fehler ?? T.endpointHilfe}
             </p>
             <ModellFelder modelle={werte.deployments} deaktiviert={ohneProjekt} onChange={(deployments) => setWerte({ ...werte, deployments })} />
-            <p className="pw-ki-klein">Eingetragen werden die Deployment-Namen aus Foundry. Region und Hosting sind egal.</p>
+            <p className="pw-ki-klein">{T.foundryModelle}</p>
           </>
         ) : (
           <>
-            <Feld label="Basis-URL">
+            <Feld label={T.basisUrl}>
               {(id) => (
                 <Textfeld
                   id={id}
@@ -240,17 +263,14 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
               )}
             </Feld>
             <p className="pw-ki-klein" style={fehler ? { color: 'var(--accent-dark)' } : undefined}>
-              {fehler ?? `Leer lassen für ${CLAUDE_API_ENDPOINT} (ohne /v1/messages).`}
+              {fehler ?? f(T.basisUrlHilfe, { url: CLAUDE_API_ENDPOINT })}
             </p>
             <ModellFelder
               modelle={werte.claude.modelle}
               deaktiviert={ohneProjekt}
               onChange={(modelle) => setWerte({ ...werte, claude: { ...werte.claude, modelle } })}
             />
-            <p className="pw-ki-klein">
-              Eingetragen werden Modell-IDs der Claude API. Lehnen die Sicherheitsfilter von Sonnet oder Opus 5.5 eine
-              Anfrage ab, antwortet automatisch ein Ersatzmodell von Anthropic (serverseitiger Fallback).
-            </p>
+            <p className="pw-ki-klein">{T.claudeModelle}</p>
           </>
         )}
         {speicherFehler && <div className="pw-ki-hinweis" role="alert">{speicherFehler}</div>}
@@ -258,31 +278,23 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
 
       <section className="pw-ki-abschnitt" aria-labelledby="ki-schluessel">
         <Abschnittslabel as="h3" id="ki-schluessel">
-          API-Schlüssel · {name}
+          {f(T.schluesselAbschnitt, { name })}
         </Abschnittslabel>
         <div className="pw-ki-status" role="status">
           <StrangPunkt farbe={schluesselStatus === 'vorhanden' ? 'var(--real-gesichert)' : 'var(--status-entwurf)'} groesse={8} />
-          {schluesselStatus === 'vorhanden'
-            ? 'Im Schlüsselbund hinterlegt'
-            : schluesselStatus === 'fehlt'
-              ? 'Kein Schlüssel hinterlegt'
-              : 'Status wird geprüft …'}
+          {schluesselStatus === 'vorhanden' ? T.imSchluesselbund : schluesselStatus === 'fehlt' ? T.keinSchluessel : T.statusPruefen}
           {schluesselStatus === 'vorhanden' && (
             <Button variante="text" klein onClick={() => void schluesselEntfernen()} disabled={beschaeftigt} style={{ marginLeft: 'auto' }}>
-              Löschen
+              {t.gemeinsam.loeschen}
             </Button>
           )}
         </div>
         <form className="pw-ki-reihe" onSubmit={(e) => void schluesselHinterlegen(e)}>
           <Textfeld
             type="password"
-            aria-label={schluesselStatus === 'vorhanden' ? 'Neuen Schlüssel eingeben' : 'Schlüssel eingeben'}
+            aria-label={schluesselStatus === 'vorhanden' ? T.neuerSchluessel : T.schluesselEingeben}
             placeholder={
-              schluesselStatus === 'vorhanden'
-                ? 'Neuen Schlüssel einfügen, um ihn zu ersetzen'
-                : anbieter === 'claude'
-                  ? 'API-Schlüssel von Anthropic einfügen'
-                  : 'Schlüssel aus Foundry einfügen'
+              schluesselStatus === 'vorhanden' ? T.platzhalterErsetzen : anbieter === 'claude' ? T.platzhalterClaude : T.platzhalterFoundry
             }
             value={neuerSchluessel}
             autoComplete="off"
@@ -290,22 +302,15 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
             onChange={(e) => setNeuerSchluessel(e.target.value)}
           />
           <Button type="submit" disabled={!neuerSchluessel.trim() || beschaeftigt}>
-            {schluesselStatus === 'vorhanden' ? 'Ersetzen' : 'Hinterlegen'}
+            {schluesselStatus === 'vorhanden' ? T.ersetzen : T.hinterlegen}
           </Button>
         </form>
         {schluesselFehler && <div className="pw-ki-hinweis" role="alert">{schluesselFehler}</div>}
         {schluesselMeldung && <p className="pw-ki-klein" role="status">{schluesselMeldung}</p>}
-        <p className="pw-ki-klein">
-          {backendArt === 'tauri'
-            ? 'Der Schlüssel liegt im macOS-Schlüsselbund, je Anbieter ein eigener Eintrag. Die App zeigt ihn nie an und speichert ihn nicht im Projekt.'
-            : 'Browser-Demo: Der Schlüssel wird nicht gespeichert, die Prüfung nutzt Demo-Antworten ohne Netz.'}
-        </p>
+        <p className="pw-ki-klein">{backendArt === 'tauri' ? T.hinweisTauri : T.hinweisDemo}</p>
       </section>
 
-      <p className="pw-ki-klein">
-        An {name} gehen nur Kapiteltexte und -titel, Namen und Aliase von Figuren und Orten, Gruppennamen,
-        Realitätsebenen und die Planung von Figuren und Kapiteln – nie Wahrheit, Notizen, Anmerkungen oder Ideen.
-      </p>
+      <p className="pw-ki-klein">{f(T.datenschutz, { name })}</p>
     </Dialog>
   );
 }

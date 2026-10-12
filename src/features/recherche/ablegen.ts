@@ -2,6 +2,7 @@
 import type { RechercheEintrag, Verweis } from '@core/model/types';
 import { useStore } from '../../state/store';
 import { titelAusDateiname } from '@core/recherche/index';
+import { sprache, texte } from '../../i18n';
 import { mitteilen } from '../../ui';
 import { ausUebergabe } from './gemeinsam';
 
@@ -18,7 +19,7 @@ export async function ablegen(dt: DataTransfer | null, verweise: Verweis[] = [])
     }
     try {
       const daten = new Uint8Array(await f.arrayBuffer());
-      angelegt.push(await r.speichern({ art: 'bild', titel: titelAusDateiname(f.name), text: '', verweise }, { neueDatei: { name: f.name, daten } }));
+      angelegt.push(await r.speichern({ art: 'bild', titel: titelAusDateiname(f.name, sprache()), text: '', verweise }, { neueDatei: { name: f.name, daten } }));
     } catch (e) {
       fehler.push(`${f.name}: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -32,6 +33,7 @@ export async function ablegen(dt: DataTransfer | null, verweise: Verweis[] = [])
   }
   const letzter = angelegt[angelegt.length - 1];
   if (letzter) r.waehle(letzter.id);
-  if (fehler.length) await mitteilen(fehler.join('\n'), angelegt.length ? 'Nicht alles abgelegt' : 'Nichts abgelegt');
+  const t = texte().recherche.ablegen;
+  if (fehler.length) await mitteilen(fehler.join('\n'), angelegt.length ? t.nichtAlles : t.nichts);
   return angelegt;
 }

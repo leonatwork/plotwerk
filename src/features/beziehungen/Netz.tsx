@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from 'react';
 import type { Index } from '@core/index/index';
 import type { Id, ProjektDaten } from '@core/model/types';
+import { f as fmt, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { klassen } from '../../ui';
 import { KARTE, netzBerechnen, paarSchluessel, type NetzAnsicht, type NetzFilter, type NetzKarte, type NetzPlatzhalter, type Segment } from './logik';
@@ -40,6 +41,7 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
   const beziehungAnlegen = useStore((s) => s.beziehungAnlegen);
   const figurImNetzSetzen = useStore((s) => s.figurImNetzSetzen);
   const gruppeImNetzSetzen = useStore((s) => s.gruppeImNetzSetzen);
+  const tn = useTexte().beziehungen.netz;
 
   // „+ Beziehung“ mit ausgewählter Figur: sie ist die Quelle
   useEffect(() => {
@@ -248,7 +250,7 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
           data-gruppe={f.gruppe.id}
           role="button"
           tabIndex={0}
-          aria-label={`Gruppe ${f.gruppe.name}`}
+          aria-label={fmt(tn.gruppe, { name: f.gruppe.name })}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && waehleImNetz({ typ: 'gruppe', id: f.gruppe.id })}
           onPointerDown={(e) => {
             const r = f.rechteck;
@@ -264,7 +266,7 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
         >
           <span
             className="pw-bz-gruppe__groesse"
-            title="Größe ändern"
+            title={tn.groesseAendern}
             onPointerDown={(e) =>
               starte(e, { art: 'groesse', id: f.gruppe.id, sx: e.clientX, sy: e.clientY, dx: 0, dy: 0, bewegt: false })
             }
@@ -374,7 +376,7 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
           {!verbindenModus && (
             <span
               className="pw-bz-griff"
-              title="Ziehen, um eine Beziehung anzulegen"
+              title={tn.ziehenZumVerbinden}
               onPointerDown={(e) => starte(e, verbindenAb(e, k.figur.id, k.figur.id))}
             />
           )}

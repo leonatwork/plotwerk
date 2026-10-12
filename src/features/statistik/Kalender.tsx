@@ -5,11 +5,14 @@
 import { kalender, tagVerschieben, type KalenderTag } from '@core/statistik';
 import type { Schreibstatistik } from '@core/model/types';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { f, texte, useTexte } from '../../i18n';
 import { klassen } from '../../ui';
-import { tagAnzeige, woerterText, zahl } from './hooks';
+import { datumsFormat, mitZahl, tagAnzeige, woerterText } from './hooks';
 
-const WOCHENTAGE = ['Mo', '', 'Mi', '', 'Fr', '', 'So'];
-const monatKurz = new Intl.DateTimeFormat('de-DE', { month: 'short' });
+/** Zeilenköpfe Mo, Mi, Fr, So (Montag = 1. Januar 2024); die übrigen Zeilen bleiben leer. */
+function wochentage(): string[] {
+  return [0, 1, 2, 3, 4, 5, 6].map((i) => (i % 2 === 0 ? datumsFormat('wochentag').format(new Date(2024, 0, 1 + i)) : ''));
+}
 
 export interface KalenderProps {
   st: Schreibstatistik;
@@ -20,12 +23,17 @@ export interface KalenderProps {
 }
 
 function zellenLabel(t: KalenderTag, heute: string, ziel: number): string {
-  const teile = [t.tag === heute ? `Heute, ${tagAnzeige(t.tag)}` : tagAnzeige(t.tag), t.woerter > 0 ? `${woerterText(t.woerter)} geschrieben` : 'nichts geschrieben'];
-  if (ziel > 0 && t.zielErreicht) teile.push('Tagesziel erreicht');
+  const k = texte().statistik.kalender;
+  const teile = [
+    t.tag === heute ? f(k.heute, { tag: tagAnzeige(t.tag) }) : tagAnzeige(t.tag),
+    t.woerter > 0 ? f(k.geschrieben, { woerter: woerterText(t.woerter) }) : k.nichts,
+  ];
+  if (ziel > 0 && t.zielErreicht) teile.push(k.zielErreicht);
   return teile.join(', ');
 }
 
 export function Kalender({ st, heute, wochen = 53, gewaehlt, onWaehlen }: KalenderProps) {
+  const k = useTexte().statistik.kalender;
   const daten = useMemo(() => kalender(st, heute, wochen), [st, heute, wochen]);
   const erster = daten[0]?.tage[0]?.tag ?? heute;
   const [fokus, setFokus] = useState(gewaehlt);
@@ -67,11 +75,11 @@ export function Kalender({ st, heute, wochen = 53, gewaehlt, onWaehlen }: Kalend
     <div className="pw-st-kalender">
       <div className="pw-st-kalender__wochentage" aria-hidden="true">
         <span />
-        {WOCHENTAGE.map((w, i) => (
+        {wochentage().map((w, i) => (
           <span key={i}>{w}</span>
         ))}
       </div>
-      <div ref={raster} className="pw-st-kalender__raster" role="group" aria-label="Wörter pro Tag, letzte 12 Monate" onKeyDown={bewegen}>
+      <div ref={raster} className="pw-st-kalender__raster" role="group" aria-label={k.raster} onKeyDown={bewegen}>
         {daten.map((w, wi) => {
           const monatsErster = w.tage.find((t) => t.tag.endsWith('-01'));
           const naechsteBeginnt = daten[1]?.tage.some((t) => t.tag.endsWith('-01')) ?? false;
@@ -79,7 +87,7 @@ export function Kalender({ st, heute, wochen = 53, gewaehlt, onWaehlen }: Kalend
           const [j, m] = (zeigeMonat?.tag ?? '').split('-').map(Number);
           return [
             <span key={`m-${w.beginn}`} className="pw-st-kalender__monat" aria-hidden="true">
-              {zeigeMonat && wi < daten.length - 1 ? monatKurz.format(new Date(j!, m! - 1, 1)) : ''}
+              {zeigeMonat && wi < daten.length - 1 ? datumsFormat('monat').format(new Date(j!, m! - 1, 1)) : ''}
             </span>,
             ...w.tage.map((t) =>
               t.zukunft ? (
@@ -93,7 +101,7 @@ export function Kalender({ st, heute, wochen = 53, gewaehlt, onWaehlen }: Kalend
                   className={klassen('pw-st-zelle', t.tag === heute && 'pw-st-zelle--heute')}
                   aria-pressed={t.tag === gewaehlt}
                   aria-label={zellenLabel(t, heute, st.ziel.tagWoerter)}
-                  title={`${tagAnzeige(t.tag)}: ${t.woerter > 0 ? zahl.format(t.woerter) : 'keine'} Wörter`}
+                  title={mitZahl(k.zelle, t.woerter, { tag: tagAnzeige(t.tag) })}
                   tabIndex={t.tag === fokus ? 0 : -1}
                   onClick={() => {
                     setFokus(t.tag);
@@ -111,13 +119,14 @@ export function Kalender({ st, heute, wochen = 53, gewaehlt, onWaehlen }: Kalend
 
 /** Legende „weniger … mehr“ unter dem Kalender. */
 export function KalenderLegende({ ziel }: { ziel: number }) {
+  const k = useTexte().statistik.kalender;
   return (
     <div className="pw-st-legende" aria-hidden="true">
-      <span>{ziel > 0 ? 'unter ½ Ziel' : 'weniger'}</span>
+      <span>{ziel > 0 ? k.unterHalb : k.weniger}</span>
       {[0, 1, 2, 3, 4].map((s) => (
         <span key={s} className="pw-st-zelle" data-stufe={s} />
       ))}
-      <span>{ziel > 0 ? 'ab 1½ × Ziel' : 'mehr'}</span>
+      <span>{ziel > 0 ? k.abAnderthalb : k.mehr}</span>
     </div>
   );
 }

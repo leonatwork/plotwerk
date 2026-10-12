@@ -4,6 +4,7 @@
  * core/docx/markdown (CommonMark) gelesen.
  */
 import { leseMarkdown, type Block, type Lauf } from '../docx/markdown';
+import type { Sprache } from '../i18n';
 
 export type SatzBlock =
   | { art: 'absatz'; laeufe: Lauf[]; /** Erstzeileneinzug (Folgeabsatz, nicht nach Überschrift oder Trenner) */ einzug: boolean }
@@ -14,10 +15,10 @@ function blockLeer(b: Block): boolean {
   return b.art !== 'trenner' && b.laeufe.every((l) => l.text.trim() === '');
 }
 
-function vergleichbar(s: string): string {
+function vergleichbar(s: string, sprache: Sprache): string {
   return s
     .normalize('NFC')
-    .toLocaleLowerCase('de')
+    .toLocaleLowerCase(sprache)
     .replace(/[\s\p{P}]+/gu, ' ')
     .trim();
 }
@@ -37,9 +38,9 @@ function laeufeTrimmen(laeufe: Lauf[]): Lauf[] {
 /**
  * Markdown → Satzblöcke: leere Blöcke entfallen, Trenner am Anfang/Ende und doppelte Trenner entfallen,
  * eine erste Überschrift, die nur den Kapiteltitel wiederholt, entfällt (steht im Kapitelkopf).
- * Einzug für jeden Absatz, der direkt auf einen Absatz folgt.
+ * Einzug für jeden Absatz, der direkt auf einen Absatz folgt. `sprache`: Buchsprache (Vergleich des Titels).
  */
-export function satzBloecke(markdown: string, kapitelTitel = ''): SatzBlock[] {
+export function satzBloecke(markdown: string, kapitelTitel = '', sprache: Sprache = 'de'): SatzBlock[] {
   const ergebnis: SatzBlock[] = [];
   for (const b of leseMarkdown(markdown).filter((x) => !blockLeer(x))) {
     const vorher = ergebnis[ergebnis.length - 1];
@@ -49,7 +50,7 @@ export function satzBloecke(markdown: string, kapitelTitel = ''): SatzBlock[] {
     }
     if (b.art === 'ueberschrift') {
       const text = b.laeufe.map((l) => l.text).join('');
-      if (ergebnis.length === 0 && kapitelTitel && vergleichbar(text) === vergleichbar(kapitelTitel)) continue;
+      if (ergebnis.length === 0 && kapitelTitel && vergleichbar(text, sprache) === vergleichbar(kapitelTitel, sprache)) continue;
       ergebnis.push({ art: 'ueberschrift', ebene: b.ebene, laeufe: laeufeTrimmen(b.laeufe) });
       continue;
     }

@@ -6,6 +6,7 @@
 import { aenderungsBloecke, diffSpalten, type SpaltenTeil } from '@core/statistik';
 import type { DiffTeil } from '@core/versionen/index';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, type ReactNode } from 'react';
+import { useTexte } from '../../i18n';
 import '../statistik/statistik.css';
 
 export interface SpaltenvergleichProps {
@@ -27,23 +28,24 @@ export interface SpaltenvergleichSteuerung {
 type Seite = 'links' | 'rechts';
 
 function Spalte({ teile, leer }: { teile: SpaltenTeil[]; leer?: ReactNode }) {
+  const t = useTexte().versionen.spalten;
   if (leer) return <div className="pw-st-vgl__leer">{leer}</div>;
   return (
     <>
       {teile.length === 0 ? (
         <span className="pw-st-vgl__leer" style={{ padding: 0 }}>
-          (leer)
+          {t.leer}
         </span>
       ) : (
-        teile.map((t, i) =>
-          t.typ === 'gleich' ? (
-            <span key={i} data-anker={t.anker ?? undefined} data-nr={t.nr}>
-              {t.text}
+        teile.map((teil, i) =>
+          teil.typ === 'gleich' ? (
+            <span key={i} data-anker={teil.anker ?? undefined} data-nr={teil.nr}>
+              {teil.text}
             </span>
           ) : (
-            <span key={i} data-nr={t.nr} data-aenderung="" className={t.typ === 'neu' ? 'pw-st-diff--neu' : 'pw-st-diff--entfernt'}>
-              <span className="pw-sr">{t.typ === 'neu' ? '[neu:] ' : '[entfernt:] '}</span>
-              {t.text}
+            <span key={i} data-nr={teil.nr} data-aenderung="" className={teil.typ === 'neu' ? 'pw-st-diff--neu' : 'pw-st-diff--entfernt'}>
+              <span className="pw-sr">{teil.typ === 'neu' ? t.neu : t.entfernt}</span>
+              {teil.text}
             </span>
           ),
         )
@@ -61,6 +63,7 @@ export const Spaltenvergleich = forwardRef<SpaltenvergleichSteuerung, Spaltenver
   { diff, linksTitel, rechtsTitel, linksNeben, rechtsNeben, linksLeer, rechtsLeer },
   ref,
 ) {
+  const t = useTexte().versionen.spalten;
   const spalten = useMemo(() => (diff ? diffSpalten(diff) : { links: [], rechts: [] }), [diff]);
   const bloecke = useMemo(() => (diff ? aenderungsBloecke(diff) : []), [diff]);
   const linksRef = useRef<HTMLDivElement>(null);
@@ -154,21 +157,21 @@ export const Spaltenvergleich = forwardRef<SpaltenvergleichSteuerung, Spaltenver
 
   return (
     <div className="pw-st-vgl__spalten">
-      <section className="pw-st-vgl__spalte" aria-label="Linke Fassung">
+      <section className="pw-st-vgl__spalte" aria-label={t.links}>
         <div className="pw-st-vgl__spaltenkopf">
           <strong>{linksTitel}</strong>
           <span>{linksNeben}</span>
         </div>
-        <div ref={linksRef} className="pw-st-vgl__text" tabIndex={0} onScroll={() => synchronisieren('links')} aria-label="Text der linken Fassung">
+        <div ref={linksRef} className="pw-st-vgl__text" tabIndex={0} onScroll={() => synchronisieren('links')} aria-label={t.linksText}>
           <Spalte teile={spalten.links} leer={linksLeer} />
         </div>
       </section>
-      <section className="pw-st-vgl__spalte" aria-label="Rechte Fassung">
+      <section className="pw-st-vgl__spalte" aria-label={t.rechts}>
         <div className="pw-st-vgl__spaltenkopf">
           <strong>{rechtsTitel}</strong>
           <span>{rechtsNeben}</span>
         </div>
-        <div ref={rechtsRef} className="pw-st-vgl__text" tabIndex={0} onScroll={() => synchronisieren('rechts')} aria-label="Text der rechten Fassung">
+        <div ref={rechtsRef} className="pw-st-vgl__text" tabIndex={0} onScroll={() => synchronisieren('rechts')} aria-label={t.rechtsText}>
           <Spalte teile={spalten.rechts} leer={rechtsLeer} />
         </div>
       </section>

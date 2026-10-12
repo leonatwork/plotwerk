@@ -2,6 +2,7 @@
 import type { Id, Marke, Markenliste, ProjektDaten } from '@core/model/types';
 import { markenId } from '@core/stil/index';
 import { ankerErzeugen } from '@core/text/index';
+import { prozent as prozentText, zahl } from '../../../i18n';
 import { useStore } from '../../../state/store';
 
 export const LEERE_MARKENLISTE: Markenliste = { marken: [], ignoriert: [] };
@@ -56,6 +57,7 @@ export async function markeIgnorieren(name: string): Promise<void> {
   await s.speichereMarken({ ...liste, ignoriert: [...liste.ignoriert, n] });
 }
 
-const zahl = new Intl.NumberFormat('de-DE');
-export const zahlText = (n: number) => zahl.format(n);
-export const prozent = (anteil: number) => `${zahl.format(Math.round(anteil * 1000) / 10)} %`;
+/** Zahl im Format der Oberflächensprache (1.234 / 1,234). */
+export const zahlText = (n: number) => zahl(n);
+/** Anteil 0…1 als Prozent mit einer Nachkommastelle („12,5 %“ / „12.5%“). */
+export const prozent = (anteil: number) => prozentText(anteil, 1);

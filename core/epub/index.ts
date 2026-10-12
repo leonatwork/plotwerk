@@ -11,8 +11,31 @@
  */
 import JSZip from 'jszip';
 import type { Lauf } from '../docx/markdown';
+import { buchSprache, fmt, texteJe, type Sprache } from '../i18n';
 import { satzBloecke, type SatzBlock } from '../satz';
 import type { Id, Kapitel, ProjektAngaben } from '../model/types';
+
+/** Beschriftungen im Buch (Buchsprache aus angaben.sprache). */
+const T = texteJe(
+  {
+    ohneTitel: 'Ohne Titel',
+    szenenwechsel: 'Szenenwechsel',
+    inhalt: 'Inhalt',
+    orientierung: 'Orientierung',
+    titelseite: 'Titelseite',
+    beginn: 'Beginn',
+    kapitel: 'Kapitel {n}',
+  },
+  {
+    ohneTitel: 'Untitled',
+    szenenwechsel: 'Scene break',
+    inhalt: 'Contents',
+    orientierung: 'Guide',
+    titelseite: 'Title page',
+    beginn: 'Start',
+    kapitel: 'Chapter {n}',
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Blöcke (core/satz, gemeinsam mit der Lesevorschau)
@@ -48,10 +71,10 @@ function laeufeXhtml(laeufe: Lauf[]): string {
   return html;
 }
 
-function bloeckeXhtml(bloecke: EpubBlock[]): string {
+function bloeckeXhtml(bloecke: EpubBlock[], buch: Sprache): string {
   return bloecke
     .map((b) => {
-      if (b.art === 'trenner') return '<p class="trenner" role="separator" aria-label="Szenenwechsel">* * *</p>';
+      if (b.art === 'trenner') return `<p class="trenner" role="separator" aria-label="${xml(T(buch).szenenwechsel)}">* * *</p>`;
       if (b.art === 'ueberschrift') return `<h2 class="zwischentitel">${laeufeXhtml(b.laeufe)}</h2>`;
       return b.einzug ? `<p class="e">${laeufeXhtml(b.laeufe)}</p>` : `<p>${laeufeXhtml(b.laeufe)}</p>`;
     })
@@ -162,7 +185,9 @@ export interface EpubDatei {
 /** Alle Dateien des EPUB in Paketreihenfolge (ohne zu packen; für Tests und den Export). */
 export function epubDateien(kapitelEingabe: Kapitel[], buchtitel: string, optionen: EpubOptionen = {}): EpubDatei[] {
   const angaben = optionen.angaben ?? {};
-  const titel = buchtitel.trim() || 'Ohne Titel';
+  const buch = buchSprache(angaben);
+  const t = T(buch);
+  const titel = buchtitel.trim() || t.ohneTitel;
   const autor = angaben.autor?.trim() ?? '';
   const sprache = angaben.sprache?.trim() || 'de';
   const kennung = optionen.kennung ?? `urn:uuid:${stabileUuid(`${titel}\u0000${autor}`)}`;
@@ -172,10 +197,10 @@ export function epubDateien(kapitelEingabe: Kapitel[], buchtitel: string, option
   const kapitel = epubKapitel(kapitelEingabe).map((k, i) => ({
     id: k.id as Id,
     nummer: i + 1,
-    titel: k.titel.trim() || 'Ohne Titel',
+    titel: k.titel.trim() || t.ohneTitel,
     datei: `text/kapitel-${String(i + 1).padStart(3, '0')}.xhtml`,
     manifestId: `kapitel-${i + 1}`,
-    bloecke: epubBloecke(k.text, k.titel),
+    bloecke: epubBloecke(k.text, k.titel, buch),
   }));
 
   const dateien: EpubDatei[] = [];
@@ -254,17 +279,17 @@ export function epubDateien(kapitelEingabe: Kapitel[], buchtitel: string, option
       titel,
       sprache,
       `<nav epub:type="toc" id="toc" role="doc-toc">
-  <h1>Inhalt</h1>
+  <h1>${xml(t.inhalt)}</h1>
   <ol>
       ${navListe || `<li><a href="${titelseite ? 'text/titel.xhtml' : 'nav.xhtml'}">${xml(titel)}</a></li>`}
   </ol>
 </nav>
 <nav epub:type="landmarks" id="landmarks" hidden="hidden">
-  <h2>Orientierung</h2>
+  <h2>${xml(t.orientierung)}</h2>
   <ol>
-    ${titelseite ? '<li><a epub:type="titlepage" href="text/titel.xhtml">Titelseite</a></li>' : ''}
-    ${kapitel.length ? `<li><a epub:type="bodymatter" href="${kapitel[0]!.datei}">Beginn</a></li>` : ''}
-    <li><a epub:type="toc" href="nav.xhtml#toc">Inhalt</a></li>
+    ${titelseite ? `<li><a epub:type="titlepage" href="text/titel.xhtml">${xml(t.titelseite)}</a></li>` : ''}
+    ${kapitel.length ? `<li><a epub:type="bodymatter" href="${kapitel[0]!.datei}">${xml(t.beginn)}</a></li>` : ''}
+    <li><a epub:type="toc" href="nav.xhtml#toc">${xml(t.inhalt)}</a></li>
   </ol>
 </nav>`,
       'nav',
@@ -317,8 +342,8 @@ ${autor ? `<p class="autor">${xml(autor)}</p>` : ''}
         k.titel,
         sprache,
         `<section epub:type="chapter" role="doc-chapter" aria-labelledby="titel-${k.nummer}">
-<header class="kopf"><p class="nummer">Kapitel ${k.nummer}</p><h1 id="titel-${k.nummer}">${xml(k.titel)}</h1></header>
-${bloeckeXhtml(k.bloecke)}
+<header class="kopf"><p class="nummer">${xml(fmt(t.kapitel, { n: k.nummer }))}</p><h1 id="titel-${k.nummer}">${xml(k.titel)}</h1></header>
+${bloeckeXhtml(k.bloecke, buch)}
 </section>`,
         'bodymatter',
       ),

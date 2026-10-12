@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
+import { useTexte } from '../i18n';
 import { useStore } from '../state/store';
 import { klassen } from './klassen';
 
@@ -14,12 +15,13 @@ export interface InspektorProps {
 }
 
 /** Rechte Spalte für das ausgewählte Element. Im Fokus-Modus ausgeblendet. */
-export function Inspektor({ children, breite = 350, hintergrund = 'inspector', label = 'Inspektor', className, style }: InspektorProps) {
+export function Inspektor({ children, breite = 350, hintergrund = 'inspector', label, className, style }: InspektorProps) {
   const fokus = useStore((s) => s.fokusModus);
+  const t = useTexte();
   if (fokus) return null;
   return (
     <aside
-      aria-label={label}
+      aria-label={label ?? t.ui.inspektor.label}
       className={klassen('pw-inspektor', hintergrund === 'weiss' && 'pw-inspektor--weiss', className)}
       style={{ width: breite, flexBasis: breite, ...style }}
     >

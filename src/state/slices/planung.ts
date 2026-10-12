@@ -23,6 +23,7 @@ import type {
   TextAnker,
   Verweis,
 } from '@core/model/types';
+import { f as fmt, texte } from '../../i18n';
 import type { Store } from '../store';
 
 // ---------------------------------------------------------------------------
@@ -120,8 +121,9 @@ export function kurzfassung(daten: ProjektDaten, index: Pick<Index, 'textHashes'
   const z = zusammenfassungFuer(daten, index, kapitel);
   if (z.kurz) return z.kurz;
   const plan = daten.plaene[kapitel];
-  if (!daten.kapitel[kapitel]?.text.trim()) return plan?.szene || erstesSatzstueck(plan?.notiz) || 'Noch leer.';
-  return plan?.szene || erstesSatzstueck(plan?.notiz) || 'Noch nicht geprüft.';
+  const t = texte().state.planung;
+  if (!daten.kapitel[kapitel]?.text.trim()) return plan?.szene || erstesSatzstueck(plan?.notiz) || t.nochLeer;
+  return plan?.szene || erstesSatzstueck(plan?.notiz) || t.nichtGeprueft;
 }
 
 function erstesSatzstueck(s: string | undefined): string {
@@ -179,7 +181,7 @@ export function feldUmbenennen(plan: Record<string, string>, alt: string, neu: s
 
 export function eindeutigerName(wunsch: string, vorhandene: Iterable<string>): string {
   const belegt = new Set(vorhandene);
-  const basis = wunsch.trim() || 'Neues Feld';
+  const basis = wunsch.trim() || texte().state.standard.feld;
   if (!belegt.has(basis)) return basis;
   for (let n = 2; ; n++) if (!belegt.has(`${basis} ${n}`)) return `${basis} ${n}`;
 }
@@ -278,6 +280,12 @@ export function roemisch(n: number): string {
   return s;
 }
 
+/** Planungsfelder einer neuen Figur (Namen in der Sprache der Oberfläche, Werte leer). */
+export function standardPlanfelder(): Record<string, string> {
+  const t = texte().state.standard.figurPlan;
+  return { [t.alter]: '', [t.beruf]: '', [t.aussehen]: '' };
+}
+
 export function leererPlan(id: Id, titel: string, akt: number | null, status: KapitelStatus = 'geplant'): KapitelPlan {
   return { id, titel, akt, status, szene: '', straenge: [], figuren: [], orte: [], notiz: '', abweichungen: [], realitaet: [] };
 }
@@ -369,25 +377,25 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
 
   function daten(): ProjektDaten {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   }
 
   function plan(id: Id): KapitelPlan {
     const p = daten().plaene[id];
-    if (!p) throw new Error(`Kein Plan für Kapitel ${id}`);
+    if (!p) throw new Error(fmt(texte().state.fehler.planFehlt, { id }));
     return p;
   }
 
   function figur(id: Id): Figur {
     const f = daten().figuren[id];
-    if (!f) throw new Error(`Figur ${id} fehlt`);
+    if (!f) throw new Error(fmt(texte().state.fehler.figurFehlt, { id }));
     return f;
   }
 
   function ort(id: Id): Ort {
     const o = daten().orte[id];
-    if (!o) throw new Error(`Ort ${id} fehlt`);
+    if (!o) throw new Error(fmt(texte().state.fehler.ortFehlt, { id }));
     return o;
   }
 
@@ -429,7 +437,7 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
       await Promise.all(aufgaben);
     },
 
-    async kapitelPlanen(akt, titel = 'Neues Kapitel') {
+    async kapitelPlanen(akt, titel = texte().state.standard.kapitel) {
       const d = daten();
       const id = get().neueId(titel, [...d.projekt.kapitel, ...Object.keys(d.kapitel), ...Object.keys(d.plaene)]);
       setze({ ideeAuswahl: null });
@@ -461,7 +469,7 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
 
     async geplantesKapitelEntfernen(id) {
       const k = daten().kapitel[id];
-      if (k?.text.trim()) throw new Error('Kapitel mit Text werden hier nicht gelöscht.');
+      if (k?.text.trim()) throw new Error(texte().state.fehler.kapitelMitText);
       const s = get();
       if (s.auswahl.plan === id) s.waehle({ plan: undefined });
       await s.entferneKapitel(id);
@@ -485,13 +493,13 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
     async aktHinzufuegen() {
       const akte = daten().akte;
       const nummer = akte.reduce((m, a) => Math.max(m, a.nummer), 0) + 1;
-      await get().speichereAkte([...akte, { nummer, titel: `Akt ${roemisch(nummer)}`, quintessenz: '', wendepunkt: '', antagonisten: [] }]);
+      await get().speichereAkte([...akte, { nummer, titel: fmt(texte().state.standard.akt, { nr: roemisch(nummer) }), quintessenz: '', wendepunkt: '', antagonisten: [] }]);
       return nummer;
     },
 
     async aktEntfernen(nummer) {
       const d = daten();
-      if (Object.values(d.plaene).some((p) => p.akt === nummer)) throw new Error('Der Akt enthält noch Kapitel.');
+      if (Object.values(d.plaene).some((p) => p.akt === nummer)) throw new Error(texte().state.fehler.aktNichtLeer);
       await get().speichereAkte(d.akte.filter((a) => a.nummer !== nummer));
     },
 
@@ -504,7 +512,7 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
       await get().speichereGruppe({ ...g, praesenz });
     },
 
-    async ideeAnlegen(titel = 'Neue Idee') {
+    async ideeAnlegen(titel = texte().state.standard.idee) {
       const ideen = daten().ideen;
       const id = get().neueId(titel, ideen.map((i) => i.id));
       setze({ ideeAuswahl: id });
@@ -531,7 +539,7 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
     async ideeEinplanen(ideeId, akt, index = Infinity) {
       const d = daten();
       const idee = d.ideen.find((i) => i.id === ideeId);
-      if (!idee) throw new Error('Idee nicht gefunden');
+      if (!idee) throw new Error(texte().state.fehler.ideeFehlt);
       const id = get().neueId(idee.titel, [...d.projekt.kapitel, ...Object.keys(d.kapitel), ...Object.keys(d.plaene)]);
       const p: KapitelPlan = { ...leererPlan(id, idee.titel, akt), notiz: idee.notiz, straenge: [...idee.straenge] };
       setze({ ideeAuswahl: null });
@@ -616,7 +624,7 @@ export const createPlanungSlice: StateCreator<Store, [], [], PlanungSlice> = (se
         existenz: 'gesichert',
         gruppe: null,
         beziehungen: [],
-        plan: { Alter: '', Beruf: '', Aussehen: '' },
+        plan: standardPlanfelder(),
         wahrheit: '',
         notizen: '',
       };

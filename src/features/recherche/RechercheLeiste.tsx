@@ -11,6 +11,7 @@
 import { useMemo, useState, type DragEvent } from 'react';
 import type { RechercheEintrag, Verweis } from '@core/model/types';
 import { eintraegeFuer, linkHost } from '@core/recherche/index';
+import { f, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { klassen } from '../../ui';
 import { ablegen } from './ablegen';
@@ -30,10 +31,12 @@ export interface RechercheLeisteProps {
 }
 
 function Zeile({ eintrag, geheftet }: { eintrag: RechercheEintrag; geheftet: boolean }) {
+  const t = useTexte();
+  const tl = t.recherche.leiste;
   const zeigen = useStore((s) => s.recherche.zeigen);
   return (
     <li className={klassen('rc-leiste__zeile', !geheftet && 'rc-leiste__zeile--erwaehnt')}>
-      <button type="button" className="rc-leiste__eintrag" onClick={() => zeigen(eintrag.id)} title={`${eintrag.titel} – in der Recherche öffnen`}>
+      <button type="button" className="rc-leiste__eintrag" onClick={() => zeigen(eintrag.id)} title={f(tl.eintragOeffnen, { titel: eintrag.titel })}>
         {eintrag.art === 'bild' ? (
           <RechercheBild pfad={eintrag.datei} alt="" className="rc-leiste__mini" />
         ) : (
@@ -43,11 +46,11 @@ function Zeile({ eintrag, geheftet }: { eintrag: RechercheEintrag; geheftet: boo
         )}
         <span className="rc-leiste__text">
           <span className="rc-leiste__titel">{eintrag.titel}</span>
-          <span className="rc-leiste__neben">{eintrag.art === 'link' ? linkHost(eintrag.url) : geheftet ? '' : 'erwähnt'}</span>
+          <span className="rc-leiste__neben">{eintrag.art === 'link' ? linkHost(eintrag.url) : geheftet ? '' : tl.erwaehnt}</span>
         </span>
       </button>
       {eintrag.art === 'link' && (
-        <button type="button" className="rc-leiste__extern" aria-label={`${eintrag.titel} im Browser öffnen`} title="Im Browser öffnen" onClick={() => void linkOeffnen(eintrag.url)}>
+        <button type="button" className="rc-leiste__extern" aria-label={f(tl.imBrowserLabel, { titel: eintrag.titel })} title={t.recherche.imBrowserOeffnen} onClick={() => void linkOeffnen(eintrag.url)}>
           <IconExtern size={13} />
         </button>
       )}
@@ -55,7 +58,10 @@ function Zeile({ eintrag, geheftet }: { eintrag: RechercheEintrag; geheftet: boo
   );
 }
 
-export function RechercheLeiste({ ziel, titel = 'Recherche', max = 6, ohneKopf, className }: RechercheLeisteProps) {
+export function RechercheLeiste({ ziel, titel: titelProp, max = 6, ohneKopf, className }: RechercheLeisteProps) {
+  const t = useTexte();
+  const tl = t.recherche.leiste;
+  const titel = titelProp ?? t.recherche.titel;
   const daten = useStore((s) => s.daten);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const zeigeBereich = useStore((s) => s.recherche.setzeZiel);
@@ -94,23 +100,23 @@ export function RechercheLeiste({ ziel, titel = 'Recherche', max = 6, ohneKopf, 
             <button
               type="button"
               className="rc-leiste__knopf"
-              title="Alle Einträge zu diesem Ziel in der Recherche zeigen"
+              title={tl.alleTitel}
               onClick={() => {
                 zeigeBereich(ziel);
                 setzeBereich('recherche');
               }}
             >
-              Alle
+              {t.gemeinsam.alle}
             </button>
           )}
-          <button type="button" className="rc-leiste__knopf" onClick={() => oeffneDialog('recherche-eintrag', { verweis: ziel })} aria-label={`${titel}: Eintrag hinzufügen`}>
-            + Hinzufügen
+          <button type="button" className="rc-leiste__knopf" onClick={() => oeffneDialog('recherche-eintrag', { verweis: ziel })} aria-label={f(tl.hinzufuegenLabel, { titel })}>
+            {tl.hinzufuegen}
           </button>
         </div>
       )}
       {liste.length === 0 ? (
         <button type="button" className="rc-leiste__leer" onClick={() => oeffneDialog('recherche-eintrag', { verweis: ziel })}>
-          Bilder, Links oder Notizen hierher ziehen oder hinzufügen
+          {tl.leer}
         </button>
       ) : (
         <ul className="rc-leiste__liste">
@@ -121,7 +127,7 @@ export function RechercheLeiste({ ziel, titel = 'Recherche', max = 6, ohneKopf, 
       )}
       {liste.length > max && (
         <button type="button" className="rc-leiste__mehr" onClick={() => setAlle((a) => !a)}>
-          {alle ? 'Weniger zeigen' : `+ ${liste.length - max} weitere`}
+          {alle ? tl.weniger : f(tl.weitere, { n: liste.length - max })}
         </button>
       )}
     </section>

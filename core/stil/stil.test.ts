@@ -118,3 +118,48 @@ describe('Ausschnitt', () => {
     expect(a.nach.endsWith('…')).toBe(true);
   });
 });
+
+describe('Englische Buchsprache', () => {
+  it('Stammformen: -ing, -ed, -s und Possessiv', () => {
+    expect(['walked', 'walking', 'walks', 'walk'].map((w) => stamm(w, 'en'))).toEqual(['walk', 'walk', 'walk', 'walk']);
+    expect(['smile', 'smiled', 'smiling', 'smiles'].map((w) => stamm(w, 'en'))).toEqual(['smil', 'smil', 'smil', 'smil']);
+    expect(stamm('James’s', 'en')).toBe(stamm('James', 'en'));
+  });
+
+  it('englische Stoppwörter zählen nicht, deutsche Liste gilt nicht', () => {
+    const t = 'There were their gloves. There were their gloves again. The window, the window, the window.';
+    const en = haeufigeWoerter(t, { sprache: 'en' }).map((h) => h.wort);
+    expect(en).toContain('gloves');
+    expect(en).toContain('window');
+    expect(en).not.toContain('There');
+    expect(en).not.toContain('their');
+    // ohne Sprache (Deutsch) gelten englische Funktionswörter als Inhalt
+    expect(haeufigeWoerter(t).map((h) => h.wort)).toContain('There');
+  });
+
+  it('Apostroph-Formen (don’t / don\'t) sind Stoppwörter', () => {
+    const t = 'I don’t know. You don\'t know. They don’t know either.';
+    expect(haeufigeWoerter(t, { sprache: 'en', mindestLaenge: 3 }).map((h) => h.wort)).not.toContain('don’t');
+  });
+
+  it('nahe Wiederholungen mit englischen Wortformen', () => {
+    const t = 'She walked to the door. Then she was walking back, walks again.';
+    const nah = naheWiederholungen(t, { sprache: 'en' });
+    expect(nah).toHaveLength(1);
+    expect(nah[0]!.stamm).toBe('walk');
+    expect(nah[0]!.stellen).toHaveLength(3);
+  });
+
+  it('Satzanfänge und Abkürzungen (Mr., Dr.)', () => {
+    const t = 'He went home. He slept. Mr. Smith called. Dr. Jones waited.';
+    const s = saetze(t, 'en');
+    expect(s.map((x) => x.text)).toEqual(['He went home.', 'He slept.', 'Mr. Smith called.', 'Dr. Jones waited.']);
+    const b = stilBericht(t, { sprache: 'en' });
+    expect(b.satzanfaenge.map((f) => [f.wort, f.saetze])).toEqual([['He', 2]]);
+  });
+
+  it('stellenVon findet englische Wortformen', () => {
+    const t = 'He smiled. Smiling, he left. A smile.';
+    expect(stellenVon(t, 'smil', 'en')).toHaveLength(3);
+  });
+});

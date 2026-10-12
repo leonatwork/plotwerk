@@ -23,6 +23,7 @@ import {
   type ArtFilter,
   type EintragEntwurf,
 } from '@core/recherche/index';
+import { f, sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 
 export type RechercheDarstellung = 'raster' | 'liste';
@@ -111,8 +112,9 @@ export const createRechercheSlice: StateCreator<Store, [], [], RechercheSlice> =
       filterZuruecksetzen: () => setze({ suche: '', art: 'alle', ziel: null, schlagwort: null }),
 
       dateiPruefen(name, groesse) {
-        if (!istBildDatei(name)) return `„${name}“ ist kein Bild (erlaubt: JPG, PNG, GIF, WebP, HEIC, TIFF, SVG …).`;
-        if (groesse > MAX_DATEIGROESSE) return `„${name}“ ist ${groesseText(groesse)} groß – höchstens ${groesseText(MAX_DATEIGROESSE)}.`;
+        const t = texte().state.recherche;
+        if (!istBildDatei(name)) return f(t.keinBild, { name });
+        if (groesse > MAX_DATEIGROESSE) return f(t.zuGross, { name, groesse: groesseText(groesse, sprache()), max: groesseText(MAX_DATEIGROESSE, sprache()) });
         return null;
       },
 
@@ -120,7 +122,7 @@ export const createRechercheSlice: StateCreator<Store, [], [], RechercheSlice> =
         const fehler = get().recherche.dateiPruefen(datei.name, datei.daten.length);
         if (fehler) throw new Error(fehler);
         const fs = get().fs;
-        if (!fs) throw new Error('Kein Projekt geöffnet');
+        if (!fs) throw new Error(texte().state.fehler.keinProjekt);
         const vorhanden = await fs.auflisten(RECHERCHE_ORDNER);
         const pfad = zielDateipfad(datei.name, vorhanden);
         await get().speichereBinaerDatei(pfad, datei.daten);
@@ -134,14 +136,14 @@ export const createRechercheSlice: StateCreator<Store, [], [], RechercheSlice> =
         const r = ablage();
         if (optionen.id) {
           const alt = r.eintraege.find((x) => x.id === optionen.id);
-          if (!alt) throw new Error('Diesen Eintrag gibt es nicht mehr.');
-          const neu = eintragAendern(r, optionen.id, e);
+          if (!alt) throw new Error(texte().state.fehler.eintragFehlt);
+          const neu = eintragAendern(r, optionen.id, e, sprache());
           await get().speichereRecherche(neu);
           if (alt.datei && alt.datei !== e.datei) await dateiFreigeben(verwaisteDatei(neu, alt.datei));
           return neu.eintraege.find((x) => x.id === optionen.id)!;
         }
         const id = get().neueId(standardTitel(e), r.eintraege.map((x) => x.id));
-        const { recherche, eintrag } = eintragAnlegen(r, id, e, new Date());
+        const { recherche, eintrag } = eintragAnlegen(r, id, e, new Date(), sprache());
         await get().speichereRecherche(recherche);
         setze({ gewaehlt: eintrag.id });
         return eintrag;
@@ -162,7 +164,7 @@ export const createRechercheSlice: StateCreator<Store, [], [], RechercheSlice> =
           if (!istBildDatei(datei) || r.eintraege.some((e) => e.datei === datei)) continue;
           const entwurf: EintragEntwurf = { art: 'bild', titel: '', text: '', datei, verweise };
           const id = get().neueId(standardTitel(entwurf), r.eintraege.map((x) => x.id));
-          const erg = eintragAnlegen(r, id, entwurf, jetzt);
+          const erg = eintragAnlegen(r, id, entwurf, jetzt, sprache());
           r = erg.recherche;
           neu.push(erg.eintrag);
         }

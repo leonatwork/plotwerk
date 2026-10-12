@@ -5,7 +5,8 @@ import type { Akt, Id, Idee, ProjektDaten } from '@core/model/types';
 import { useStore } from '../../state/store';
 import { aktiveAbweichungen, type AkteAnsicht } from '../../state/slices/planung';
 import { bestaetigen as rueckfrage, Chip, StrangPunkt } from '../../ui';
-import { EntwurfBereich, EntwurfFeld, strangFarbe, strangGeplant, zahl } from './gemeinsam';
+import { EntwurfBereich, EntwurfFeld, strangFarbe, strangGeplant } from './gemeinsam';
+import { f, useTexte } from '../../i18n';
 
 const kopfZeile: CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--ink-quiet)' };
 
@@ -20,9 +21,9 @@ function besetzung(daten: ProjektDaten, index: Index, id: Id, mitText: boolean):
       const liste = e.zielTyp === 'figur' ? figuren : orte;
       if (!liste.includes(e.ziel)) liste.push(e.ziel);
     }
-  const f = figuren.map((x) => daten.figuren[x]?.name).filter(Boolean).join(', ');
+  const fig = figuren.map((x) => daten.figuren[x]?.name).filter(Boolean).join(', ');
   const o = orte.map((x) => daten.orte[x]?.name).filter(Boolean).join(', ');
-  return [f, o].filter(Boolean).join(' · ');
+  return [fig, o].filter(Boolean).join(' · ');
 }
 
 export function KapitelKarte({
@@ -42,6 +43,7 @@ export function KapitelKarte({
 }) {
   const plan = daten.plaene[id];
   const kapitel = daten.kapitel[id];
+  const t = useTexte();
   if (!plan) return null;
   const mitText = ansicht === 'plantext';
   const status = plan.status;
@@ -49,10 +51,10 @@ export function KapitelKarte({
   const abweichungen = mitText ? aktiveAbweichungen(plan).length : 0;
   const titel = plan.titel || kapitel?.titel || id;
 
-  let kopf = `KAP. ${nummer}`;
-  if (status === 'geplant') kopf += ' · GEPLANT';
-  else if (status === 'entwurf') kopf += ' · ENTWURF';
-  if (mitText && status !== 'geplant' && woerter !== undefined) kopf += ` · ${zahl(woerter)} W.`;
+  let kopf = f(t.akte.karte.kap, { nr: nummer });
+  if (status === 'geplant') kopf += ` · ${t.akte.karte.geplant}`;
+  else if (status === 'entwurf') kopf += ` · ${t.akte.karte.entwurf}`;
+  if (mitText && status !== 'geplant' && woerter !== undefined) kopf += ` · ${f(t.akte.karte.woerter, { n: woerter })}`;
 
   const zeile = mitText && status === 'geplant' && !kapitel?.text.trim() ? '' : besetzung(daten, index, id, mitText);
   const szene = !mitText && plan.szene ? plan.szene : '';
@@ -94,11 +96,11 @@ export function KapitelKarte({
       {zeile ? (
         <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{zeile}</span>
       ) : (
-        status === 'geplant' && mitText && <span style={{ fontSize: 12, color: 'var(--ink-quiet)' }}>noch kein Text</span>
+        status === 'geplant' && mitText && <span style={{ fontSize: 12, color: 'var(--ink-quiet)' }}>{t.akte.karte.nochKeinText}</span>
       )}
       {abweichungen > 0 && (
         <span className="pl-etikett" style={{ alignSelf: 'flex-start', background: 'var(--chip-accent)', color: 'var(--accent-dark)' }}>
-          {abweichungen} {abweichungen === 1 ? 'Abweichung' : 'Abweichungen'} vom Plan
+          {f(t.akte.karte.abweichungen, { n: abweichungen })}
         </span>
       )}
     </div>
@@ -106,6 +108,7 @@ export function KapitelKarte({
 }
 
 export function IdeeKarte({ idee, gewaehlt, daten }: { idee: Idee; gewaehlt: boolean; daten: ProjektDaten }) {
+  const t = useTexte();
   return (
     <div
       style={{
@@ -121,7 +124,7 @@ export function IdeeKarte({ idee, gewaehlt, daten }: { idee: Idee; gewaehlt: boo
         gap: 6,
       }}
     >
-      <span>{idee.titel || 'Neue Idee'}</span>
+      <span>{idee.titel || t.akte.karte.neueIdee}</span>
       {idee.straenge.length > 0 && (
         <span style={{ display: 'flex', gap: 3 }}>
           {idee.straenge.map((sid) => {
@@ -154,12 +157,14 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
   const aktEntfernen = useStore((s) => s.planung.aktEntfernen);
   const praesenzSetzen = useStore((s) => s.planung.praesenzSetzen);
   const antagonisten = Object.values(daten.gruppen).filter((g) => g.typ === 'antagonist');
+  const t = useTexte();
+  const tk = t.akte.aktKopf;
 
   const label = (
     <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--accent-dark)' }}>
-      <span>QUINTESSENZ</span>
+      <span>{tk.quintessenzLabel}</span>
       <button type="button" className="pl-kopfkarte__bearbeiten" onClick={() => setBearbeiten((b) => !b)} aria-expanded={bearbeiten}>
-        {bearbeiten ? 'Fertig' : 'bearbeiten'}
+        {bearbeiten ? t.gemeinsam.fertig : tk.bearbeiten}
       </button>
     </span>
   );
@@ -176,16 +181,16 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
 
   if (!bearbeiten)
     return (
-      <div className="pl-kopfkarte" style={rahmen} onDoubleClick={() => setBearbeiten(true)} title="Doppelklick zum Bearbeiten">
+      <div className="pl-kopfkarte" style={rahmen} onDoubleClick={() => setBearbeiten(true)} title={tk.doppelklick}>
         {label}
         <span style={{ fontFamily: 'var(--schrift-titel)', fontSize: 18, lineHeight: 1.2, color: akt.quintessenz ? undefined : 'var(--ink-quiet)' }}>
-          {akt.quintessenz || 'Noch keine Quintessenz'}
+          {akt.quintessenz || tk.keineQuintessenz}
         </span>
         <span style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--ink-soft)' }}>
-          <b>Wendepunkt:</b> {akt.wendepunkt || 'offen'}
+          <b>{tk.wendepunkt}</b> {akt.wendepunkt || tk.offen}
         </span>
         <span style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--ink-soft)' }}>
-          <b>Antagonist:</b> {antagonistenText(akt, daten)}
+          <b>{tk.antagonist}</b> {antagonistenText(akt, daten)}
         </span>
       </div>
     );
@@ -195,7 +200,7 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
     <div style={rahmen}>
       {label}
       <label style={feldLabel} htmlFor={`akt-titel-${akt.nummer}`}>
-        Titel des Akts
+        {tk.titelDesAkts}
       </label>
       <EntwurfFeld
         id={`akt-titel-${akt.nummer}`}
@@ -205,7 +210,7 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
         onSpeichern={(titel) => void aktAendern(akt.nummer, { titel })}
       />
       <label style={feldLabel} htmlFor={`akt-q-${akt.nummer}`}>
-        Quintessenz
+        {tk.quintessenz}
       </label>
       <EntwurfBereich
         id={`akt-q-${akt.nummer}`}
@@ -215,11 +220,11 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
         rows={2}
         style={{ fontFamily: 'var(--schrift-titel)', fontSize: 18, lineHeight: 1.2, padding: '4px 6px' }}
         wert={akt.quintessenz}
-        placeholder="Worum geht es in diesem Akt?"
+        placeholder={tk.quintessenzPlatzhalter}
         onSpeichern={(quintessenz) => void aktAendern(akt.nummer, { quintessenz })}
       />
       <label style={feldLabel} htmlFor={`akt-w-${akt.nummer}`}>
-        Wendepunkt zum nächsten Akt
+        {tk.wendepunktLabel}
       </label>
       <EntwurfBereich
         id={`akt-w-${akt.nummer}`}
@@ -230,9 +235,9 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
         wert={akt.wendepunkt}
         onSpeichern={(wendepunkt) => void aktAendern(akt.nummer, { wendepunkt })}
       />
-      <span style={feldLabel}>Aktive Antagonisten</span>
+      <span style={feldLabel}>{tk.aktiveAntagonisten}</span>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {antagonisten.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink-quiet)' }}>Keine Antagonisten-Gruppen angelegt</span>}
+        {antagonisten.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink-quiet)' }}>{tk.keineAntagonisten}</span>}
         {antagonisten.map((g) => {
           const aktiv = akt.antagonisten.includes(g.id);
           const strang = daten.straenge.find((s) => s.id === g.strang);
@@ -249,7 +254,7 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
               }
             >
               {g.name}
-              {g.status === 'geplant' && <span style={{ fontSize: 10, color: 'var(--ink-quiet)', fontWeight: 400 }}>geplant</span>}
+              {g.status === 'geplant' && <span style={{ fontSize: 10, color: 'var(--ink-quiet)', fontWeight: 400 }}>{tk.geplant}</span>}
             </Chip>
           );
         })}
@@ -260,13 +265,13 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
         return (
           <div key={gid} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={feldLabel} htmlFor={`akt-p-${akt.nummer}-${gid}`}>
-              {g.name} in diesem Akt
+              {f(tk.inDiesemAkt, { name: g.name })}
             </label>
             <EntwurfFeld
               id={`akt-p-${akt.nummer}-${gid}`}
               className="pl-eingabe"
               style={{ height: 28, fontSize: 12 }}
-              placeholder="z. B. setzt die Frist"
+              placeholder={tk.praesenzPlatzhalter}
               wert={g.praesenz[akt.nummer] ?? ''}
               onSpeichern={(text) => void praesenzSetzen(gid, akt.nummer, text)}
             />
@@ -279,10 +284,10 @@ export function AktKopf({ akt, daten, leer }: { akt: Akt; daten: ProjektDaten; l
           className="pl-link"
           style={{ alignSelf: 'flex-start', marginTop: 4 }}
           onClick={async () => {
-            if (await rueckfrage(`${akt.titel} entfernen?`, { knopf: 'Entfernen' })) void aktEntfernen(akt.nummer);
+            if (await rueckfrage(f(tk.entfernenFrage, { titel: akt.titel }), { knopf: t.gemeinsam.entfernen })) void aktEntfernen(akt.nummer);
           }}
         >
-          Leeren Akt entfernen
+          {tk.leerenEntfernen}
         </button>
       )}
     </div>

@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import type { ErwaehnungsVorschlag } from '@core/ki/index';
 import type { Id, Verweis } from '@core/model/types';
+import { f, texte, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button } from '../../ui';
 import './ki.css';
@@ -31,6 +32,8 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
   const [arbeitet, setArbeitet] = useState<string | null>(null);
   const [meldung, setMeldung] = useState<{ text: string; ziel?: Verweis } | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const t = useTexte();
+  const T = t.ki.vorschlaege;
 
   const liste = eintrag?.liste ?? [];
   const laedt = eintrag?.laedt ?? false;
@@ -50,7 +53,8 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
         const ziel = await anlegen(v);
         const aktuell = useStore.getState().daten;
         const name = zielName(ziel, { figuren: aktuell?.figuren, orte: aktuell?.orte });
-        setMeldung({ text: `${ziel.typ === 'ort' ? 'Ort' : 'Figur'} „${name}“ angelegt.`, ziel });
+        const vorlagen = texte().ki.vorschlaege;
+        setMeldung({ text: f(ziel.typ === 'ort' ? vorlagen.ortAngelegt : vorlagen.figurAngelegt, { name }), ziel });
       } else {
         await entscheiden(v, was);
       }
@@ -64,27 +68,25 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
   return (
     <section className="pw-ki-vorschlaege" aria-labelledby={`ki-vorschlaege-${kapitel}`}>
       <div className="pw-ki-vorschlaege__kopf">
-        <Abschnittslabel id={`ki-vorschlaege-${kapitel}`}>KI-Vorschläge</Abschnittslabel>
+        <Abschnittslabel id={`ki-vorschlaege-${kapitel}`}>{T.titel}</Abschnittslabel>
         <Button klein onClick={() => void holen(kapitel)} disabled={laedt || !hatText}>
-          {laedt ? 'Liest …' : eintrag?.geholt ? 'Erneut holen' : 'Vorschläge holen'}
+          {laedt ? T.liest : eintrag?.geholt ? T.erneut : T.holen}
         </Button>
       </div>
 
-      {!eintrag?.geholt && !laedt && !eintrag?.fehler && (
-        <p className="pw-ki-klein">
-          {hatText
-            ? 'Indirekte Erwähnungen und unbekannte Namen, etwa „der Hafenmeister“ oder »Fiete«. Du entscheidest pro Stelle.'
-            : 'Das Kapitel hat noch keinen Text.'}
+      {!eintrag?.geholt && !laedt && !eintrag?.fehler && <p className="pw-ki-klein">{hatText ? T.erklaerung : T.ohneText}</p>}
+      {laedt && (
+        <p className="pw-ki-klein" aria-live="polite">
+          {T.haikuLiest}
         </p>
       )}
-      {laedt && <p className="pw-ki-klein" aria-live="polite">Haiku liest das Kapitel …</p>}
 
       {eintrag?.fehler && (
         <div className="pw-ki-hinweis" role="alert">
           <span>{eintrag.fehler.text}</span>
           {eintrag.fehler.art === 'nicht_bereit' && (
             <Button klein onClick={() => oeffneDialog('ki-einstellungen')}>
-              Einstellungen
+              {T.einstellungen}
             </Button>
           )}
         </div>
@@ -104,13 +106,13 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
               style={{ height: 'auto', padding: 0 }}
               onClick={() => meldung.ziel && oeffne(meldung.ziel.typ === 'ort' ? 'orte' : 'figuren', meldung.ziel.typ === 'ort' ? { ort: meldung.ziel.id } : { figur: meldung.ziel.id })}
             >
-              Öffnen
+              {t.gemeinsam.oeffnen}
             </Button>
           )}
         </p>
       )}
 
-      {eintrag?.geholt && !laedt && liste.length === 0 && !eintrag.fehler && <p className="pw-ki-klein">Keine offenen Vorschläge.</p>}
+      {eintrag?.geholt && !laedt && liste.length === 0 && !eintrag.fehler && <p className="pw-ki-klein">{T.keine}</p>}
 
       {liste.length > 0 && (
         <ul className="pw-ki-vorschlaege__liste">
@@ -123,7 +125,7 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
                   <button
                     type="button"
                     className="pw-ki-vorschlag__stelle"
-                    title="Stelle im Text zeigen"
+                    title={T.stelleZeigen}
                     onClick={() => markiere({ kapitel: v.anker.kapitel, anker: v.anker })}
                   >
                     {v.text}
@@ -132,22 +134,22 @@ export function ErwaehnungsVorschlaege({ kapitel }: ErwaehnungsVorschlaegeProps)
                   {v.ziel ? (
                     <span className="pw-ki-vorschlag__ziel">{zielName(v.ziel)}</span>
                   ) : (
-                    <span className="pw-ki-vorschlag__ziel pw-ki-vorschlag__ziel--neu">{v.zielTyp === 'ort' ? 'unbekannter Ort' : 'unbekannte Figur'}</span>
+                    <span className="pw-ki-vorschlag__ziel pw-ki-vorschlag__ziel--neu">{v.zielTyp === 'ort' ? T.unbekannterOrt : T.unbekannteFigur}</span>
                   )}
                 </div>
                 {v.begruendung && <p className="pw-ki-klein">{v.begruendung}</p>}
                 <div className="pw-ki-vorschlag__knoepfe">
                   {v.ziel ? (
                     <Button klein onClick={() => void aktion(v, 'bestaetigt')} disabled={beschaeftigt}>
-                      Bestätigen
+                      {T.bestaetigen}
                     </Button>
                   ) : (
                     <Button klein onClick={() => void aktion(v, 'anlegen')} disabled={beschaeftigt}>
-                      {v.zielTyp === 'ort' ? 'Ort anlegen' : 'Figur anlegen'}
+                      {v.zielTyp === 'ort' ? T.ortAnlegen : T.figurAnlegen}
                     </Button>
                   )}
                   <Button klein variante="leise" onClick={() => void aktion(v, 'verworfen')} disabled={beschaeftigt}>
-                    Verwerfen
+                    {T.verwerfen}
                   </Button>
                 </div>
               </li>

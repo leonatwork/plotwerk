@@ -2,6 +2,7 @@
 import type { BenannteFassung } from '@core/model/types';
 import { AKTUELL, fassungenSortiert, fassungsKapitel, fassungsQuelle } from '@core/statistik';
 import { useState } from 'react';
+import { f as fmt, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, bestaetigen, Button, Feld, LeerZustand, mitteilen, Textbereich, Textfeld } from '../../ui';
 import { kapitelAnzeige } from '../schreiben/verweise';
@@ -16,20 +17,18 @@ function FassungEintrag({ f }: { f: BenannteFassung }) {
   const [notiz, setNotiz] = useState(f.notiz ?? '');
   const [laeuft, setLaeuft] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
+  const tt = useTexte();
+  const t = tt.statistik.fassungen;
   if (!daten) return null;
   const kapitel = fassungsKapitel(f);
   const nurEins = kapitel.length === 1 ? kapitel[0]! : null;
-  const umfang = nurEins
-    ? daten.kapitel[nurEins] || daten.plaene[nurEins]
-      ? kapitelAnzeige(daten, nurEins)
-      : '1 Kapitel'
-    : `${kapitel.length} Kapitel`;
+  const umfang = nurEins && (daten.kapitel[nurEins] || daten.plaene[nurEins]) ? kapitelAnzeige(daten, nurEins) : fmt(t.kapitelAnzahl, { n: kapitel.length });
 
-  const ausfuehren = async (f: () => Promise<void>) => {
+  const ausfuehren = async (aktion: () => Promise<void>) => {
     setLaeuft(true);
     setFehler(null);
     try {
-      await f();
+      await aktion();
     } catch (e) {
       setFehler(e instanceof Error ? e.message : String(e));
     } finally {
@@ -39,27 +38,22 @@ function FassungEintrag({ f }: { f: BenannteFassung }) {
 
   const wiederherstellen = () =>
     ausfuehren(async () => {
-      const ok = await bestaetigen(
-        `Den Text von ${kapitel.length === 1 ? 'diesem Kapitel' : `${kapitel.length} Kapiteln`} auf „${f.name}“ zurücksetzen? Der aktuelle Text wird vorher als Version gesichert und bleibt im Versionsverlauf.`,
-        { titel: 'Fassung wiederherstellen', knopf: 'Wiederherstellen' },
-      );
+      const ok = await bestaetigen(fmt(t.wiederherstellenFrage, { n: kapitel.length, name: f.name }), {
+        titel: t.wiederherstellenTitel,
+        knopf: t.wiederherstellenKnopf,
+      });
       if (!ok) return;
       const e = await st.fassungWiederherstellen(f.id);
       const teile = [
-        e.wiederhergestellt.length === 0
-          ? 'Der Text entspricht bereits dieser Fassung.'
-          : `${e.wiederhergestellt.length === 1 ? '1 Kapitel' : `${e.wiederhergestellt.length} Kapitel`} wiederhergestellt.`,
+        e.wiederhergestellt.length === 0 ? t.schonGleich : fmt(t.wiederhergestellt, { n: e.wiederhergestellt.length }),
         ...e.uebersprungen.map((u) => `${daten.kapitel[u.id] || daten.plaene[u.id] ? kapitelAnzeige(daten, u.id) : u.id}: ${u.grund}`),
       ];
-      await mitteilen(teile.join(' '), 'Fassung wiederhergestellt');
+      await mitteilen(teile.join(' '), t.wiederhergestelltTitel);
     });
 
   const entfernen = () =>
     ausfuehren(async () => {
-      const ok = await bestaetigen(
-        `„${f.name}“ aus der Liste entfernen? Die Schnappschüsse bleiben im Versionsverlauf der Kapitel, werden aber wieder normal aufgeräumt.`,
-        { titel: 'Fassung entfernen', knopf: 'Entfernen' },
-      );
+      const ok = await bestaetigen(fmt(t.entfernenFrage, { name: f.name }), { titel: t.entfernenTitel, knopf: tt.gemeinsam.entfernen });
       if (ok) await st.fassungEntfernen(f.id);
     });
 
@@ -74,16 +68,16 @@ function FassungEintrag({ f }: { f: BenannteFassung }) {
       {!bearbeiten && (
         <div className="pw-st-fassung__aktionen">
           <Button klein disabled={laeuft} onClick={() => oeffneDialog('versionsvergleich', { links: fassungsQuelle(f.id), rechts: AKTUELL, kapitel: kapitel[0] })}>
-            Mit aktuellem Text vergleichen
+            {t.mitAktuellem}
           </Button>
           <Button klein disabled={laeuft} onClick={() => setBearbeiten(true)}>
-            Bearbeiten
+            {tt.gemeinsam.bearbeiten}
           </Button>
           <Button klein disabled={laeuft} onClick={wiederherstellen}>
-            Wiederherstellen …
+            {t.wiederherstellen}
           </Button>
           <Button klein variante="leise" disabled={laeuft} onClick={entfernen}>
-            Entfernen
+            {tt.gemeinsam.entfernen}
           </Button>
         </div>
       )}
@@ -107,8 +101,8 @@ function FassungEintrag({ f }: { f: BenannteFassung }) {
             }
           }}
         >
-          <Feld label="Name">{(id) => <Textfeld id={id} value={name} autoFocus onChange={(e) => setName(e.target.value)} />}</Feld>
-          <Feld label="Notiz">{(id) => <Textbereich id={id} rows={2} value={notiz} onChange={(e) => setNotiz(e.target.value)} />}</Feld>
+          <Feld label={t.name}>{(id) => <Textfeld id={id} value={name} autoFocus onChange={(e) => setName(e.target.value)} />}</Feld>
+          <Feld label={t.notiz}>{(id) => <Textbereich id={id} rows={2} value={notiz} onChange={(e) => setNotiz(e.target.value)} />}</Feld>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Button
               klein
@@ -118,10 +112,10 @@ function FassungEintrag({ f }: { f: BenannteFassung }) {
                 setBearbeiten(false);
               }}
             >
-              Abbrechen
+              {tt.gemeinsam.abbrechen}
             </Button>
             <Button klein variante="primaer" type="submit" disabled={!name.trim() || laeuft}>
-              Sichern
+              {tt.gemeinsam.sichern}
             </Button>
           </div>
         </form>
@@ -135,18 +129,20 @@ export function Fassungen() {
   const liste = useStore((s) => s.daten?.fassungen);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const sortiert = fassungenSortiert(liste ?? []);
+  const tt = useTexte().statistik;
+  const t = tt.fassungen;
 
   if (sortiert.length === 0) {
     return (
       <LeerZustand
-        titel="Noch keine benannten Fassungen"
+        titel={t.leerTitel}
         aktionen={
           <Button variante="primaer" onClick={() => oeffneDialog('fassung')}>
-            Fassung sichern …
+            {tt.ansicht.sichern}
           </Button>
         }
       >
-        Sichere einen Stand unter einem Namen, z. B. „Fassung vor Lektorat“. Benannte Fassungen werden nie automatisch aufgeräumt und lassen sich jederzeit mit dem aktuellen Text vergleichen.
+        {t.leerText}
       </LeerZustand>
     );
   }
@@ -155,7 +151,7 @@ export function Fassungen() {
     <section className="pw-st-panel" aria-labelledby="pw-st-fassungen-titel">
       <div className="pw-st-panel__kopf">
         <Abschnittslabel id="pw-st-fassungen-titel" as="h2">
-          {sortiert.length === 1 ? '1 benannte Fassung' : `${sortiert.length} benannte Fassungen`}
+          {fmt(t.anzahl, { n: sortiert.length })}
         </Abschnittslabel>
         {sortiert.length > 1 && (
           <Button
@@ -163,7 +159,7 @@ export function Fassungen() {
             klein
             onClick={() => oeffneDialog('versionsvergleich', { links: fassungsQuelle(sortiert[1]!.id), rechts: fassungsQuelle(sortiert[0]!.id) })}
           >
-            Zwei Fassungen vergleichen
+            {t.zweiVergleichen}
           </Button>
         )}
       </div>

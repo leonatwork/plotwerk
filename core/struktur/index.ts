@@ -8,8 +8,49 @@
  * - Leere Überschrift im Markdown („#“ ohne Text) → Zitat = die letzten Wörter davor (sonst die ersten danach).
  * - Kapitel ohne Titel → Zitat = die ersten Wörter des Kapitels.
  */
+import { fmt, texteJe, type Sprache } from '../i18n';
 import type { Hinweis, Id, ProjektDaten, Zitat } from '../model/types';
 import { absaetze, bloecke, zitatSchluessel } from '../text';
+
+/** Titel und Erklärungen in der Oberflächensprache; die Schlüssel hängen nie von der Sprache ab. */
+const T = texteJe(
+  {
+    nr: 'Kap. {n}',
+    ohneText: '{nr} ohne Text',
+    ohneTextErklaerung: 'Das Kapitel »{titel}« ist angelegt, hat aber noch keinen Text.',
+    ohneTitel: '{nr} ohne Überschrift',
+    ohneTitelErklaerung: 'Das Kapitel hat keinen Titel.',
+    satzende: '{nr} endet mitten im Satz',
+    satzendeErklaerung: 'Der letzte Satz von »{titel}« hat kein Satzzeichen am Ende: »… {zitat}«.',
+    leerzeichen: 'Doppelte Leerzeichen in {nr}',
+    leerzeichenErklaerung: {
+      one: 'An einer Stelle stehen mehrere Leerzeichen hintereinander.',
+      other: 'An {n} Stellen stehen mehrere Leerzeichen hintereinander.',
+    },
+    leereUeberschriftEnde: 'Leere Überschrift am Ende von {nr}',
+    leereUeberschrift: 'Leere Überschrift in {nr}',
+    leereUeberschriftEndeErklaerung: 'Am Ende des Kapitels steht eine Überschrift ohne Text (etwa aus dem Word-Import).',
+    leereUeberschriftErklaerung: 'Im Kapitel steht eine Überschrift ohne Text (etwa aus dem Word-Import).',
+  },
+  {
+    nr: 'Ch. {n}',
+    ohneText: '{nr} has no text',
+    ohneTextErklaerung: 'The chapter “{titel}” exists but has no text yet.',
+    ohneTitel: '{nr} has no heading',
+    ohneTitelErklaerung: 'The chapter has no title.',
+    satzende: '{nr} ends mid-sentence',
+    satzendeErklaerung: 'The last sentence of “{titel}” has no closing punctuation: “… {zitat}”.',
+    leerzeichen: 'Double spaces in {nr}',
+    leerzeichenErklaerung: {
+      one: 'In one place there are several spaces in a row.',
+      other: 'In {n} places there are several spaces in a row.',
+    },
+    leereUeberschriftEnde: 'Empty heading at the end of {nr}',
+    leereUeberschrift: 'Empty heading in {nr}',
+    leereUeberschriftEndeErklaerung: 'The chapter ends with a heading that has no text (for example from a Word import).',
+    leereUeberschriftErklaerung: 'The chapter contains a heading without text (for example from a Word import).',
+  },
+);
 
 const SATZENDE = /[.!?…»«“”„’‘"')\]–—›‹]$/u;
 const KLAUSELENDE = /[,;:–—.!?…]["“”»«’‘)]*$/u;
@@ -51,11 +92,12 @@ function kapitelReihenfolge(daten: ProjektDaten): Id[] {
   return reihe;
 }
 
-export function strukturHinweise(daten: ProjektDaten): Hinweis[] {
+export function strukturHinweise(daten: ProjektDaten, sprache: Sprache = 'de'): Hinweis[] {
+  const t = T(sprache);
   const ergebnis: Hinweis[] = [];
   const reihe = kapitelReihenfolge(daten);
   reihe.forEach((id, i) => {
-    const nr = `Kap. ${i + 1}`;
+    const nr = fmt(t.nr, { n: i + 1 });
     const kapitel = daten.kapitel?.[id];
     const titel = kapitel?.titel ?? daten.plaene?.[id]?.titel ?? id;
     const markdown = kapitel?.text ?? '';
@@ -63,14 +105,14 @@ export function strukturHinweise(daten: ProjektDaten): Hinweis[] {
 
     if (!abs.length) {
       ergebnis.push(
-        hinweis('ohne-text', id, `${nr} ohne Text`, `Das Kapitel »${titel || id}« ist angelegt, hat aber noch keinen Text.`, []),
+        hinweis('ohne-text', id, fmt(t.ohneText, { nr }), fmt(t.ohneTextErklaerung, { titel: titel || id }), []),
       );
       return;
     }
 
     if (kapitel && !kapitel.titel.trim())
       ergebnis.push(
-        hinweis('ohne-titel', id, `${nr} ohne Überschrift`, 'Das Kapitel hat keinen Titel.', [{ kapitel: id, text: ersteWoerter(abs[0]!.text) }]),
+        hinweis('ohne-titel', id, fmt(t.ohneTitel, { nr }), t.ohneTitelErklaerung, [{ kapitel: id, text: ersteWoerter(abs[0]!.text) }]),
       );
 
     // Satzende: nur wenn der letzte Block ein Absatz ist (nicht Überschrift, Szenentrenner, Code)
@@ -82,8 +124,8 @@ export function strukturHinweise(daten: ProjektDaten): Hinweis[] {
         hinweis(
           'satzende',
           id,
-          `${nr} endet mitten im Satz`,
-          `Der letzte Satz von »${titel}« hat kein Satzzeichen am Ende: »… ${zitat}«.`,
+          fmt(t.satzende, { nr }),
+          fmt(t.satzendeErklaerung, { titel, zitat }),
           [{ kapitel: id, text: zitat }],
         ),
       );
@@ -104,8 +146,8 @@ export function strukturHinweise(daten: ProjektDaten): Hinweis[] {
         hinweis(
           'leerzeichen',
           id,
-          `Doppelte Leerzeichen in ${nr}`,
-          anzahl === 1 ? 'An einer Stelle stehen mehrere Leerzeichen hintereinander.' : `An ${anzahl} Stellen stehen mehrere Leerzeichen hintereinander.`,
+          fmt(t.leerzeichen, { nr }),
+          fmt(t.leerzeichenErklaerung, { n: anzahl }, sprache),
           stellen,
         ),
       );
@@ -128,10 +170,8 @@ export function strukturHinweise(daten: ProjektDaten): Hinweis[] {
         hinweis(
           `ueberschrift-${leere}`,
           id,
-          amEnde ? `Leere Überschrift am Ende von ${nr}` : `Leere Überschrift in ${nr}`,
-          amEnde
-            ? 'Am Ende des Kapitels steht eine Überschrift ohne Text (etwa aus dem Word-Import).'
-            : 'Im Kapitel steht eine Überschrift ohne Text (etwa aus dem Word-Import).',
+          fmt(amEnde ? t.leereUeberschriftEnde : t.leereUeberschrift, { nr }),
+          amEnde ? t.leereUeberschriftEndeErklaerung : t.leereUeberschriftErklaerung,
           zitate,
         ),
       );

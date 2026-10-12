@@ -232,14 +232,14 @@ describe('ExportDialog', () => {
 describe('Word-Kommentare beim Übernehmen', () => {
   const ergebnis = {
     kapitel: [
-      { titel: 'Eins', text: 'Paul öffnet die Schwip Schwap mit dem Ring.' },
+      { titel: 'Eins', text: 'Paul öffnet die Schwip Schwap mit dem Bleistift.' },
       { titel: 'Zwei', text: '' },
     ],
     hinweise: [],
     vorspann: '',
     kommentare: [
-      { kapitel: 0, ueberschrift: false, autor: 'Leon Machnik', datum: '2024-01-22T00:14:00Z', text: 'Bleistift-Motiv.', erledigt: false, antworten: [], anker: { kapitel: '#1', exakt: 'Schwip Schwap', davor: 'Paul öffnet die ', danach: ' mit dem Ring.' } },
-      { kapitel: 0, ueberschrift: true, autor: 'Leon Machnik', datum: '2024-01-22T00:15:00Z', text: 'Straffen?', erledigt: false, antworten: [], anker: { kapitel: '#1', exakt: 'Paul öffnet die Schwip Schwap mit', davor: '', danach: ' dem Ring.' } },
+      { kapitel: 0, ueberschrift: false, autor: 'Leon Machnik', datum: '2024-01-22T00:14:00Z', text: 'Bleistift-Motiv.', erledigt: false, antworten: [], anker: { kapitel: '#1', exakt: 'Schwip Schwap', davor: 'Paul öffnet die ', danach: ' mit dem Bleistift.' } },
+      { kapitel: 0, ueberschrift: true, autor: 'Leon Machnik', datum: '2024-01-22T00:15:00Z', text: 'Straffen?', erledigt: false, antworten: [], anker: { kapitel: '#1', exakt: 'Paul öffnet die Schwip Schwap mit', davor: '', danach: ' dem Bleistift.' } },
       { kapitel: 1, ueberschrift: true, autor: 'Leon Machnik', datum: '2024-01-22T00:16:00Z', text: 'Szene am Pool?', erledigt: false, antworten: [], anker: null },
     ],
   };

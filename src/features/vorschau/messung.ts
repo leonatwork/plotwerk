@@ -5,6 +5,7 @@
  * überlaufenden Spalten nach rechts. Spalte k liegt bei x = k · (Breite + Abstand). Gemessen wird in
  * einem unsichtbaren Element mit denselben Klassen und Maßen wie die Anzeige.
  */
+import { aktuelleBuchSprache } from '../../i18n/buch';
 import type { Fluss } from './geometrie';
 import { spaltenTakt } from './geometrie';
 
@@ -180,6 +181,8 @@ export interface MessAuftrag {
   kapitel: { id: string; html: string; hash: string }[];
   /** zusätzliche Klasse des Messelements (Modus) */
   klasse: string;
+  /** Buchsprache für die Silbentrennung (lang); Standard: aus dem Projekt */
+  sprache?: string;
 }
 
 const cache = new Map<string, number>();
@@ -213,7 +216,7 @@ export function vermessen(host: HTMLElement, auftrag: MessAuftrag, melden: (erge
   }
   const el = document.createElement('div');
   el.className = `pw-v-fluss ${auftrag.klasse}`;
-  el.setAttribute('lang', 'de');
+  el.setAttribute('lang', auftrag.sprache ?? aktuelleBuchSprache());
   el.setAttribute('aria-hidden', 'true');
   stilSetzen(el, auftrag.fluss);
   host.appendChild(el);

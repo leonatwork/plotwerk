@@ -5,10 +5,69 @@
  * eine Barnacht nicht auf zwei Tage zerfällt. Tag 1 ist der erste Tag der Handlung, 0 und negative Tage
  * sind Rückblenden.
  */
+import type { Sprache } from '../i18n';
 import type { Tageszeit, Wochentag, Zeitleiste, Zeitpunkt, ZeitSicherheit } from '../model/types';
 import { TAGESZEITEN, WOCHENTAGE } from '../projekt/lesen';
 
 export { TAGESZEITEN, WOCHENTAGE };
+
+// Die Konstanten unten bleiben deutsch (bestehende Aufrufer); für die Oberflächensprache die Funktionen
+// wochentagName(), wochentagKurz(), tageszeitName(), sicherheitName(), sicherheitErklaerung(), relativeAngaben().
+
+const WOCHENTAG_NAME_EN: Record<Wochentag, string> = {
+  montag: 'Monday',
+  dienstag: 'Tuesday',
+  mittwoch: 'Wednesday',
+  donnerstag: 'Thursday',
+  freitag: 'Friday',
+  samstag: 'Saturday',
+  sonntag: 'Sunday',
+};
+
+const WOCHENTAG_KURZ_EN: Record<Wochentag, string> = {
+  montag: 'Mon',
+  dienstag: 'Tue',
+  mittwoch: 'Wed',
+  donnerstag: 'Thu',
+  freitag: 'Fri',
+  samstag: 'Sat',
+  sonntag: 'Sun',
+};
+
+const TAGESZEIT_NAME_EN: Record<Tageszeit, string> = {
+  frueh: 'early morning',
+  morgens: 'morning',
+  vormittags: 'late morning',
+  mittags: 'midday',
+  nachmittags: 'afternoon',
+  abends: 'evening',
+  nachts: 'night',
+};
+
+/** Tageszeit als Umstandsangabe im Satz („spielt an Tag 3 abends“ / “on Day 3 in the evening”). */
+const TAGESZEIT_ADVERB_EN: Record<Tageszeit, string> = {
+  frueh: 'early in the morning',
+  morgens: 'in the morning',
+  vormittags: 'in the late morning',
+  mittags: 'at midday',
+  nachmittags: 'in the afternoon',
+  abends: 'in the evening',
+  nachts: 'at night',
+};
+
+const SICHERHEIT_NAME_EN: Record<ZeitSicherheit, string> = {
+  fest: 'confirmed',
+  ungefaehr: 'vague',
+  unklar: 'open',
+};
+
+const SICHERHEIT_ERKLAERUNG_EN: Record<ZeitSicherheit, string> = {
+  fest: 'Supported by the text or set by you',
+  ungefaehr: 'Inferred, approximate',
+  unklar: 'Placeholder, still open',
+};
+
+const MONATE_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
 export const WOCHENTAG_NAME: Record<Wochentag, string> = {
   montag: 'Montag',
@@ -74,6 +133,34 @@ export const SICHERHEIT_ERKLAERUNG: Record<ZeitSicherheit, string> = {
   ungefaehr: 'Erschlossen, ungefähr',
   unklar: 'Platzhalter, noch offen',
 };
+
+/** Wochentag in der Sprache („Montag“ / “Monday”). */
+export function wochentagName(w: Wochentag, sprache: Sprache = 'de'): string {
+  return (sprache === 'en' ? WOCHENTAG_NAME_EN : WOCHENTAG_NAME)[w];
+}
+
+/** Wochentag kurz („Mo“ / “Mon”). */
+export function wochentagKurz(w: Wochentag, sprache: Sprache = 'de'): string {
+  return (sprache === 'en' ? WOCHENTAG_KURZ_EN : WOCHENTAG_KURZ)[w];
+}
+
+/** Tageszeit als Beschriftung („abends“ / “evening”). */
+export function tageszeitName(t: Tageszeit, sprache: Sprache = 'de'): string {
+  return (sprache === 'en' ? TAGESZEIT_NAME_EN : TAGESZEIT_NAME)[t];
+}
+
+/** Tageszeit im Satz („abends“ / “in the evening”). */
+export function tageszeitImSatz(t: Tageszeit, sprache: Sprache = 'de'): string {
+  return (sprache === 'en' ? TAGESZEIT_ADVERB_EN : TAGESZEIT_NAME)[t];
+}
+
+export function sicherheitName(s: ZeitSicherheit, sprache: Sprache = 'de'): string {
+  return (sprache === 'en' ? SICHERHEIT_NAME_EN : SICHERHEIT_NAME)[s];
+}
+
+export function sicherheitErklaerung(s: ZeitSicherheit, sprache: Sprache = 'de'): string {
+  return (sprache === 'en' ? SICHERHEIT_ERKLAERUNG_EN : SICHERHEIT_ERKLAERUNG)[s];
+}
 
 /** Token-Namen (ohne „--“) wie bei der Realitätsebene */
 export const SICHERHEIT_FARBE: Record<ZeitSicherheit, string> = {
@@ -217,10 +304,15 @@ export function tageZwischen(a: string, b: string): number | null {
   return Math.round((tb - ta) / 86_400_000);
 }
 
-/** „2026-03-12“ → „12.03.2026“ */
-export function formatiereDatum(iso: string): string {
+/** „2026-03-12“ → „12.03.2026“ bzw. “March 12, 2026” */
+export function formatiereDatum(iso: string, sprache: Sprache = 'de'): string {
   const m = DATUM.exec(iso.trim());
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
+  if (!m) return iso;
+  if (sprache === 'en') {
+    const monat = MONATE_EN[Number(m[2]) - 1];
+    return monat ? `${monat} ${Number(m[3])}, ${m[1]}` : iso;
+  }
+  return `${m[3]}.${m[2]}.${m[1]}`;
 }
 
 export interface Beginn {
@@ -271,34 +363,41 @@ export function erwartetesDatum(z: Zeitpunkt, beginn: Beginn): string | undefine
 // Beschriftung
 // ---------------------------------------------------------------------------
 
-export function tagName(tag: number): string {
-  if (tag >= 1) return `Tag ${tag}`;
-  if (tag === 0) return 'Tag 0 · vor Beginn';
-  return `Tag ${tag} · Rückblende`;
+/** „Tag 3“ / “Day 3” (Handlungstag) */
+export function tagKurz(tag: number, sprache: Sprache = 'de'): string {
+  return `${sprache === 'en' ? 'Day' : 'Tag'} ${tag}`;
+}
+
+export function tagName(tag: number, sprache: Sprache = 'de'): string {
+  const en = sprache === 'en';
+  if (tag >= 1) return tagKurz(tag, sprache);
+  if (tag === 0) return en ? 'Day 0 · before the start' : 'Tag 0 · vor Beginn';
+  return `${tagKurz(tag, sprache)} · ${en ? 'flashback' : 'Rückblende'}`;
 }
 
 /** „Tag 8 · Mo · nachts · 23:00“ – leere Angaben fallen weg. */
-export function zeitText(z: Zeitpunkt | undefined, beginn: Beginn = {}, optionen: { kurz?: boolean } = {}): string {
-  if (!z) return 'Zeitpunkt offen';
+export function zeitText(z: Zeitpunkt | undefined, beginn: Beginn = {}, optionen: { kurz?: boolean } = {}, sprache: Sprache = 'de'): string {
+  const offen = sprache === 'en' ? 'Time open' : 'Zeitpunkt offen';
+  if (!z) return offen;
   const teile: string[] = [];
   const t = effektiverTag(z, beginn);
-  if (t) teile.push(t.tag >= 1 ? `Tag ${t.tag}` : t.tag === 0 ? 'Tag 0' : `Tag ${t.tag}`);
+  if (t) teile.push(tagKurz(t.tag, sprache));
   const w = z.wochentag ?? erwarteterWochentag(z, beginn);
-  if (w) teile.push(optionen.kurz ? WOCHENTAG_KURZ[w] : WOCHENTAG_NAME[w]);
-  if (z.datum && !optionen.kurz) teile.push(formatiereDatum(z.datum));
-  if (z.tageszeit) teile.push(TAGESZEIT_NAME[z.tageszeit]);
+  if (w) teile.push(optionen.kurz ? wochentagKurz(w, sprache) : wochentagName(w, sprache));
+  if (z.datum && !optionen.kurz) teile.push(formatiereDatum(z.datum, sprache));
+  if (z.tageszeit) teile.push(tageszeitName(z.tageszeit, sprache));
   const u = parseUhrzeit(z.uhrzeit);
   if (u !== null) teile.push(formatiereUhrzeit(u));
   else if (z.uhrzeit) teile.push(z.uhrzeit);
-  return teile.length ? teile.join(' · ') : 'Zeitpunkt offen';
+  return teile.length ? teile.join(' · ') : offen;
 }
 
 /** Tageszeit/Uhrzeit als kurze Beschriftung über einer Karte */
-export function tageszeitText(z: Zeitpunkt | undefined): string {
+export function tageszeitText(z: Zeitpunkt | undefined, sprache: Sprache = 'de'): string {
   if (!z) return '';
   const u = parseUhrzeit(z.uhrzeit);
-  if (u !== null) return z.tageszeit ? `${TAGESZEIT_NAME[z.tageszeit]} · ${formatiereUhrzeit(u)}` : formatiereUhrzeit(u);
-  return z.tageszeit ? TAGESZEIT_NAME[z.tageszeit] : '';
+  if (u !== null) return z.tageszeit ? `${tageszeitName(z.tageszeit, sprache)} · ${formatiereUhrzeit(u)}` : formatiereUhrzeit(u);
+  return z.tageszeit ? tageszeitName(z.tageszeit, sprache) : '';
 }
 
 export function dauerText(minuten: number): string {
@@ -352,6 +451,19 @@ export const RELATIVE_ANGABEN: { art: RelativeAngabe; label: string }[] = [
   { art: 'naechster-tag', label: 'am nächsten Tag' },
   { art: 'spaeter', label: 'Tage später …' },
 ];
+
+const RELATIVE_ANGABEN_EN: { art: RelativeAngabe; label: string }[] = [
+  { art: 'gleicher-tag', label: 'the same day' },
+  { art: 'naechster-morgen', label: 'the next morning' },
+  { art: 'naechster-abend', label: 'the next evening' },
+  { art: 'naechster-tag', label: 'the next day' },
+  { art: 'spaeter', label: 'days later …' },
+];
+
+/** RELATIVE_ANGABEN in der Sprache. */
+export function relativeAngaben(sprache: Sprache = 'de'): { art: RelativeAngabe; label: string }[] {
+  return sprache === 'en' ? RELATIVE_ANGABEN_EN : RELATIVE_ANGABEN;
+}
 
 /**
  * Zeitangaben relativ zum vorigen Zeitpunkt („am nächsten Morgen“). `tage` nur bei „spaeter“.

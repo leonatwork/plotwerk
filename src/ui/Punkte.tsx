@@ -6,7 +6,7 @@ export interface StrangPunktProps {
   farbe: string;
   /** Durchmesser, Standard 8 (Karten); 10 in Legenden/Plan-Panel */
   groesse?: number;
-  /** nur Ring (geplanter Strang, z. B. Organisation) */
+  /** nur Ring (geplanter Strang, z. B. Konsortium) */
   geplant?: boolean;
   title?: string;
   style?: CSSProperties;

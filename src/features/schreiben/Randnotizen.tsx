@@ -7,6 +7,7 @@ import type { Anmerkung, Id, ProjektDaten, TextAnker, Verweis } from '@core/mode
 import type { Editor } from '@tiptap/react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useStore } from '../../state/store';
+import { datum, f, useTexte, vergleich } from '../../i18n';
 import { Abschnittslabel, Avatar, Button, klassen } from '../../ui';
 import { notizBereiche } from './dekorationen';
 import { VerweisFeld, VerweisText } from './VerweisFeld';
@@ -47,30 +48,31 @@ function gleich(a: Record<string, number>, b: Record<string, number>): boolean {
 }
 
 function ZielAuswahl({ daten, kapitelId, wert, onChange }: { daten: ProjektDaten; kapitelId: Id; wert: Verweis | null; onChange(v: Verweis | null): void }) {
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, 'de') : a.rolle === 'haupt' ? -1 : 1));
-  const orte = Object.values(daten.orte).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const T = useTexte().schreiben.notizen;
+  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const orte = Object.values(daten.orte).sort((a, b) => vergleich(a.name, b.name));
   const kopf = notizKopf(daten, wert, kapitelId, true);
   return (
     <>
       <span>{kopf.praefix}</span>
-      <select aria-label="Notiz heften an" value={verweisSchluessel(wert)} onChange={(e) => onChange(schluesselVerweis(e.target.value))}>
-        <optgroup label="Figuren">
+      <select aria-label={T.hefteLabel} value={verweisSchluessel(wert)} onChange={(e) => onChange(schluesselVerweis(e.target.value))}>
+        <optgroup label={T.figuren}>
           {figuren.map((f) => (
             <option key={f.id} value={`figur:${f.id}`}>
               {f.name}
             </option>
           ))}
         </optgroup>
-        <optgroup label="Orte">
+        <optgroup label={T.orte}>
           {orte.map((o) => (
             <option key={o.id} value={`ort:${o.id}`}>
               {o.name}
             </option>
           ))}
         </optgroup>
-        <optgroup label="Dieses Kapitel">
-          <option value={`kapitel:${kapitelId}`}>Kapitel</option>
-          <option value={`plan:${kapitelId}`}>Plan-Karte</option>
+        <optgroup label={T.diesesKapitel}>
+          <option value={`kapitel:${kapitelId}`}>{T.kapitel}</option>
+          <option value={`plan:${kapitelId}`}>{T.planKarte}</option>
         </optgroup>
       </select>
     </>
@@ -88,6 +90,8 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
   const anmerkungAnlegen = useStore((s) => s.anmerkungAnlegen);
   const anmerkungAendern = useStore((s) => s.anmerkungAendern);
   const anmerkungEntfernen = useStore((s) => s.anmerkungEntfernen);
+  const t = useTexte();
+  const T = t.schreiben.notizen;
 
   const [wunsch, setWunsch] = useState<Record<Id, number>>({});
   const [lage, setLage] = useState<Record<Id, number>>({});
@@ -195,13 +199,13 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
   return (
     <>
       {verwaiste.length > 0 && !schmal && (
-        <div ref={sammelRef} className="pw-s-sammelbox" role="region" aria-label="Notizen ohne Stelle">
-          <Abschnittslabel>Stelle nicht mehr gefunden</Abschnittslabel>
+        <div ref={sammelRef} className="pw-s-sammelbox" role="region" aria-label={T.ohneStelleLabel}>
+          <Abschnittslabel>{T.nichtGefunden}</Abschnittslabel>
           {verwaiste.map((a) => {
             const kopf = notizKopf(daten, a.ziel, kapitelId);
             return (
               <div key={a.id} className="pw-s-sammelbox__eintrag">
-                <span className="pw-s-sammelbox__zitat">„{a.anker.exakt}“</span>
+                <span className="pw-s-sammelbox__zitat">{f(t.schreiben.zitat, { text: a.anker.exakt })}</span>
                 <span className="pw-s-notizkarte__text">
                   <strong>{`${kopf.praefix} ${kopf.name}`.trim()}:</strong> <VerweisText text={a.notiz} />
                 </span>
@@ -213,10 +217,10 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
                     style={{ paddingLeft: 0 }}
                     onClick={() => void anmerkungEntfernen(a.id)}
                   >
-                    Löschen
+                    {t.gemeinsam.loeschen}
                   </Button>
-                  <Button klein disabled={!hatAuswahl} title={hatAuswahl ? undefined : 'Erst eine Textstelle markieren'} onClick={() => neuVerankern(a.id)}>
-                    An Markierung heften
+                  <Button klein disabled={!hatAuswahl} title={hatAuswahl ? undefined : T.erstMarkieren} onClick={() => neuVerankern(a.id)}>
+                    {T.anheften}
                   </Button>
                 </div>
               </div>
@@ -270,15 +274,15 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
                 `${kopf.praefix} ${kopf.name}`.trim()
               )}
               {!inBearbeitung && a.quelle === 'word' && (
-                <span className="pw-s-notizkarte__herkunft" title={[a.autor, a.erstellt ? new Date(a.erstellt).toLocaleDateString('de-DE') : ''].filter(Boolean).join(' · ')}>
-                  aus Word
+                <span className="pw-s-notizkarte__herkunft" title={[a.autor, a.erstellt ? datum(a.erstellt, { day: '2-digit', month: '2-digit', year: 'numeric' }) : ''].filter(Boolean).join(' · ')}>
+                  {T.ausWord}
                 </span>
               )}
             </span>
             {inBearbeitung ? (
               <>
                 <VerweisFeld
-                  label="Notiz"
+                  label={T.notiz}
                   wert={bearbeiten!.notiz}
                   kontext={bearbeiten!.ziel}
                   autoFocus
@@ -295,13 +299,13 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
                 />
                 <div className="pw-s-notizkarte__aktionen">
                   <Button klein variante="text" className="pw-s-notizkarte__loeschen" style={{ paddingLeft: 0 }} onClick={() => void anmerkungEntfernen(a.id)}>
-                    Löschen
+                    {t.gemeinsam.loeschen}
                   </Button>
                   <Button klein onClick={() => setBearbeiten(null)}>
-                    Abbrechen
+                    {t.gemeinsam.abbrechen}
                   </Button>
                   <Button klein variante="primaer" onClick={() => void speichernBearbeitung()}>
-                    Speichern
+                    {t.gemeinsam.speichern}
                   </Button>
                 </div>
               </>
@@ -321,7 +325,7 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
                         setBearbeiten({ id: a.id, notiz: a.notiz, ziel: a.ziel });
                       }}
                     >
-                      Bearbeiten
+                      {t.gemeinsam.bearbeiten}
                     </Button>
                   </div>
                 )}
@@ -349,11 +353,11 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
             <ZielAuswahl daten={daten} kapitelId={kapitelId} wert={entwurf.ziel} onChange={(ziel) => setEntwurf({ ...entwurf, ziel })} />
           </span>
           <VerweisFeld
-            label="Notiz"
+            label={T.notiz}
             wert={entwurf.notiz}
             kontext={entwurf.ziel}
             autoFocus
-            placeholder="Notiz … ([[ für Verweise)"
+            placeholder={T.platzhalter}
             onChange={(notiz) => setEntwurf({ ...entwurf, notiz })}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -374,10 +378,10 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
                 editor.commands.focus();
               }}
             >
-              Abbrechen
+              {t.gemeinsam.abbrechen}
             </Button>
             <Button klein variante="primaer" disabled={!entwurf.notiz.trim()} onClick={() => void speichernEntwurf()}>
-              Speichern
+              {t.gemeinsam.speichern}
             </Button>
           </div>
         </div>

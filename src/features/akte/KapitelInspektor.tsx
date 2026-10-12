@@ -7,6 +7,7 @@ import { kurzfassung } from '../../state/slices/planung';
 import { bestaetigen as rueckfrage, Button, Chip, Inspektor } from '../../ui';
 import { AngehefteteNotizen, AuswahlMenue, EntfernbarerChip, EntwurfBereich, EntwurfFeld, strangFarbe, strangGeplant, strangKurzname } from './gemeinsam';
 import { VerweisText } from '../schreiben/VerweisFeld';
+import { datum, f, useTexte, vergleich, woerterbuch } from '../../i18n';
 
 const kopfLabel: CSSProperties = { fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--accent-dark)' };
 const feldLabel: CSSProperties = { fontSize: 12, color: 'var(--ink-quiet)' };
@@ -49,13 +50,13 @@ const primaer: CSSProperties = {
   cursor: 'pointer',
 };
 
-const ENTSCHEIDUNG_TEXT: Record<AbweichungsEntscheidung, string> = {
-  plan_anpassen: 'Plan anpassen',
-  alternative: 'Als Alternative merken',
-  spaeter: 'Später entscheiden',
-};
+const ENTSCHEIDUNGEN: AbweichungsEntscheidung[] = ['plan_anpassen', 'alternative', 'spaeter'];
+
+/** Standardtitel neuer Ideen (der Store legt sie an); in beiden Sprachen erkennen. */
+const istNeueIdee = (titel: string) => titel === woerterbuch('de').akte.karte.neueIdee || titel === woerterbuch('en').akte.karte.neueIdee;
 
 function StrangWahl({ gewaehlt, daten, onChange }: { gewaehlt: Id[]; daten: ProjektDaten; onChange(ids: Id[]): void }) {
+  const t = useTexte();
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 12 }}>
       {daten.straenge.map((s) => {
@@ -76,20 +77,21 @@ function StrangWahl({ gewaehlt, daten, onChange }: { gewaehlt: Id[]; daten: Proj
           </Chip>
         );
       })}
-      {daten.straenge.length === 0 && <span style={feldLabel}>Keine Stränge angelegt (plan/straenge.md)</span>}
+      {daten.straenge.length === 0 && <span style={feldLabel}>{t.akte.inspektor.keineStraenge}</span>}
     </div>
   );
 }
 
-function Nachbar({ richtung, id, daten, index }: { richtung: 'Davor' | 'Danach'; id: Id | undefined; daten: ProjektDaten; index: Index }) {
+function Nachbar({ richtung, id, daten, index }: { richtung: string; id: Id | undefined; daten: ProjektDaten; index: Index }) {
   const oeffne = useStore((s) => s.waehle);
+  const t = useTexte();
   if (!id) return <span>{richtung}: –</span>;
   const nr = daten.projekt.kapitel.indexOf(id) + 1;
   return (
     <span>
       {richtung}:{' '}
       <button type="button" className="pl-link" style={{ fontSize: 12, color: 'inherit' }} onClick={() => oeffne({ plan: id })}>
-        Kap. {nr}
+        {f(t.gemeinsam.kapitelKurz, { nr })}
       </button>
       , {kurzfassung(daten, index, id)}
     </span>
@@ -98,10 +100,12 @@ function Nachbar({ richtung, id, daten, index }: { richtung: 'Davor' | 'Danach';
 
 function Abweichungen({ plan }: { plan: KapitelPlan }) {
   const entscheiden = useStore((s) => s.planung.abweichungEntscheiden);
+  const t = useTexte();
+  const ta = t.akte.abweichung;
   if (plan.abweichungen.length === 0) return null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <span style={kopfLabel}>{plan.abweichungen.length === 1 ? 'ABWEICHUNG VOM PLAN' : 'ABWEICHUNGEN VOM PLAN'}</span>
+      <span style={kopfLabel}>{f(ta.kopf, { n: plan.abweichungen.length })}</span>
       {plan.abweichungen.map((a) => (
         <div
           key={a.id}
@@ -117,15 +121,15 @@ function Abweichungen({ plan }: { plan: KapitelPlan }) {
             lineHeight: 1.45,
           }}
         >
-          <span>{a.notiz ? <VerweisText text={a.notiz} /> : 'Ohne Notiz'}</span>
+          <span>{a.notiz ? <VerweisText text={a.notiz} /> : ta.ohneNotiz}</span>
           {a.alterPlan && a.alterPlan !== a.notiz && (
             <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>
-              <b>Alter Plan:</b> <VerweisText text={a.alterPlan} />
+              <b>{ta.alterPlan}</b> <VerweisText text={a.alterPlan} />
             </span>
           )}
-          <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{new Date(a.datum).toLocaleDateString('de-DE')}</span>
-          <div role="group" aria-label="Was passiert mit dem Plan?" style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {(Object.keys(ENTSCHEIDUNG_TEXT) as AbweichungsEntscheidung[]).map((e) => (
+          <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{datum(new Date(a.datum), { day: 'numeric', month: 'numeric', year: 'numeric' })}</span>
+          <div role="group" aria-label={ta.gruppe} style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {ENTSCHEIDUNGEN.map((e) => (
               <button
                 key={e}
                 type="button"
@@ -135,13 +139,13 @@ function Abweichungen({ plan }: { plan: KapitelPlan }) {
                   if (e === a.entscheidung) return;
                   if (
                     e === 'plan_anpassen' &&
-                    !(await rueckfrage('Die Notiz der Abweichung wird zum neuen Plan, der alte bleibt hier sichtbar.', { titel: 'Plan an den Text anpassen?', knopf: 'Plan anpassen' }))
+                    !(await rueckfrage(ta.frage, { titel: ta.frageTitel, knopf: ta.frageKnopf }))
                   )
                     return;
                   void entscheiden(plan.id, a.id, e);
                 }}
               >
-                {ENTSCHEIDUNG_TEXT[e]}
+                {ta.entscheidung[e]}
               </button>
             ))}
           </div>
@@ -160,6 +164,8 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
   const figurAnlegen = useStore((s) => s.planung.figurAnlegen);
   const ortAnlegen = useStore((s) => s.planung.ortAnlegen);
   const uid = useId();
+  const t = useTexte();
+  const ti = t.akte.inspektor;
   if (!plan) return null;
   const nr = daten.projekt.kapitel.indexOf(id) + 1;
   const hatText = !!daten.kapitel[id]?.text.trim();
@@ -167,57 +173,55 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
   const reihenfolge = daten.projekt.kapitel;
   const pos = reihenfolge.indexOf(id);
   const speichern = (teil: Partial<KapitelPlan>) => void aendern(id, teil);
-  const statusText = plan.status === 'geplant' ? 'GEPLANT' : plan.status === 'entwurf' ? 'ENTWURF' : 'GESCHRIEBEN';
+  const statusText = ti.status[plan.status];
 
   return (
-    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label="Kapitel planen">
-      <span style={kopfLabel}>
-        KAPITEL {nr} · {statusText}
-      </span>
+    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={t.akte.ansicht.kapitelPlanen}>
+      <span style={kopfLabel}>{f(ti.kopf, { nr, status: statusText })}</span>
       <label htmlFor={`${uid}-titel`} style={feldLabel}>
-        Titel
+        {ti.titel}
       </label>
       <EntwurfFeld key={`${id}-titel`} id={`${uid}-titel`} style={titelFeld} wert={plan.titel} onSpeichern={(titel) => titel.trim() && speichern({ titel: titel.trim() })} />
       <label htmlFor={`${uid}-szene`} style={feldLabel}>
-        Geplante Szene
+        {ti.geplanteSzene}
       </label>
       <EntwurfFeld
         key={`${id}-szene`}
         id={`${uid}-szene`}
         className="pl-eingabe"
         style={{ marginTop: -8 }}
-        placeholder="z. B. Paul trifft Lotte am Lindenhof"
+        placeholder={ti.szenePlatzhalter}
         wert={plan.szene}
         onSpeichern={(szene) => speichern({ szene })}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={feldLabel}>Strang</span>
+        <span style={feldLabel}>{ti.strang}</span>
         <StrangWahl gewaehlt={plan.straenge} daten={daten} onChange={(straenge) => speichern({ straenge })} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={feldLabel}>Figuren</span>
+        <span style={feldLabel}>{ti.figuren}</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {plan.figuren.map((f) => (
+          {plan.figuren.map((fid) => (
             <EntfernbarerChip
-              key={f}
-              title="Figurenkarte öffnen"
-              onClick={() => oeffne('figuren', { figur: f })}
-              onEntfernen={() => speichern({ figuren: plan.figuren.filter((x) => x !== f) })}
+              key={fid}
+              title={ti.figurOeffnen}
+              onClick={() => oeffne('figuren', { figur: fid })}
+              onEntfernen={() => speichern({ figuren: plan.figuren.filter((x) => x !== fid) })}
             >
-              {daten.figuren[f]?.name ?? f}
+              {daten.figuren[fid]?.name ?? fid}
             </EntfernbarerChip>
           ))}
           <AuswahlMenue
-            knopf="+ Figur"
+            knopf={ti.plusFigur}
             optionen={Object.values(daten.figuren)
-              .filter((f) => !plan.figuren.includes(f.id))
-              .sort((a, b) => a.name.localeCompare(b.name, 'de'))
-              .map((f) => ({ wert: f.id, label: f.name, suche: f.aliase.join(' ') }))}
-            onWaehle={(f) => speichern({ figuren: [...plan.figuren, f] })}
+              .filter((x) => !plan.figuren.includes(x.id))
+              .sort((a, b) => vergleich(a.name, b.name))
+              .map((x) => ({ wert: x.id, label: x.name, suche: x.aliase.join(' ') }))}
+            onWaehle={(fid) => speichern({ figuren: [...plan.figuren, fid] })}
             zusatz={{
-              label: (suche) => (suche ? `+ Figur „${suche}“ anlegen` : '+ Neue Figur anlegen'),
+              label: (suche) => (suche ? f(ti.figurAnlegen, { name: suche }) : ti.neueFigurAnlegen),
               onClick: (suche) => {
-                const name = suche.trim() || 'Neue Figur';
+                const name = suche.trim() || ti.neueFigur;
                 void figurAnlegen(name).then((neu) => aendern(id, { figuren: [...(useStore.getState().daten?.plaene[id]?.figuren ?? []), neu] }));
               },
             }}
@@ -225,13 +229,13 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={feldLabel}>Ort</span>
+        <span style={feldLabel}>{ti.ort}</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {plan.orte.map((o) => (
             <EntfernbarerChip
               key={o}
               variante="umrandet"
-              title="Ort öffnen"
+              title={ti.ortOeffnen}
               onClick={() => oeffne('orte', { ort: o })}
               onEntfernen={() => speichern({ orte: plan.orte.filter((x) => x !== o) })}
             >
@@ -239,16 +243,16 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
             </EntfernbarerChip>
           ))}
           <AuswahlMenue
-            knopf="+ Ort"
+            knopf={ti.plusOrt}
             optionen={Object.values(daten.orte)
               .filter((o) => !plan.orte.includes(o.id))
-              .sort((a, b) => a.name.localeCompare(b.name, 'de'))
+              .sort((a, b) => vergleich(a.name, b.name))
               .map((o) => ({ wert: o.id, label: o.name, suche: o.aliase.join(' ') }))}
             onWaehle={(o) => speichern({ orte: [...plan.orte, o] })}
             zusatz={{
-              label: (suche) => (suche ? `+ Ort „${suche}“ anlegen` : '+ Neuen Ort anlegen'),
+              label: (suche) => (suche ? f(ti.ortAnlegen, { name: suche }) : ti.neuenOrtAnlegen),
               onClick: (suche) => {
-                const name = suche.trim() || 'Neuer Ort';
+                const name = suche.trim() || ti.neuerOrt;
                 void ortAnlegen(name).then((neu) => aendern(id, { orte: [...(useStore.getState().daten?.plaene[id]?.orte ?? []), neu] }));
               },
             }}
@@ -256,14 +260,14 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
         </div>
       </div>
       <label htmlFor={`${uid}-plan`} style={feldLabel}>
-        Was soll hier passieren?
+        {ti.wasPassiert}
       </label>
       <EntwurfBereich
         key={`${id}-plan`}
         id={`${uid}-plan`}
         rows={6}
         style={planFeld}
-        placeholder="Stichpunkte, Szenenidee, Stimmung … mit [[ auf Figuren, Orte oder Kapitel verweisen"
+        placeholder={ti.planPlatzhalter}
         verweise={{ typ: 'plan', id }}
         wert={plan.notiz}
         onSpeichern={(notiz) => speichern({ notiz })}
@@ -282,9 +286,9 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
           flexShrink: 0,
         }}
       >
-        <strong style={{ fontSize: 12, color: 'var(--ink)' }}>Kontext aus dem Text</strong>
-        <Nachbar richtung="Davor" id={pos > 0 ? reihenfolge[pos - 1] : undefined} daten={daten} index={index} />
-        <Nachbar richtung="Danach" id={pos >= 0 && pos < reihenfolge.length - 1 ? reihenfolge[pos + 1] : undefined} daten={daten} index={index} />
+        <strong style={{ fontSize: 12, color: 'var(--ink)' }}>{ti.kontext}</strong>
+        <Nachbar richtung={ti.davor} id={pos > 0 ? reihenfolge[pos - 1] : undefined} daten={daten} index={index} />
+        <Nachbar richtung={ti.danach} id={pos >= 0 && pos < reihenfolge.length - 1 ? reihenfolge[pos + 1] : undefined} daten={daten} index={index} />
       </div>
       <Abweichungen plan={plan} />
       <AngehefteteNotizen
@@ -297,11 +301,11 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
       <span style={{ flexGrow: 1 }} />
       {geplant && !hatText ? (
         <button type="button" style={primaer} onClick={() => void schreibenBeginnen(id)}>
-          Mit dem Schreiben beginnen
+          {ti.schreibenBeginnen}
         </button>
       ) : (
         <button type="button" style={primaer} onClick={() => oeffne('schreiben', { kapitel: id })}>
-          Im Editor öffnen
+          {ti.imEditorOeffnen}
         </button>
       )}
       {!hatText && (
@@ -310,10 +314,10 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
           className="pl-link"
           style={{ alignSelf: 'center', color: 'var(--ink-quiet)', flexShrink: 0 }}
           onClick={async () => {
-            if (await rueckfrage(`Geplantes Kapitel „${plan.titel}“ löschen? Vorher wird ein Schnappschuss angelegt.`, { knopf: 'Löschen' })) void entfernen(id);
+            if (await rueckfrage(f(ti.loeschenFrage, { titel: plan.titel }), { knopf: t.gemeinsam.loeschen })) void entfernen(id);
           }}
         >
-          Geplantes Kapitel löschen
+          {ti.loeschen}
         </button>
       )}
     </Inspektor>
@@ -325,51 +329,53 @@ export function IdeeInspektor({ idee, daten }: { idee: Idee; daten: ProjektDaten
   const entfernen = useStore((s) => s.planung.ideeEntfernen);
   const einplanen = useStore((s) => s.planung.ideeEinplanen);
   const uid = useId();
+  const t = useTexte();
+  const ti = t.akte.idee;
   const akte = [...daten.akte].sort((a, b) => a.nummer - b.nummer);
   return (
-    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label="Idee">
-      <span style={{ ...kopfLabel, color: 'var(--warm-dark)' }}>IDEE · NOCH OHNE PLATZ</span>
+    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={ti.label}>
+      <span style={{ ...kopfLabel, color: 'var(--warm-dark)' }}>{ti.kopf}</span>
       <label htmlFor={`${uid}-titel`} style={feldLabel}>
-        Idee
+        {ti.feld}
       </label>
       <EntwurfBereich
         key={`${idee.id}-titel`}
         id={`${uid}-titel`}
         autoHoehe
-        autoFocus={idee.titel === 'Neue Idee'}
-        onFocus={(e) => idee.titel === 'Neue Idee' && e.currentTarget.select()}
+        autoFocus={istNeueIdee(idee.titel)}
+        onFocus={(e) => istNeueIdee(idee.titel) && e.currentTarget.select()}
         rows={1}
         style={{ ...planFeld, fontFamily: 'var(--schrift-titel)', fontSize: 22, lineHeight: 1.2, padding: '6px 10px' }}
         wert={idee.titel}
         onSpeichern={(titel) => titel.trim() && void aendern(idee.id, { titel: titel.trim() })}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={feldLabel}>Strang</span>
+        <span style={feldLabel}>{ti.strang}</span>
         <StrangWahl gewaehlt={idee.straenge} daten={daten} onChange={(straenge) => void aendern(idee.id, { straenge })} />
       </div>
       <label htmlFor={`${uid}-notiz`} style={feldLabel}>
-        Notiz
+        {ti.notiz}
       </label>
       <EntwurfBereich
         key={`${idee.id}-notiz`}
         id={`${uid}-notiz`}
         rows={6}
         style={planFeld}
-        placeholder="Was steckt hinter der Idee? Mit [[ verweisen"
+        placeholder={ti.notizPlatzhalter}
         verweise={{ typ: 'idee', id: idee.id }}
         wert={idee.notiz}
         onSpeichern={(notiz) => void aendern(idee.id, { notiz })}
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={feldLabel}>Als geplantes Kapitel einordnen</span>
+        <span style={feldLabel}>{ti.einordnen}</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {akte.map((a) => (
             <Button key={a.nummer} klein onClick={() => void einplanen(idee.id, a.nummer)}>
-              {a.titel || `Akt ${a.nummer}`}
+              {a.titel || f(t.akte.board.aktTitel, { nr: a.nummer })}
             </Button>
           ))}
         </div>
-        <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>oder die Karte in einen Akt ziehen</span>
+        <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{ti.oderZiehen}</span>
       </div>
       <span style={{ flexGrow: 1 }} />
       <button
@@ -377,10 +383,10 @@ export function IdeeInspektor({ idee, daten }: { idee: Idee; daten: ProjektDaten
         className="pl-link"
         style={{ alignSelf: 'center', color: 'var(--ink-quiet)' }}
         onClick={async () => {
-          if (await rueckfrage(`Idee „${idee.titel}“ löschen?`, { knopf: 'Löschen' })) void entfernen(idee.id);
+          if (await rueckfrage(f(ti.loeschenFrage, { titel: idee.titel }), { knopf: t.gemeinsam.loeschen })) void entfernen(idee.id);
         }}
       >
-        Idee löschen
+        {ti.loeschen}
       </button>
     </Inspektor>
   );

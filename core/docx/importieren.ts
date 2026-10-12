@@ -3,6 +3,7 @@
  * WordprocessingML wird direkt gelesen (jszip + fast-xml-parser), damit kein Zeichen umgeformt wird.
  */
 import JSZip from 'jszip';
+import { fmt, texteJe, type Sprache } from '../i18n';
 import type { Hinweis, TextAnker, Zitat } from '../model/types';
 import { ankerErzeugen, findeZitat, wortzahl } from '../text';
 import { absatzZuMarkdown, blockText, leseMarkdown, markdownKlartext, SZENENTRENNER, ueberschriftZuMarkdown, type Lauf } from './markdown';
@@ -70,6 +71,82 @@ export function importHinweisKapitel(h: Hinweis): number | null {
 }
 
 export class DocxFehler extends Error {}
+
+/** Fehler und Import-Hinweise (Oberflächensprache); Schlüssel der Hinweise bleiben gleich. */
+export const DOCX_TEXTE = texteJe(
+  {
+    altesFormat: 'Die Datei ist im alten Word-Format (.doc) oder mit Kennwort geschützt. Bitte in Word als .docx ohne Kennwort speichern.',
+    keinDocx: 'Die Datei ist keine gültige Word-Datei (.docx).',
+    keinDokument: 'Die Datei enthält kein Word-Dokument.',
+    beschaedigt: 'Das Word-Dokument ist beschädigt und lässt sich nicht lesen.',
+    keinInhalt: 'Das Word-Dokument hat keinen Inhalt.',
+    kapitel: 'Kapitel {n}',
+    nachKapitel: 'nach Kapitel {n} „{titel}“',
+    vorErstem: 'vor dem ersten Kapitel',
+    leereUeberschriftEnde: 'Leere Überschrift am Ende',
+    leereUeberschrift: 'Leere Überschrift',
+    leereUeberschriftErklaerung: 'Eine Überschrift 1 ohne Text {lage} wurde nicht als Kapitel übernommen.',
+    ohneText: 'Überschrift ohne Text',
+    ohneTextErklaerung: 'Kapitel {n} hat eine leere Überschrift und heißt vorerst „{titel}“.',
+    leeresKapitel: 'Kapitel ohne Text',
+    leeresKapitelErklaerung: 'Kapitel {n} „{titel}“ hat keinen Text und wird als geplantes Kapitel übernommen.',
+    satzende: 'Endet mitten im Satz',
+    satzendeErklaerung: 'Kapitel {n} „{titel}“ endet ohne Satzzeichen.',
+    keineUeberschrift: 'Keine Kapitelüberschriften',
+    keineUeberschriftErklaerung: 'Die Datei enthält keine Überschrift 1. Kapitel werden an Absätzen im Format „Überschrift 1“ erkannt.',
+    vorspann: 'Text vor der ersten Überschrift',
+    vorspannErklaerung: { one: '{n} Wort steht vor der ersten Überschrift 1 und gehört zu keinem Kapitel.', other: '{n} Wörter stehen vor der ersten Überschrift 1 und gehören zu keinem Kapitel.' },
+    fussnoten: 'Fußnoten nicht übernommen',
+    fussnotenErklaerung: { one: '{n} Fußnote wurde nicht übernommen.', other: '{n} Fußnoten wurden nicht übernommen.' },
+    kommentare: 'Word-Kommentare ohne Stelle',
+    kommentareErklaerung: {
+      one: '{n} Kommentar hängt an keiner Textstelle und wird nicht übernommen.',
+      other: '{n} Kommentare hängen an keiner Textstelle und werden nicht übernommen.',
+    },
+    bilder: 'Bilder nicht übernommen',
+    bilderErklaerung: { one: '{n} Bild oder Textfeld wurde nicht übernommen.', other: '{n} Bilder oder Textfelder wurden nicht übernommen.' },
+    aenderungen: 'Nachverfolgte Änderungen angenommen',
+    aenderungenErklaerung: 'Die Datei enthält nachverfolgte Änderungen. Eingefügter Text wurde übernommen, gelöschter nicht.',
+    tabellen: 'Tabellen als Absätze',
+    tabellenErklaerung: { one: '{n} Tabelle wurde als einfache Absätze übernommen.', other: '{n} Tabellen wurden als einfache Absätze übernommen.' },
+  },
+  {
+    altesFormat: 'The file is in the old Word format (.doc) or password-protected. Please save it in Word as .docx without a password.',
+    keinDocx: 'The file is not a valid Word file (.docx).',
+    keinDokument: 'The file doesn’t contain a Word document.',
+    beschaedigt: 'The Word document is damaged and can’t be read.',
+    keinInhalt: 'The Word document has no content.',
+    kapitel: 'Chapter {n}',
+    nachKapitel: 'after chapter {n} “{titel}”',
+    vorErstem: 'before the first chapter',
+    leereUeberschriftEnde: 'Empty heading at the end',
+    leereUeberschrift: 'Empty heading',
+    leereUeberschriftErklaerung: 'A Heading 1 without text {lage} was not imported as a chapter.',
+    ohneText: 'Heading without text',
+    ohneTextErklaerung: 'Chapter {n} has an empty heading and is called “{titel}” for now.',
+    leeresKapitel: 'Chapter without text',
+    leeresKapitelErklaerung: 'Chapter {n} “{titel}” has no text and is imported as a planned chapter.',
+    satzende: 'Ends mid-sentence',
+    satzendeErklaerung: 'Chapter {n} “{titel}” ends without punctuation.',
+    keineUeberschrift: 'No chapter headings',
+    keineUeberschriftErklaerung: 'The file contains no Heading 1. Chapters are recognized by paragraphs in the “Heading 1” style.',
+    vorspann: 'Text before the first heading',
+    vorspannErklaerung: { one: '{n} word comes before the first Heading 1 and belongs to no chapter.', other: '{n} words come before the first Heading 1 and belong to no chapter.' },
+    fussnoten: 'Footnotes not imported',
+    fussnotenErklaerung: { one: '{n} footnote was not imported.', other: '{n} footnotes were not imported.' },
+    kommentare: 'Word comments without a position',
+    kommentareErklaerung: {
+      one: '{n} comment isn’t attached to any text and won’t be imported.',
+      other: '{n} comments aren’t attached to any text and won’t be imported.',
+    },
+    bilder: 'Images not imported',
+    bilderErklaerung: { one: '{n} image or text box was not imported.', other: '{n} images or text boxes were not imported.' },
+    aenderungen: 'Tracked changes accepted',
+    aenderungenErklaerung: 'The file contains tracked changes. Inserted text was imported, deleted text was not.',
+    tabellen: 'Tables as paragraphs',
+    tabellenErklaerung: { one: '{n} table was imported as plain paragraphs.', other: '{n} tables were imported as plain paragraphs.' },
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Formatvorlagen
@@ -462,19 +539,19 @@ function leseKommentare(xml: string | null, erweitertXml: string | null): WordKo
   });
 }
 
-async function leseDokument(datei: Uint8Array): Promise<WordDokument> {
-  if (istOle(datei))
-    throw new DocxFehler('Die Datei ist im alten Word-Format (.doc) oder mit Kennwort geschützt. Bitte in Word als .docx ohne Kennwort speichern.');
+async function leseDokument(datei: Uint8Array, sprache: Sprache): Promise<WordDokument> {
+  const t = DOCX_TEXTE(sprache);
+  if (istOle(datei)) throw new DocxFehler(t.altesFormat);
   let zip: JSZip;
   try {
     zip = await JSZip.loadAsync(datei);
   } catch {
-    throw new DocxFehler('Die Datei ist keine gültige Word-Datei (.docx).');
+    throw new DocxFehler(t.keinDocx);
   }
   const haupt = relationen(await lies(zip, '_rels/.rels')).find((r) => r.typ.endsWith('/officeDocument'));
   const dokPfad = haupt ? pfadAufloesen('', haupt.ziel) : 'word/document.xml';
   const dokXml = await lies(zip, dokPfad);
-  if (!dokXml) throw new DocxFehler('Die Datei enthält kein Word-Dokument.');
+  if (!dokXml) throw new DocxFehler(t.keinDokument);
   const ordner = dokPfad.includes('/') ? dokPfad.slice(0, dokPfad.lastIndexOf('/')) : '';
   const name = dokPfad.slice(dokPfad.lastIndexOf('/') + 1);
   const rels = relationen(await lies(zip, `${ordner ? `${ordner}/` : ''}_rels/${name}.rels`));
@@ -489,9 +566,9 @@ async function leseDokument(datei: Uint8Array): Promise<WordDokument> {
   try {
     wurzel = kind(kind(parseXml(dokXml), 'document'), 'body');
   } catch {
-    throw new DocxFehler('Das Word-Dokument ist beschädigt und lässt sich nicht lesen.');
+    throw new DocxFehler(t.beschaedigt);
   }
-  if (!wurzel) throw new DocxFehler('Das Word-Dokument hat keinen Inhalt.');
+  if (!wurzel) throw new DocxFehler(t.keinInhalt);
   const zaehler: Zaehler = { fussnoten: 0, bilder: 0, aenderungen: 0, tabellen: 0 };
   const absaetze: WordAbsatz[] = [];
   bloecke(wurzel.kinder, stile, zaehler, absaetze);
@@ -545,12 +622,13 @@ function hinweis(art: string, titel: string, erklaerung: string, zitate: Zitat[]
   return { schluessel: `struktur:import:${art}`, typ: 'struktur', titel, zitate, erklaerung, quelle: 'lokal', status: 'neu' };
 }
 
-function anzahl(n: number, einzahl: string, mehrzahl: string): string {
-  return `${n} ${n === 1 ? einzahl : mehrzahl}`;
-}
-
-export async function importiereDocx(datei: Uint8Array): Promise<ImportErgebnis> {
-  const dok = await leseDokument(datei);
+/**
+ * Liest eine .docx. `sprache`: Oberflächensprache der Import-Hinweise und Fehlermeldungen (auch für den
+ * vorläufigen Titel „Kapitel n“ einer Überschrift ohne Text).
+ */
+export async function importiereDocx(datei: Uint8Array, sprache: Sprache = 'de'): Promise<ImportErgebnis> {
+  const t = DOCX_TEXTE(sprache);
+  const dok = await leseDokument(datei, sprache);
   /** Hinweise mit Position im Buch (Kapitelnummer; 0 = davor, Infinity = ganze Datei) */
   const gemeldet: { pos: number; h: Hinweis }[] = [];
   const melden = (pos: number, h: Hinweis) => gemeldet.push({ pos, h });
@@ -583,24 +661,24 @@ export async function importiereDocx(datei: Uint8Array): Promise<ImportErgebnis>
       if (!klartextVon(text)) {
         const vorher = kapitel[kapitel.length - 1];
         const amEnde = roh.slice(i + 1).every((x) => !x.titel && !klartextVon(absaetzeZuMarkdown(x.absaetze)));
-        const lage = vorher ? `nach Kapitel ${kapitel.length} „${vorher.titel}“` : 'vor dem ersten Kapitel';
+        const lage = vorher ? fmt(t.nachKapitel, { n: kapitel.length, titel: vorher.titel }) : t.vorErstem;
         // Zitat: die letzten Wörter davor, damit die Stelle auffindbar ist (E10)
         const davor = vorher ? letzteWorte(vorher.text) : null;
         melden(
           kapitel.length + 0.5,
           hinweis(
             `leere-ueberschrift-${i + 1}`,
-            amEnde && vorher ? 'Leere Überschrift am Ende' : 'Leere Überschrift',
-            `Eine Überschrift 1 ohne Text ${lage} wurde nicht als Kapitel übernommen.`,
+            amEnde && vorher ? t.leereUeberschriftEnde : t.leereUeberschrift,
+            fmt(t.leereUeberschriftErklaerung, { lage }),
             davor ? [{ kapitel: `${IMPORT_KAPITEL_PRAEFIX}${kapitel.length}`, text: davor }] : [],
           ),
         );
         continue;
       }
-      r.titel = `Kapitel ${nummer}`;
+      r.titel = fmt(t.kapitel, { n: nummer });
       melden(
         nummer,
-        hinweis(`ueberschrift-ohne-text-${nummer}`, 'Überschrift ohne Text', `Kapitel ${nummer} hat eine leere Überschrift und heißt vorerst „${r.titel}“.`, [
+        hinweis(`ueberschrift-ohne-text-${nummer}`, t.ohneText, fmt(t.ohneTextErklaerung, { n: nummer, titel: r.titel }), [
           { kapitel: `${IMPORT_KAPITEL_PRAEFIX}${nummer}`, text: klartextVon(text).slice(0, 60) },
         ]),
       );
@@ -612,14 +690,14 @@ export async function importiereDocx(datei: Uint8Array): Promise<ImportErgebnis>
   kapitel.forEach((k, i) => {
     const nummer = i + 1;
     if (!klartextVon(k.text)) {
-      melden(nummer, hinweis(`leeres-kapitel-${nummer}`, 'Kapitel ohne Text', `Kapitel ${nummer} „${k.titel}“ hat keinen Text und wird als geplantes Kapitel übernommen.`));
+      melden(nummer, hinweis(`leeres-kapitel-${nummer}`, t.leeresKapitel, fmt(t.leeresKapitelErklaerung, { n: nummer, titel: k.titel })));
       return;
     }
     const ende = endetMittenImSatz(k.text);
     if (ende)
       melden(
         nummer,
-        hinweis(`satzende-${nummer}`, 'Endet mitten im Satz', `Kapitel ${nummer} „${k.titel}“ endet ohne Satzzeichen.`, [
+        hinweis(`satzende-${nummer}`, t.satzende, fmt(t.satzendeErklaerung, { n: nummer, titel: k.titel }), [
           { kapitel: `${IMPORT_KAPITEL_PRAEFIX}${nummer}`, text: ende },
         ]),
       );
@@ -630,16 +708,12 @@ export async function importiereDocx(datei: Uint8Array): Promise<ImportErgebnis>
   if (roh.length === 0)
     melden(
       0,
-      hinweis(
-        'keine-ueberschrift',
-        'Keine Kapitelüberschriften',
-        'Die Datei enthält keine Überschrift 1. Kapitel werden an Absätzen im Format „Überschrift 1“ erkannt.',
-      ),
+      hinweis('keine-ueberschrift', t.keineUeberschrift, t.keineUeberschriftErklaerung),
     );
   else if (vorspannKlar)
     melden(
       0,
-      hinweis('vorspann', 'Text vor der ersten Überschrift', `${anzahl(wortzahl(vorspannText), 'Wort steht', 'Wörter stehen')} vor der ersten Überschrift 1 und gehören zu keinem Kapitel.`, [
+      hinweis('vorspann', t.vorspann, fmt(t.vorspannErklaerung, { n: wortzahl(vorspannText) }, sprache), [
         { kapitel: `${IMPORT_KAPITEL_PRAEFIX}0`, text: vorspannKlar.slice(0, 60) },
       ]),
     );
@@ -647,16 +721,11 @@ export async function importiereDocx(datei: Uint8Array): Promise<ImportErgebnis>
   const { kommentare, ohneStelle } = kommentareZuordnen(dok, { roh, rohZuKapitel, kapitel, vorspann, vorspannText, titelAbsatz });
 
   const z = dok.zaehler;
-  if (z.fussnoten) melden(Infinity, hinweis('fussnoten', 'Fußnoten nicht übernommen', `${anzahl(z.fussnoten, 'Fußnote wurde', 'Fußnoten wurden')} nicht übernommen.`));
-  if (ohneStelle)
-    melden(
-      Infinity,
-      hinweis('kommentare', 'Word-Kommentare ohne Stelle', `${anzahl(ohneStelle, 'Kommentar hängt', 'Kommentare hängen')} an keiner Textstelle und ${ohneStelle === 1 ? 'wird' : 'werden'} nicht übernommen.`),
-    );
-  if (z.bilder) melden(Infinity, hinweis('bilder', 'Bilder nicht übernommen', `${anzahl(z.bilder, 'Bild oder Textfeld wurde', 'Bilder oder Textfelder wurden')} nicht übernommen.`));
-  if (z.aenderungen)
-    melden(Infinity, hinweis('aenderungen', 'Nachverfolgte Änderungen angenommen', 'Die Datei enthält nachverfolgte Änderungen. Eingefügter Text wurde übernommen, gelöschter nicht.'));
-  if (z.tabellen) melden(Infinity, hinweis('tabellen', 'Tabellen als Absätze', `${anzahl(z.tabellen, 'Tabelle wurde', 'Tabellen wurden')} als einfache Absätze übernommen.`));
+  if (z.fussnoten) melden(Infinity, hinweis('fussnoten', t.fussnoten, fmt(t.fussnotenErklaerung, { n: z.fussnoten }, sprache)));
+  if (ohneStelle) melden(Infinity, hinweis('kommentare', t.kommentare, fmt(t.kommentareErklaerung, { n: ohneStelle }, sprache)));
+  if (z.bilder) melden(Infinity, hinweis('bilder', t.bilder, fmt(t.bilderErklaerung, { n: z.bilder }, sprache)));
+  if (z.aenderungen) melden(Infinity, hinweis('aenderungen', t.aenderungen, t.aenderungenErklaerung));
+  if (z.tabellen) melden(Infinity, hinweis('tabellen', t.tabellen, fmt(t.tabellenErklaerung, { n: z.tabellen }, sprache)));
 
   const hinweise = gemeldet.sort((a, b) => a.pos - b.pos).map((x) => x.h);
   return { kapitel, kommentare, hinweise, vorspann: vorspannText, ...(buchtitel ? { buchtitel } : {}) };

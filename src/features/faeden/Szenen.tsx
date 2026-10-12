@@ -14,7 +14,6 @@ import {
   TAGESZEIT_LABEL,
   uhrzeitNormalisieren,
   zeitHatAngaben,
-  zeitKurz,
   type SzenenTeil,
   type SzenenZeile,
 } from '@core/struktur/szenen';
@@ -23,8 +22,10 @@ import { ankerErzeugen, klartext } from '@core/text/index';
 import { einheitSchluessel } from '@core/zeit';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, bestaetigen, Button, Dialog, Karte, klassen } from '../../ui';
-import { AuswahlMenue, EntfernbarerChip, EntwurfBereich, EntwurfFeld, zahl } from '../akte/gemeinsam';
+import { AuswahlMenue, EntfernbarerChip, EntwurfBereich, EntwurfFeld } from '../akte/gemeinsam';
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
+import { f, texte, useTexte, vergleich } from '../../i18n';
+import { zeitText as zeitKurz } from './gemeinsam';
 import './faeden.css';
 
 // ---------------------------------------------------------------------------
@@ -52,12 +53,19 @@ function szenenMeta(daten: ProjektDaten, zeile: SzenenZeile): string {
 }
 
 function szenenTitel(zeile: SzenenZeile): string {
-  return zeile.szene?.titel.trim() || `Szene ${zeile.index + 1}`;
+  return zeile.szene?.titel.trim() || f(texte().faeden.szenen.szene, { nr: zeile.index + 1 });
 }
 
 function woerterText(zeile: SzenenZeile): string {
-  if (!zeile.abschnitt) return 'noch kein Text';
-  return zeile.woerter === 1 ? '1 Wort' : `${zahl(zeile.woerter)} Wörter`;
+  const t = texte();
+  if (!zeile.abschnitt) return t.faeden.szenen.nochKeinText;
+  return f(t.gemeinsam.woerter, { n: zeile.woerter });
+}
+
+/** „3 Szenen · 2 geplant“ */
+function anzahlText(anzahl: number, geplant: number): string {
+  const t = texte().faeden.szenen;
+  return `${f(t.anzahl, { n: anzahl })} · ${f(t.geplant, { n: geplant })}`;
 }
 
 /** Springt im Editor an den Anfang der Szene (nur wenn der Abschnitt Text hat). */
@@ -102,6 +110,8 @@ function SzenenFormular({
   const zeitSzenen = useStore((s) => s.zeit.setzeSzenen);
   const zeigen = useSzeneZeigen(kapitelId);
   const [uhrFehler, setUhrFehler] = useState(false);
+  const t = useTexte();
+  const ts = t.faeden.szenen;
   if (!daten) return null;
   const sz = zeile.szene;
   const idx = zeile.index;
@@ -114,60 +124,60 @@ function SzenenFormular({
     setze({ zeit: neu });
   };
   const figuren = sz?.figuren ?? [];
-  const orte = Object.values(daten.orte).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const orte = Object.values(daten.orte).sort((a, b) => vergleich(a.name, b.name));
   const freieFiguren = Object.values(daten.figuren)
-    .filter((f) => !figuren.includes(f.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .filter((x) => !figuren.includes(x.id))
+    .sort((a, b) => vergleich(a.name, b.name));
   const fid = `fd-szene-${kapitelId}-${idx}`;
 
   return (
-    <div className={klassen('fd-szene__formular', !eingerueckt && 'fd-szene__formular--buendig')} aria-label={`Szene ${nr} planen`} role="group">
+    <div className={klassen('fd-szene__formular', !eingerueckt && 'fd-szene__formular--buendig')} aria-label={f(ts.planen, { nr })} role="group">
       <div className="fd-felder">
-        <label htmlFor={`${fid}-titel`}>Titel</label>
+        <label htmlFor={`${fid}-titel`}>{ts.titel}</label>
         <EntwurfFeld
           id={`${fid}-titel`}
           className="pl-eingabe"
           wert={sz?.titel ?? ''}
-          placeholder={`Szene ${nr}: Worum geht es?`}
+          placeholder={f(ts.titelPlatzhalter, { nr })}
           autoFocus={autoFokus}
           data-autofocus={autoFokus || undefined}
           onSpeichern={(titel) => setze({ titel: titel.trim() })}
         />
-        <label htmlFor={`${fid}-ort`}>Ort</label>
+        <label htmlFor={`${fid}-ort`}>{ts.ort}</label>
         <select id={`${fid}-ort`} className="pl-select" value={sz?.ort ?? ''} onChange={(e) => setze({ ort: e.target.value || undefined })}>
-          <option value="">– kein Ort –</option>
+          <option value="">{ts.keinOrt}</option>
           {orte.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
             </option>
           ))}
-          {sz?.ort && !daten.orte[sz.ort] && <option value={sz.ort}>{sz.ort} (unbekannt)</option>}
+          {sz?.ort && !daten.orte[sz.ort] && <option value={sz.ort}>{f(ts.unbekannt, { id: sz.ort })}</option>}
         </select>
         <span className="fd-feldlabel" id={`${fid}-figuren`}>
-          Figuren
+          {ts.figuren}
         </span>
         <div className="fd-chips" role="group" aria-labelledby={`${fid}-figuren`}>
-          {figuren.map((f) => (
-            <EntfernbarerChip key={f} onEntfernen={() => setze({ figuren: figuren.filter((x) => x !== f) })}>
-              {daten.figuren[f]?.name ?? f}
+          {figuren.map((fig) => (
+            <EntfernbarerChip key={fig} onEntfernen={() => setze({ figuren: figuren.filter((x) => x !== fig) })}>
+              {daten.figuren[fig]?.name ?? fig}
             </EntfernbarerChip>
           ))}
           <AuswahlMenue
-            knopf="+ Figur"
-            optionen={freieFiguren.map((f) => ({ wert: f.id, label: f.name, suche: f.aliase.join(' ') }))}
-            leer="Keine weitere Figur"
-            onWaehle={(f) => setze({ figuren: [...figuren, f] })}
+            knopf={ts.plusFigur}
+            optionen={freieFiguren.map((x) => ({ wert: x.id, label: x.name, suche: x.aliase.join(' ') }))}
+            leer={ts.keineWeitereFigur}
+            onWaehle={(fig) => setze({ figuren: [...figuren, fig] })}
           />
         </div>
         <span className="fd-feldlabel" id={`${fid}-zeit`}>
-          Zeit
+          {ts.zeit}
         </span>
         <div className="fd-zeitfelder" role="group" aria-labelledby={`${fid}-zeit`}>
           <EntwurfFeld
             className="pl-eingabe"
-            aria-label="Tag der Handlung"
+            aria-label={ts.tagLabel}
             inputMode="numeric"
-            placeholder="Tag"
+            placeholder={ts.tag}
             style={{ padding: '0 6px' }}
             wert={zeit.tag !== undefined ? String(zeit.tag) : ''}
             onSpeichern={(w) => {
@@ -177,24 +187,24 @@ function SzenenFormular({
           />
           <select
             className="pl-select"
-            aria-label="Tageszeit"
+            aria-label={ts.tageszeit}
             value={zeit.tageszeit ?? ''}
             onChange={(e) => setzeZeit({ tageszeit: (e.target.value || undefined) as Tageszeit | undefined })}
           >
-            <option value="">Tageszeit</option>
-            {TAGESZEITEN.map((t) => (
-              <option key={t} value={t}>
-                {TAGESZEIT_LABEL[t]}
+            <option value="">{ts.tageszeit}</option>
+            {TAGESZEITEN.map((tz) => (
+              <option key={tz} value={tz}>
+                {t.faeden.zeit.tageszeiten[tz]}
               </option>
             ))}
           </select>
           <EntwurfFeld
             className="pl-eingabe"
-            aria-label="Uhrzeit (HH:MM)"
+            aria-label={ts.uhrzeitLabel}
             aria-invalid={uhrFehler || undefined}
-            placeholder="hh:mm"
+            placeholder={ts.uhrzeitPlatzhalter}
             style={{ padding: '0 6px', ...(uhrFehler ? { borderColor: 'var(--accent)' } : {}) }}
-            title={uhrFehler ? 'Uhrzeit als HH:MM, z. B. 23:15' : undefined}
+            title={uhrFehler ? ts.uhrzeitFehler : undefined}
             wert={zeit.uhrzeit ?? ''}
             onSpeichern={(w) => {
               if (w.trim() === '') {
@@ -207,20 +217,20 @@ function SzenenFormular({
             }}
           />
         </div>
-        <label htmlFor={`${fid}-notiz`}>Notiz</label>
+        <label htmlFor={`${fid}-notiz`}>{ts.notiz}</label>
         <EntwurfBereich
           id={`${fid}-notiz`}
           className="pl-bereich"
           rows={2}
           autoHoehe
           wert={sz?.notiz ?? ''}
-          placeholder="Was soll in dieser Szene passieren?"
+          placeholder={ts.notizPlatzhalter}
           onSpeichern={(notiz) => setze({ notiz })}
         />
       </div>
       {zeitHatAngaben(sz?.zeit) && (
         <span className="fd-leise">
-          {zeitKurz(sz?.zeit)} · Zeitpunkte des Kapitels und Widersprüche zeigt die{' '}
+          {f(ts.zeitHinweisVor, { zeit: zeitKurz(sz?.zeit) })}
           <button
             type="button"
             className="pl-link"
@@ -232,15 +242,15 @@ function SzenenFormular({
               oeffne('zeitleiste', { kapitel: kapitelId });
             }}
           >
-            Zeitleiste
+            {ts.zeitleiste}
           </button>
-          .
+          {ts.zeitHinweisNach}
         </span>
       )}
       <div className="fd-aktionen">
         {zeile.abschnitt && zeile.woerter > 0 && (
           <button type="button" className="pl-link" onClick={() => zeigen(zeile)}>
-            Im Text zeigen
+            {ts.imTextZeigen}
           </button>
         )}
         {sz && (
@@ -250,34 +260,34 @@ function SzenenFormular({
               className="pl-link"
               disabled={idx === 0}
               onClick={() => void verschieben(kapitelId, sz.id, idx - 1)}
-              title="Plan-Daten eine Szene nach vorn legen (z. B. nach einem neuen Trenner)"
+              title={ts.nachVornTitel}
             >
-              ↑ nach vorn
+              {ts.nachVorn}
             </button>
             <button
               type="button"
               className="pl-link"
               disabled={idx >= anzahl - 1}
               onClick={() => void verschieben(kapitelId, sz.id, idx + 1)}
-              title="Plan-Daten eine Szene nach hinten legen"
+              title={ts.nachHintenTitel}
             >
-              ↓ nach hinten
+              {ts.nachHinten}
             </button>
             <button
               type="button"
               className="pl-link"
               style={{ marginLeft: 'auto' }}
               onClick={async () => {
-                if (await bestaetigen(`Plan-Daten von „${szenenTitel(zeile)}“ entfernen? Der Text bleibt unverändert.`, { knopf: 'Entfernen', titel: 'Szene' }))
+                if (await bestaetigen(f(ts.entfernenFrage, { titel: szenenTitel(zeile) }), { knopf: t.gemeinsam.entfernen, titel: t.gemeinsam.szene }))
                   void entfernen(kapitelId, sz.id);
               }}
             >
-              Plan entfernen
+              {ts.planEntfernen}
             </button>
           </>
         )}
       </div>
-      {sz && <RechercheLeiste ziel={szenenVerweis(sz.id)} titel="Recherche zur Szene" max={4} />}
+      {sz && <RechercheLeiste ziel={szenenVerweis(sz.id)} titel={ts.recherche} max={4} />}
     </div>
   );
 }
@@ -306,6 +316,7 @@ function SzenenZeileAnsicht({
 }) {
   const meta = szenenMeta(daten, zeile);
   const nurPlan = !zeile.abschnitt;
+  const ts = useTexte().faeden.szenen;
   return (
     <li className="fd-szene">
       <button type="button" className="fd-szene__knopf" aria-expanded={offen} onClick={onUmschalten}>
@@ -313,8 +324,8 @@ function SzenenZeileAnsicht({
           {zeile.index + 1}
         </span>
         <span className={klassen('fd-szene__titel', !zeile.szene?.titel.trim() && 'fd-szene__titel--leer')}>
-          <span className="pw-sr">Szene {zeile.index + 1}: </span>
-          {zeile.szene?.titel.trim() || (zeile.szene ? 'ohne Titel' : 'noch nicht geplant')}
+          <span className="pw-sr">{f(ts.srSzene, { nr: zeile.index + 1 })}</span>
+          {zeile.szene?.titel.trim() || (zeile.szene ? ts.ohneTitel : ts.nichtGeplant)}
         </span>
         <span className="fd-szene__woerter">{woerterText(zeile)}</span>
         {meta && <span className="fd-szene__meta">{meta}</span>}
@@ -338,8 +349,6 @@ function listenTasten(e: KeyboardEvent<HTMLElement>, selektor: string) {
   n.focus();
 }
 
-const TRENNER_HINWEIS = 'Ein Trenner „* * *“ auf eigener Zeile teilt das Kapitel in Szenen.';
-
 /** Szenen im Schreiben-Inspektor (Tab „Plan“): Liste mit aufklappbarem Plan je Szene. */
 export function SzenenKarte({ kapitelId }: { kapitelId: Id }) {
   const { daten, zeilen } = useSzenen(kapitelId);
@@ -347,20 +356,17 @@ export function SzenenKarte({ kapitelId }: { kapitelId: Id }) {
   const setzeOffen = useStore((s) => s.struktur.setzeSzeneOffen);
   const hinzufuegen = useStore((s) => s.struktur.szeneHinzufuegen);
   const [fokusIndex, setFokusIndex] = useState<number | null>(null);
+  const ts = useTexte().faeden.szenen;
   if (!daten) return null;
   const geplant = zeilen.filter((z) => z.szene).length;
   const mitSzenen = hatSzenen(zeilen);
   const offenIndex = offen?.kapitel === kapitelId ? offen.index : null;
 
   return (
-    <Karte aria-label="Szenen" gap={6}>
+    <Karte aria-label={ts.ueberschrift} gap={6}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <Abschnittslabel>Szenen</Abschnittslabel>
-        {mitSzenen && (
-          <span className="fd-leise">
-            {zeilen.length} {zeilen.length === 1 ? 'Szene' : 'Szenen'} · {geplant} geplant
-          </span>
-        )}
+        <Abschnittslabel>{ts.ueberschrift}</Abschnittslabel>
+        {mitSzenen && <span className="fd-leise">{anzahlText(zeilen.length, geplant)}</span>}
       </div>
       {mitSzenen ? (
         <ul className="fd-szenen-liste" style={{ listStyle: 'none', margin: 0, padding: 0 }} onKeyDown={(e) => listenTasten(e, '.fd-szene__knopf')}>
@@ -381,7 +387,9 @@ export function SzenenKarte({ kapitelId }: { kapitelId: Id }) {
           ))}
         </ul>
       ) : (
-        <span className="fd-leise">Das Kapitel ist noch eine einzige Szene. {TRENNER_HINWEIS}</span>
+        <span className="fd-leise">
+          {ts.eineSzene} {ts.trennerHinweis}
+        </span>
       )}
       <Button
         variante="gestrichelt"
@@ -389,7 +397,7 @@ export function SzenenKarte({ kapitelId }: { kapitelId: Id }) {
         onClick={async () => setFokusIndex(await hinzufuegen(kapitelId))}
         style={{ alignSelf: 'flex-start', marginTop: 4 }}
       >
-        + Szene planen
+        {ts.szenePlanen}
       </Button>
     </Karte>
   );
@@ -404,6 +412,8 @@ export function SzenenUebersicht({ kapitelId }: { kapitelId: Id }) {
   const { daten, zeilen } = useSzenen(kapitelId);
   const hinzufuegen = useStore((s) => s.struktur.szeneHinzufuegen);
   const [dialog, setDialog] = useState<number | null>(null);
+  const t = useTexte();
+  const ts = t.faeden.szenen;
   if (!daten) return null;
   const mitSzenen = hatSzenen(zeilen);
   const geplant = zeilen.filter((z) => z.szene).length;
@@ -415,7 +425,7 @@ export function SzenenUebersicht({ kapitelId }: { kapitelId: Id }) {
 
   return (
     <section
-      aria-label="Szenen"
+      aria-label={ts.ueberschrift}
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--line-soft)',
@@ -429,12 +439,12 @@ export function SzenenUebersicht({ kapitelId }: { kapitelId: Id }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--ink-quiet)' }}>SZENEN</span>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--ink-quiet)' }}>{ts.kopf}</span>
         <span className="fd-leise" style={{ flex: 1, minWidth: 0 }}>
-          {mitSzenen ? `${zeilen.length} ${zeilen.length === 1 ? 'Szene' : 'Szenen'} · ${geplant} geplant` : `Noch eine einzige Szene. ${TRENNER_HINWEIS}`}
+          {mitSzenen ? anzahlText(zeilen.length, geplant) : `${ts.nochEine} ${ts.trennerHinweis}`}
         </span>
         <Button variante="gestrichelt" klein onClick={() => void neu()}>
-          + Szene planen
+          {ts.szenePlanen}
         </Button>
       </div>
       {mitSzenen && (
@@ -447,15 +457,15 @@ export function SzenenUebersicht({ kapitelId }: { kapitelId: Id }) {
                 type="button"
                 role="listitem"
                 className={klassen('fd-szenen-kachel', !z.abschnitt && 'fd-szenen-kachel--plan')}
-                aria-label={`Szene ${z.index + 1}: ${szenenTitel(z)} – planen`}
+                aria-label={f(ts.kachelLabel, { nr: z.index + 1, titel: szenenTitel(z) })}
                 onClick={() => setDialog(z.index)}
               >
                 <span className="fd-szenen-kachel__kopf">
-                  SZENE {z.index + 1}
+                  {f(ts.kachelKopf, { nr: z.index + 1 })}
                   <span style={{ marginLeft: 'auto', fontWeight: 400, letterSpacing: 0 }}>{woerterText(z)}</span>
                 </span>
                 <span className="fd-szenen-kachel__titel" style={z.szene?.titel.trim() ? undefined : { fontWeight: 400, color: 'var(--ink-quiet)' }}>
-                  {z.szene?.titel.trim() || (z.szene ? 'ohne Titel' : 'noch nicht geplant')}
+                  {z.szene?.titel.trim() || (z.szene ? ts.ohneTitel : ts.nichtGeplant)}
                 </span>
                 <span className="fd-szenen-kachel__meta">{meta || z.anfang || ' '}</span>
               </button>
@@ -465,18 +475,18 @@ export function SzenenUebersicht({ kapitelId }: { kapitelId: Id }) {
       )}
       {dialogZeile && (
         <Dialog
-          titel={`Kap. ${daten.projekt.kapitel.indexOf(kapitelId) + 1} · Szene ${dialogZeile.index + 1}`}
+          titel={f(ts.dialogTitel, { kap: f(t.gemeinsam.kapitelKurz, { nr: daten.projekt.kapitel.indexOf(kapitelId) + 1 }), nr: dialogZeile.index + 1 })}
           onSchliessen={() => setDialog(null)}
           breite={480}
           aktionen={
             <Button variante="primaer" onClick={() => setDialog(null)}>
-              Fertig
+              {t.gemeinsam.fertig}
             </Button>
           }
         >
           {dialogZeile.anfang && (
             <span className="fd-leise" style={{ fontFamily: 'var(--schrift-text)', fontSize: 13, display: 'block', marginBottom: 8 }}>
-              Beginnt mit: »{dialogZeile.anfang}«
+              {f(ts.beginntMit, { anfang: dialogZeile.anfang })}
             </span>
           )}
           <SzenenFormular kapitelId={kapitelId} zeile={dialogZeile} anzahl={zeilen.length} autoFokus eingerueckt={false} />

@@ -9,20 +9,17 @@ import { kapitelZuordnen, leseRueckimport, type KapitelZuordnung, type Rueckimpo
 import type { Id, LektoratsAenderung } from '@core/model/types';
 import { klartext } from '@core/text/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { datum, f, liste as listeText, sprache, texte, useTexte } from '../../i18n';
 import type { RueckimportBericht } from '../../state/slices/abgabe';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Checkbox, Dialog, Segment } from '../../ui';
 import '../importexport/importexport.css';
 import './abgabe.css';
 
-const zahl = (n: number) => n.toLocaleString('de-DE');
-const ART_NAME: Record<LektoratsAenderung['art'], string> = { einfuegen: 'Einfügen', loeschen: 'Löschen', ersetzen: 'Ersetzen' };
-const STATUS_NAME: Record<LektoratsAenderung['status'], string> = { offen: 'offen', angenommen: 'Angenommen', abgelehnt: 'Abgelehnt' };
-
 function datumKurz(iso?: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? '' : datum(d, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 type Ansicht = { art: 'liste' } | { art: 'einlesen' } | { art: 'vorschau'; name: string; r: Rueckimport };
@@ -42,6 +39,8 @@ function Vorschau({
   zurueck(): void;
   fertig(bericht: RueckimportBericht): void;
 }) {
+  const t = useTexte();
+  const tr = t.abgabe.rueckimport;
   const daten = useStore((s) => s.daten)!;
   const uebernehmen = useStore((s) => s.abgabe.rueckimportUebernehmen);
   const projektKapitel = useMemo(() => daten.projekt.kapitel.map((id) => ({ id, titel: daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel ?? id, text: daten.kapitel[id]?.text ?? '' })), [daten]);
@@ -72,17 +71,17 @@ function Vorschau({
 
   return (
     <Dialog
-      titel="Lektorat aus Word übernehmen"
+      titel={tr.titel}
       breite={600}
       onSchliessen={laeuft ? () => undefined : zurueck}
       modalFest={laeuft}
       aktionen={
         <>
           <Button onClick={zurueck} disabled={laeuft}>
-            Zurück
+            {t.gemeinsam.zurueck}
           </Button>
           <Button variante="primaer" onClick={los} disabled={laeuft || doppelt || nichts}>
-            {laeuft ? 'Wird übernommen …' : 'Übernehmen'}
+            {laeuft ? tr.wirdUebernommen : tr.uebernehmen}
           </Button>
         </>
       }
@@ -91,29 +90,37 @@ function Vorschau({
         <div className="pw-ab-datei__text">
           <span className="pw-ab-datei__name">{name}</span>
           <span className="pw-ab-datei__zahlen">
-            {r.kapitel.length} Kapitel · {zahl(anzahlAenderungen)} Änderungen · {zahl(r.kommentare.length)} Kommentare
-            {r.autoren.length > 0 && ` · von ${r.autoren.join(', ')}`}
+            {[
+              f(t.abgabe.kapitelAnzahl, { n: r.kapitel.length }),
+              f(tr.aenderungen, { n: anzahlAenderungen }),
+              f(tr.kommentare, { n: r.kommentare.length }),
+              r.autoren.length > 0 && f(tr.vonAutoren, { namen: r.autoren.join(', ') }),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </span>
         </div>
       </div>
 
       {r.kapitel.length === 0 ? (
-        <p className="pw-ie-text">In der Datei gibt es keine Kapitel (Überschrift 1). Plotwerk ordnet Änderungen über die Kapitelüberschriften zu.</p>
+        <p className="pw-ie-text">{tr.keineKapitel}</p>
       ) : (
-        <section className="pw-ie-abschnitt" aria-label="Kapitel zuordnen">
+        <section className="pw-ie-abschnitt" aria-label={tr.zuordnen}>
           <div className="pw-ie-abschnitt__kopf">
-            <Abschnittslabel>Kapitel zuordnen</Abschnittslabel>
-            <span className="pw-ie-abschnitt__zusatz">über Titel, sonst Reihenfolge</span>
+            <Abschnittslabel>{tr.zuordnen}</Abschnittslabel>
+            <span className="pw-ie-abschnitt__zusatz">{tr.zuordnenHilfe}</span>
           </div>
-          <div className="pw-ab-zuordnung" role="group" aria-label="Zuordnung der Word-Kapitel">
-            <span className="pw-ab-zuordnung__kopf">In der Datei</span>
+          <div className="pw-ab-zuordnung" role="group" aria-label={tr.zuordnungLabel}>
+            <span className="pw-ab-zuordnung__kopf">{tr.inDatei}</span>
             <span />
-            <span className="pw-ab-zuordnung__kopf">Im Projekt</span>
+            <span className="pw-ab-zuordnung__kopf">{tr.imProjekt}</span>
             {r.kapitel.map((k, i) => (
               <ZuordnungsZeile
                 key={i}
                 titel={k.titelNeu !== k.titel ? `${k.titel} → ${k.titelNeu}` : k.titel}
-                zusatz={`${k.aenderungen.length} Änderungen · ${k.kommentare} Kommentare${zuordnung[i]?.art === 'reihenfolge' ? ' · nach Reihenfolge' : ''}`}
+                zusatz={[f(tr.aenderungen, { n: k.aenderungen.length }), f(tr.kommentare, { n: k.kommentare }), zuordnung[i]?.art === 'reihenfolge' && tr.nachReihenfolge]
+                  .filter(Boolean)
+                  .join(' · ')}
                 wert={zuordnung[i]?.kapitel ?? null}
                 optionen={projektKapitel}
                 doppelt={!!zuordnung[i]?.kapitel && (vergeben.get(zuordnung[i]!.kapitel!) ?? 0) > 1}
@@ -123,33 +130,34 @@ function Vorschau({
           </div>
           {doppelt && (
             <p className="pw-ie-meldung pw-ie-meldung--fehler" role="alert">
-              Ein Projektkapitel ist mehrfach gewählt.
+              {tr.doppelt}
             </p>
           )}
         </section>
       )}
 
-      <section className="pw-ie-abschnitt" aria-label="Übernehmen">
-        <Abschnittslabel>Übernehmen</Abschnittslabel>
+      <section className="pw-ie-abschnitt" aria-label={tr.uebernehmen}>
+        <Abschnittslabel>{tr.uebernehmen}</Abschnittslabel>
         <Checkbox checked={aenderungen} disabled={anzahlAenderungen === 0} onChange={(e) => setAenderungen(e.target.checked)}>
-          Nachverfolgte Änderungen als Vorschläge ({zahl(uebernehmbar)}) – du nimmst jede einzeln an oder lehnst sie ab
+          {f(tr.alsVorschlaege, { n: uebernehmbar })}
         </Checkbox>
         <Checkbox checked={kommentare} disabled={r.kommentare.length === 0} onChange={(e) => setKommentare(e.target.checked)}>
-          Kommentare als Anmerkungen ({zahl(r.kommentare.length)})
+          {f(tr.alsAnmerkungen, { n: r.kommentare.length })}
         </Checkbox>
         {(r.formatierungen > 0 || r.aenderungenOhneKapitel > 0) && (
           <p className="pw-ie-text" style={{ fontSize: 12 }}>
-            {[
-              r.formatierungen > 0 && `${zahl(r.formatierungen)} Formatierungsänderungen`,
-              r.aenderungenOhneKapitel > 0 && `${zahl(r.aenderungenOhneKapitel)} Änderungen vor dem ersten Kapitel (Titelseite)`,
-            ]
-              .filter(Boolean)
-              .join(' und ')}{' '}
-            werden nicht übernommen.
+            {f(tr.nichtUebernommen, {
+              teile: listeText(
+                [
+                  r.formatierungen > 0 && f(tr.formatierungen, { n: r.formatierungen }),
+                  r.aenderungenOhneKapitel > 0 && f(tr.vorKapitel, { n: r.aenderungenOhneKapitel }),
+                ].filter((x): x is string => !!x),
+              ),
+            })}
           </p>
         )}
         <p className="pw-ie-text" style={{ fontSize: 12 }}>
-          Dein Text ändert sich jetzt noch nicht. Bereits übernommene Kommentare und Änderungen werden übersprungen.
+          {tr.nochNicht}
         </p>
       </section>
       {fehler && (
@@ -176,6 +184,7 @@ function ZuordnungsZeile({
   doppelt: boolean;
   setze(id: Id | null): void;
 }) {
+  const tr = useTexte().abgabe.rueckimport;
   return (
     <>
       <span className="pw-ab-zuordnung__word">
@@ -189,12 +198,12 @@ function ZuordnungsZeile({
       </span>
       <select
         className="pw-ab-select"
-        aria-label={`Projektkapitel für „${titel}“`}
+        aria-label={f(tr.projektkapitelFuer, { titel })}
         aria-invalid={doppelt || undefined}
         value={wert ?? ''}
         onChange={(e) => setze(e.target.value || null)}
       >
-        <option value="">Nicht übernehmen</option>
+        <option value="">{tr.nichtUebernehmen}</option>
         {optionen.map((k, i) => (
           <option key={k.id} value={k.id}>
             {i + 1}. {k.titel}
@@ -230,9 +239,11 @@ function AenderungsKarte({
   tasten(e: KeyboardEvent<HTMLLIElement>): void;
   registrieren(el: HTMLLIElement | null): void;
 }) {
+  const tr = useTexte().abgabe.rueckimport;
   const ansicht = useMemo(() => aenderungAnsicht(kt, a), [kt, a]);
   const offen = a.status === 'offen';
-  const lageText = offen && ansicht.lage !== 'bereit' ? (ansicht.lage === 'verwaist' ? 'Stelle nicht gefunden' : 'Text inzwischen geändert') : null;
+  const lageText = offen && ansicht.lage !== 'bereit' ? (ansicht.lage === 'verwaist' ? tr.verwaist : tr.geaendert) : null;
+  const zitat = (text: string) => f(tr.zitat, { text });
   return (
     <li
       ref={registrieren}
@@ -240,17 +251,17 @@ function AenderungsKarte({
       tabIndex={aktiv ? 0 : -1}
       role="option"
       aria-selected={aktiv}
-      aria-label={`${ART_NAME[a.art]}: ${[a.alt && `„${a.alt}“`, a.neu && `→ „${a.neu}“`].filter(Boolean).join(' ')}, ${STATUS_NAME[a.status]}`}
+      aria-label={`${tr.art[a.art]}: ${[a.alt && zitat(a.alt), a.neu && `→ ${zitat(a.neu)}`].filter(Boolean).join(' ')}, ${tr.status[a.status]}`}
       onFocus={fokus}
       onKeyDown={tasten}
     >
       <div className="pw-ab-aenderung__kopf">
-        <span className="pw-ab-aenderung__art">{ART_NAME[a.art]}</span>
+        <span className="pw-ab-aenderung__art">{tr.art[a.art]}</span>
         {(a.autor || a.datum) && <span>{[a.autor, datumKurz(a.datum)].filter(Boolean).join(', ')}</span>}
         {offen ? (
           lageText && <span className={`pw-ab-aenderung__status pw-ab-aenderung__status--${ansicht.lage}`}>{lageText}</span>
         ) : (
-          <span className={`pw-ab-aenderung__status pw-ab-aenderung__status--${a.status}`}>{STATUS_NAME[a.status]}</span>
+          <span className={`pw-ab-aenderung__status pw-ab-aenderung__status--${a.status}`}>{tr.status[a.status]}</span>
         )}
       </div>
       <p className="pw-ab-aenderung__text">
@@ -268,21 +279,21 @@ function AenderungsKarte({
         {offen ? (
           <>
             <Button klein variante="primaer" tabIndex={aktiv ? 0 : -1} disabled={ansicht.lage !== 'bereit'} onClick={() => entscheiden('angenommen')}>
-              Annehmen
+              {tr.annehmen}
             </Button>
             <Button klein tabIndex={aktiv ? 0 : -1} onClick={() => entscheiden('abgelehnt')}>
-              Ablehnen
+              {tr.ablehnen}
             </Button>
           </>
         ) : (
           a.status === 'abgelehnt' && (
             <Button klein variante="leise" tabIndex={aktiv ? 0 : -1} onClick={() => entscheiden('offen')}>
-              Wieder öffnen
+              {tr.wiederOeffnen}
             </Button>
           )
         )}
         <Button klein variante="text" tabIndex={aktiv ? 0 : -1} disabled={ansicht.lage === 'verwaist'} onClick={zeigen} style={{ marginLeft: 'auto' }}>
-          Im Text zeigen
+          {tr.imTextZeigen}
         </Button>
       </div>
     </li>
@@ -290,6 +301,8 @@ function AenderungsKarte({
 }
 
 function Liste({ einlesen, schliessen, meldung }: { einlesen(): void; schliessen(): void; meldung: string | null }) {
+  const t = useTexte();
+  const tr = t.abgabe.rueckimport;
   const daten = useStore((s) => s.daten)!;
   const entscheiden = useStore((s) => s.abgabe.lektoratEntscheiden);
   const markiere = useStore((s) => s.markiere);
@@ -370,12 +383,13 @@ function Liste({ einlesen, schliessen, meldung }: { einlesen(): void; schliessen
   const tasten = (a: LektoratsAenderung, i: number) => (e: KeyboardEvent<HTMLLIElement>) => {
     if (e.target !== e.currentTarget) return;
     const taste = e.key.toLowerCase();
+    // Buchstaben für Annehmen/Ablehnen aus dem Wörterbuch (de: A/L, en: A/R) – wie in der Tastaturhilfe
     if (e.key === 'ArrowDown' || taste === 'j') bewegen(i + 1);
     else if (e.key === 'ArrowUp' || taste === 'k') bewegen(i - 1);
     else if (e.key === 'Home') bewegen(0);
     else if (e.key === 'End') bewegen(sichtbar.length - 1);
-    else if (taste === 'a' && a.status === 'offen') void entscheide(a, 'angenommen');
-    else if (taste === 'l' && a.status === 'offen') void entscheide(a, 'abgelehnt');
+    else if (taste === tr.tasten.annehmenTaste.toLowerCase() && a.status === 'offen') void entscheide(a, 'angenommen');
+    else if (taste === tr.tasten.ablehnenTaste.toLowerCase() && a.status === 'offen') void entscheide(a, 'abgelehnt');
     else if (e.key === 'Enter') zeigen(a);
     else return;
     e.preventDefault();
@@ -384,17 +398,17 @@ function Liste({ einlesen, schliessen, meldung }: { einlesen(): void; schliessen
   let letztesKapitel: Id | null = null;
   return (
     <Dialog
-      titel="Lektorat aus Word"
+      titel={tr.listeTitel}
       breite={640}
       onSchliessen={schliessen}
       aktionen={
         <>
           <span className="pw-ie-fuss-links">
-            {zahl(zaehler.offen)} offen · {zahl(zaehler.angenommen)} angenommen · {zahl(zaehler.abgelehnt)} abgelehnt
+            {f(tr.zaehler, { offen: zaehler.offen, angenommen: zaehler.angenommen, abgelehnt: zaehler.abgelehnt })}
           </span>
-          <Button onClick={einlesen}>Weitere Datei einlesen …</Button>
+          <Button onClick={einlesen}>{tr.weitereDatei}</Button>
           <Button variante="primaer" onClick={schliessen}>
-            Fertig
+            {t.gemeinsam.fertig}
           </Button>
         </>
       }
@@ -406,25 +420,26 @@ function Liste({ einlesen, schliessen, meldung }: { einlesen(): void; schliessen
       )}
       <div className="pw-ab-filter">
         <Segment<'offen' | 'alle'>
-          label="Filter"
+          label={tr.filter}
           rolle="group"
           optionen={[
-            { wert: 'offen', label: `Offen (${zaehler.offen})` },
-            { wert: 'alle', label: `Alle (${liste.length})` },
+            { wert: 'offen', label: f(tr.filterOffen, { n: zaehler.offen }) },
+            { wert: 'alle', label: f(tr.filterAlle, { n: liste.length }) },
           ]}
           wert={filter}
           onChange={setFilter}
         />
         <span className="pw-ab-tasten" style={{ marginLeft: 'auto' }}>
-          <kbd>↑</kbd> <kbd>↓</kbd> wählen · <kbd>A</kbd> annehmen · <kbd>L</kbd> ablehnen · <kbd>↩</kbd> im Text zeigen
+          <kbd>↑</kbd> <kbd>↓</kbd> {tr.tasten.waehlen} · <kbd>{tr.tasten.annehmenTaste}</kbd> {tr.tasten.annehmen} · <kbd>{tr.tasten.ablehnenTaste}</kbd> {tr.tasten.ablehnen} · <kbd>↩</kbd>{' '}
+          {tr.tasten.zeigen}
         </span>
       </div>
       {sichtbar.length === 0 ? (
         <p className="pw-ie-text" role="status">
-          {liste.length === 0 ? 'Noch keine Änderungen aus dem Lektorat.' : 'Alle Änderungen sind entschieden. Unter „Alle“ siehst du, was du angenommen oder abgelehnt hast.'}
+          {liste.length === 0 ? tr.keineAenderungen : tr.alleEntschieden}
         </p>
       ) : (
-        <ul className="pw-ab-liste" role="listbox" aria-label="Änderungen aus dem Lektorat">
+        <ul className="pw-ab-liste" role="listbox" aria-label={tr.listeLabel}>
           {sichtbar.map((a, i) => {
             const kopf = a.anker.kapitel !== letztesKapitel;
             letztesKapitel = a.anker.kapitel;
@@ -459,7 +474,7 @@ function Liste({ einlesen, schliessen, meldung }: { einlesen(): void; schliessen
         </ul>
       )}
       <p className="pw-ie-text" style={{ fontSize: 12 }}>
-        Annehmen ändert deinen Text sofort; der Stand davor bleibt unter „Versionen“ des Kapitels. Kommentare der Lektorin findest du als Anmerkungen im Text.
+        {tr.annehmenHilfe}
       </p>
     </Dialog>
   );
@@ -468,6 +483,8 @@ function Liste({ einlesen, schliessen, meldung }: { einlesen(): void; schliessen
 // ---------------------------------------------------------------------------
 
 export default function RueckimportDialog({ schliessen }: DialogKomponentenProps) {
+  const t = useTexte();
+  const tr = t.abgabe.rueckimport;
   const daten = useStore((s) => s.daten);
   const backend = useStore((s) => s.backend);
   const hatListe = (daten?.lektorat?.length ?? 0) > 0;
@@ -478,8 +495,8 @@ export default function RueckimportDialog({ schliessen }: DialogKomponentenProps
 
   if (!daten) {
     return (
-      <Dialog titel="Lektorat aus Word übernehmen" onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>Schließen</Button>}>
-        <p className="pw-ie-text">Es ist kein Projekt geöffnet.</p>
+      <Dialog titel={tr.titel} onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>{t.gemeinsam.schliessen}</Button>}>
+        <p className="pw-ie-text">{t.abgabe.keinProjekt}</p>
       </Dialog>
     );
   }
@@ -491,7 +508,7 @@ export default function RueckimportDialog({ schliessen }: DialogKomponentenProps
     if (!datei) return;
     setLiest(true);
     try {
-      setAnsicht({ art: 'vorschau', name: datei.name, r: await leseRueckimport(datei.daten) });
+      setAnsicht({ art: 'vorschau', name: datei.name, r: await leseRueckimport(datei.daten, sprache()) });
     } catch (e) {
       setFehler(e instanceof Error ? e.message : String(e));
     } finally {
@@ -506,16 +523,15 @@ export default function RueckimportDialog({ schliessen }: DialogKomponentenProps
         r={ansicht.r}
         zurueck={() => setAnsicht({ art: 'einlesen' })}
         fertig={(b) => {
-          const teile = [
-            b.aenderungen === 1 ? '1 Änderung' : `${zahl(b.aenderungen)} Änderungen`,
-            b.anmerkungen === 1 ? '1 Anmerkung' : `${zahl(b.anmerkungen)} Anmerkungen`,
-          ];
+          // Meldung in der Sprache, die beim Abschluss gilt
+          const tm = texte().abgabe.rueckimport;
+          const teile = listeText([f(tm.aenderungen, { n: b.aenderungen }), f(tm.anmerkungen, { n: b.anmerkungen })]);
           const zusatz = [
-            b.notizen > 0 && `${b.notizen} Kommentar-Notizen im Plan`,
-            b.doppelt > 0 && `${b.doppelt} schon übernommen`,
-            b.nichtGefunden > 0 && `${b.nichtGefunden} Stellen nicht im aktuellen Text gefunden`,
+            b.notizen > 0 && f(tm.notizen, { n: b.notizen }),
+            b.doppelt > 0 && f(tm.schonUebernommen, { n: b.doppelt }),
+            b.nichtGefunden > 0 && f(tm.nichtGefunden, { n: b.nichtGefunden }),
           ].filter(Boolean);
-          setMeldung(`${teile.join(' und ')} übernommen${zusatz.length ? ` (${zusatz.join(', ')})` : ''}.`);
+          setMeldung(zusatz.length ? f(tm.meldungZusatz, { teile, zusatz: zusatz.join(', ') }) : f(tm.meldung, { teile }));
           setAnsicht({ art: 'liste' });
         }}
       />
@@ -526,28 +542,25 @@ export default function RueckimportDialog({ schliessen }: DialogKomponentenProps
 
   return (
     <Dialog
-      titel="Lektorat aus Word übernehmen"
+      titel={tr.titel}
       breite={560}
       onSchliessen={liest ? () => undefined : schliessen}
       modalFest={liest}
       aktionen={
         <>
-          {hatListe && <Button onClick={() => setAnsicht({ art: 'liste' })}>Änderungen ansehen</Button>}
+          {hatListe && <Button onClick={() => setAnsicht({ art: 'liste' })}>{tr.ansehen}</Button>}
           <Button onClick={schliessen} disabled={liest}>
-            Abbrechen
+            {t.gemeinsam.abbrechen}
           </Button>
           <Button variante="primaer" onClick={dateiWaehlen} disabled={liest || !backend} data-autofocus>
-            {liest ? 'Wird gelesen …' : 'Word-Datei wählen …'}
+            {liest ? tr.liest : tr.dateiWaehlen}
           </Button>
         </>
       }
     >
-      <p className="pw-ie-text">
-        Hat deine Lektorin die exportierte Word-Datei mit Kommentaren und nachverfolgten Änderungen zurückgeschickt, holst du beides hier ins Projekt: Kommentare werden
-        Anmerkungen, Änderungen Vorschläge, die du einzeln annimmst oder ablehnst.
-      </p>
+      <p className="pw-ie-text">{tr.einleitung}</p>
       <p className="pw-ie-text" style={{ fontSize: 12 }}>
-        Die Kapitel werden über ihre Überschriften zugeordnet. Dein Text ändert sich erst, wenn du eine Änderung annimmst.
+        {tr.einleitungKlein}
       </p>
       {fehler && (
         <p className="pw-ie-meldung pw-ie-meldung--fehler" role="alert">

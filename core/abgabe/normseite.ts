@@ -19,10 +19,32 @@ import {
   TextRun,
 } from 'docx';
 import { leseMarkdown, SZENENTRENNER, type Lauf } from '../docx/markdown';
+import { buchSprache, fmt, localeVon, texteJe, type Sprache } from '../i18n';
 import type { Kapitel, ProjektAngaben } from '../model/types';
 import { woerterZaehlen } from '../text';
 
 export const NORMSEITE = { zeilen: 30, anschlaege: 60 } as const;
+
+/**
+ * Beschriftungen in der Buchsprache. Das Format bleibt die deutsche Normseite (30 × 60); das englische
+ * „standard manuscript format“ (doppelter Zeilenabstand, Wortzahl gerundet) wäre ein eigenes Format.
+ */
+const T = texteJe(
+  {
+    ohneTitel: 'Ohne Titel',
+    seite: 'Seite ',
+    von: 'von {autor}',
+    umfang: 'ca. {seiten} Normseiten · {woerter} Wörter',
+    beschreibung: 'Normseiten-Manuskript ({zeilen} Zeilen à {anschlaege} Anschläge)',
+  },
+  {
+    ohneTitel: 'Untitled',
+    seite: 'Page ',
+    von: 'by {autor}',
+    umfang: 'approx. {seiten} standard pages · {woerter} words',
+    beschreibung: 'Standard manuscript ({zeilen} lines of {anschlaege} characters)',
+  },
+);
 
 // ---------------------------------------------------------------------------
 // Zeilenmodell
@@ -50,8 +72,8 @@ function laeufeBereinigen(laeufe: Lauf[]): Lauf[] {
 }
 
 /** Ein Kapitel als Normseiten-Blöcke (Leerblöcke entfallen, doppelte Trenner und Trenner am Rand auch). */
-export function normBloecke(k: Pick<Kapitel, 'titel' | 'text'>): NormBlock[] {
-  const ergebnis: NormBlock[] = [{ art: 'titel', text: k.titel.replace(/\s+/g, ' ').trim() || 'Ohne Titel' }, { art: 'leer' }];
+export function normBloecke(k: Pick<Kapitel, 'titel' | 'text'>, sprache: Sprache = 'de'): NormBlock[] {
+  const ergebnis: NormBlock[] = [{ art: 'titel', text: k.titel.replace(/\s+/g, ' ').trim() || T(sprache).ohneTitel }, { art: 'leer' }];
   for (const b of leseMarkdown(k.text)) {
     const vorher = ergebnis[ergebnis.length - 1]!;
     if (b.art === 'trenner') {
@@ -129,9 +151,9 @@ export interface Normseitenzahl {
 }
 
 /** Zählt Normseiten für die Kapitel in Reihenfolge (jedes Kapitel auf neuer Seite). */
-export function normseitenZaehlen(kapitel: Kapitel[]): Normseitenzahl {
+export function normseitenZaehlen(kapitel: Kapitel[], sprache: Sprache = 'de'): Normseitenzahl {
   const liste: NormKapitelZahl[] = kapitel.map((k) => {
-    const bloecke = normBloecke(k);
+    const bloecke = normBloecke(k, sprache);
     let zeilen = 0;
     let anschlaege = 0;
     for (const b of bloecke) {
@@ -195,50 +217,51 @@ function runs(laeufe: Lauf[]): TextRun[] {
 const absatz = (opt: ConstructorParameters<typeof Paragraph>[0] & object) => new Paragraph({ widowControl: false, ...opt });
 
 /** Kopfzeile: „Autor · Titel“ links, „Seite n“ rechts. */
-function kopfzeile(autor: string, titel: string): Header {
+function kopfzeile(autor: string, titel: string, sprache: Sprache): Header {
   const links = [autor.trim(), titel.trim()].filter(Boolean).join(' · ');
   return new Header({
     children: [
       absatz({
         tabStops: [{ type: TabStopType.RIGHT, position: SATZBREITE - 10 }],
-        children: [new TextRun({ text: links }), new TextRun({ children: ['\t', 'Seite ', PageNumber.CURRENT] })],
+        children: [new TextRun({ text: links }), new TextRun({ children: ['\t', T(sprache).seite, PageNumber.CURRENT] })],
       }),
     ],
   });
 }
 
-const zahl = (n: number) => n.toLocaleString('de-DE');
-
-/** Normseiten-Manuskript als .docx (Kapitel in Reihenfolge). */
+/** Normseiten-Manuskript als .docx (Kapitel in Reihenfolge); Beschriftungen in der Buchsprache (angaben.sprache). */
 export async function exportiereNormseite(kapitel: Kapitel[], buchtitel: string, optionen: NormseitenOptionen = {}): Promise<Uint8Array> {
   const schrift = optionen.schrift?.trim() || 'Courier New';
   const angaben = optionen.angaben ?? {};
+  const sprache = buchSprache(angaben);
+  const t = T(sprache);
+  const zahl = (n: number) => n.toLocaleString(localeVon(sprache));
   const autor = angaben.autor?.trim() ?? '';
   const titel = buchtitel.trim();
   const titelseite = optionen.titelseite ?? true;
-  const zahlen = normseitenZaehlen(kapitel);
+  const zahlen = normseitenZaehlen(kapitel, sprache);
 
   const kinder: Paragraph[] = [];
   if (titelseite) {
     const leer = () => absatz({ children: [] });
     for (let i = 0; i < 9; i++) kinder.push(leer());
-    kinder.push(absatz({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: titel || 'Ohne Titel', bold: true })] }));
+    kinder.push(absatz({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: titel || t.ohneTitel, bold: true })] }));
     if (angaben.untertitel?.trim()) kinder.push(absatz({ alignment: AlignmentType.CENTER, children: [new TextRun(angaben.untertitel.trim())] }));
     if (angaben.genre?.trim()) kinder.push(absatz({ alignment: AlignmentType.CENTER, children: [new TextRun(angaben.genre.trim())] }));
     kinder.push(leer());
-    if (autor) kinder.push(absatz({ alignment: AlignmentType.CENTER, children: [new TextRun(`von ${autor}`)] }));
+    if (autor) kinder.push(absatz({ alignment: AlignmentType.CENTER, children: [new TextRun(fmt(t.von, { autor }))] }));
     kinder.push(leer(), leer());
     kinder.push(
       absatz({
         alignment: AlignmentType.CENTER,
-        children: [new TextRun(`ca. ${zahl(zahlen.seiten)} Normseiten · ${zahl(zahlen.woerter)} Wörter`)],
+        children: [new TextRun(fmt(t.umfang, { seiten: zahl(zahlen.seiten), woerter: zahl(zahlen.woerter) }))],
       }),
     );
   }
 
   kapitel.forEach((k, i) => {
     const neueSeite = titelseite || i > 0;
-    normBloecke(k).forEach((b, j) => {
+    normBloecke(k, sprache).forEach((b, j) => {
       const umbruch = neueSeite && j === 0;
       switch (b.art) {
         case 'titel':
@@ -265,11 +288,11 @@ export async function exportiereNormseite(kapitel: Kapitel[], buchtitel: string,
     title: titel,
     creator: autor || 'Plotwerk',
     lastModifiedBy: 'Plotwerk',
-    description: `Normseiten-Manuskript (${NORMSEITE.zeilen} Zeilen à ${NORMSEITE.anschlaege} Anschläge)`,
+    description: fmt(t.beschreibung, { zeilen: NORMSEITE.zeilen, anschlaege: NORMSEITE.anschlaege }),
     styles: {
       default: {
         document: {
-          run: { font: schrift, size: 12 * PT, color: '000000', language: { value: 'de-DE' } },
+          run: { font: schrift, size: 12 * PT, color: '000000', language: { value: localeVon(sprache) } },
           paragraph: { spacing: { line: ZEILE, lineRule: LineRuleType.EXACT, before: 0, after: 0 }, indent: { firstLine: 0 } },
         },
       },
@@ -292,7 +315,7 @@ export async function exportiereNormseite(kapitel: Kapitel[], buchtitel: string,
           },
         },
         headers: {
-          default: kopfzeile(autor, titel),
+          default: kopfzeile(autor, titel, sprache),
           ...(titelseite ? { first: new Header({ children: [absatz({ children: [] })] }) } : {}),
         },
         children: kinder,

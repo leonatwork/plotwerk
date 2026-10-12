@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTexte } from '../i18n';
 import { IconSchliessen } from './Icons';
 import { klassen } from './klassen';
 
@@ -31,6 +32,7 @@ const FOKUSSIERBAR = 'button:not([disabled]), [href], input:not([disabled]), sel
 /** Modaler Dialog (Radius 12). Escape schließt, Fokus bleibt im Dialog und kehrt danach zurück. */
 export function Dialog({ titel, onSchliessen, children, aktionen, breite = 520, oben, titelVersteckt, modalFest, seite, className }: DialogProps) {
   const titelId = useId();
+  const t = useTexte();
   const ref = useRef<HTMLDivElement>(null);
   const schliessen = useRef(onSchliessen);
   schliessen.current = onSchliessen;
@@ -117,7 +119,7 @@ export function Dialog({ titel, onSchliessen, children, aktionen, breite = 520, 
             <h2 id={titelId} className="pw-dialog__titel">
               {titel}
             </h2>
-            <button type="button" className="pw-dialog__schliessen" aria-label="Schließen" onClick={() => schliessen.current()}>
+            <button type="button" className="pw-dialog__schliessen" aria-label={t.gemeinsam.schliessen} onClick={() => schliessen.current()}>
               <IconSchliessen size={14} />
             </button>
           </div>

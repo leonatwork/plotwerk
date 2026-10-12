@@ -5,7 +5,8 @@
 import type { Realitaet } from '@core/model/types';
 import type { Editor } from '@tiptap/react';
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { REALITAET_FARBE, REALITAET_LABEL } from '../../ui';
+import { useTexte } from '../../i18n';
+import { REALITAET_FARBE } from '../../ui';
 
 interface Lage {
   top: number;
@@ -33,6 +34,8 @@ export function Blase({
 }) {
   const [lage, setLage] = useState<Lage | null>(null);
   const [ebenen, setEbenen] = useState(false);
+  const t = useTexte();
+  const T = t.schreiben.blase;
   const sichtbar = useRef(false);
   sichtbar.current = lage !== null;
 
@@ -142,31 +145,31 @@ export function Blase({
 
   if (!lage) return null;
   return (
-    <div className="pw-s-blase" role="toolbar" aria-label="Auswahl" style={{ top: lage.top, left: lage.left }} onMouseDown={(e) => e.preventDefault()}>
-      <button type="button" aria-pressed={lage.fett} title="Fett (⌘B)" onClick={() => editor.chain().focus().toggleBold().run()}>
-        <strong>F</strong>
+    <div className="pw-s-blase" role="toolbar" aria-label={T.label} style={{ top: lage.top, left: lage.left }} onMouseDown={(e) => e.preventDefault()}>
+      <button type="button" aria-pressed={lage.fett} title={T.fett} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <strong>{T.fettZeichen}</strong>
       </button>
-      <button type="button" aria-pressed={lage.kursiv} title="Kursiv (⌘I)" onClick={() => editor.chain().focus().toggleItalic().run()}>
-        <em style={{ fontFamily: 'var(--schrift-text)' }}>K</em>
+      <button type="button" aria-pressed={lage.kursiv} title={T.kursiv} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <em style={{ fontFamily: 'var(--schrift-text)' }}>{T.kursivZeichen}</em>
       </button>
       <button
         type="button"
         aria-pressed={lage.ueberschrift}
-        aria-label={lage.ueberschrift ? 'Absatz' : 'Überschrift'}
-        title={lage.ueberschrift ? 'Wieder normaler Absatz (⌘⌥0)' : 'Überschrift (⌘⌥2)'}
+        aria-label={lage.ueberschrift ? T.absatz : T.ueberschrift}
+        title={lage.ueberschrift ? T.absatzTitel : T.ueberschriftTitel}
         onClick={() => (lage.ueberschrift ? editor.chain().focus().setParagraph().run() : editor.chain().focus().setHeading({ level: 2 }).run())}
       >
-        Ü
+        {T.ueberschriftZeichen}
       </button>
       <span className="pw-s-blase__trenner" aria-hidden="true" />
-      <button type="button" title="Notiz an dieser Stelle" onClick={onNotiz}>
-        Notiz
+      <button type="button" title={T.notizTitel} onClick={onNotiz}>
+        {T.notiz}
       </button>
-      <button type="button" aria-expanded={ebenen} title="Realitätsebene dieser Stelle: gesichert, noch offen oder bewusst vage" onClick={() => setEbenen((x) => !x)}>
-        Ebene
+      <button type="button" aria-expanded={ebenen} title={T.ebeneTitel} onClick={() => setEbenen((x) => !x)}>
+        {T.ebene}
       </button>
       {ebenen && (
-        <div className="pw-s-blase__ebenen" role="group" aria-label="Realitätsebene der Stelle">
+        <div className="pw-s-blase__ebenen" role="group" aria-label={T.ebenenLabel}>
           {STUFEN.map((s) => (
             <button
               key={s}
@@ -177,7 +180,7 @@ export function Blase({
               }}
             >
               <span className="pw-s-blase__punkt" style={{ background: REALITAET_FARBE[s] }} aria-hidden="true" />
-              {REALITAET_LABEL[s]}
+              {t.gemeinsam.realitaet[s]}
             </button>
           ))}
         </div>

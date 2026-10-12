@@ -8,6 +8,7 @@ import { KapitelListe } from './KapitelListe';
 import { SchreibInspektor } from './SchreibInspektor';
 import { oeffneVorschau } from '../vorschau';
 import { TypewriterKnopf } from './werkzeuge';
+import { f, texte, useTexte } from '../../i18n';
 import './schreiben.css';
 
 export default function Ansicht() {
@@ -17,6 +18,7 @@ export default function Ansicht() {
   const kapitelPlanen = useStore((s) => s.kapitelPlanen);
   const fokus = useStore((s) => s.fokusModus);
   const umschalteFokus = useStore((s) => s.umschalteFokus);
+  const T = useTexte().schreiben.ansicht;
   const kapitelId = gewaehlt && reihenfolge?.includes(gewaehlt) ? gewaehlt : reihenfolge?.[0];
 
   useEffect(() => {
@@ -35,8 +37,8 @@ export default function Ansicht() {
 
   if (!kapitelId)
     return (
-      <LeerZustand titel="Noch keine Kapitel" aktionen={<Button variante="primaer" onClick={() => void kapitelPlanen()}>+ Kapitel planen</Button>}>
-        Plane das erste Kapitel oder importiere ein Word-Dokument.
+      <LeerZustand titel={T.leerTitel} aktionen={<Button variante="primaer" onClick={() => void kapitelPlanen()}>{T.kapitelPlanen}</Button>}>
+        {T.leerText}
       </LeerZustand>
     );
 
@@ -58,23 +60,24 @@ export function Titelaktionen() {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const editorSichern = useStore((s) => s.editorSichern);
   const kapitel = useStore((s) => s.auswahl.kapitel);
+  const T = useTexte().schreiben.ansicht;
   return (
     <>
-      <Button onClick={umschalteFokus} aria-pressed={fokus} title="Fokus-Modus (⌘⇧F)">
-        {fokus ? 'Fokus beenden' : 'Fokus-Modus'}
+      <Button onClick={umschalteFokus} aria-pressed={fokus} title={T.fokusTitel}>
+        {fokus ? T.fokusBeenden : T.fokusModus}
       </Button>
       <TypewriterKnopf />
-      <Button title="Buch- und E-Book-Vorschau (⌘⇧B)" onClick={() => oeffneVorschau(kapitel)}>
-        Vorschau
+      <Button title={T.vorschauTitel} onClick={() => oeffneVorschau(kapitel)}>
+        {T.vorschau}
       </Button>
       <Button
-        title="Exportieren (⌘E)"
+        title={T.exportierenTitel}
         onClick={async () => {
           await editorSichern();
           oeffneDialog('export');
         }}
       >
-        Exportieren
+        {T.exportieren}
       </Button>
       <Button
         variante="primaer"
@@ -84,7 +87,7 @@ export function Titelaktionen() {
           oeffneDialog('ki-pruefen', { umfang: 'kapitel', kapitel });
         }}
       >
-        Kapitel prüfen
+        {T.kapitelPruefen}
       </Button>
     </>
   );
@@ -93,8 +96,9 @@ export function Titelaktionen() {
 export function kontext(state: Store): string {
   const d = state.daten;
   const id = state.auswahl.kapitel ?? d?.projekt.kapitel[0];
-  if (!id || !d) return 'Schreiben';
+  const t = texte();
+  if (!id || !d) return t.schreiben.ansicht.kontext;
   const titel = d.kapitel[id]?.titel ?? d.plaene[id]?.titel;
-  if (!titel) return 'Schreiben';
-  return `Kap. ${d.projekt.kapitel.indexOf(id) + 1} · ${titel}`;
+  if (!titel) return t.schreiben.ansicht.kontext;
+  return `${f(t.gemeinsam.kapitelKurz, { nr: d.projekt.kapitel.indexOf(id) + 1 })} · ${titel}`;
 }

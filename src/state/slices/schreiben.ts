@@ -13,6 +13,7 @@ import type {
   Verweis,
 } from '@core/model/types';
 import { kapitelPfad, parseKapitel } from '@core/projekt';
+import { f, texte } from '../../i18n';
 import type { Store } from '../store';
 
 /** Live-Stand des offenen Kapitels (vom Editor entprellt gesetzt, vor dem Speichern). */
@@ -80,13 +81,13 @@ export const createSchreibenSlice: StateCreator<Store, [], [], SchreibenSlice> =
 
   const daten = () => {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   };
 
   const plan = (id: Id): KapitelPlan => {
     const p = daten().plaene[id];
-    if (!p) throw new Error(`Kein Plan für Kapitel „${id}“`);
+    if (!p) throw new Error(f(texte().state.fehler.planFehlt, { id }));
     return p;
   };
 
@@ -129,7 +130,7 @@ export const createSchreibenSlice: StateCreator<Store, [], [], SchreibenSlice> =
       await Promise.all(laeuft);
     },
 
-    async kapitelPlanen(titel = 'Neues Kapitel') {
+    async kapitelPlanen(titel = texte().state.standard.kapitel) {
       const d = daten();
       const vorhanden = [...new Set([...d.projekt.kapitel, ...Object.keys(d.plaene), ...Object.keys(d.kapitel)])];
       const id = get().neueId(titel, vorhanden);
@@ -165,7 +166,7 @@ export const createSchreibenSlice: StateCreator<Store, [], [], SchreibenSlice> =
     async abweichungSpeichern(kapitelId, { notiz, entscheidung, planUebernehmen }) {
       const p = plan(kapitelId);
       const text = notiz.trim();
-      if (!text) throw new Error('Die Abweichung braucht eine Notiz.');
+      if (!text) throw new Error(texte().state.fehler.abweichungOhneNotiz);
       const id = get().neueId(text.split(/\s+/).slice(0, 6).join(' ') || 'abweichung', p.abweichungen.map((a) => a.id));
       const abweichung: Abweichung = { id, notiz: text, entscheidung, datum: heute() };
       if (p.notiz.trim()) abweichung.alterPlan = p.notiz;
@@ -233,9 +234,9 @@ export const createSchreibenSlice: StateCreator<Store, [], [], SchreibenSlice> =
     async versionWiederherstellen(kapitelId, versionsPfad) {
       await get().editorSichern();
       const fs = get().fs;
-      if (!fs) throw new Error('Kein Projekt geöffnet');
+      if (!fs) throw new Error(texte().state.fehler.keinProjekt);
       const inhalt = await fs.lesen(versionsPfad);
-      if (inhalt === null) throw new Error('Diese Version gibt es nicht mehr.');
+      if (inhalt === null) throw new Error(texte().state.fehler.versionFehlt);
       const alt = parseKapitel(inhalt, kapitelId);
       await get().alleSpeichernAbwarten();
       await get().schnappschuss(kapitelPfad(kapitelId), 'wiederherstellen');

@@ -19,7 +19,7 @@ pub struct KiFehlerAntwort {
 impl From<KiFehler> for KiFehlerAntwort {
     fn from(e: KiFehler) -> Self {
         Self {
-            meldung: e.to_string(),
+            meldung: e.meldung(crate::sprache::aktuell() == crate::sprache::Sprache::En),
             status: e.status(),
             wiederholen_nach: e.wiederholen_nach(),
         }
@@ -39,14 +39,17 @@ impl From<String> for KiFehlerAntwort {
 async fn im_hintergrund<T: Send + 'static>(
     f: impl FnOnce() -> Result<T, String> + Send + 'static,
 ) -> Result<T, String> {
-    tauri::async_runtime::spawn_blocking(f)
-        .await
-        .map_err(|e| format!("Schlüsselbund nicht erreichbar: {e}"))?
+    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| {
+        crate::tf!(
+            "Schlüsselbund nicht erreichbar: {e}",
+            "Keychain not reachable: {e}"
+        )
+    })?
 }
 
 /// `anbieter`: "foundry" (Standard, auch wenn es fehlt) oder "claude".
 fn anbieter(wert: Option<String>) -> Result<Anbieter, String> {
-    Anbieter::aus_text(wert.as_deref()).map_err(|e| e.to_string())
+    Anbieter::aus_text(wert.as_deref()).map_err(|e| KiFehlerAntwort::from(e).meldung)
 }
 
 #[tauri::command]

@@ -1,7 +1,7 @@
 /**
  * Harte Regel 1 (a): core/ki importiert nichts, was schreiben kann.
- * Erlaubt: ../model/types, ../projekt/fs (nur type), ../projekt/lesen, ../text,
- * ../index (nur hinweisSchluessel bzw. Typen) und eigene Dateien.
+ * Erlaubt: ../model/types, ../projekt/fs (nur type), ../projekt/lesen, ../text, ../i18n (Sprache, buchSprache –
+ * rein, ohne Dateizugriff), ../index (nur hinweisSchluessel bzw. Typen) und eigene Dateien.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -53,6 +53,7 @@ describe('core/ki – Importe (harte Regel 1, statisch)', () => {
           case '../model/types':
           case '../text':
           case '../projekt/lesen':
+          case '../i18n':
             break;
           case '../projekt/fs':
             if (!imp.nurTyp) verstoesse.push(`${name} (nur type erlaubt)`);
@@ -88,6 +89,8 @@ describe('core/ki – Importe (harte Regel 1, statisch)', () => {
     for (const imp of importe(text)) {
       expect(imp.pfad, `core/text: ${imp.pfad}`).not.toMatch(/projekt|schreiben|memoryFs|@tauri-apps|src\/|^node:/);
     }
+    // core/i18n ist rein (keine Importe)
+    expect(importe(resolve(ORDNER, '../i18n/index.ts'))).toEqual([]);
     expect(dirname(lesen)).toMatch(/projekt$/);
   });
 });

@@ -8,6 +8,7 @@ import { epubKapitel } from '@core/epub/index';
 import type { Id, KapitelStatus, ProjektAngaben } from '@core/model/types';
 import { wortzahl } from '@core/text/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, useTexte, zahl, type Woerterbuch } from '../../i18n';
 import {
   abgabeDateiname,
   mitAbgabeEndung,
@@ -21,14 +22,12 @@ import { Abschnittslabel, Button, Checkbox, Dialog, Radio, Segment, StatusPunkt,
 import '../importexport/importexport.css';
 import './abgabe.css';
 
-const zahl = (n: number) => n.toLocaleString('de-DE');
+const FORMATE: AbgabeFormat[] = ['normseite', 'expose', 'epub', 'mappe'];
 
-const FORMATE: { wert: AbgabeFormat; label: string }[] = [
-  { wert: 'normseite', label: 'Normseite' },
-  { wert: 'expose', label: 'Exposé' },
-  { wert: 'epub', label: 'EPUB' },
-  { wert: 'mappe', label: 'Lektoratsmappe' },
-];
+/** Formate mit Beschriftung in der Oberflächensprache */
+function formate(t: Woerterbuch): { wert: AbgabeFormat; label: string }[] {
+  return FORMATE.map((wert) => ({ wert, label: t.abgabe.export.formate[wert] }));
+}
 
 interface Zeile {
   id: Id;
@@ -56,6 +55,8 @@ function Umfang({
   setzeAuswahl(a: Set<Id>): void;
   name: string;
 }) {
+  const t = useTexte();
+  const te = t.abgabe.export;
   const umschalten = (id: Id, an: boolean) => {
     const neu = new Set(auswahl);
     if (an) neu.add(id);
@@ -63,30 +64,30 @@ function Umfang({
     setzeAuswahl(neu);
   };
   return (
-    <section className="pw-ie-abschnitt" aria-label="Umfang">
-      <Abschnittslabel>Umfang</Abschnittslabel>
-      <div className="pw-ie-optionen" role="radiogroup" aria-label="Umfang">
+    <section className="pw-ie-abschnitt" aria-label={te.umfang}>
+      <Abschnittslabel>{te.umfang}</Abschnittslabel>
+      <div className="pw-ie-optionen" role="radiogroup" aria-label={te.umfang}>
         <Radio name={name} checked={umfang === 'buch'} onChange={() => setzeUmfang('buch')}>
-          Ganzes Buch ({zeilen.length} Kapitel mit Text)
+          {f(te.ganzesBuch, { n: zeilen.length })}
         </Radio>
         <Radio name={name} checked={umfang === 'auswahl'} onChange={() => setzeUmfang('auswahl')}>
-          Auswahl
+          {te.auswahl}
         </Radio>
       </div>
       {umfang === 'auswahl' && (
         <>
           <div className="pw-ie-abschnitt__kopf">
-            <span className="pw-ie-abschnitt__zusatz">{auswahl.size === 0 ? 'Kapitel wählen' : `${zeilen.filter((z) => auswahl.has(z.id)).length} gewählt`}</span>
+            <span className="pw-ie-abschnitt__zusatz">{auswahl.size === 0 ? te.kapitelWaehlen : f(te.gewaehlt, { n: zeilen.filter((z) => auswahl.has(z.id)).length })}</span>
             <span>
               <Button variante="text" klein onClick={() => setzeAuswahl(new Set(zeilen.map((z) => z.id)))}>
-                Alle
+                {t.gemeinsam.alle}
               </Button>
               <Button variante="text" klein onClick={() => setzeAuswahl(new Set())}>
-                Keine
+                {te.keine}
               </Button>
             </span>
           </div>
-          <ul className="pw-ie-liste" style={{ margin: 0, listStyle: 'none', maxHeight: 200 }} aria-label="Kapitel">
+          <ul className="pw-ie-liste" style={{ margin: 0, listStyle: 'none', maxHeight: 200 }} aria-label={te.kapitelListe}>
             {zeilen.map((z) => (
               <li key={z.id} className="pw-ie-zeile">
                 <Checkbox checked={auswahl.has(z.id)} onChange={(e) => umschalten(z.id, e.target.checked)}>
@@ -107,18 +108,20 @@ function Umfang({
 /** Angaben zum Buch (projekt.md) – aufklappbar, gespeichert beim Verlassen eines Felds. */
 function Angaben({ angaben, setze }: { angaben: ProjektAngaben; setze(teil: ProjektAngaben): void }) {
   const id = useId();
-  const felder: { schluessel: keyof ProjektAngaben; label: string; platzhalter: string }[] = [
-    { schluessel: 'autor', label: 'Autor', platzhalter: 'Dein Name' },
-    { schluessel: 'untertitel', label: 'Untertitel', platzhalter: 'z. B. Roman' },
-    { schluessel: 'genre', label: 'Genre', platzhalter: 'z. B. Gegenwartsroman' },
-    { schluessel: 'sprache', label: 'Sprache', platzhalter: 'de' },
+  const ta = useTexte().abgabe.export.angaben;
+  const felder: { schluessel: keyof ProjektAngaben; label: string; platzhalter: string; hilfe?: string }[] = [
+    { schluessel: 'autor', label: ta.autor, platzhalter: ta.autorPlatzhalter },
+    { schluessel: 'untertitel', label: ta.untertitel, platzhalter: ta.untertitelPlatzhalter },
+    { schluessel: 'genre', label: ta.genre, platzhalter: ta.genrePlatzhalter },
+    // Buchsprache: Typografie, Silbentrennung und KI (nicht die Sprache der Oberfläche)
+    { schluessel: 'sprache', label: ta.sprache, platzhalter: ta.sprachePlatzhalter, hilfe: ta.spracheHilfe },
   ];
   const zusammenfassung = [angaben.autor, angaben.untertitel, angaben.genre].filter((t) => t?.trim()).join(' · ');
   return (
     <details className="pw-ab-angaben" open={!angaben.autor?.trim() || undefined}>
       <summary>
-        Angaben zum Buch
-        <span className="pw-ab-angaben__zusatz">{zusammenfassung || 'Autor fehlt noch'}</span>
+        {ta.titel}
+        <span className="pw-ab-angaben__zusatz">{zusammenfassung || ta.autorFehlt}</span>
       </summary>
       <div className="pw-ab-angaben__felder">
         {felder.map((f) => (
@@ -130,8 +133,14 @@ function Angaben({ angaben, setze }: { angaben: ProjektAngaben; setze(teil: Proj
               id={`${id}-${f.schluessel}`}
               value={angaben[f.schluessel] ?? ''}
               placeholder={f.platzhalter}
+              aria-describedby={f.hilfe ? `${id}-${f.schluessel}-hilfe` : undefined}
               onChange={(e) => setze({ [f.schluessel]: e.target.value })}
             />
+            {f.hilfe && (
+              <span id={`${id}-${f.schluessel}-hilfe`} className="pw-ab-angaben__hilfe">
+                {f.hilfe}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -140,6 +149,8 @@ function Angaben({ angaben, setze }: { angaben: ProjektAngaben; setze(teil: Proj
 }
 
 export default function AbgabeDialog({ param, schliessen }: DialogKomponentenProps) {
+  const t = useTexte();
+  const te = t.abgabe.export;
   const daten = useStore((s) => s.daten);
   const backend = useStore((s) => s.backend);
   const hinweise = useStore((s) => s.index.hinweise);
@@ -208,8 +219,8 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
 
   if (!daten) {
     return (
-      <Dialog titel="Für die Abgabe exportieren" onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>Schließen</Button>}>
-        <p className="pw-ie-text">Es ist kein Projekt geöffnet.</p>
+      <Dialog titel={te.titel} onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>{t.gemeinsam.schliessen}</Button>}>
+        <p className="pw-ie-text">{t.abgabe.keinProjekt}</p>
       </Dialog>
     );
   }
@@ -231,21 +242,21 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
     case 'normseite':
       auftrag = { format, kapitel: gewaehlt, titelseite };
       bereit = gewaehlt.length > 0;
-      fussText = normseiten ? `${gewaehlt.length} Kapitel · ${zahl(normseiten.seiten)} Normseiten` : '';
+      fussText = normseiten ? `${f(t.abgabe.kapitelAnzahl, { n: gewaehlt.length })} · ${f(te.normseiten, { n: normseiten.seiten })}` : '';
       break;
     case 'expose':
       auftrag = { format, ziel: exposeFormat, kapitel: exposeKapitel, nebenfiguren };
-      fussText = expose ? `${expose.platzhalter} Platzhalter zum Ausfüllen` : '';
+      fussText = expose ? f(te.platzhalter, { n: expose.platzhalter }) : '';
       break;
     case 'epub':
       auftrag = { format, kapitel: gewaehlt, titelseite, schrift: epubSchrift };
       bereit = gewaehlt.length > 0;
-      fussText = `${gewaehlt.length} Kapitel · ${zahl(zeilen.filter((z) => gewaehlt.includes(z.id)).reduce((s, z) => s + z.woerter, 0))} Wörter`;
+      fussText = `${f(t.abgabe.kapitelAnzahl, { n: gewaehlt.length })} · ${f(t.gemeinsam.woerter, { n: zeilen.filter((z) => gewaehlt.includes(z.id)).reduce((s, z) => s + z.woerter, 0) })}`;
       break;
     case 'mappe':
       auftrag = { format, kapitel: mappeKapitel };
       bereit = offen.length > 0;
-      fussText = offen.length === 1 ? '1 offener Hinweis' : `${zahl(offen.length)} offene Hinweise`;
+      fussText = f(te.offeneHinweise, { n: offen.length });
       break;
   }
 
@@ -270,7 +281,7 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
       const gespeichert = await abgabe.exportieren(auftrag, name);
       setStatus(gespeichert ? { art: 'fertig', name } : { art: 'bereit' });
     } catch (fehler) {
-      setStatus({ art: 'fehler', meldung: `Export fehlgeschlagen: ${fehler instanceof Error ? fehler.message : String(fehler)}` });
+      setStatus({ art: 'fehler', meldung: f(te.fehlgeschlagen, { meldung: fehler instanceof Error ? fehler.message : String(fehler) }) });
     }
   }
 
@@ -278,26 +289,26 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
 
   return (
     <Dialog
-      titel="Für die Abgabe exportieren"
+      titel={te.titel}
       breite={600}
       onSchliessen={laeuft ? () => undefined : schliessen}
       modalFest={laeuft}
       aktionen={
         status.art === 'fertig' ? (
           <>
-            <Button onClick={() => setStatus({ art: 'bereit' })}>Weiteres exportieren</Button>
+            <Button onClick={() => setStatus({ art: 'bereit' })}>{te.weiteres}</Button>
             <Button variante="primaer" onClick={schliessen} data-autofocus>
-              Fertig
+              {t.gemeinsam.fertig}
             </Button>
           </>
         ) : (
           <>
             <span className="pw-ie-fuss-links">{fussText}</span>
             <Button onClick={schliessen} disabled={laeuft}>
-              Abbrechen
+              {t.gemeinsam.abbrechen}
             </Button>
             <Button variante="primaer" onClick={starten} disabled={laeuft || !bereit || ohneText || !backend}>
-              {laeuft ? 'Wird erstellt …' : 'Exportieren'}
+              {laeuft ? te.erstellt : te.exportieren}
             </Button>
           </>
         )
@@ -305,16 +316,16 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
     >
       {status.art === 'fertig' ? (
         <p className="pw-ie-meldung pw-ie-meldung--erfolg" role="status">
-          „{status.name}“ wurde gespeichert.
-          {format === 'expose' && ' Die gelb markierten Platzhalter schreibst du selbst.'}
+          {f(te.gespeichert, { name: status.name })}
+          {format === 'expose' && ` ${te.exposeSelbst}`}
         </p>
       ) : (
         <>
           <Segment<AbgabeFormat>
-            label="Was exportieren?"
+            label={te.wasExportieren}
             rolle="group"
             voll
-            optionen={FORMATE}
+            optionen={formate(t)}
             wert={format}
             onChange={(f) => {
               setFormat(f);
@@ -324,34 +335,37 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
 
           {format === 'normseite' && (
             <div className="pw-ab-panel">
-              <p className="pw-ie-text">Manuskript im Normseiten-Format für Verlage und Agenturen: Courier New 12 pt, 30 Zeilen à 60 Anschläge, Kopfzeile mit Autor, Titel und Seitenzahl, jedes Kapitel auf neuer Seite.</p>
+              <p className="pw-ie-text">{te.normseite.text}</p>
               {ohneText ? (
-                <p className="pw-ie-text">Noch kein Kapitel hat Text.</p>
+                <p className="pw-ie-text">{te.ohneText}</p>
               ) : (
                 <>
                   {normseiten && (
                     <div className="pw-ab-zahlen" aria-live="polite">
                       <div className="pw-ab-zahl">
                         <span className="pw-ab-zahl__wert">{zahl(normseiten.seiten)}</span>
-                        <span className="pw-ab-zahl__label">Normseiten</span>
+                        <span className="pw-ab-zahl__label">{te.normseite.normseiten}</span>
                       </div>
                       <div className="pw-ab-zahl">
                         <span className="pw-ab-zahl__wert pw-ab-zahl__wert--klein">{zahl(normseiten.woerter)}</span>
-                        <span className="pw-ab-zahl__label">Wörter</span>
+                        <span className="pw-ab-zahl__label">{te.normseite.woerter}</span>
                       </div>
                       <div className="pw-ab-zahl">
                         <span className="pw-ab-zahl__wert pw-ab-zahl__wert--klein">{zahl(normseiten.anschlaege)}</span>
-                        <span className="pw-ab-zahl__label">Anschläge</span>
+                        <span className="pw-ab-zahl__label">{te.normseite.anschlaege}</span>
                       </div>
                       <span className="pw-ab-zahlen__zusatz">
-                        Gezählt nach Zeilen ({zahl(normseiten.zeilen)} Zeilen{titelseite ? ', ohne Titelseite' : ''}). Nach der Faustregel 1.500 Anschläge je Seite wären es{' '}
-                        {zahl(normseiten.seitenNachAnschlaegen)}.
+                        {f(titelseite ? te.normseite.gezaehltOhneTitel : te.normseite.gezaehlt, {
+                          zeilen: normseiten.zeilen,
+                          faustregel: 1500,
+                          seiten: normseiten.seitenNachAnschlaegen,
+                        })}
                       </span>
                     </div>
                   )}
                   <Umfang zeilen={zeilen} umfang={umfang} auswahl={auswahl} setzeUmfang={setUmfang} setzeAuswahl={setAuswahl} name="pw-abgabe-umfang-ns" />
                   <Checkbox checked={titelseite} onChange={(ev) => setTitelseite(ev.target.checked)}>
-                    Titelseite mit Titel, Autor und Umfang
+                    {te.normseite.titelseite}
                   </Checkbox>
                 </>
               )}
@@ -360,44 +374,41 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
 
           {format === 'expose' && (
             <div className="pw-ab-panel">
-              <p className="pw-ie-text">
-                Ein Gerüst aus deinem Plan zum Weiterschreiben: Eckdaten, Akte mit Quintessenz und Wendepunkt, Figuren mit Kurzbeschreibung. Den Exposé-Text schreibst du
-                selbst – alles Offene steht als „[Platzhalter: …]“ darin.
-              </p>
-              <section className="pw-ie-abschnitt" aria-label="Kapitelübersicht">
-                <Abschnittslabel>Kapitelübersicht</Abschnittslabel>
-                <div className="pw-ie-optionen" role="radiogroup" aria-label="Kapitelübersicht">
+              <p className="pw-ie-text">{te.expose.text}</p>
+              <section className="pw-ie-abschnitt" aria-label={te.expose.kapitel}>
+                <Abschnittslabel>{te.expose.kapitel}</Abschnittslabel>
+                <div className="pw-ie-optionen" role="radiogroup" aria-label={te.expose.kapitel}>
                   <Radio name="pw-abgabe-expose-kapitel" checked={exposeKapitel === 'keine'} onChange={() => setExposeKapitel('keine')}>
-                    Keine
+                    {te.expose.keine}
                   </Radio>
                   <Radio name="pw-abgabe-expose-kapitel" checked={exposeKapitel === 'platzhalter'} onChange={() => setExposeKapitel('platzhalter')}>
-                    Je Kapitel ein Platzhalter
+                    {te.expose.jeKapitel}
                   </Radio>
                   <Radio name="pw-abgabe-expose-kapitel" checked={exposeKapitel === 'plan'} onChange={() => setExposeKapitel('plan')}>
-                    Aus meinem Kapitelplan (Szene und „Was soll hier passieren?“)
+                    {te.expose.ausPlan}
                   </Radio>
                   <Radio name="pw-abgabe-expose-kapitel" checked={exposeKapitel === 'zusammenfassung'} onChange={() => setExposeKapitel('zusammenfassung')}>
-                    Meine freigegebenen Zusammenfassungen ({freigegeben} von {daten.projekt.kapitel.length})
+                    {f(te.expose.zusammenfassungen, { n: freigegeben, gesamt: daten.projekt.kapitel.length })}
                   </Radio>
                 </div>
                 {exposeKapitel === 'zusammenfassung' && (
                   <p className="pw-ie-text" style={{ fontSize: 12 }}>
-                    Nur Zusammenfassungen, die du in „Kapitel“ bearbeitet oder bestätigt hast. Unbearbeitete KI-Zusammenfassungen kommen nicht ins Exposé.
+                    {te.expose.zusammenfassungenHilfe}
                   </p>
                 )}
               </section>
               <Checkbox checked={nebenfiguren} onChange={(ev) => setNebenfiguren(ev.target.checked)}>
-                Nebenfiguren aufnehmen
+                {te.expose.nebenfiguren}
               </Checkbox>
-              <section className="pw-ie-abschnitt" aria-label="Dateiformat">
-                <Abschnittslabel>Dateiformat</Abschnittslabel>
+              <section className="pw-ie-abschnitt" aria-label={te.expose.dateiformat}>
+                <Abschnittslabel>{te.expose.dateiformat}</Abschnittslabel>
                 <Segment<ExposeDateiformat>
-                  label="Dateiformat des Exposés"
+                  label={te.expose.dateiformatLabel}
                   rolle="group"
                   voll
                   optionen={[
-                    { wert: 'docx', label: 'Word (.docx)' },
-                    { wert: 'md', label: 'Markdown (.md)' },
+                    { wert: 'docx', label: te.expose.word },
+                    { wert: 'md', label: te.expose.markdown },
                   ]}
                   wert={exposeFormat}
                   onChange={exposeFormatWechseln}
@@ -408,17 +419,17 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
 
           {format === 'epub' && (
             <div className="pw-ab-panel">
-              <p className="pw-ie-text">E-Book im Format EPUB 3 mit Inhaltsverzeichnis, gesetzt wie in der E-Book-Vorschau: Blocksatz mit Silbentrennung, Kapitelkopf, Szenentrenner.</p>
+              <p className="pw-ie-text">{te.epub.text}</p>
               {ohneText ? (
-                <p className="pw-ie-text">Noch kein Kapitel hat Text.</p>
+                <p className="pw-ie-text">{te.ohneText}</p>
               ) : (
                 <>
                   <Umfang zeilen={zeilen} umfang={umfang} auswahl={auswahl} setzeUmfang={setUmfang} setzeAuswahl={setAuswahl} name="pw-abgabe-umfang-epub" />
                   <Checkbox checked={titelseite} onChange={(ev) => setTitelseite(ev.target.checked)}>
-                    Titelseite
+                    {te.epub.titelseite}
                   </Checkbox>
                   <Checkbox checked={epubSchrift} onChange={(ev) => setEpubSchrift(ev.target.checked)}>
-                    Newsreader einbetten (sonst wählt das Lesegerät die Schrift)
+                    {te.epub.schrift}
                   </Checkbox>
                 </>
               )}
@@ -427,11 +438,11 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
 
           {format === 'mappe' && (
             <div className="pw-ab-panel">
-              <p className="pw-ie-text">Die offenen Hinweise als PDF zum Weitergeben oder Ausdrucken – je Hinweis Typ, Titel, Zitat und Erklärung. Als Absicht oder erledigt markierte Hinweise fehlen.</p>
+              <p className="pw-ie-text">{te.mappe.text}</p>
               <div className="pw-ie-feldreihe">
-                <label htmlFor={mappeId}>Umfang</label>
+                <label htmlFor={mappeId}>{te.umfang}</label>
                 <select id={mappeId} className="pw-ab-select" value={mappeKapitel ?? ''} onChange={(ev) => setMappeKapitel(ev.target.value || null)}>
-                  <option value="">Ganzes Buch ({offeneHinweise(hinweise).length})</option>
+                  <option value="">{f(te.mappe.ganzesBuch, { n: offeneHinweise(hinweise).length })}</option>
                   {daten.projekt.kapitel.map((id, i) => (
                     <option key={id} value={id}>
                       {i + 1}. {daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel ?? id} ({offenJeKapitel.get(id) ?? 0})
@@ -440,13 +451,13 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
                 </select>
                 {auswahlKapitel && auswahlKapitel !== mappeKapitel && (
                   <Button variante="text" klein onClick={() => setMappeKapitel(auswahlKapitel)}>
-                    Aktuelles Kapitel
+                    {te.mappe.aktuellesKapitel}
                   </Button>
                 )}
               </div>
               {offen.length === 0 && (
                 <p className="pw-ie-text" role="status">
-                  {mappeKapitel ? 'In diesem Kapitel gibt es keine offenen Hinweise.' : 'Es gibt keine offenen Hinweise.'}
+                  {mappeKapitel ? te.mappe.keineImKapitel : te.mappe.keine}
                 </p>
               )}
             </div>
@@ -455,7 +466,7 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
           {format !== 'mappe' && <Angaben angaben={angaben} setze={(teil) => setAngaben((a) => ({ ...a, ...teil }))} />}
 
           <div className="pw-ie-feldreihe">
-            <label htmlFor={dateinameId}>Dateiname</label>
+            <label htmlFor={dateinameId}>{te.dateiname}</label>
             <Textfeld
               id={dateinameId}
               value={dateiname}

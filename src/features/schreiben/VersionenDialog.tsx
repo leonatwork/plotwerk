@@ -12,20 +12,25 @@ import { klartext } from '@core/text/index';
 import { versionenAuflisten, wortDiff, type Version } from '@core/versionen/index';
 import { useEffect, useMemo, useState } from 'react';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { datum, datumZeit, f, relativ, texte, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button, Dialog } from '../../ui';
 import '../statistik/statistik.css';
 import './schreiben.css';
 import { kapitelAnzeige } from './verweise';
 
-const zeitFormat = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-const tagFormat = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
-
 function wann(iso: string): { haupt: string; neben: string } {
   const d = new Date(iso);
   const minuten = Math.round((Date.now() - d.getTime()) / 60000);
-  const neben = minuten < 1 ? 'gerade eben' : minuten < 60 ? `vor ${minuten} min` : minuten < 24 * 60 ? `vor ${Math.round(minuten / 60)} h` : tagFormat.format(d);
-  return { haupt: zeitFormat.format(d), neben };
+  const neben =
+    minuten < 1
+      ? texte().schreiben.versionen.geradeEben
+      : minuten < 60
+        ? relativ(-minuten, 'minute')
+        : minuten < 24 * 60
+          ? relativ(-Math.round(minuten / 60), 'hour')
+          : datum(d);
+  return { haupt: datumZeit(d, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }), neben };
 }
 
 export function VersionenDialog({ param, schliessen }: DialogKomponentenProps) {
@@ -39,6 +44,8 @@ export function VersionenDialog({ param, schliessen }: DialogKomponentenProps) {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const fassungen = useStore((s) => s.daten?.fassungen);
   const jeVersion = useMemo(() => fassungenJeVersion(fassungen ?? []), [fassungen]);
+  const t = useTexte();
+  const T = t.schreiben.versionen;
 
   const [versionen, setVersionen] = useState<Version[] | null>(null);
   const [auswahl, setAuswahl] = useState<Version | null>(null);
@@ -85,24 +92,24 @@ export function VersionenDialog({ param, schliessen }: DialogKomponentenProps) {
 
   return (
     <Dialog
-      titel="Versionsverlauf"
+      titel={T.titel}
       onSchliessen={schliessen}
       breite={880}
       modalFest={laeuft}
       aktionen={
         <>
           {fehler && <span className="pw-s-status__fehler" style={{ marginRight: 'auto', fontSize: 12 }}>{fehler}</span>}
-          <Button onClick={() => kapitelId && oeffneDialog('fassung', { kapitel: kapitelId })} disabled={!kapitelId || laeuft} title="Benannte Fassung anlegen">
-            Fassung sichern …
+          <Button onClick={() => kapitelId && oeffneDialog('fassung', { kapitel: kapitelId })} disabled={!kapitelId || laeuft} title={T.fassungSichernTitel}>
+            {T.fassungSichern}
           </Button>
           <Button
             disabled={!auswahl || !kapitelId || laeuft}
-            title="Diese Version und den aktuellen Text in zwei Spalten vergleichen"
+            title={T.nebeneinanderTitel}
             onClick={() => auswahl && kapitelId && oeffneDialog('versionsvergleich', { links: versionsQuelle(auswahl.versionsPfad), rechts: AKTUELL, kapitel: kapitelId, pfad: auswahl.versionsPfad })}
           >
-            Nebeneinander
+            {T.nebeneinander}
           </Button>
-          <Button onClick={schliessen}>Schließen</Button>
+          <Button onClick={schliessen}>{t.gemeinsam.schliessen}</Button>
           <Button
             variante="primaer"
             disabled={!auswahl || inhalt === null || gleich || laeuft}
@@ -119,28 +126,28 @@ export function VersionenDialog({ param, schliessen }: DialogKomponentenProps) {
               }
             }}
           >
-            {laeuft ? 'Stellt wieder her …' : 'Diese Version wiederherstellen'}
+            {laeuft ? T.stelltWiederHer : T.wiederherstellen}
           </Button>
         </>
       }
     >
       <span style={{ fontSize: 13, color: 'var(--ink-quiet)', marginTop: -6 }}>
         {titel}
-        {versionen && ` · ${versionen.length === 1 ? '1 Version' : `${versionen.length} Versionen`}`} · Die aktuelle Fassung wird vor dem Wiederherstellen gesichert.
+        {versionen && ` · ${f(T.anzahl, { n: versionen.length })}`} · {T.vorherGesichert}
       </span>
       {versionen === null ? (
         <div className="pw-s-versionen" aria-busy="true" style={{ alignItems: 'center', justifyContent: 'center' }}>
-          <span className="pw-s-leise">{fehler ? 'Versionen konnten nicht gelesen werden.' : 'Versionen werden geladen …'}</span>
+          <span className="pw-s-leise">{fehler ? T.nichtLesbar : T.laedt}</span>
         </div>
       ) : versionen.length === 0 ? (
         <p className="pw-s-leise" style={{ margin: 0 }}>
-          Noch keine Versionen. Schnappschüsse entstehen beim Kapitelwechsel, alle 10 Minuten während des Schreibens und beim Beenden.
+          {T.keine}
         </p>
       ) : (
         <div className="pw-s-versionen">
           <ul
             className="pw-s-versionen__liste"
-            aria-label="Versionen"
+            aria-label={T.liste}
             onKeyDown={(e) => {
               if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
               e.preventDefault();
@@ -169,19 +176,19 @@ export function VersionenDialog({ param, schliessen }: DialogKomponentenProps) {
           <div style={{ flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div className="pw-s-versionen__legende">
               {gleich ? (
-                <span>Diese Version entspricht der aktuellen Fassung.</span>
+                <span>{T.gleich}</span>
               ) : (
                 <>
                   <span>
-                    <span className="pw-s-diff--neu">kommt zurück</span> {zaehle('neu')} Wörter
+                    <span className="pw-s-diff--neu">{T.kommtZurueck}</span> {f(T.woerter, { n: zaehle('neu') })}
                   </span>
                   <span>
-                    <span className="pw-s-diff--entfernt">fällt weg</span> {zaehle('entfernt')} Wörter
+                    <span className="pw-s-diff--entfernt">{T.faelltWeg}</span> {f(T.woerter, { n: zaehle('entfernt') })}
                   </span>
                 </>
               )}
             </div>
-            <div className="pw-s-versionen__diff" aria-label="Vergleich mit der aktuellen Fassung">
+            <div className="pw-s-versionen__diff" aria-label={T.vergleichLabel}>
               {diff?.map((t, i) =>
                 t.typ === 'gleich' ? (
                   <span key={i}>{t.text}</span>

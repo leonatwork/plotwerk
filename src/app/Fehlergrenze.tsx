@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { f, texte } from '../i18n';
 import { Button } from '../ui';
 
 interface Props {
@@ -34,11 +35,12 @@ export class Fehlergrenze extends Component<Props, State> {
   render() {
     if (!this.state.fehler) return this.props.children;
     if (this.props.ersatz) return this.props.ersatz(this.state.fehler, () => this.setState({ fehler: null }));
+    const t = texte();
     return (
       <div role="alert" className="pw-fehler">
-        <strong>„{this.props.bereich}“ konnte nicht angezeigt werden.</strong>
+        <strong>{f(t.app.fehlergrenze.titel, { bereich: this.props.bereich })}</strong>
         <code>{this.state.fehler.message}</code>
-        <Button onClick={() => this.setState({ fehler: null })}>Erneut versuchen</Button>
+        <Button onClick={() => this.setState({ fehler: null })}>{t.app.fehlergrenze.erneut}</Button>
       </div>
     );
   }

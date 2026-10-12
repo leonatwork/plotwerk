@@ -135,3 +135,13 @@ describe('Übersicht und Export', () => {
     expect(u.kandidaten.some((k) => /BETRETEN|VERBOTEN/.test(k.name))).toBe(false);
   });
 });
+
+describe('Heuristik – englische Buchsprache', () => {
+  it('meldet Eigennamen mitten im Satz, aber keine Anreden, Wochentage oder „I“', () => {
+    const t = 'On Monday I met Mr Smith near Golden Goose. Then I Saw nothing. THE END.';
+    const k = markenKandidaten(t, { marken: [], ignoriert: [] }, ['Smith'], 'en');
+    const namen = k.map((x) => x.name);
+    expect(namen).toContain('Golden Goose');
+    expect(namen.some((n) => /Monday|Smith|^I|THE/.test(n))).toBe(false);
+  });
+});

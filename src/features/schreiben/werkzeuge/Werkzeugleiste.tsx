@@ -4,10 +4,13 @@
  */
 import type { Id } from '@core/model/types';
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
+import { localeVon } from '@core/i18n';
+import { f, useTexte, zahl } from '../../../i18n';
+import { useBuchSprache } from '../../../i18n/buch';
 import { useStore } from '../../../state/store';
 import { klassen } from '../../../ui';
 import { useVorleseFortschritt } from './fortschritt';
-import { deutscheStimmen, sprachausgabe, vorlesenAb, waehleStimme } from './vorlesen';
+import { sprachausgabe, stimmenFuer, vorlesenAb, waehleStimme } from './vorlesen';
 
 /** Stimmen des Systems (kommen bei WebKit/Chromium erst nach „voiceschanged“). */
 function useStimmen(): SpeechSynthesisVoice[] {
@@ -32,14 +35,16 @@ function Vorlesefenster({ schliessen }: { schliessen(fokusZurueck: boolean): voi
   const ref = useRef<HTMLDivElement>(null);
   const titelId = useId();
   const stimmen = useStimmen();
-  const deutsch = deutscheStimmen(stimmen);
+  const buchSprache = useBuchSprache();
+  const deutsch = stimmenFuer(stimmen, buchSprache);
   const gewaehlt = useStore((s) => s.editorwerkzeuge.stimme);
   const tempo = useStore((s) => s.editorwerkzeuge.tempo);
   const status = useStore((s) => s.editorwerkzeuge.vorlesen);
   const ew = useStore.getState().editorwerkzeuge;
-  const aktiv = waehleStimme(stimmen, gewaehlt);
+  const aktiv = waehleStimme(stimmen, gewaehlt, buchSprache);
   const andere = stimmen.filter((s) => !deutsch.includes(s)).sort((a, b) => a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name));
   const verfuegbar = !!sprachausgabe();
+  const T = useTexte().schreiben.werkzeuge;
   const schliessenRef = useRef(schliessen);
   schliessenRef.current = schliessen;
 
@@ -75,28 +80,31 @@ function Vorlesefenster({ schliessen }: { schliessen(fokusZurueck: boolean): voi
       }}
     >
       <div id={titelId} className="pw-w-pop__titel">
-        Vorlesen
+        {T.vorlesen}
       </div>
       {!verfuegbar ? (
-        <p className="pw-w-leise">Die Sprachausgabe des Systems ist in diesem Fenster nicht verfügbar.</p>
+        <p className="pw-w-leise">{T.nichtVerfuegbar}</p>
       ) : (
         <>
           <label className="pw-w-pop__feld">
-            <span>Stimme</span>
+            <span>{T.stimme}</span>
             <select value={gewaehlt ?? ''} onChange={(e) => ew.setzeStimme(e.target.value || null)} className="pw-w-auswahl">
-              <option value="">Beste deutsche Stimme{aktiv && !gewaehlt ? ` (${aktiv.name})` : ''}</option>
+              <option value="">
+                {T.besteStimme[buchSprache]}
+                {aktiv && !gewaehlt ? ` (${aktiv.name})` : ''}
+              </option>
               {deutsch.length > 0 && (
-                <optgroup label="Deutsch">
+                <optgroup label={T.stimmenGruppe[buchSprache]}>
                   {deutsch.map((v) => (
                     <option key={v.voiceURI} value={v.voiceURI}>
                       {v.name}
-                      {v.lang !== 'de-DE' ? ` · ${v.lang}` : ''}
+                      {v.lang !== localeVon(buchSprache) ? ` · ${v.lang}` : ''}
                     </option>
                   ))}
                 </optgroup>
               )}
               {andere.length > 0 && (
-                <optgroup label="Andere Sprachen">
+                <optgroup label={T.andereSprachen}>
                   {andere.map((v) => (
                     <option key={v.voiceURI} value={v.voiceURI}>
                       {v.name} · {v.lang}
@@ -107,21 +115,21 @@ function Vorlesefenster({ schliessen }: { schliessen(fokusZurueck: boolean): voi
             </select>
           </label>
           {stimmen.length > 0 && !deutsch.length && (
-            <p className="pw-w-leise">Keine deutsche Stimme installiert – unter macOS: Systemeinstellungen › Bedienungshilfen › Gesprochene Inhalte › Systemstimme › Stimmen verwalten.</p>
+            <p className="pw-w-leise">{T.keineStimme[buchSprache]}</p>
           )}
           <label className="pw-w-pop__feld">
             <span>
-              Tempo <b>{tempo.toLocaleString('de-DE', { minimumFractionDigits: 2 })}×</b>
+              {T.tempo} <b>{zahl(tempo, { minimumFractionDigits: 2 })}×</b>
             </span>
             <input type="range" min={0.6} max={1.6} step={0.05} value={tempo} onChange={(e) => ew.setzeTempo(Number(e.target.value))} />
           </label>
-          <p className="pw-w-leise">Neue Einstellungen gelten ab dem nächsten Satz.</p>
+          <p className="pw-w-leise">{T.neueEinstellungen}</p>
           <div className="pw-w-pop__knoepfe">
-            <button type="button" className="pw-w-knopf pw-w-knopf--primaer" title="Liest die markierte Auswahl oder ab dem Satz am Cursor" onClick={() => starten('cursor')}>
-              Ab Cursor
+            <button type="button" className="pw-w-knopf pw-w-knopf--primaer" title={T.abCursorTitel} onClick={() => starten('cursor')}>
+              {T.abCursor}
             </button>
             <button type="button" className="pw-w-knopf" onClick={() => starten('anfang')}>
-              Kapitel von vorn
+              {T.vonVorn}
             </button>
           </div>
         </>
@@ -140,6 +148,7 @@ export function EditorWerkzeugleiste({ kapitelId }: { kapitelId: Id }) {
     return l && l.kapitel === kapitelId ? l.bericht.nah.length + l.bericht.satzanfaenge.length : null;
   });
   const fortschritt = useVorleseFortschritt();
+  const T = useTexte().schreiben.werkzeuge;
   const [offen, setOffen] = useState(false);
   const knopf = useRef<HTMLButtonElement>(null);
   const schliessen = (fokusZurueck: boolean) => {
@@ -154,27 +163,28 @@ export function EditorWerkzeugleiste({ kapitelId }: { kapitelId: Id }) {
         type="button"
         className={klassen('pw-w-schalter', wiederholungen && 'pw-w-schalter--an')}
         aria-pressed={wiederholungen}
-        title="Wiederholungen im Text markieren – nur Hinweise, der Text bleibt unverändert"
+        title={T.wiederholungenTitel}
         onClick={umschalten}
       >
-        Wiederholungen{wiederholungen && anzahl !== null ? ` · ${anzahl}` : ''}
+        {wiederholungen && anzahl !== null ? f(T.wiederholungenAnzahl, { n: anzahl }) : T.wiederholungen}
       </button>
       <span className="pw-w-vorlesegruppe">
         {status !== 'aus' && (
           <>
             <span className="pw-w-fortschritt" aria-live="off">
-              {fortschritt.auswahl ? 'Auswahl · ' : ''}Satz {fortschritt.satz + 1}/{fortschritt.von || '…'}
+              {fortschritt.auswahl ? T.auswahl : ''}
+              {f(T.satz, { nr: fortschritt.satz + 1, von: fortschritt.von || '…' })}
             </span>
             <button
               type="button"
               className="pw-w-schalter pw-w-schalter--an"
               onClick={() => setzeVorlesen(status === 'laeuft' ? 'pausiert' : 'laeuft')}
-              aria-label={status === 'laeuft' ? 'Vorlesen pausieren' : 'Vorlesen fortsetzen'}
+              aria-label={status === 'laeuft' ? T.pausieren : T.fortsetzen}
             >
-              {status === 'laeuft' ? 'Pause' : 'Weiter'}
+              {status === 'laeuft' ? T.pause : T.weiter}
             </button>
-            <button type="button" className="pw-w-schalter" onClick={() => setzeVorlesen('aus')} title="Vorlesen beenden (Esc)">
-              Stopp
+            <button type="button" className="pw-w-schalter" onClick={() => setzeVorlesen('aus')} title={T.stoppTitel}>
+              {T.stopp}
             </button>
           </>
         )}
@@ -185,10 +195,10 @@ export function EditorWerkzeugleiste({ kapitelId }: { kapitelId: Id }) {
           className={klassen('pw-w-schalter', offen && 'pw-w-schalter--an')}
           aria-expanded={offen}
           aria-haspopup="dialog"
-          title="Vorlesen mit der Stimme des Systems"
+          title={T.vorlesenTitel}
           onClick={() => setOffen((o) => !o)}
         >
-          {status === 'aus' ? 'Vorlesen …' : 'Stimme …'}
+          {status === 'aus' ? T.vorlesenKnopf : T.stimmeKnopf}
         </button>
         {offen && <Vorlesefenster schliessen={schliessen} />}
       </span>

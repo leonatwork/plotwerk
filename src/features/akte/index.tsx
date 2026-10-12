@@ -8,6 +8,7 @@ import { IdeeInspektor, KapitelPlanInspektor } from './KapitelInspektor';
 import { strangFarbe, strangGeplant } from './gemeinsam';
 import { Inspektor } from '../../ui';
 import { StrangRaster } from '../faeden/StrangRaster';
+import { texte, useTexte } from '../../i18n';
 
 /** Segment in der Titelleiste: zwei Board-Ansichten (Planung) und das Strang-Raster (G2). */
 type AkteSegment = AkteAnsicht | 'straenge';
@@ -20,6 +21,7 @@ export default function Ansicht() {
   const ideeId = useStore((s) => s.planung.ideeAuswahl);
   const aktHinzufuegen = useStore((s) => s.planung.aktHinzufuegen);
   const darstellung = useStore((s) => s.struktur.akteDarstellung);
+  const t = useTexte();
   if (!daten) return null;
   const idee = ideeId ? daten.ideen.find((i) => i.id === ideeId) : undefined;
 
@@ -38,14 +40,14 @@ export default function Ansicht() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 16 }}>
-          <h1 style={{ margin: 0, fontFamily: 'var(--schrift-titel)', fontWeight: 400, fontSize: 34, lineHeight: 1, whiteSpace: 'nowrap' }}>Akte planen</h1>
+          <h1 style={{ margin: 0, fontFamily: 'var(--schrift-titel)', fontWeight: 400, fontSize: 34, lineHeight: 1, whiteSpace: 'nowrap' }}>{t.akte.ansicht.titel}</h1>
           <span style={{ minWidth: 0, fontSize: 12, color: 'var(--ink-quiet)', textAlign: 'right' }}>
-            {darstellung === 'straenge' ? 'Kapitel × Stränge · wo verschwindet ein Strang?' : 'Karten per Drag & Drop verschieben · Akt-Grenzen sind ein Entwurf'}
+            {darstellung === 'straenge' ? t.akte.ansicht.hinweisStraenge : t.akte.ansicht.hinweisBoard}
           </span>
         </div>
         {daten.akte.length === 0 && daten.projekt.kapitel.length === 0 && daten.ideen.length === 0 ? (
-          <LeerZustand titel="Noch keine Akte" aktionen={<Button onClick={() => void aktHinzufuegen()}>+ Akt</Button>}>
-            Lege einen Akt an und plane darin Kapitel, oder sammle zuerst Ideen.
+          <LeerZustand titel={t.akte.ansicht.leerTitel} aktionen={<Button onClick={() => void aktHinzufuegen()}>{t.akte.ansicht.plusAkt}</Button>}>
+            {t.akte.ansicht.leerText}
           </LeerZustand>
         ) : darstellung === 'straenge' ? (
           <StrangRaster daten={daten} />
@@ -58,8 +60,8 @@ export default function Ansicht() {
       ) : planId && daten.plaene[planId] ? (
         <KapitelPlanInspektor key={planId} id={planId} daten={daten} index={index} />
       ) : (
-        <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label="Kapitel planen">
-          <span style={{ fontSize: 13, color: 'var(--ink-quiet)', lineHeight: 1.5 }}>Wähle eine Kapitel- oder Ideenkarte, um sie hier zu planen.</span>
+        <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={t.akte.ansicht.kapitelPlanen}>
+          <span style={{ fontSize: 13, color: 'var(--ink-quiet)', lineHeight: 1.5 }}>{t.akte.ansicht.inspektorLeer}</span>
         </Inspektor>
       )}
     </div>
@@ -69,6 +71,7 @@ export default function Ansicht() {
 /** Legende unter der Navigation: Stränge (inkl. Antagonisten) und Kartenstatus. */
 export function Seitenleiste() {
   const daten = useStore((s) => s.daten);
+  const t = useTexte();
   if (!daten) return null;
   const zeile = { display: 'flex', alignItems: 'center', gap: 8 } as const;
   const kopf = { fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--ink-quiet)' } as const;
@@ -77,36 +80,36 @@ export function Seitenleiste() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginTop: 4 }}>
       {daten.straenge.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px', fontSize: 12 }}>
-          <span style={kopf}>STRÄNGE</span>
+          <span style={kopf}>{t.akte.legende.straenge}</span>
           {daten.straenge.map((s) => {
             const geplant = strangGeplant(s, daten);
             return (
               <span key={s.id} style={zeile}>
                 <StrangPunkt farbe={strangFarbe(s.farbe)} groesse={10} geplant={geplant} />
                 {s.name}
-                {geplant && <span style={{ fontSize: 10, color: 'var(--ink-quiet)' }}>geplant</span>}
+                {geplant && <span style={{ fontSize: 10, color: 'var(--ink-quiet)' }}>{t.akte.legende.geplant}</span>}
               </span>
             );
           })}
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '0 10px', fontSize: 12 }}>
-        <span style={kopf}>STATUS</span>
+        <span style={kopf}>{t.akte.legende.status}</span>
         <span style={zeile}>
           <span style={{ ...muster, background: 'var(--surface)', border: '1px solid var(--border-strong)' }} />
-          geschrieben
+          {t.akte.legende.geschrieben}
         </span>
         <span style={zeile}>
           <span style={{ ...muster, background: 'var(--surface-muted)', border: '1px solid var(--border-strong)' }} />
-          Entwurf
+          {t.akte.legende.entwurf}
         </span>
         <span style={zeile}>
           <span style={{ ...muster, border: '1.5px dashed var(--dotted)' }} />
-          geplant
+          {t.akte.legende.geplant}
         </span>
         <span style={zeile}>
           <span style={{ ...muster, border: '1px solid var(--border-strong)', boxShadow: 'inset 3px 0 0 var(--accent)' }} />
-          weicht vom Plan ab
+          {t.akte.legende.weichtAb}
         </span>
       </div>
     </div>
@@ -119,11 +122,12 @@ export function Titelaktionen() {
   const darstellung = useStore((s) => s.struktur.akteDarstellung);
   const setzeDarstellung = useStore((s) => s.struktur.setzeAkteDarstellung);
   const aktHinzufuegen = useStore((s) => s.planung.aktHinzufuegen);
+  const t = useTexte();
   return (
     <>
       <Segment<AkteSegment>
         rolle="group"
-        label="Ansicht"
+        label={t.akte.ansicht.segment}
         hintergrund="selected"
         groesse="klein"
         wert={darstellung === 'straenge' ? 'straenge' : ansicht}
@@ -133,17 +137,17 @@ export function Titelaktionen() {
           setze(w);
         }}
         optionen={[
-          { wert: 'plan', label: 'Nur Plan' },
-          { wert: 'plantext', label: 'Plan + Text' },
-          { wert: 'straenge', label: 'Stränge' },
+          { wert: 'plan', label: t.akte.ansicht.nurPlan },
+          { wert: 'plantext', label: t.akte.ansicht.planText },
+          { wert: 'straenge', label: t.akte.ansicht.straenge },
         ]}
       />
-      <Button onClick={() => void aktHinzufuegen()}>+ Akt</Button>
+      <Button onClick={() => void aktHinzufuegen()}>{t.akte.ansicht.plusAkt}</Button>
     </>
   );
 }
 
 export function kontext(state: Store): string {
   void state;
-  return 'Akte planen';
+  return texte().akte.ansicht.titel;
 }

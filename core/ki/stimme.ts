@@ -23,7 +23,9 @@ import {
 } from './aufgabe';
 import type { KiTransport, Schaetzung } from './index';
 import type { BuchKontext, KontextFigur } from './kontext';
+import { meldungenIn } from './meldungen';
 import { redestellen, redestellenDerFigur, type Redestelle } from './stimmeRede';
+import { ANTWORTSPRACHE_EN, kapKurz, zitiert, type Sprache } from './sprache';
 
 export { redestellen, redestellenDerFigur, redestellenImKapitel, type RedeFigur, type Redestelle } from './stimmeRede';
 
@@ -63,10 +65,33 @@ Regeln:
 - Als „bewusst vage“ markierte Figuren sind absichtlich mehrdeutig; ein Bruch in ihrer Stimme kann gewollt sein. Melde bei ihnen nur sehr deutliche Auffälligkeiten.
 - Lieber keine Beobachtung als eine unsichere. Geschmacksfragen sind keine Beobachtungen.`;
 
+/** Englische Fassung (Buchsprache en). */
+export const SYSTEM_STIMME_EN = `You are an editorial reader for an English-language novel. You read the book the way a reader does: the text of the chapters in their order and the author's few notes on characters, places, groups and levels of reality. In addition there is the author's planning (lines “Plan” for characters, <plan> for chapters); it is not part of the book.
+
+Your task is to pay attention to the voice of one character: how they speak and write (tone, choice of words, forms of address, sentence structure). You report passages where they sound noticeably different from usual, and support this with verbatim quotes of the striking and of the typical passages.
+
+You never write text for the book: no rewordings, no replacement sentences, no suggested phrasings, no corrections, not even as an example. Whether a deviation is intended and whether the passage is changed is decided by the author alone.
+
+Rules:
+- Every quote is one continuous passage from the chapter you name under "kapitel" with its id, copied character for character from the <text>, without omissions, at most one sentence.
+- The explanation only describes the observation: what is different at this passage from usual, and how it can be recognised.
+- Characters marked “deliberately vague” are intentionally ambiguous; a break in their voice may be intended. For them, report only very clear irregularities.
+- Better no observation than an uncertain one. Matters of taste are not observations.
+
+${ANTWORTSPRACHE_EN}`;
+
 /** Stabiler Schlüssel „stimme:<figur>|<kapitel>/<zitatkern>|…“ aus den auffälligen Zitaten (Reihenfolge egal). */
 export function stimmenSchluessel(figur: Id, zitate: Zitat[]): string {
   const teile = [...new Set(zitate.map((z) => `${z.kapitel}/${zitatKern(z.text)}`))].sort();
   return `stimme:${figur}|${teile.join('|')}`;
+}
+
+function figurZeileEn(f: KontextFigur): string {
+  const teile = [`${f.name} (id: ${f.id})`, f.rolle === 'haupt' ? 'main character' : 'minor character'];
+  if (f.aliase.length) teile.push(`also called: ${f.aliase.join(', ')}`);
+  if (f.existenz === 'bewusst_vage') teile.push('deliberately vague');
+  else if (f.existenz === 'offen') teile.push('existence still open');
+  return teile.join(' · ');
 }
 
 function figurZeile(f: KontextFigur): string {
@@ -89,13 +114,51 @@ export function redestellenAusKontext(kontext: BuchKontext, figur: Id): { stelle
 
 const kurz = (s: string) => (s.length > 160 ? `${s.slice(0, 157)}…` : s);
 
+function aufgabenTextEn(f: KontextFigur, stellen: Redestelle[], ich: Redestelle[], zeile: (r: Redestelle) => string): string {
+  const z: string[] = [];
+  z.push(`Character: ${figurZeileEn(f)}`);
+  z.push('');
+  z.push(
+    `Read all passages in the whole book where ${f.name} speaks or writes themselves (direct speech, messages, notes). If ${f.name} narrates a chapter in the first person, the speech of the first-person narrator belongs to it as well.`,
+  );
+  z.push(
+    `Report only passages where ${f.name} sounds noticeably different from the other passages: tone (terse instead of detailed, formal instead of casual, cold instead of warm), choice of words (jargon, slang, foreign words, coarse words), forms of address (first name or surname, titles, nicknames, terms of endearment), sentence structure, dialect or register.`,
+  );
+  z.push('For each observation:');
+  z.push('- titel: a short, neutral description of the irregularity (at most eight words)');
+  z.push(`- erklaerung: what is different at this passage from usual – only the observation, no suggestion of how ${f.name} could speak there`);
+  z.push('- zitate: the striking passage (one or two quotes, verbatim)');
+  z.push(`- vergleich: one to three other passages where ${f.name} sounds typical (verbatim, not the same passage)`);
+  z.push('- deutlich: true if the deviation is clearly noticeable when reading; false for a slight tendency');
+  z.push('You may report a gradual change over several chapters once if it stands out; the author decides whether it is intended (e.g. as the character’s development).');
+  z.push(
+    `If ${f.name} speaks too little to recognise a typical voice (fewer than ${STIMME_MIN_REDE} passages of speech), return no observations and set zuWenigRede to true; otherwise false.`,
+  );
+  if (f.existenz === 'bewusst_vage') {
+    z.push('');
+    z.push(
+      `${f.name} is deliberately vague. Breaks in tone and voice may be part of the ambiguity. Report only very clear irregularities (deutlich: true) and explain them cautiously, without settling who ${f.name} really is.`,
+    );
+  }
+  z.push('');
+  z.push('Passages of speech the app found locally (assignment uncertain, for orientation only; the text is what counts):');
+  if (stellen.length === 0) z.push('- (no reliably assigned speech found)');
+  for (const r of stellen.slice(0, 60)) z.push(zeile(r));
+  if (ich.length > 0) {
+    z.push('Speech of a first-person narrator (only relevant if the character narrates there):');
+    for (const r of ich.slice(0, 20)) z.push(zeile(r));
+  }
+  return z.join('\n');
+}
+
 function aufgabenText(kontext: BuchKontext, f: KontextFigur): string {
   const nr = new Map(kontext.kapitel.map((k) => [k.id, k]));
   const { stellen, ich } = redestellenAusKontext(kontext, f.id);
   const zeile = (r: Redestelle) => {
     const k = nr.get(r.kapitel);
-    return `- Kap. ${k?.nr ?? '?'} (id: ${r.kapitel}): „${kurz(r.text)}“`;
+    return `- ${kapKurz(k?.nr ?? '?', kontext.sprache)} (id: ${r.kapitel}): ${zitiert(kurz(r.text), kontext.sprache)}`;
   };
+  if (kontext.sprache === 'en') return aufgabenTextEn(f, stellen, ich, zeile);
   const z: string[] = [];
   z.push(`Figur: ${figurZeile(f)}`);
   z.push('');
@@ -173,9 +236,10 @@ export function werteStimmeAus(daten: unknown, p: AufgabenPruefung, figur: Id): 
   const vage = f?.existenz === 'bewusst_vage';
   const anzahl = f ? redestellenAusKontext(p.kontext, figur).stellen.length : 0;
   const ergebnis: StimmenErgebnis = { figur, beobachtungen: [], zuWenigRede: false, redestellen: anzahl, vage };
+  const m = meldungenIn(p.oberflaeche);
   const d = (daten ?? {}) as Record<string, unknown>;
   if (!d || typeof d !== 'object' || !Array.isArray(d.beobachtungen)) {
-    p.verwerfen('Die Antwort passt nicht zum Schema.', daten);
+    p.verwerfen(m('schemaFalsch'), daten);
     return ergebnis;
   }
   ergebnis.zuWenigRede = d.zuWenigRede === true;
@@ -192,11 +256,11 @@ export function werteStimmeAus(daten: unknown, p: AufgabenPruefung, figur: Id): 
     if (!vergleichRoh) continue;
     const vergleich = vergleichRoh.filter((v) => !zitate.some((z) => ueberlappt(z, v)));
     if (vergleich.length === 0) {
-      p.verwerfen('Vergleich nennt dieselbe Stelle wie die Auffälligkeit', roh);
+      p.verwerfen(m('vergleichGleicheStelle'), roh);
       continue;
     }
     if (vage && b.deutlich !== true) {
-      p.verwerfen(`bewusst vage Figur „${f?.name ?? figur}“: nur deutliche Auffälligkeiten`, roh);
+      p.verwerfen(m('vageFigurNurDeutlich', { name: f?.name ?? figur }), roh);
       continue;
     }
     const schluessel = stimmenSchluessel(figur, zitate);
@@ -222,14 +286,16 @@ export function stimmeDefinition(auftrag: StimmenAuftrag): AufgabenDefinition<St
   const rolle: KiRolle = auftrag.tiefencheck ? 'tiefencheck' : 'pruefung';
   return {
     name: 'Figurenstimme',
+    nameEn: meldungenIn('en')('nameStimme'),
     art: STIMME_ART,
     attribute: { figur: auftrag.figur },
     rolle,
     system: SYSTEM_STIMME,
+    systemEn: SYSTEM_STIMME_EN,
     ausgabeSchaetzung: auftrag.tiefencheck ? 6000 : 3000,
-    aufgabe(kontext) {
+    aufgabe(kontext, oberflaeche) {
       const f = kontext.figuren.find((x) => x.id === auftrag.figur);
-      if (!f) throw new KiFehler('auftrag', `Die Figur „${auftrag.figur}“ gibt es nicht.`);
+      if (!f) throw new KiFehler('auftrag', meldungenIn(oberflaeche)('figurFehlt', { figur: auftrag.figur }));
       return aufgabenText(kontext, f);
     },
     schema: stimmeSchema,
@@ -254,6 +320,7 @@ export function schaetzeStimme(
   transport: KiTransport,
   einstellungen: KiEinstellungen | undefined,
   auftrag: StimmenAuftrag,
+  oberflaeche: Sprache = 'de',
 ): Promise<Schaetzung> {
-  return schaetzeAufgabe(leser, transport, einstellungen, stimmeDefinition(auftrag));
+  return schaetzeAufgabe(leser, transport, einstellungen, stimmeDefinition(auftrag), oberflaeche);
 }

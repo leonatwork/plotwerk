@@ -3,6 +3,7 @@
  * Rendert nichts, solange kein Tagesziel gesetzt ist. Klick öffnet den Bereich „Statistik“.
  */
 import { woerterAm } from '@core/statistik';
+import { f, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { klassen } from '../../ui';
 import { useHeute, useSchreibstatistik, zahl } from './hooks';
@@ -13,17 +14,19 @@ export function SchreibzielAnzeige() {
   const st = useSchreibstatistik();
   const heute = useHeute();
   const setzeBereich = useStore((s) => s.setzeBereich);
+  const t = useTexte().statistik.ziel;
   const ziel = st.ziel.tagWoerter;
   if (!ziel || ziel <= 0) return null;
   const geschrieben = woerterAm(st, heute);
   const erreicht = geschrieben >= ziel;
-  const text = `Tagesziel: ${zahl.format(geschrieben)} von ${zahl.format(ziel)} Wörtern${erreicht ? ' – erreicht' : ''}`;
+  const text = f(erreicht ? t.textErreicht : t.text, { geschrieben: zahl.format(geschrieben), ziel: zahl.format(ziel) });
+  const label = f(t.oeffnen, { text });
   return (
     <button
       type="button"
       className={klassen('pw-st-ziel', erreicht && 'pw-st-ziel--erreicht')}
-      title={`${text}. Statistik öffnen`}
-      aria-label={`${text}. Statistik öffnen`}
+      title={label}
+      aria-label={label}
       onClick={() => setzeBereich('statistik')}
     >
       <Ring anteil={geschrieben / ziel} groesse={14} staerke={2.5} erreicht={erreicht} />

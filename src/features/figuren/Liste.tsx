@@ -4,7 +4,8 @@ import type { Index } from '@core/index/index';
 import type { Figur, ProjektDaten } from '@core/model/types';
 import { useStore } from '../../state/store';
 import { figurenBereiche, indexBereit } from '../../state/slices/planung';
-import { Avatar, REALITAET_LABEL } from '../../ui';
+import { f as fmt, useTexte } from '../../i18n';
+import { Avatar } from '../../ui';
 import { erwaehnungenVon, figurDarstellung } from '../akte/gemeinsam';
 import { useOffeneVorschlaege } from '../beziehungen/Vorschlaege';
 
@@ -39,6 +40,8 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
   const oeffneVorschlaege = useStore((s) => s.oeffneVorschlaege);
   const vorschlaege = useOffeneVorschlaege();
   const [neu, setNeu] = useState<string | null>(null);
+  const t = useTexte();
+  const tl = t.figuren.liste;
 
   const passt = (f: Figur) =>
     !suche || [f.name, ...f.aliase, f.kurz ?? ''].some((t) => t.toLocaleLowerCase('de').includes(suche));
@@ -46,11 +49,11 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
   const nr = (k: string) => daten.projekt.kapitel.indexOf(k) + 1;
   const zeile = (f: Figur) => {
     const n = kapitelDerFigur(f, daten, index).length;
-    return [f.kurz, `${n} Kap.`].filter(Boolean).join(' · ');
+    return [f.kurz, fmt(tl.kapitelAnzahl, { n })].filter(Boolean).join(' · ');
   };
   const zeileOffen = (f: Figur) => {
     const erstes = index.erstesVorkommen[f.id];
-    return [erstes ? `Kap. ${nr(erstes)}` : null, REALITAET_LABEL[f.existenz]].filter(Boolean).join(' · ');
+    return [erstes ? fmt(t.gemeinsam.kapitelKurz, { nr: nr(erstes) }) : null, t.gemeinsam.realitaet[f.existenz]].filter(Boolean).join(' · ');
   };
 
   const gruppe = (titel: string, liste: Figur[], unterzeile: (f: Figur) => string, farbe?: string, erste = false) => {
@@ -70,7 +73,7 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
 
   return (
     <nav
-      aria-label="Figuren"
+      aria-label={tl.label}
       style={{
         flex: '0 0 250px',
         borderRight: '1px solid var(--line-soft)',
@@ -81,22 +84,22 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
         overflowY: 'auto',
       }}
     >
-      {gruppe('HAUPTFIGUREN', b.haupt, zeile, undefined, true)}
-      {gruppe('NEBENFIGUREN', b.neben, zeile, undefined, b.haupt.filter(passt).length === 0)}
-      {gruppe('REALITÄT OFFEN', b.offen, zeileOffen, 'var(--vage-dark)')}
-      <span style={{ ...kopf, padding: '12px 10px 4px' }}>GEPLANT, NOCH NICHT IM TEXT</span>
+      {gruppe(tl.haupt, b.haupt, zeile, undefined, true)}
+      {gruppe(tl.neben, b.neben, zeile, undefined, b.haupt.filter(passt).length === 0)}
+      {gruppe(tl.offen, b.offen, zeileOffen, 'var(--vage-dark)')}
+      <span style={{ ...kopf, padding: '12px 10px 4px' }}>{tl.geplant}</span>
       {b.geplant.filter(passt).map((f) => (
-        <Eintrag key={f.id} f={f} daten={daten} gewaehlt={gewaehlt === f.id} unterzeile={f.kurz || (f.rolle === 'haupt' ? 'Hauptfigur' : 'Nebenfigur')} />
+        <Eintrag key={f.id} f={f} daten={daten} gewaehlt={gewaehlt === f.id} unterzeile={f.kurz || t.figuren.rolle[f.rolle]} />
       ))}
-      {leer && <span style={{ fontSize: 12, color: 'var(--ink-quiet)', padding: '0 10px 6px' }}>Noch keine Figuren angelegt.</span>}
+      {leer && <span style={{ fontSize: 12, color: 'var(--ink-quiet)', padding: '0 10px 6px' }}>{tl.leer}</span>}
       {vorschlaege.anzahl > 0 && (
-        <button type="button" className="pw-vs-link" onClick={() => oeffneVorschlaege()} title="Im Bereich „Beziehungen“ ansehen">
-          {vorschlaege.anzahl === 1 ? '1 Vorschlag der KI' : `${vorschlaege.anzahl} Vorschläge der KI`}
+        <button type="button" className="pw-vs-link" onClick={() => oeffneVorschlaege()} title={tl.vorschlaegeTitel}>
+          {fmt(tl.vorschlaege, { n: vorschlaege.anzahl })}
         </button>
       )}
       {neu === null ? (
         <button type="button" className="pl-vorab" onClick={() => setNeu('')}>
-          + Figur vorab anlegen
+          {tl.vorab}
         </button>
       ) : (
         <form
@@ -110,8 +113,8 @@ export function FigurenListe({ daten, index }: { daten: ProjektDaten; index: Ind
             autoFocus
             className="pl-eingabe"
             style={{ width: '100%', height: 40, borderRadius: 8 }}
-            placeholder="Name der Figur, Enter"
-            aria-label="Name der neuen Figur"
+            placeholder={tl.namePlatzhalter}
+            aria-label={t.figuren.ansicht.nameNeu}
             value={neu}
             onChange={(e) => setNeu(e.target.value)}
             onBlur={() => !neu.trim() && setNeu(null)}

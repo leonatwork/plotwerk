@@ -11,15 +11,16 @@ import {
   kapitelDesAkts,
   kapitelTitel,
   stufenMeldungen,
-  stufenOrt,
   stufeVerschieben,
 } from '@core/figuren/index';
 import type { Index } from '@core/index/index';
 import type { BogenStufe, Id, ProjektDaten, TextAnker } from '@core/model/types';
+import { f as fmt, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button } from '../../ui';
 import { Abschnitt, EntwurfBereich, EntwurfFeld, zitatAnker } from '../akte/gemeinsam';
 import { fokussiereStufe } from './Boegen';
+import { aktTitel, kapKurz, kapMitTitel, stufenOrtText, zitat as zitatText } from './texte';
 
 interface Props {
   daten: ProjektDaten;
@@ -68,6 +69,8 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
   const [belegKapitel, setBelegKapitel] = useState<Id>(vorschlagStart);
   const [zitat, setZitat] = useState('');
   const [fehler, setFehler] = useState<string | null>(null);
+  const t = useTexte();
+  const ts = t.figuren.stufe;
 
   const vorschlaege = belegKapitel
     ? belegVorschlaege(daten, index.erwaehnungen, figur, belegKapitel, 8).filter((a) => !stufe.belege.some((b) => gleicherAnker(a, b)))
@@ -89,15 +92,15 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
 
   return (
     <Abschnitt
-      label={`Stufe „${stufe.titel}“ bearbeiten`}
+      label={fmt(ts.label, { titel: stufe.titel })}
       titel={
         <span>
-          Stufe <span style={{ fontWeight: 400, color: 'var(--ink-quiet)' }}>· {f?.name ?? figur} · {stufenOrt(daten, stufe)}</span>
+          {ts.titel} <span style={{ fontWeight: 400, color: 'var(--ink-quiet)' }}>· {f?.name ?? figur} · {stufenOrtText(daten, stufe)}</span>
         </span>
       }
       rechts={
         <Button klein variante="leise" onClick={onSchliessen} aria-keyshortcuts="Escape">
-          Fertig
+          {t.gemeinsam.fertig}
         </Button>
       }
       hintergrund="var(--inspector)"
@@ -113,19 +116,19 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
       >
         <div style={{ flex: '1 1 280px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <label className="pw-feld__label" htmlFor={`${uid}-titel`}>
-            Titel
+            {ts.titelFeld}
           </label>
           <EntwurfFeld
             id={`${uid}-titel`}
             className="pl-eingabe"
             autoFocus={fokusTitel}
             onFocus={(e) => fokusTitel && e.currentTarget.select()}
-            placeholder="z. B. im Lot, ohne Schlaf"
+            placeholder={ts.titelPlatzhalter}
             wert={stufe.titel}
             onSpeichern={(t) => t.trim() && t.trim() !== stufe.titel && void speichern({ ...stufe, titel: t.trim() })}
           />
           <label className="pw-feld__label" htmlFor={`${uid}-platz`}>
-            Erreicht in
+            {ts.erreichtIn}
           </label>
           <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <select
@@ -135,76 +138,76 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
               value={platzWert(stufe)}
               onChange={(e) => void speichern(mitPlatz(stufe, e.target.value)).then(() => fokussiereStufe(figur, stufe.id))}
             >
-              <optgroup label="Kapitel">
+              <optgroup label={ts.kapitelGruppe}>
                 {reihe.map((k, i) => (
                   <option key={k} value={`k:${k}`}>
-                    Kap. {i + 1} „{kapitelTitel(daten, k)}“
+                    {kapMitTitel(i + 1, kapitelTitel(daten, k))}
                   </option>
                 ))}
               </optgroup>
               {daten.akte.length > 0 && (
-                <optgroup label="Ganzer Akt">
+                <optgroup label={ts.ganzerAkt}>
                   {daten.akte.map((a) => (
                     <option key={a.nummer} value={`a:${a.nummer}`}>
-                      {a.titel || `Akt ${a.nummer}`}
+                      {aktTitel(daten, a.nummer)}
                     </option>
                   ))}
                 </optgroup>
               )}
-              <option value="">ohne Kapitel</option>
+              <option value="">{t.figuren.ort.ohneKapitel}</option>
             </select>
-            <Button klein aria-label="Ein Kapitel früher" title="Früher (⌥←)" disabled={!stufeVerschieben(daten, stufe, -1)} onClick={() => void verschieben(-1)}>
+            <Button klein aria-label={ts.frueherLabel} title={ts.frueher} disabled={!stufeVerschieben(daten, stufe, -1)} onClick={() => void verschieben(-1)}>
               ←
             </Button>
-            <Button klein aria-label="Ein Kapitel später" title="Später (⌥→)" disabled={!stufeVerschieben(daten, stufe, 1)} onClick={() => void verschieben(1)}>
+            <Button klein aria-label={ts.spaeterLabel} title={ts.spaeter} disabled={!stufeVerschieben(daten, stufe, 1)} onClick={() => void verschieben(1)}>
               →
             </Button>
           </span>
           <label className="pw-feld__label" htmlFor={`${uid}-notiz`}>
-            Notiz
+            {ts.notiz}
           </label>
           <EntwurfBereich
             id={`${uid}-notiz`}
             className="pl-bereich"
             rows={3}
             autoHoehe
-            placeholder="Was zeigt sich hier an der Figur?"
+            placeholder={ts.notizPlatzhalter}
             wert={stufe.notiz ?? ''}
             onSpeichern={(n) => (n.trim() || undefined) !== stufe.notiz && void speichern(mitNotiz(stufe, n))}
           />
           {meldungen.map((m) => (
             <div key={m.art} className="fb-meldung" role="status">
-              {m.art === 'ohne_platz' && 'Die Stufe hat noch keinen Platz im Buch und erscheint nicht im Raster.'}
-              {m.art === 'kein_auftritt' && `${f?.name ?? 'Die Figur'} kommt in Kap. ${nr(m.kapitel)} im Text nicht vor.`}
-              {m.art === 'verwaist' && `${m.anzahl === 1 ? 'Ein Beleg steht' : `${m.anzahl} Belege stehen`} so nicht mehr im Text.`}
+              {m.art === 'ohne_platz' && ts.ohnePlatz}
+              {m.art === 'kein_auftritt' && fmt(ts.keinAuftritt, { name: f?.name ?? ts.dieFigur, nr: nr(m.kapitel) })}
+              {m.art === 'verwaist' && fmt(ts.verwaist, { n: m.anzahl })}
             </div>
           ))}
           <Button
             klein
             variante="text"
             style={{ alignSelf: 'flex-start', paddingLeft: 0 }}
-            onClick={async () => (await bestaetigen(`Stufe „${stufe.titel}“ löschen?`, { knopf: 'Löschen' })) && void fb.stufeEntfernen(figur, stufe.id)}
+            onClick={async () => (await bestaetigen(fmt(ts.loeschenFrage, { titel: stufe.titel }), { knopf: t.gemeinsam.loeschen })) && void fb.stufeEntfernen(figur, stufe.id)}
           >
-            Stufe löschen
+            {ts.loeschen}
           </Button>
         </div>
 
         <div style={{ flex: '1 1 340px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <span className="fb-label">Belege aus dem Text</span>
-          {stufe.belege.length === 0 && <span className="fb-leise">Noch keine Belege. Wähle unten einen Satz oder füge ein wörtliches Zitat ein.</span>}
+          <span className="fb-label">{ts.belege}</span>
+          {stufe.belege.length === 0 && <span className="fb-leise">{ts.keineBelege}</span>}
           {stufe.belege.map((b, i) => {
             const da = belegGefunden(daten, b);
             return (
               <div key={`${b.kapitel}-${i}`} className="fb-beleg pl-zeile">
-                <button type="button" className="pl-link" onClick={() => zeigen(b)} title="Im Text zeigen" disabled={!daten.kapitel[b.kapitel]}>
-                  Kap. {nr(b.kapitel) || '?'} · <span className="fb-zitat">»{b.exakt}«</span>
+                <button type="button" className="pl-link" onClick={() => zeigen(b)} title={t.figuren.imTextZeigen} disabled={!daten.kapitel[b.kapitel]}>
+                  {kapKurz(nr(b.kapitel) || '?')} · <span className="fb-zitat">{zitatText(b.exakt)}</span>
                 </button>
                 {!da && (
-                  <span className="pl-etikett" style={{ background: 'var(--ruhend)', color: 'var(--warm-dark)' }} title="Die Stelle steht so nicht mehr im Text">
-                    verwaist
+                  <span className="pl-etikett" style={{ background: 'var(--ruhend)', color: 'var(--warm-dark)' }} title={ts.verwaistTitel}>
+                    {ts.verwaistEtikett}
                   </span>
                 )}
-                <button type="button" className="pl-zeile-weg" aria-label={`Beleg aus Kap. ${nr(b.kapitel)} entfernen`} onClick={() => void fb.belegEntfernen(figur, stufe.id, i)}>
+                <button type="button" className="pl-zeile-weg" aria-label={fmt(ts.belegEntfernen, { nr: nr(b.kapitel) })} onClick={() => void fb.belegEntfernen(figur, stufe.id, i)}>
                   ×
                 </button>
               </div>
@@ -214,7 +217,7 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: '1px solid var(--line-faint)' }}>
             <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <label className="pw-feld__label" htmlFor={`${uid}-kap`} style={{ whiteSpace: 'nowrap' }}>
-                Beleg aus
+                {ts.belegAus}
               </label>
               <select
                 id={`${uid}-kap`}
@@ -228,27 +231,28 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
               >
                 {kapitelMitText.map((k) => (
                   <option key={k} value={k}>
-                    Kap. {nr(k)} „{kapitelTitel(daten, k)}“{auftritte.has(k) ? '' : ' · ohne Nennung'}
+                    {kapMitTitel(nr(k), kapitelTitel(daten, k))}
+                    {auftritte.has(k) ? '' : ` · ${ts.ohneNennung}`}
                   </option>
                 ))}
               </select>
             </span>
             {vorschlaege.length > 0 ? (
-              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }} aria-label="Sätze mit der Figur">
+              <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }} aria-label={ts.saetzeLabel}>
                 {vorschlaege.map((a) => (
                   <li key={a.exakt} className="fb-beleg">
                     <span className="fb-zitat" style={{ flex: 1, minWidth: 0 }}>
-                      »{a.exakt}«
+                      {zitatText(a.exakt)}
                     </span>
-                    <Button klein onClick={() => void fb.belegHinzufuegen(figur, stufe.id, a)} aria-label={`Als Beleg übernehmen: ${a.exakt}`}>
-                      + Beleg
+                    <Button klein onClick={() => void fb.belegHinzufuegen(figur, stufe.id, a)} aria-label={fmt(ts.uebernehmenLabel, { text: a.exakt })}>
+                      {ts.plusBeleg}
                     </Button>
                   </li>
                 ))}
               </ul>
             ) : (
               <span className="fb-leise">
-                {belegKapitel && auftritte.has(belegKapitel) ? 'Alle Sätze mit der Figur sind schon Belege.' : 'In diesem Kapitel wird die Figur nicht genannt – füge ein Zitat ein.'}
+                {belegKapitel && auftritte.has(belegKapitel) ? ts.alleSchon : ts.nichtGenannt}
               </span>
             )}
             <form
@@ -259,13 +263,13 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
               }}
             >
               <label htmlFor={`${uid}-zitat`} className="pw-sr">
-                Wörtliches Zitat aus dem Kapitel
+                {ts.zitatLabel}
               </label>
               <input
                 id={`${uid}-zitat`}
                 className="pl-eingabe"
                 style={{ flex: 1, minWidth: 0 }}
-                placeholder="Wörtliches Zitat einfügen"
+                placeholder={ts.zitatPlatzhalter}
                 value={zitat}
                 aria-invalid={!!fehler}
                 aria-describedby={fehler ? `${uid}-fehler` : undefined}
@@ -275,7 +279,7 @@ export function StufenBearbeitung({ daten, index, figur, stufe, fokusTitel, onSc
                 }}
               />
               <Button type="submit" disabled={!zitat.trim() || !belegKapitel}>
-                Hinzufügen
+                {t.gemeinsam.hinzufuegen}
               </Button>
             </form>
             {fehler && (

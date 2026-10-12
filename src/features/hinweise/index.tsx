@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { Hinweis, HinweisEntscheidung, HinweisTyp } from '@core/model/types';
 import { einheitenAusZeitHinweis } from '@core/zeit';
+import { datum as datumText, f, texte, useTexte, vergleich } from '../../i18n';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Chip, Inspektor, klassen, LeerZustand, Radio, Segment, Textfeld } from '../../ui';
@@ -18,16 +19,14 @@ import {
   schreibweisenVarianten,
   schreibweisenZiel,
   STANDARD_FILTER,
-  STATUS_LABEL,
   TYP_FARBE,
-  TYP_LABEL,
   unbekannterName,
   zaehleStatus,
   type HinweisStatus,
 } from './logik';
 import './hinweise.css';
 
-export { HINWEIS_TYPEN, TYP_LABEL, hinweisStatus } from './logik';
+export { HINWEIS_TYPEN, STATUS_LABEL, TYP_LABEL, hinweisStatus } from './logik';
 
 function useHinweise() {
   const roh = useStore((s) => s.index.hinweise);
@@ -47,6 +46,8 @@ export default function Ansicht() {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const alle = useHinweise();
   const liste = useRef<HTMLDivElement>(null);
+  const t = useTexte();
+  const th = t.hinweise;
 
   const sichtbar = useMemo(() => filtern(alle, filter), [alle, filter]);
   const gruppen = useMemo(() => (daten ? gruppieren(daten, sichtbar) : []), [daten, sichtbar]);
@@ -96,17 +97,15 @@ export default function Ansicht() {
       <div className="pw-hw-haupt">
         <div className="pw-hw-kopf">
           <div className="pw-hw-kopf__titel">
-            <h1>Hinweise</h1>
+            <h1>{th.titel}</h1>
             <span className="pw-hw-kopf__notiz">
-              {alle.length === 0
-                ? 'Noch keine Hinweise'
-                : `${gesamt.neu} neu · ${entschieden} entschieden · Zitate stehen wörtlich im Text, die KI ändert nie etwas`}
+              {alle.length === 0 ? th.nochKeine : f(th.kopfNotiz, { neu: gesamt.neu, entschieden })}
             </span>
           </div>
           {alle.length > 0 && (
             <Segment<HinweisStatus | 'alle'>
               rolle="group"
-              label="Status"
+              label={th.statusLabel}
               groesse="hoch"
               hintergrund="selected"
               voll={false}
@@ -114,7 +113,7 @@ export default function Ansicht() {
               onChange={(status) => setzeHinweisFilter({ status })}
               optionen={STATUS_FOLGE.map((s) => ({
                 wert: s,
-                label: `${s === 'alle' ? 'Alle' : STATUS_LABEL[s]} · ${statusZaehler[s]}`,
+                label: f(th.statusOption, { status: s === 'alle' ? th.alle : th.status[s], n: statusZaehler[s] }),
               }))}
             />
           )}
@@ -122,40 +121,39 @@ export default function Ansicht() {
 
         {alle.length === 0 ? (
           <LeerZustand
-            titel="Keine Hinweise"
+            titel={th.keine}
             aktionen={
               <Button variante="primaer" onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>
-                Buch prüfen
+                {th.buchPruefen}
               </Button>
             }
           >
-            Struktur-Hinweise und Schreibweisen erscheinen automatisch beim Speichern. Widersprüche, offene Fäden und die
-            Zeitleiste findet die Prüfung, die du bewusst startest.
+            {th.leerText}
           </LeerZustand>
         ) : (
           <>
-            <div className="pw-hw-filter" role="group" aria-label="Filter nach Typ und Kapitel">
+            <div className="pw-hw-filter" role="group" aria-label={th.filterLabel}>
               <Chip variante="knopf" aktiv={filter.typ === 'alle'} onClick={() => setzeHinweisFilter({ typ: 'alle' })}>
-                Alle Typen <span className="pw-hw-filter__zahl">{typZaehler.summe}</span>
+                {th.alleTypen} <span className="pw-hw-filter__zahl">{typZaehler.summe}</span>
               </Chip>
-              {HINWEIS_TYPEN.filter((t) => typZaehler.z[t.typ] > 0 || filter.typ === t.typ).map((t) => (
+              {HINWEIS_TYPEN.filter((typ) => typZaehler.z[typ.typ] > 0 || filter.typ === typ.typ).map((typ) => (
                 <Chip
-                  key={t.typ}
+                  key={typ.typ}
                   variante="knopf"
-                  punkt={t.farbe}
-                  aktiv={filter.typ === t.typ}
-                  onClick={() => setzeHinweisFilter({ typ: filter.typ === t.typ ? 'alle' : t.typ })}
+                  punkt={typ.farbe}
+                  aktiv={filter.typ === typ.typ}
+                  onClick={() => setzeHinweisFilter({ typ: filter.typ === typ.typ ? 'alle' : typ.typ })}
                 >
-                  {t.label} <span className="pw-hw-filter__zahl">{typZaehler.z[t.typ]}</span>
+                  {th.typ[typ.typ]} <span className="pw-hw-filter__zahl">{typZaehler.z[typ.typ]}</span>
                 </Chip>
               ))}
               <select
                 className="pw-hw-select"
-                aria-label="Kapitel"
+                aria-label={th.kapitel}
                 value={filter.kapitel}
                 onChange={(e) => setzeHinweisFilter({ kapitel: e.target.value })}
               >
-                <option value="alle">Alle Kapitel</option>
+                <option value="alle">{th.alleKapitel}</option>
                 {daten.projekt.kapitel.map((k) => (
                   <option key={k} value={k}>
                     {kapitelTitel(daten, k)}
@@ -164,7 +162,7 @@ export default function Ansicht() {
               </select>
               {gefiltert && (
                 <Button variante="text" klein onClick={() => setzeHinweisFilter(STANDARD_FILTER)}>
-                  Filter zurücksetzen
+                  {th.filterZuruecksetzen}
                 </Button>
               )}
             </div>
@@ -172,10 +170,10 @@ export default function Ansicht() {
             <div className="pw-hw-liste" ref={liste} onKeyDown={pfeile}>
               {gruppen.length === 0 && (
                 <div className="pw-hw-leer">
-                  {filter.status === 'neu' ? 'Keine neuen Hinweise für diesen Filter.' : 'Keine Hinweise für diesen Filter.'}
+                  {filter.status === 'neu' ? th.keineNeuenFuerFilter : th.keineFuerFilter}
                   {gefiltert && (
                     <Button klein onClick={() => setzeHinweisFilter(STANDARD_FILTER)}>
-                      Filter zurücksetzen
+                      {th.filterZuruecksetzen}
                     </Button>
                   )}
                 </div>
@@ -183,12 +181,12 @@ export default function Ansicht() {
               {gruppen.map((g) => {
                 const typ = HINWEIS_TYPEN.find((t) => t.typ === g.typ)!;
                 return (
-                  <section key={g.typ} className="pw-hw-gruppe" aria-label={typ.label}>
+                  <section key={g.typ} className="pw-hw-gruppe" aria-label={th.typ[g.typ]}>
                     <div className="pw-hw-gruppe__kopf">
                       <Abschnittslabel as="h2" farbe={typ.farbe}>
-                        {typ.label} · {g.hinweise.length}
+                        {f(th.gruppeKopf, { typ: th.typ[g.typ], n: g.hinweise.length })}
                       </Abschnittslabel>
-                      <span className="pw-hw-gruppe__beschreibung">{typ.beschreibung}</span>
+                      <span className="pw-hw-gruppe__beschreibung">{th.typBeschreibung[g.typ]}</span>
                     </div>
                     {g.hinweise.map((h) => (
                       <button
@@ -208,16 +206,16 @@ export default function Ansicht() {
                           <span className="pw-hw-meta">
                             {h.offen && (
                               <span className="pw-hw-etikett" style={{ color: 'var(--real-offen)' }}>
-                                offen
+                                {th.offen}
                               </span>
                             )}
-                            {h.status !== 'neu' && <span>{STATUS_LABEL[h.status]}</span>}
-                            {h.plan && <span>Plan</span>}
-                            <span>{h.quelle === 'ki' ? 'KI' : 'lokal'}</span>
+                            {h.status !== 'neu' && <span>{th.status[h.status]}</span>}
+                            {h.plan && <span>{th.plan}</span>}
+                            <span>{h.quelle === 'ki' ? th.quelleKi : th.quelleLokal}</span>
                           </span>
                         </span>
                         <span className="pw-hw-eintrag__zitate">
-                          {h.zitate.map((z) => `${kapLabel(daten, z.kapitel)}: »${z.text}«`).join('  ·  ')}
+                          {h.zitate.map((z) => f(th.zitat, { kap: kapLabel(daten, z.kapitel), text: z.text })).join('  ·  ')}
                         </span>
                       </button>
                     ))}
@@ -229,16 +227,13 @@ export default function Ansicht() {
         )}
       </div>
 
-      <Inspektor key={ausgewaehlt?.schluessel ?? 'leer'} breite={330} hintergrund="weiss" label="Inspektor Hinweis">
+      <Inspektor key={ausgewaehlt?.schluessel ?? 'leer'} breite={330} hintergrund="weiss" label={th.inspektorLabel}>
         {ausgewaehlt ? (
           <HinweisDetail hinweis={ausgewaehlt} onEntscheiden={(e) => void entscheide(ausgewaehlt, e)} />
         ) : (
           <>
-            <Abschnittslabel>Hinweise</Abschnittslabel>
-            <span className="pw-hw-text">
-              Wähle links einen Hinweis. „Stelle öffnen“ springt im Editor zum Zitat. „Ist Absicht“ und „Erledigt“ werden in
-              entscheidungen.json gespeichert; entschiedene Hinweise meldet die Prüfung nicht erneut.
-            </span>
+            <Abschnittslabel>{th.titel}</Abschnittslabel>
+            <span className="pw-hw-text">{th.inspektorHilfe}</span>
           </>
         )}
       </Inspektor>
@@ -258,6 +253,9 @@ export function HinweisDetail({ hinweis: h, onEntscheiden }: HinweisDetailProps)
   const hinweisEntscheiden = useStore((s) => s.hinweisEntscheiden);
   const hinweisStelleOeffnen = useStore((s) => s.hinweisStelleOeffnen);
   const oeffne = useStore((s) => s.oeffne);
+  const t = useTexte();
+  const th = t.hinweise;
+  const td = th.detail;
   const datum = daten?.entscheidungen.hinweise.find((x) => x.schluessel === h.schluessel)?.datum;
   if (!daten) return null;
   const entscheiden = onEntscheiden ?? ((e: HinweisEntscheidung | null) => void hinweisEntscheiden(h.schluessel, e));
@@ -265,20 +263,20 @@ export function HinweisDetail({ hinweis: h, onEntscheiden }: HinweisDetailProps)
   return (
     <>
       <Abschnittslabel farbe={TYP_FARBE[h.typ]}>
-        {TYP_LABEL[h.typ]} · {h.quelle === 'ki' ? 'KI-Prüfung' : 'lokal erkannt'}
+        {f(td.kopf, { typ: th.typ[h.typ], quelle: h.quelle === 'ki' ? td.quelleKi : td.quelleLokal })}
       </Abschnittslabel>
       <strong className="pw-hw-titel">{h.titel}</strong>
       {(h.offen || h.status !== 'neu') && (
         <div className="pw-hw-etiketten">
           {h.offen && (
-            <span className="pw-hw-etikett" style={{ color: 'var(--real-offen)' }} title="Betrifft etwas mit Realitätsebene „noch offen“">
-              offen
+            <span className="pw-hw-etikett" style={{ color: 'var(--real-offen)' }} title={td.offenTitel}>
+              {th.offen}
             </span>
           )}
           {h.status !== 'neu' && (
             <span className="pw-hw-etikett" style={{ color: h.status === 'erledigt' ? 'var(--real-gesichert)' : 'var(--real-vage)' }}>
-              {STATUS_LABEL[h.status]}
-              {datum ? ` · ${new Date(datum).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}` : ''}
+              {th.status[h.status]}
+              {datum ? ` · ${datumText(new Date(datum), { day: 'numeric', month: 'short' })}` : ''}
             </span>
           )}
         </div>
@@ -288,9 +286,9 @@ export function HinweisDetail({ hinweis: h, onEntscheiden }: HinweisDetailProps)
         {h.zitate.map((z, i) => (
           <div key={`${z.kapitel}-${i}`} className="pw-hw-zitat">
             <span className="pw-hw-zitat__kap">{kapitelTitel(daten, z.kapitel)}</span>
-            <p className="pw-hw-zitat__text">»{z.text}«</p>
+            <p className="pw-hw-zitat__text">{f(td.zitat, { text: z.text })}</p>
             <Button klein style={{ alignSelf: 'flex-start' }} onClick={() => hinweisStelleOeffnen(z)}>
-              Stelle öffnen
+              {td.stelleOeffnen}
             </Button>
           </div>
         ))}
@@ -299,7 +297,7 @@ export function HinweisDetail({ hinweis: h, onEntscheiden }: HinweisDetailProps)
 
       {h.plan && (h.plan.figur || h.plan.kapitel) && (
         <div className="pw-hw-abschnitt">
-          <span className="pw-hw-zitat__kap">Weicht von der Planung ab</span>
+          <span className="pw-hw-zitat__kap">{td.weichtAb}</span>
           <span className="pw-hw-text">
             {h.plan.figur ? (daten.figuren[h.plan.figur]?.name ?? h.plan.figur) : kapitelTitel(daten, h.plan.kapitel ?? '')}
             {h.plan.feld ? ` · ${h.plan.feld}` : ''}
@@ -309,7 +307,7 @@ export function HinweisDetail({ hinweis: h, onEntscheiden }: HinweisDetailProps)
             style={{ alignSelf: 'flex-start' }}
             onClick={() => (h.plan?.figur ? oeffne('figuren', { figur: h.plan.figur }) : oeffne('akte', { plan: h.plan?.kapitel }))}
           >
-            Planung öffnen
+            {td.planungOeffnen}
           </Button>
         </div>
       )}
@@ -322,14 +320,14 @@ export function HinweisDetail({ hinweis: h, onEntscheiden }: HinweisDetailProps)
       <span style={{ flexGrow: 1 }} />
       {h.status === 'neu' ? (
         <div className="pw-hw-aktionen">
-          <Button onClick={() => entscheiden('absicht')}>Ist Absicht</Button>
+          <Button onClick={() => entscheiden('absicht')}>{td.istAbsicht}</Button>
           <Button variante="primaer" onClick={() => entscheiden('erledigt')}>
-            Erledigt
+            {td.erledigt}
           </Button>
         </div>
       ) : (
         <Button breit onClick={() => entscheiden(null)}>
-          Zurücksetzen (wieder melden)
+          {td.zuruecksetzen}
         </Button>
       )}
     </>
@@ -342,6 +340,7 @@ function WerkzeugVerweis({ hinweis: h }: { hinweis: Hinweis }) {
   const zeit = useStore((s) => s.zeit);
   const fb = useStore((s) => s.figurenbogen);
   const stimme = useStore((s) => (h.schluessel.startsWith('stimme:') ? s.daten?.kiStimmen?.eintraege.find((b) => b.schluessel === h.schluessel) : undefined));
+  const td = useTexte().hinweise.detail;
   if (h.typ === 'zeitleiste') {
     const einheiten = einheitenAusZeitHinweis(h.schluessel);
     const ziel = einheiten[0] ?? h.zitate[0]?.kapitel;
@@ -356,7 +355,7 @@ function WerkzeugVerweis({ hinweis: h }: { hinweis: Hinweis }) {
           oeffne('zeitleiste');
         }}
       >
-        In der Zeitleiste zeigen
+        {td.inZeitleiste}
       </Button>
     );
   }
@@ -371,7 +370,7 @@ function WerkzeugVerweis({ hinweis: h }: { hinweis: Hinweis }) {
           fb.setzeStimmeSpalte(true);
         }}
       >
-        Stimme auf der Figurenkarte ansehen
+        {td.stimmeAnsehen}
       </Button>
     );
   }
@@ -388,10 +387,11 @@ function SchreibweiseFestlegen({ hinweis }: { hinweis: Hinweis }) {
     return varianten.find((v) => v === name) ?? varianten[0] ?? '';
   }, [daten, varianten]);
   const [gueltig, setGueltig] = useState(vorschlag);
+  const td = useTexte().hinweise.detail;
   if (varianten.length < 2) return null;
   return (
-    <div className="pw-hw-abschnitt" role="radiogroup" aria-label="Gültige Schreibweise">
-      <span className="pw-hw-feldlabel">Gültige Schreibweise</span>
+    <div className="pw-hw-abschnitt" role="radiogroup" aria-label={td.gueltigeSchreibweise}>
+      <span className="pw-hw-feldlabel">{td.gueltigeSchreibweise}</span>
       <div className="pw-hw-varianten">
         {varianten.map((v) => (
           <Radio key={v} name={`sw-${hinweis.schluessel}`} checked={gueltig === v} onChange={() => setGueltig(v)}>
@@ -400,7 +400,7 @@ function SchreibweiseFestlegen({ hinweis }: { hinweis: Hinweis }) {
         ))}
       </div>
       <Button disabled={!gueltig} onClick={() => void schreibweiseFestlegen(hinweis, gueltig, varianten)}>
-        Schreibweise festlegen
+        {td.schreibweiseFestlegen}
       </Button>
     </div>
   );
@@ -413,29 +413,30 @@ function UnbekanntZuordnen({ hinweis }: { hinweis: Hinweis }) {
   const oeffne = useStore((s) => s.oeffne);
   const [name, setName] = useState(() => unbekannterName(hinweis));
   const [figur, setFigur] = useState('');
-  const figuren = Object.values(daten.figuren).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const td = useTexte().hinweise.detail;
+  const figuren = Object.values(daten.figuren).sort((a, b) => vergleich(a.name, b.name));
   return (
     <div className="pw-hw-abschnitt">
       <label className="pw-hw-feldlabel" htmlFor={`name-${hinweis.schluessel}`}>
-        Name im Text
+        {td.nameImText}
       </label>
       <Textfeld id={`name-${hinweis.schluessel}`} value={name} onChange={(e) => setName(e.target.value)} />
       <Button
         disabled={!name.trim()}
-        title="Legt die Figur an und öffnet ihre Karte"
+        title={td.figurAnlegenTitel}
         onClick={async () => oeffne('figuren', { figur: await unbekannteFigurAnlegen(hinweis, name) })}
       >
-        Figur anlegen
+        {td.figurAnlegen}
       </Button>
       <div className="pw-hw-zeile">
         <select
           className="pw-hw-select"
           style={{ marginLeft: 0, borderRadius: 6, height: 30 }}
-          aria-label="Figur zuordnen"
+          aria-label={td.figurZuordnen}
           value={figur}
           onChange={(e) => setFigur(e.target.value)}
         >
-          <option value="">Vorhandene Figur …</option>
+          <option value="">{td.vorhandeneFigur}</option>
           {figuren.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name}
@@ -443,7 +444,7 @@ function UnbekanntZuordnen({ hinweis }: { hinweis: Hinweis }) {
           ))}
         </select>
         <Button disabled={!figur || !name.trim()} onClick={() => void unbekanntZuordnen(hinweis, figur, name)}>
-          Zuordnen
+          {td.zuordnen}
         </Button>
       </div>
     </div>
@@ -453,14 +454,16 @@ function UnbekanntZuordnen({ hinweis }: { hinweis: Hinweis }) {
 export function Titelaktionen() {
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const bereit = useStore((s) => !!s.daten);
+  const t = useTexte();
   return (
     <Button variante="primaer" disabled={!bereit} onClick={() => oeffneDialog('ki-pruefen', { umfang: 'buch' })}>
-      Buch prüfen
+      {t.hinweise.buchPruefen}
     </Button>
   );
 }
 
 export function kontext(state: Store): string {
   const neu = state.index.hinweise.filter((h) => h.status === 'neu').length;
-  return neu > 0 ? `Hinweise · ${neu} neu` : 'Hinweise';
+  const th = texte().hinweise;
+  return neu > 0 ? f(th.kontextNeu, { n: neu }) : th.titel;
 }

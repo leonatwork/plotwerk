@@ -10,7 +10,9 @@ import type { StateCreator } from 'zustand';
 import type { ExposeKapitelQuelle } from '@core/abgabe/index';
 import type { Rueckimport } from '@core/docx/rueckimport';
 import type { Id, Kapitel, LektoratsAenderung, ProjektAngaben } from '@core/model/types';
+import { buchSprache } from '@core/i18n';
 import { kapitelPfad } from '@core/projekt';
+import { sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 
 export type AbgabeFormat = 'normseite' | 'expose' | 'epub' | 'mappe';
@@ -76,20 +78,24 @@ export interface AbgabeSlice {
 }
 
 const ENDUNG: Record<AbgabeFormat, string> = { normseite: 'docx', expose: 'docx', epub: 'epub', mappe: 'pdf' };
-const ZUSATZ: Record<AbgabeFormat, string> = { normseite: ' (Normseiten)', expose: ' – Exposé', epub: '', mappe: ' – Lektoratsmappe' };
+/** Zusatz im Dateinamen je Format (Sprache der Oberfläche). */
+function zusatz(format: AbgabeFormat): string {
+  return format === 'epub' ? '' : texte().state.abgabe.zusatz[format];
+}
 
 /** Dateiname-Vorschlag, z. B. „Hafenlichter (Normseiten).docx“. */
 export function abgabeDateiname(titel: string, format: AbgabeFormat, exposeFormat: ExposeDateiformat = 'docx'): string {
-  const basis = titel.replace(/[/\\:*?"<>|\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ').trim().replace(/^\.+/, '') || 'Manuskript';
+  const basis =
+    titel.replace(/[/\\:*?"<>|\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ').trim().replace(/^\.+/, '') || texte().state.standard.manuskript;
   const endung = format === 'expose' ? exposeFormat : ENDUNG[format];
-  return `${basis}${ZUSATZ[format]}.${endung}`;
+  return `${basis}${zusatz(format)}.${endung}`;
 }
 
 /** Endung des Dateinamens an das Format anpassen. */
 export function mitAbgabeEndung(name: string, format: AbgabeFormat, exposeFormat: ExposeDateiformat = 'docx'): string {
   const endung = format === 'expose' ? exposeFormat : ENDUNG[format];
   const basis = name.trim().replace(/\.(docx|pdf|epub|md)$/i, '');
-  return `${basis || 'Manuskript'}.${endung}`;
+  return `${basis || texte().state.standard.manuskript}.${endung}`;
 }
 
 export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set, get) => {
@@ -97,7 +103,7 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
 
   const daten = () => {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   };
 
@@ -149,8 +155,8 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
           case 'expose': {
             const { exposeGeruest, exposeDocx, exposeMarkdown } = await import('@core/abgabe/index');
             const geruest = exposeGeruest(d, { kapitel: auftrag.kapitel, nebenfiguren: auftrag.nebenfiguren });
-            if (auftrag.ziel === 'md') return new TextEncoder().encode(exposeMarkdown(geruest));
-            return exposeDocx(geruest, { autor: angaben?.autor });
+            if (auftrag.ziel === 'md') return new TextEncoder().encode(exposeMarkdown(geruest, buchSprache(angaben)));
+            return exposeDocx(geruest, { autor: angaben?.autor, sprache: buchSprache(angaben) });
           }
           case 'epub': {
             const [{ exportiereEpub }, { ladePdfSchriften }] = await Promise.all([import('@core/epub/index'), import('../../features/importexport/pdfSchriften')]);
@@ -175,7 +181,7 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
 
       async exportieren(auftrag, dateiname) {
         const backend = get().backend;
-        if (!backend) throw new Error('Kein Backend verfügbar');
+        if (!backend) throw new Error(texte().state.fehler.keinBackend);
         const datei = await get().abgabe.erstellen(auftrag);
         return backend.dateiSpeichern(dateiname, datei);
       },
@@ -223,17 +229,17 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
       async lektoratEntscheiden(id, entscheidung) {
         const liste = daten().lektorat ?? [];
         const a = liste.find((x) => x.id === id);
-        if (!a) return { ok: false, grund: 'Diese Änderung gibt es nicht mehr.' };
+        const t = texte().state.abgabe;
+        if (!a) return { ok: false, grund: t.aenderungFehlt };
         if (a.status === entscheidung) return { ok: true };
-        if (a.status === 'angenommen')
-          return { ok: false, grund: 'Die Änderung steht schon im Text. Den Stand davor findest du unter „Versionen“ des Kapitels.' };
+        if (a.status === 'angenommen') return { ok: false, grund: t.schonImText };
         if (entscheidung === 'angenommen') {
           const { wendeAenderungAn } = await import('@core/abgabe/index');
           await get().editorSichern();
           await get().alleSpeichernAbwarten();
           const kapitel = get().daten?.kapitel[a.anker.kapitel];
-          if (!kapitel) return { ok: false, grund: 'Das Kapitel gibt es nicht mehr.' };
-          const ergebnis = wendeAenderungAn(kapitel.text, a);
+          if (!kapitel) return { ok: false, grund: t.kapitelFehlt };
+          const ergebnis = wendeAenderungAn(kapitel.text, a, sprache());
           if (!ergebnis.ok) return ergebnis;
           await get().schnappschuss(kapitelPfad(kapitel.id), 'wiederherstellen');
           await get().kapitelTextSpeichern(kapitel.id, ergebnis.text);

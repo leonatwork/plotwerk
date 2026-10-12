@@ -2,6 +2,7 @@
 import type { Id, Schreibstatistik } from '@core/model/types';
 import { durchschnitt, fortschrittJeAkt, gesamtFortschritt, serie, woerterAm, zielTage, type AktFortschritt } from '@core/statistik';
 import { useMemo, useState } from 'react';
+import { f, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, klassen, StatusPunkt } from '../../ui';
 import { useGesamtWoerter } from '../schreiben/Statusleiste';
@@ -34,76 +35,77 @@ function Kennzahlen({ st, heute, onZielBearbeiten }: { st: Schreibstatistik; heu
   const g = gesamtFortschritt(st, gesamt, heute);
   const schnitt7 = durchschnitt(st, heute, 7);
   const ziel7 = zielTage(st, heute, 7);
+  const t = useTexte().statistik.kennzahlen;
 
   return (
     <div className="pw-st-kacheln">
-      <section className="pw-st-panel pw-st-kachel" aria-label="Heute">
+      <section className="pw-st-panel pw-st-kachel" aria-label={t.heute}>
         {ziel > 0 ? (
           <Ring anteil={heuteW / ziel} erreicht={heuteW >= ziel} />
         ) : (
           <Ring anteil={0} />
         )}
         <div className="pw-st-kachel__text">
-          <Abschnittslabel>Heute</Abschnittslabel>
+          <Abschnittslabel>{t.heute}</Abschnittslabel>
           <span>
             <span className="pw-st-kachel__zahl">{zahl.format(heuteW)}</span>
-            <span className="pw-st-kachel__einheit">{ziel > 0 ? `/ ${zahl.format(ziel)} Wörter` : heuteW === 1 ? 'Wort' : 'Wörter'}</span>
+            <span className="pw-st-kachel__einheit">{ziel > 0 ? f(t.einheitZiel, { ziel: zahl.format(ziel) }) : f(t.einheitWoerter, { n: heuteW })}</span>
           </span>
           {ziel > 0 ? (
-            <span className="pw-st-leise">{heuteW >= ziel ? 'Tagesziel erreicht' : `noch ${woerterText(ziel - heuteW)}`}</span>
+            <span className="pw-st-leise">{heuteW >= ziel ? t.tageszielErreicht : f(t.noch, { rest: woerterText(ziel - heuteW) })}</span>
           ) : (
             <Button variante="text" klein onClick={onZielBearbeiten} style={{ alignSelf: 'flex-start', padding: 0 }}>
-              Tagesziel festlegen
+              {t.tageszielFestlegen}
             </Button>
           )}
         </div>
       </section>
 
-      <section className="pw-st-panel" aria-label="Schreibstrecke">
-        <Abschnittslabel>Serie</Abschnittslabel>
+      <section className="pw-st-panel" aria-label={t.schreibstrecke}>
+        <Abschnittslabel>{t.serie}</Abschnittslabel>
         <span>
           <span className="pw-st-kachel__zahl">{zahl.format(s.aktuell)}</span>
-          <span className="pw-st-kachel__einheit">{s.aktuell === 1 ? 'Tag in Folge' : 'Tage in Folge'}</span>
+          <span className="pw-st-kachel__einheit">{f(t.inFolge, { n: s.aktuell })}</span>
         </span>
         <span className="pw-st-leise">
-          {s.aktuell > 0 && !s.heuteGeschrieben ? 'Heute schreiben, um die Serie zu halten · ' : ''}
-          längste: {tageText(s.laengste)}
+          {s.aktuell > 0 && !s.heuteGeschrieben ? t.serieHalten : ''}
+          {f(t.laengste, { tage: tageText(s.laengste) })}
         </span>
       </section>
 
-      <section className="pw-st-panel" aria-label="Durchschnitt">
-        <Abschnittslabel>Letzte 7 Tage</Abschnittslabel>
+      <section className="pw-st-panel" aria-label={t.durchschnitt}>
+        <Abschnittslabel>{t.letzte7}</Abschnittslabel>
         <span>
           <span className="pw-st-kachel__zahl">{zahl.format(schnitt7)}</span>
-          <span className="pw-st-kachel__einheit">Wörter / Tag</span>
+          <span className="pw-st-kachel__einheit">{t.proTag}</span>
         </span>
-        <span className="pw-st-leise">
-          {ziel > 0 ? `Tagesziel an ${ziel7} von 7 Tagen erreicht` : `${zahl.format(durchschnitt(st, heute, 30))} Wörter / Tag in 30 Tagen`}
-        </span>
+        <span className="pw-st-leise">{ziel > 0 ? f(t.zielTage, { n: ziel7 }) : f(t.schnitt30, { n: zahl.format(durchschnitt(st, heute, 30)) })}</span>
       </section>
 
-      <section className="pw-st-panel" aria-label="Gesamtfortschritt">
-        <Abschnittslabel>Buch</Abschnittslabel>
+      <section className="pw-st-panel" aria-label={t.gesamtfortschritt}>
+        <Abschnittslabel>{t.buch}</Abschnittslabel>
         <span>
           <span className="pw-st-kachel__zahl">{zahl.format(gesamt)}</span>
-          <span className="pw-st-kachel__einheit">{g.ziel ? `/ ${zahl.format(g.ziel)} Wörter` : 'Wörter'}</span>
+          <span className="pw-st-kachel__einheit">{g.ziel ? f(t.einheitZiel, { ziel: zahl.format(g.ziel) }) : t.einheitBuch}</span>
         </span>
         {g.ziel && g.anteil !== null ? (
           <>
-            <Balken anteil={g.anteil} label={`Gesamtfortschritt ${prozent.format(g.anteil)}`} />
+            <Balken anteil={g.anteil} label={f(t.gesamtfortschrittWert, { prozent: prozent.format(g.anteil) })} />
             <span className="pw-st-leise">
               {prozent.format(g.anteil)}
-              {g.rest ? ` · noch ${woerterText(g.rest)}` : ' · Zielumfang erreicht'}
+              {g.rest ? f(t.nochRest, { rest: woerterText(g.rest) }) : t.zielumfangErreicht}
               {g.tageBisAbgabe !== null && st.ziel.abgabe
                 ? g.tageBisAbgabe > 0
-                  ? ` · Abgabe ${datumAnzeige(st.ziel.abgabe)} (${tageText(g.tageBisAbgabe)}${g.proTagNoetig ? `, ${zahl.format(g.proTagNoetig)} / Tag` : ''})`
-                  : ` · Abgabe war am ${datumAnzeige(st.ziel.abgabe)}`
+                  ? g.proTagNoetig
+                    ? f(t.abgabeProTag, { datum: datumAnzeige(st.ziel.abgabe), tage: tageText(g.tageBisAbgabe), n: zahl.format(g.proTagNoetig) })
+                    : f(t.abgabe, { datum: datumAnzeige(st.ziel.abgabe), tage: tageText(g.tageBisAbgabe) })
+                  : f(t.abgabeWar, { datum: datumAnzeige(st.ziel.abgabe) })
                 : ''}
             </span>
           </>
         ) : (
           <Button variante="text" klein onClick={onZielBearbeiten} style={{ alignSelf: 'flex-start', padding: 0 }}>
-            Zielumfang festlegen
+            {t.zielumfangFestlegen}
           </Button>
         )}
       </section>
@@ -113,7 +115,8 @@ function Kennzahlen({ st, heute, onZielBearbeiten }: { st: Schreibstatistik; heu
 
 function AktZeile({ akt, max, maxKapitel, offen, umschalten }: { akt: AktFortschritt; max: number; maxKapitel: number; offen: boolean; umschalten(): void }) {
   const oeffne = useStore((s) => s.oeffne);
-  const name = akt.nummer === null ? 'Ohne Akt' : `Akt ${akt.nummer}${akt.titel ? ` · ${akt.titel}` : ''}`;
+  const t = useTexte().statistik.akte;
+  const name = akt.nummer === null ? t.ohneAkt : f(akt.titel ? t.aktTitel : t.akt, { nr: akt.nummer, titel: akt.titel });
   const listeId = `pw-st-akt-${akt.nummer ?? 'ohne'}`;
   return (
     <li className="pw-st-akt">
@@ -124,7 +127,7 @@ function AktZeile({ akt, max, maxKapitel, offen, umschalten }: { akt: AktFortsch
         <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <span className="pw-st-akt__name">{name}</span>
           <span className="pw-st-leise">
-            {akt.kapitel.length === 0 ? 'noch keine Kapitel' : `${akt.fertig} von ${akt.kapitel.length} Kapiteln geschrieben`}
+            {akt.kapitel.length === 0 ? t.keineKapitel : f(t.geschrieben, { fertig: akt.fertig, n: akt.kapitel.length })}
           </span>
         </span>
         <span className="pw-st-zahl">{woerterText(akt.woerter)}</span>
@@ -135,7 +138,7 @@ function AktZeile({ akt, max, maxKapitel, offen, umschalten }: { akt: AktFortsch
           {akt.kapitel.map((k) => (
             <li key={k.id}>
               <StatusPunkt status={k.status} />
-              <button type="button" onClick={() => oeffne('schreiben', { kapitel: k.id })} title="Im Editor öffnen">
+              <button type="button" onClick={() => oeffne('schreiben', { kapitel: k.id })} title={t.imEditor}>
                 {k.titel}
               </button>
               <span className="pw-st-zahl">{k.woerter > 0 ? zahl.format(k.woerter) : '–'}</span>
@@ -153,6 +156,7 @@ function AkteUndKapitel() {
   const wortzahlen = useStore((s) => s.index.wortzahlen);
   const live = useStore((s) => s.schreibenLive);
   const [zu, setZu] = useState<Set<string>>(() => new Set());
+  const t = useTexte().statistik.akte;
   const akte = useMemo(() => {
     if (!daten) return [];
     const woerter = (id: Id) => (live?.kapitel === id ? live.woerter : (wortzahlen[id] ?? 0));
@@ -168,17 +172,17 @@ function AkteUndKapitel() {
     <section className="pw-st-panel" aria-labelledby="pw-st-akte-titel">
       <div className="pw-st-panel__kopf">
         <Abschnittslabel id="pw-st-akte-titel" as="h2">
-          Wörter je Akt und Kapitel
+          {t.titel}
         </Abschnittslabel>
         {akte.length > 0 && (
           <Button variante="text" klein onClick={() => setZu(alleZu ? new Set() : new Set(akte.map(schluessel)))}>
-            {alleZu ? 'Alle aufklappen' : 'Alle zuklappen'}
+            {alleZu ? t.aufklappen : t.zuklappen}
           </Button>
         )}
       </div>
       {akte.length === 0 ? (
         <p className="pw-st-leise" style={{ margin: 0 }}>
-          Noch keine Kapitel. Lege in „Akte planen“ Akte und Kapitel an, dann siehst du hier, wie weit jeder Akt ist.
+          {t.leer}
         </p>
       ) : (
         <ul className="pw-st-akte">
@@ -214,21 +218,22 @@ export interface UeberblickProps {
 }
 
 export function Ueberblick({ st, heute, tag, onTag, onZielBearbeiten }: UeberblickProps) {
-  const tageMitText = Object.values(st.tage).filter((t) => t.geschrieben > 0).length;
+  const tageMitText = Object.values(st.tage).filter((x) => x.geschrieben > 0).length;
+  const t = useTexte().statistik.ueberblick;
   return (
     <>
       <Kennzahlen st={st} heute={heute} onZielBearbeiten={onZielBearbeiten} />
       <section className="pw-st-panel" aria-labelledby="pw-st-kalender-titel">
         <div className="pw-st-panel__kopf">
           <Abschnittslabel id="pw-st-kalender-titel" as="h2">
-            Wörter pro Tag
+            {t.woerterProTag}
           </Abschnittslabel>
           <KalenderLegende ziel={st.ziel.tagWoerter} />
         </div>
         <Kalender st={st} heute={heute} gewaehlt={tag} onWaehlen={onTag} />
         {tageMitText === 0 && (
           <p className="pw-st-leise" style={{ margin: 0 }}>
-            Noch keine Schreibtage. Sobald du im Editor schreibst, zählt Plotwerk die neuen Wörter pro Tag mit.
+            {t.keineTage}
           </p>
         )}
       </section>

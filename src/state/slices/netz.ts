@@ -6,6 +6,7 @@ import type { StateCreator } from 'zustand';
 import type { Beziehung, BeziehungsKategorie, Figur, Gruppe, Id, Spur } from '@core/model/types';
 import { findeStelle, kapitelIndex } from '../../features/beziehungen/gemeinsam';
 import { paarSchluessel } from '../../features/beziehungen/logik';
+import { f as fmt, texte } from '../../i18n';
 import type { Store } from '../store';
 
 export type NetzAuswahl =
@@ -55,17 +56,17 @@ function ohneUndefined<T extends object>(o: T): T {
 export const createNetzSlice: StateCreator<Store, [], [], NetzSlice> = (set, get) => {
   const daten = () => {
     const d = get().daten;
-    if (!d) throw new Error('Kein Projekt geöffnet');
+    if (!d) throw new Error(texte().state.fehler.keinProjekt);
     return d;
   };
   const figur = (id: Id): Figur => {
     const f = daten().figuren[id];
-    if (!f) throw new Error(`Figur „${id}“ nicht gefunden`);
+    if (!f) throw new Error(fmt(texte().state.fehler.figurFehlt, { id }));
     return f;
   };
   const gruppe = (id: Id): Gruppe => {
     const g = daten().gruppen[id];
-    if (!g) throw new Error(`Gruppe „${id}“ nicht gefunden`);
+    if (!g) throw new Error(fmt(texte().state.fehler.gruppeFehlt, { id }));
     return g;
   };
 

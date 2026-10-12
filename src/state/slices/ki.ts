@@ -20,6 +20,7 @@ import {
 } from '@core/ki/index';
 import type { Figur, Hinweis, Id, KiAnbieter, KiEinstellungen, Ort, TextAnker, Verweis } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
+import { f, sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 
 export type SchluesselStatus = 'unbekannt' | 'vorhanden' | 'fehlt';
@@ -75,26 +76,32 @@ export interface KiSlice {
   kiVorschlagAnlegen(v: ErwaehnungsVorschlag): Promise<Verweis>;
 }
 
+/** Fehlerarten mit eigener Meldung der App (Auftrag, Abbruch, Antwort): nicht als HTTP-/Netzfehler deuten. */
+const EIGENE_MELDUNG: ReadonlySet<KiFehlerArt> = new Set<KiFehlerArt>(['auftrag', 'abgebrochen', 'antwort']);
+
+/** Fehler eines KI-Laufs für die Anzeige (Sprache der Oberfläche); Meldungen von Diensten werden angehängt. */
 export function kiFehlerAnzeige(e: unknown): KiFehlerAnzeige {
   const text = e instanceof Error ? e.message : typeof e === 'string' ? e : String(e);
   const art: KiFehlerArt = e instanceof KiFehler ? e.art : 'api';
+  if (EIGENE_MELDUNG.has(art)) return { art, text };
+  const t = texte().state.ki;
   if (/\b401\b|unauthori[sz]ed|authentication_error|invalid (x-)?api[- ]?key/i.test(text)) {
-    return { art: 'nicht_bereit', text: 'Der API-Schlüssel wurde abgelehnt (401). Bitte in den Einstellungen prüfen oder ersetzen.' };
+    return { art: 'nicht_bereit', text: t.schluesselAbgelehnt };
   }
   if (/\b403\b|permission_error|forbidden/i.test(text)) {
-    return { art: 'api', text: `Kein Zugriff auf das Deployment (403). ${text}` };
+    return { art: 'api', text: f(t.keinZugriff, { text }) };
   }
   if (/\b404\b|not_found_error|DeploymentNotFound|not found/i.test(text)) {
-    return { art: 'nicht_bereit', text: `Modell oder Endpoint nicht gefunden (404). Bitte in den Einstellungen prüfen. ${text}` };
+    return { art: 'nicht_bereit', text: f(t.nichtGefunden, { text }) };
   }
   if (/\b429\b|rate_limit|too many requests/i.test(text)) {
-    return { art: 'api', text: 'Zu viele Anfragen an den KI-Dienst (429). Bitte einen Moment warten und später erneut prüfen.' };
+    return { art: 'api', text: t.zuVieleAnfragen };
   }
   if (/\b(529|503)\b|overloaded/i.test(text)) {
-    return { art: 'api', text: 'Der KI-Dienst ist gerade überlastet. Bitte später erneut prüfen.' };
+    return { art: 'api', text: t.ueberlastet };
   }
   if (/network|failed to fetch|timed? ?out|dns|connection|verbindung/i.test(text)) {
-    return { art: 'api', text: `Keine Verbindung zum KI-Dienst. Ohne Netz funktioniert alles außer der KI-Prüfung. (${text})` };
+    return { art: 'api', text: f(t.keineVerbindung, { text }) };
   }
   return { art, text };
 }
@@ -109,7 +116,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
   /** Nur-Lese-Sicht auf das Projekt (harte Regel 1: core/ki bekommt nie das schreibende Dateisystem). */
   async function leser(): Promise<ProjektLeser> {
     const fs = get().fs;
-    if (!fs || !get().daten) throw new KiFehler('auftrag', 'Kein Projekt geöffnet.');
+    if (!fs || !get().daten) throw new KiFehler('auftrag', texte().state.fehler.keinProjekt);
     await get().editorSichern();
     await get().alleSpeichernAbwarten();
     return {
@@ -121,7 +128,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
 
   function backend() {
     const b = get().backend;
-    if (!b) throw new KiFehler('nicht_bereit', 'Die App ist noch nicht bereit.');
+    if (!b) throw new KiFehler('nicht_bereit', texte().state.fehler.nichtBereit);
     return b;
   }
 
@@ -153,7 +160,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
 
     async kiEinstellungenSpeichern(ki) {
       const projekt = get().daten?.projekt;
-      if (!projekt) throw new Error('Kein Projekt geöffnet.');
+      if (!projekt) throw new Error(texte().state.fehler.keinProjekt);
       // Die Einstellungen des anderen Anbieters bleiben erhalten, auch wenn `ki` sie nicht enthält.
       const alt = projekt.ki;
       const claude = ki.claude ?? alt?.claude;
@@ -163,7 +170,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
     },
 
     async kiSchaetzen(auftrag) {
-      return schaetzeLauf(await leser(), auftrag, backend().ki, get().kiEinstellungen());
+      return schaetzeLauf(await leser(), auftrag, backend().ki, get().kiEinstellungen(), sprache());
     },
 
     async kiPruefen(auftrag) {
@@ -174,6 +181,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
       try {
         const ergebnis = await pruefe(await leser(), auftrag, backend().ki, get().kiEinstellungen(), {
           signal: steuerung.signal,
+          oberflaeche: sprache(),
           fortschritt: (f) => set((s) => ({ kiLauf: s.kiLauf ? { ...s.kiLauf, fortschritt: f } : s.kiLauf })),
         });
         // Merge nach Schlüssel; gespeicherte Schlüssel werden neu berechnet (robust gegen ältere Formate)
@@ -223,7 +231,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
 
     async kiSchluesselSetzen(wert, anbieter) {
       const sauber = wert.trim();
-      if (!sauber) throw new Error('Bitte einen Schlüssel eingeben.');
+      if (!sauber) throw new Error(texte().state.ki.schluesselEingeben);
       const a = anbieter ?? kiAnbieter(get().daten?.projekt.ki);
       await backend().schluessel.setzen(sauber, a);
       await get().kiSchluesselPruefen(a);
@@ -239,7 +247,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
       if (get().kiVorschlaege[kapitel]?.laedt) return;
       vorschlaegeSetzen(kapitel, { laedt: true, fehler: null });
       try {
-        const liste = await schlageErwaehnungenVor(await leser(), kapitel, backend().ki, get().kiEinstellungen());
+        const liste = await schlageErwaehnungenVor(await leser(), kapitel, backend().ki, get().kiEinstellungen(), sprache());
         vorschlaegeSetzen(kapitel, { laedt: false, geholt: true, liste });
       } catch (e) {
         vorschlaegeSetzen(kapitel, { laedt: false, fehler: kiFehlerAnzeige(e) });
@@ -248,7 +256,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
 
     async kiVorschlagEntscheiden(v, status, ziel) {
       const daten = get().daten;
-      if (!daten) throw new Error('Kein Projekt geöffnet.');
+      if (!daten) throw new Error(texte().state.fehler.keinProjekt);
       const e = daten.entscheidungen;
       const zuordnungen = [
         ...e.zuordnungen.filter((z) => !gleicherAnker(z.anker, v.anker)),
@@ -260,7 +268,7 @@ export const createKiSlice: StateCreator<Store, [], [], KiSlice> = (set, get) =>
 
     async kiVorschlagAnlegen(v) {
       const daten = get().daten;
-      if (!daten) throw new Error('Kein Projekt geöffnet.');
+      if (!daten) throw new Error(texte().state.fehler.keinProjekt);
       const name = v.text.charAt(0).toLocaleUpperCase('de') + v.text.slice(1);
       let ziel: Verweis;
       if (v.zielTyp === 'ort') {

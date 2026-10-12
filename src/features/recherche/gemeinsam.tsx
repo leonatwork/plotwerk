@@ -1,8 +1,9 @@
 /** Gemeinsame Teile der Recherche-Ablage (G8): Symbole, Ziel-Chips, Link öffnen, Dateien aus Drag & Drop. */
 import type { MouseEvent } from 'react';
 import type { RechercheArt, Verweis } from '@core/model/types';
-import { linkPruefen, zielInfo, ZIEL_ART_NAME, type ZielArt } from '@core/recherche/index';
+import { linkPruefen, zielInfo, type ZielArt } from '@core/recherche/index';
 import { istTauri } from '../../backend';
+import { datum, f, sprache, texte, useTexte } from '../../i18n';
 import { useStore, type Auswahl, type Bereich, type Store } from '../../state/store';
 import { klassen, mitteilen, type IconProps } from '../../ui';
 
@@ -68,8 +69,9 @@ export function ArtSymbol({ art, size = 14 }: { art: RechercheArt; size?: number
 /** Öffnet eine geprüfte http(s)-Adresse im Standardbrowser (nur auf Klick). */
 export async function linkOeffnen(url: string | undefined): Promise<void> {
   const l = url ? linkPruefen(url) : null;
+  const t = texte().recherche.link;
   if (!l) {
-    await mitteilen('Diese Adresse kann nicht geöffnet werden. Erlaubt sind nur http- und https-Adressen.', 'Link');
+    await mitteilen(t.ungueltig, t.titel);
     return;
   }
   try {
@@ -80,7 +82,7 @@ export async function linkOeffnen(url: string | undefined): Promise<void> {
       window.open(l.url, '_blank', 'noopener,noreferrer');
     }
   } catch (e) {
-    await mitteilen(e instanceof Error ? e.message : String(e), 'Link');
+    await mitteilen(e instanceof Error ? e.message : String(e), t.titel);
   }
 }
 
@@ -88,7 +90,7 @@ export async function linkOeffnen(url: string | undefined): Promise<void> {
 export function zielOeffnen(store: Pick<Store, 'oeffne' | 'daten'>, v: Verweis): void {
   const daten = store.daten;
   if (!daten) return;
-  const info = zielInfo(daten, v);
+  const info = zielInfo(daten, v, sprache());
   const ziel: Record<ZielArt, [Bereich, Partial<Auswahl>]> = {
     figur: ['figuren', { figur: v.id }],
     ort: ['orte', { ort: v.id }],
@@ -113,37 +115,40 @@ export interface ZielChipProps {
 
 /** Chip „Figur Paul“, „Kap. 3 · Lotte“ – Klick öffnet, × löst. Fehlende Ziele gestrichelt. */
 export function ZielChip({ verweis, onLoesen, oeffnen = true, klein }: ZielChipProps) {
+  const t = useTexte();
+  const tz = t.recherche.ziel;
   const daten = useStore((s) => s.daten);
   const oeffne = useStore((s) => s.oeffne);
   if (!daten) return null;
-  const info = zielInfo(daten, verweis);
-  const name = info.name ?? `${verweis.id} (fehlt)`;
-  const titel = info.name ? `${ZIEL_ART_NAME[info.art]}: ${info.name}` : 'Dieses Ziel gibt es nicht mehr';
+  const info = zielInfo(daten, verweis, sprache());
+  const artName = t.recherche.zielArt[info.art];
+  const name = info.name ?? f(tz.fehlt, { id: verweis.id });
+  const titel = info.name ? f(tz.titel, { art: artName, name: info.name }) : tz.gibtsNicht;
   return (
     <span className={klassen('rc-ziel', !info.name && 'rc-ziel--fehlt', klein && 'rc-ziel--klein', `rc-ziel--${info.art}`)}>
       {oeffnen && info.name ? (
         <button
           type="button"
           className="rc-ziel__name"
-          title={`${titel} – öffnen`}
+          title={f(tz.oeffnen, { titel })}
           onClick={(e: MouseEvent) => {
             e.stopPropagation();
             zielOeffnen({ oeffne, daten }, verweis);
           }}
         >
-          <span className="rc-ziel__art">{ZIEL_ART_NAME[info.art]}</span> {name}
+          <span className="rc-ziel__art">{artName}</span> {name}
         </button>
       ) : (
         <span className="rc-ziel__name" title={titel}>
-          <span className="rc-ziel__art">{ZIEL_ART_NAME[info.art]}</span> {name}
+          <span className="rc-ziel__art">{artName}</span> {name}
         </span>
       )}
       {onLoesen && (
         <button
           type="button"
           className="rc-ziel__weg"
-          aria-label={`Von ${name} lösen`}
-          title="Lösen"
+          aria-label={f(tz.loesenLabel, { name })}
+          title={tz.loesen}
           onClick={(e) => {
             e.stopPropagation();
             onLoesen();
@@ -181,5 +186,5 @@ export function uebergabeMoeglich(dt: DataTransfer | null): boolean {
 export function datumKurz(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'short', year: 'numeric' });
+  return datum(d, { day: 'numeric', month: 'short', year: 'numeric' });
 }

@@ -21,7 +21,7 @@ import { useStore } from '../../state/store';
 import { kapitelImAkt, type AkteAnsicht } from '../../state/slices/planung';
 import { AktKopf, IdeeKarte, KapitelKarte } from './Karten';
 import { mitteilen } from '../../ui';
-import { zahl } from './gemeinsam';
+import { f, useTexte } from '../../i18n';
 
 type Spalten = Record<string, string[]>;
 
@@ -54,6 +54,7 @@ function zielAkt(spalte: string): number | null {
 
 function Sortierbar({ id, children, onWaehle, label }: { id: string; children: ReactNode; onWaehle(): void; label: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const t = useTexte();
   const stil: CSSProperties = { transform: CSS.Translate.toString(transform), transition, flexShrink: 0 };
   return (
     <div
@@ -63,7 +64,7 @@ function Sortierbar({ id, children, onWaehle, label }: { id: string; children: R
       {...attributes}
       {...listeners}
       aria-label={label}
-      aria-roledescription="verschiebbare Karte"
+      aria-roledescription={t.akte.board.ziehbar}
       onClick={onWaehle}
       onFocus={onWaehle}
     >
@@ -119,6 +120,7 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
   const ideeAnlegen = useStore((s) => s.planung.ideeAnlegen);
   const ideeEinplanen = useStore((s) => s.planung.ideeEinplanen);
   const ideenSortieren = useStore((s) => s.planung.ideenSortieren);
+  const t = useTexte();
 
   const basis = useMemo(() => basisSpalten(daten), [daten]);
   const [ziehend, setZiehend] = useState<Spalten | null>(null);
@@ -142,7 +144,8 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
   }, [daten.projekt.kapitel]);
 
   const ideen = useMemo(() => new Map(daten.ideen.map((i) => [i.id, i])), [daten.ideen]);
-  const fehler = (e: unknown) => void mitteilen(`Verschieben nicht gespeichert: ${e instanceof Error ? e.message : String(e)}`, 'Fehler beim Speichern');
+  const fehler = (e: unknown) =>
+    void mitteilen(f(t.akte.board.nichtGespeichert, { fehler: e instanceof Error ? e.message : String(e) }), t.akte.board.fehlerTitel);
 
   function onDragStart(e: DragStartEvent) {
     setAktiv(String(e.active.id));
@@ -222,8 +225,8 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
       const echteId = itemId.slice(2);
       const istKapitel = itemId.startsWith('k:');
       const label = istKapitel
-        ? `Kapitel ${nummern[echteId] ?? ''} ${daten.plaene[echteId]?.titel ?? ''}`
-        : `Idee ${ideen.get(echteId)?.titel ?? ''}`;
+        ? f(t.akte.board.kapitelLabel, { nr: nummern[echteId] ?? '', titel: daten.plaene[echteId]?.titel ?? '' })
+        : f(t.akte.board.ideeLabel, { titel: ideen.get(echteId)?.titel ?? '' });
       return (
         <Sortierbar
           key={itemId}
@@ -258,7 +261,7 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
         setzeZiehend(null);
       }}
       accessibility={{
-        screenReaderInstructions: { draggable: 'Leertaste zum Aufnehmen, Pfeiltasten zum Verschieben, Leertaste zum Ablegen, Escape bricht ab.' },
+        screenReaderInstructions: { draggable: t.akte.board.anleitung },
       }}
     >
       <div
@@ -275,7 +278,7 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
           const id = aktSpalte(akt.nummer);
           const ids = (spalten[id] ?? []).filter((x) => x.startsWith('k:')).map((x) => x.slice(2));
           const woerter = ids.reduce((sum, k) => sum + (index.wortzahlen[k] ?? 0), 0);
-          const rechts = mitText && Object.keys(index.wortzahlen).length > 0 ? `${zahl(woerter)} Wörter` : `${ids.length} ${ids.length === 1 ? 'Kapitel' : 'Kapitel'}`;
+          const rechts = mitText && Object.keys(index.wortzahlen).length > 0 ? f(t.akte.board.woerter, { n: woerter }) : f(t.akte.board.kapitel, { n: ids.length });
           return (
             <Spalte
               key={id}
@@ -283,7 +286,7 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
               items={spalten[id] ?? []}
               kopf={
                 <>
-                  <SpaltenKopf titel={akt.titel || `Akt ${akt.nummer}`} rechts={rechts} />
+                  <SpaltenKopf titel={akt.titel || f(t.akte.board.aktTitel, { nr: akt.nummer })} rechts={rechts} />
                   <AktKopf akt={akt} daten={daten} leer={ids.length === 0} />
                 </>
               }
@@ -305,13 +308,13 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
                   cursor: 'pointer',
                 }}
               >
-                + Szene planen
+                {t.akte.board.szenePlanen}
               </button>
             </Spalte>
           );
         })}
         {spalten[OHNE] && (
-          <Spalte id={OHNE} items={spalten[OHNE]} kopf={<SpaltenKopf titel="Ohne Akt" rechts="noch keinem Akt zugeordnet" />}>
+          <Spalte id={OHNE} items={spalten[OHNE]} kopf={<SpaltenKopf titel={t.akte.board.ohneAkt} rechts={t.akte.board.ohneAktHinweis} />}>
             {karten(OHNE)}
           </Spalte>
         )}
@@ -319,7 +322,7 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
           id={IDEEN}
           items={spalten[IDEEN] ?? []}
           stil={{ background: 'var(--ideen)', border: '1px solid var(--ideen-line)' }}
-          kopf={<SpaltenKopf titel="Ideen-Ablage" rechts="noch ohne Platz" />}
+          kopf={<SpaltenKopf titel={t.akte.board.ideen} rechts={t.akte.board.ideenHinweis} />}
         >
           {karten(IDEEN)}
           <button
@@ -337,7 +340,7 @@ export function Board({ daten, index, ansicht }: { daten: ProjektDaten; index: I
               cursor: 'pointer',
             }}
           >
-            + Idee
+            {t.akte.board.plusIdee}
           </button>
         </Spalte>
       </div>

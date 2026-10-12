@@ -3,11 +3,12 @@
  * Lokal, ohne KI. Alles sind nur Hinweise mit Sprung zur Stelle – Plotwerk ändert nie den Text.
  */
 import type { Id } from '@core/model/types';
-import { ausschnitt, GRUND_TEXT, type Stelle } from '@core/stil/index';
+import { ausschnitt, type Stelle } from '@core/stil/index';
 import { useId, useRef, useState, type ReactNode } from 'react';
+import { f, useTexte } from '../../../i18n';
 import { useStore } from '../../../state/store';
 import { Abschnittslabel, Checkbox, klassen } from '../../../ui';
-import { markeAufnehmen, markeIgnorieren, prozent, zahlText, zeigeStelle } from './gemeinsam';
+import { markeAufnehmen, markeIgnorieren, prozent, zeigeStelle } from './gemeinsam';
 
 const ABSTAENDE = [10, 20, 30, 50, 80];
 
@@ -61,10 +62,12 @@ export function StilTab({ kapitelId }: { kapitelId: Id }) {
   const abstandId = useId();
   const reihum = useReihum(kapitelId, live?.text ?? '');
   const [arbeitet, setArbeitet] = useState<string | null>(null);
+  const t = useTexte();
+  const T = t.schreiben.stil;
 
-  if (!live) return <span className="pw-s-leise">Das Kapitel wird ausgewertet …</span>;
+  if (!live) return <span className="pw-s-leise">{T.wertet}</span>;
   const { bericht, text } = live;
-  if (bericht.woerter === 0) return <span className="pw-s-leise">Sobald im Kapitel Text steht, zeigt Plotwerk hier Wiederholungen und Markennamen.</span>;
+  if (bericht.woerter === 0) return <span className="pw-s-leise">{T.leer}</span>;
   const maxHaeufig = bericht.haeufig[0]?.anzahl ?? 1;
 
   const ausfuehren = async (schluessel: string, f: () => Promise<unknown>) => {
@@ -82,35 +85,31 @@ export function StilTab({ kapitelId }: { kapitelId: Id }) {
     <div className="pw-w-stil">
       <div className="pw-w-kopf">
         <Checkbox checked={wiederholungen} onChange={umschalten}>
-          Wiederholungen im Text markieren
+          {T.markieren}
         </Checkbox>
         <span className="pw-w-kopf__zeile">
-          <label htmlFor={abstandId}>Gleiches Wort innerhalb von</label>
+          <label htmlFor={abstandId}>{T.innerhalb}</label>
           <select id={abstandId} className="pw-w-auswahl" value={abstand} onChange={(e) => setzeAbstand(Number(e.target.value))}>
             {[...new Set([...ABSTAENDE, abstand])]
               .sort((a, b) => a - b)
               .map((n) => (
                 <option key={n} value={n}>
-                  {n} Wörtern
+                  {f(T.abstandOption, { n })}
                 </option>
               ))}
           </select>
         </span>
-        <span className="pw-s-leise">
-          {zahlText(bericht.woerter)} Wörter · {zahlText(bericht.saetze)} {bericht.saetze === 1 ? 'Satz' : 'Sätze'}
-        </span>
+        <span className="pw-s-leise">{f(T.umfang, { woerter: f(t.gemeinsam.woerter, { n: bericht.woerter }), n: bericht.saetze })}</span>
       </div>
 
-      <Abschnitt titel="Dicht hintereinander" anzahl={bericht.nah.length} leer={!bericht.nah.length && `Kein Wort kommt innerhalb von ${abstand} Wörtern doppelt vor.`}>
+      <Abschnitt titel={T.dicht} anzahl={bericht.nah.length} leer={!bericht.nah.length && f(T.keinDoppel, { n: abstand })}>
         <ul className="pw-w-liste">
           {bericht.nah.map((n) => (
             <li key={`${n.stamm}-${n.stellen[0]!.start}`}>
-              <button type="button" className="pw-w-eintrag" onClick={() => reihum(`nah-${n.stellen[0]!.start}`, n.stellen)} title="Klick springt zur Stelle, weitere Klicks zum nächsten Vorkommen">
+              <button type="button" className="pw-w-eintrag" onClick={() => reihum(`nah-${n.stellen[0]!.start}`, n.stellen)} title={T.springenTitel}>
                 <span className="pw-w-eintrag__kopf">
                   <b className="pw-w-nah-punkt">{n.wort}</b>
-                  <span>
-                    {n.stellen.length}× · {n.abstand} {n.abstand === 1 ? 'Wort' : 'Wörter'} Abstand
-                  </span>
+                  <span>{f(T.abstand, { anzahl: n.stellen.length, n: n.abstand })}</span>
                 </span>
                 <Zitat text={text} stelle={n.stellen[0]!} />
               </button>
@@ -119,32 +118,32 @@ export function StilTab({ kapitelId }: { kapitelId: Id }) {
         </ul>
       </Abschnitt>
 
-      <Abschnitt titel="Satzanfänge" anzahl={bericht.satzanfaenge.length}>
+      <Abschnitt titel={T.satzanfaenge} anzahl={bericht.satzanfaenge.length}>
         {bericht.satzanfaenge.length > 0 ? (
           <ul className="pw-w-liste">
-            {bericht.satzanfaenge.map((f) => (
-              <li key={f.stellen[0]!.start}>
-                <button type="button" className="pw-w-eintrag" onClick={() => reihum(`anfang-${f.stellen[0]!.start}`, f.stellen)}>
+            {bericht.satzanfaenge.map((a) => (
+              <li key={a.stellen[0]!.start}>
+                <button type="button" className="pw-w-eintrag" onClick={() => reihum(`anfang-${a.stellen[0]!.start}`, a.stellen)}>
                   <span className="pw-w-eintrag__kopf">
-                    <b className="pw-w-anfang-punkt">{f.wort} …</b>
-                    <span>{f.saetze} Sätze hintereinander</span>
+                    <b className="pw-w-anfang-punkt">{a.wort} …</b>
+                    <span>{f(T.hintereinander, { n: a.saetze })}</span>
                   </span>
-                  <Zitat text={text} stelle={f.stellen[0]!} />
+                  <Zitat text={text} stelle={a.stellen[0]!} />
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <span className="pw-s-leise">Keine zwei Sätze hintereinander beginnen gleich.</span>
+          <span className="pw-s-leise">{T.keineAnfaenge}</span>
         )}
         {bericht.anfangsStatistik.length > 0 && (
           <span className="pw-s-leise">
-            Häufigste Anfänge: {bericht.anfangsStatistik.map((a) => `${a.wort} ${prozent(a.anteil)}`).join(' · ')}
+            {f(T.haeufigsteAnfaenge, { liste: bericht.anfangsStatistik.map((a) => `${a.wort} ${prozent(a.anteil)}`).join(' · ') })}
           </span>
         )}
       </Abschnitt>
 
-      <Abschnitt titel="Häufigste Wörter" leer={!bericht.haeufig.length && 'Noch kein Wort kommt mehrfach vor.'}>
+      <Abschnitt titel={T.haeufigsteWoerter} leer={!bericht.haeufig.length && T.keinMehrfach}>
         <ul className="pw-w-liste pw-w-liste--dicht">
           {bericht.haeufig.map((h) => {
             const an = fokusWort === h.stamm;
@@ -154,7 +153,7 @@ export function StilTab({ kapitelId }: { kapitelId: Id }) {
                   type="button"
                   className={klassen('pw-w-wort', an && 'pw-w-wort--an')}
                   aria-pressed={an}
-                  title={an ? 'Hervorhebung aufheben' : 'Alle Vorkommen im Text hervorheben'}
+                  title={an ? T.aufheben : T.hervorheben}
                   onClick={() => {
                     setzeFokusWort(an ? null : h.stamm);
                     if (!an) reihum(`wort-${h.stamm}`, h.stellen);
@@ -170,43 +169,43 @@ export function StilTab({ kapitelId }: { kapitelId: Id }) {
             );
           })}
         </ul>
-        {bericht.haeufig.length > 0 && <span className="pw-s-leise">Ohne Füllwörter, Figuren- und Ortsnamen. Klick hebt alle Vorkommen hervor.</span>}
+        {bericht.haeufig.length > 0 && <span className="pw-s-leise">{T.haeufigHilfe}</span>}
       </Abschnitt>
 
-      <Abschnitt titel="Marken in diesem Kapitel" anzahl={live.marken.length}>
+      <Abschnitt titel={T.markenHier} anzahl={live.marken.length}>
         {live.marken.length > 0 ? (
           <ul className="pw-w-liste pw-w-liste--dicht">
-            {live.marken.map((t) => (
-              <li key={t.marke.id}>
-                <button type="button" className="pw-w-wort" onClick={() => reihum(`marke-${t.marke.id}`, t.stellen)} title="Klick springt zum nächsten Vorkommen">
-                  <span className="pw-w-wort__name">{t.marke.name}</span>
-                  <span className="pw-w-wort__info">{t.marke.kategorie ?? ''}</span>
-                  <span className="pw-w-wort__zahl">{t.stellen.length}×</span>
+            {live.marken.map((m) => (
+              <li key={m.marke.id}>
+                <button type="button" className="pw-w-wort" onClick={() => reihum(`marke-${m.marke.id}`, m.stellen)} title={T.naechstesTitel}>
+                  <span className="pw-w-wort__name">{m.marke.name}</span>
+                  <span className="pw-w-wort__info">{m.marke.kategorie ?? ''}</span>
+                  <span className="pw-w-wort__zahl">{m.stellen.length}×</span>
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <span className="pw-s-leise">Keine Marke aus deiner Liste kommt hier vor.</span>
+          <span className="pw-s-leise">{T.keineMarkeHier}</span>
         )}
         {live.kandidaten.length > 0 && (
           <>
-            <span className="pw-w-unterlabel">Vielleicht auch Marken?</span>
+            <span className="pw-w-unterlabel">{T.vielleicht}</span>
             <ul className="pw-w-liste">
               {live.kandidaten.slice(0, 12).map((k) => (
                 <li key={k.name} className="pw-w-kandidat">
-                  <button type="button" className="pw-w-kandidat__name" onClick={() => reihum(`kand-${k.name}`, k.stellen)} title="Klick springt zur Stelle">
+                  <button type="button" className="pw-w-kandidat__name" onClick={() => reihum(`kand-${k.name}`, k.stellen)} title={T.stelleTitel}>
                     <b>{k.name}</b>
                     <span>
-                      {GRUND_TEXT[k.grund]} · {k.stellen.length}×
+                      {T.grund[k.grund]} · {k.stellen.length}×
                     </span>
                   </button>
                   <span className="pw-w-kandidat__aktionen">
                     <button type="button" className="pw-w-link" disabled={arbeitet !== null} onClick={() => void ausfuehren(k.name, () => markeAufnehmen(k.name))}>
-                      Aufnehmen
+                      {T.aufnehmen}
                     </button>
                     <button type="button" className="pw-w-link pw-w-link--leise" disabled={arbeitet !== null} onClick={() => void ausfuehren(k.name, () => markeIgnorieren(k.name))}>
-                      Keine Marke
+                      {T.keineMarke}
                     </button>
                   </span>
                 </li>
@@ -222,11 +221,11 @@ export function StilTab({ kapitelId }: { kapitelId: Id }) {
             oeffneDialog('marken');
           }}
         >
-          Alle Marken im Buch …
+          {T.alleMarken}
         </button>
       </Abschnitt>
 
-      <span className="pw-s-leise">Nur Hinweise: Plotwerk markiert Stellen, ändert aber nichts am Text.</span>
+      <span className="pw-s-leise">{T.nurHinweise}</span>
     </div>
   );
 }

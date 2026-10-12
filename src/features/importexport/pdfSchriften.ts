@@ -13,6 +13,7 @@ import latin400 from '@fontsource/newsreader/files/newsreader-latin-400-normal.w
 import latin700i from '@fontsource/newsreader/files/newsreader-latin-700-italic.woff?url';
 import latin700 from '@fontsource/newsreader/files/newsreader-latin-700-normal.woff?url';
 import unicode from '@fontsource/newsreader/unicode.json';
+import { f, texte } from '../../i18n';
 
 /** „U+0000-00FF,U+0131“ → [[0, 255], [305, 305]] */
 export function unicodeBereiche(angabe: string): [number, number][] {
@@ -29,7 +30,7 @@ export function unicodeBereiche(angabe: string): [number, number][] {
 
 async function laden(url: string): Promise<Uint8Array> {
   const antwort = await fetch(url);
-  if (!antwort.ok) throw new Error(`Schrift für den PDF-Export nicht ladbar (${antwort.status})`);
+  if (!antwort.ok) throw new Error(f(texte().importexport.export.schriftFehler, { status: String(antwort.status) }));
   return new Uint8Array(await antwort.arrayBuffer());
 }
 

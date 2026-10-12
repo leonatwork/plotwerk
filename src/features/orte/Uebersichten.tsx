@@ -7,19 +7,27 @@ import { useStore } from '../../state/store';
 import { Button, Chip } from '../../ui';
 import { LinkKnopf, zitatAnker } from '../akte/gemeinsam';
 import { variantenAusHinweis, zielFuerVarianten } from './logik';
+import { f, sprache, texte, useTexte, vergleich } from '../../i18n';
 
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
 const seite: CSSProperties = { flex: '1 1 auto', minWidth: 0, overflowY: 'auto', padding: '26px 30px', display: 'flex', flexDirection: 'column', gap: 20 };
 const h1: CSSProperties = { margin: 0, fontFamily: 'var(--schrift-titel)', fontWeight: 400, fontSize: 40, lineHeight: 1 };
 
+/** Genitiv bzw. Possessiv in der Oberflächensprache: „Pauls“, „Klaus’“ / „Paul’s“, „Klaus’“. */
 export function genitiv(name: string): string {
+  if (sprache() === 'en') return /s$/i.test(name) ? `${name}’` : `${name}’s`;
   return /[sßxz]$/i.test(name) ? `${name}’` : `${name}s`;
 }
 
 /** Figur für den Weg: die gewählte, sonst die Hauptfigur, sonst die erste nach Name. */
 export function wegFigurVon(daten: ProjektDaten, wegFigur: Id): Figur | undefined {
-  const figuren = Object.values(daten.figuren).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const figuren = Object.values(daten.figuren).sort((a, b) => vergleich(a.name, b.name));
   return daten.figuren[wegFigur] ?? daten.figuren[hauptfigur(daten) ?? ''] ?? figuren[0];
+}
+
+/** „Pauls Weg“ / „Paul’s route“ */
+export function wegTitel(name: string): string {
+  return f(texte().orte.liste.weg, { name: genitiv(name) });
 }
 
 export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index }) {
@@ -28,9 +36,11 @@ export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index
   const oeffne = useStore((s) => s.oeffne);
   const waehle = useStore((s) => s.waehle);
   const uid = useId();
-  const figuren = Object.values(daten.figuren).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const t = useTexte();
+  const tw = t.orte.weg;
+  const figuren = Object.values(daten.figuren).sort((a, b) => vergleich(a.name, b.name));
   const figur = wegFigurVon(daten, wegFigur);
-  if (!figur) return <div style={seite}>Noch keine Figuren angelegt.</div>;
+  if (!figur) return <div style={seite}>{tw.keineFiguren}</div>;
 
   const folge = new Map(ortsfolge(index, daten, figur.id).map((x) => [x.kapitel, x.orte]));
   const zeilen = daten.projekt.kapitel.map((k, i) => {
@@ -50,15 +60,15 @@ export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index
     <div style={seite}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <h1 style={h1}>{genitiv(figur.name)} Weg</h1>
-          <span style={{ fontSize: 13, ...leise }}>Ortsfolge über alle Kapitel, aus dem Text erkannt · gestrichelt: nur laut Plan</span>
+          <h1 style={h1}>{wegTitel(figur.name)}</h1>
+          <span style={{ fontSize: 13, ...leise }}>{tw.unter}</span>
         </div>
         <label htmlFor={`${uid}-figur`} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, ...leise }}>
-          Figur
+          {tw.figur}
           <select id={`${uid}-figur`} className="pl-select" value={figur.id} onChange={(e) => setze(e.target.value)}>
-            {figuren.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
+            {figuren.map((x) => (
+              <option key={x.id} value={x.id}>
+                {x.name}
               </option>
             ))}
           </select>
@@ -66,7 +76,7 @@ export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index
       </div>
 
       {pfad.length > 0 && (
-        <section style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '12px 14px', borderRadius: 10, background: 'var(--inspector)', border: '1px solid var(--line-soft)', fontSize: 12 }} aria-label="Weg in Kurzform">
+        <section style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, padding: '12px 14px', borderRadius: 10, background: 'var(--inspector)', border: '1px solid var(--line-soft)', fontSize: 12 }} aria-label={tw.kurzform}>
           {pfad.map((o, i) => (
             <span key={`${o}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {i > 0 && <span style={leise}>→</span>}
@@ -78,7 +88,7 @@ export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index
         </section>
       )}
 
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }} aria-label="Kapitel">
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }} aria-label={tw.kapitel}>
         {zeilen.map((z, i) => {
           const orte = z.imText.length ? z.imText : z.laut;
           const aktiv = orte.length > 0;
@@ -86,7 +96,7 @@ export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index
             <li key={z.k} style={{ display: 'grid', gridTemplateColumns: '170px 20px minmax(0, 1fr)', gap: 12, alignItems: 'stretch' }}>
               <span style={{ display: 'flex', flexDirection: 'column', padding: '10px 0', fontSize: 13 }}>
                 <LinkKnopf fett style={{ fontSize: 13, color: 'var(--ink)' }} onClick={() => oeffne('schreiben', { kapitel: z.k })}>
-                  Kap. {z.nr}
+                  {f(t.gemeinsam.kapitelKurz, { nr: z.nr })}
                 </LinkKnopf>
                 <span style={{ fontSize: 12, ...leise }}>{daten.plaene[z.k]?.titel || daten.kapitel[z.k]?.titel}</span>
               </span>
@@ -108,14 +118,14 @@ export function WegAnsicht({ daten, index }: { daten: ProjektDaten; index: Index
                 {orte.map((o, j) => (
                   <span key={o} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {j > 0 && <span style={leise}>→</span>}
-                    <Chip variante={z.imText.length ? 'umrandet' : 'gestrichelt'} onClick={() => ortWaehlen(o)} title={z.imText.length ? 'im Text' : 'laut Plan'}>
+                    <Chip variante={z.imText.length ? 'umrandet' : 'gestrichelt'} onClick={() => ortWaehlen(o)} title={z.imText.length ? tw.imText : tw.lautPlan}>
                       {daten.orte[o]?.name ?? o}
                     </Chip>
                   </span>
                 ))}
                 {!aktiv && (
                   <span style={{ fontSize: 12, ...leise }}>
-                    {z.ohneText ? 'noch kein Text' : z.dabei ? 'kein Ort erkannt' : `${figur.name} kommt nicht vor`}
+                    {z.ohneText ? tw.nochKeinText : z.dabei ? tw.keinOrt : f(tw.kommtNichtVor, { name: figur.name })}
                   </span>
                 )}
               </span>
@@ -136,6 +146,8 @@ function HinweisKarte({ h, daten }: { h: Hinweis; daten: ProjektDaten }) {
   const uid = useId();
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
   const zielName = ziel ? (ziel.typ === 'ort' ? daten.orte[ziel.id]?.name : daten.figuren[ziel.id]?.name) : undefined;
+  const t = useTexte();
+  const zitat = (text: string) => f(t.orte.karte.zitat, { text });
   return (
     <form
       style={{ border: '1px solid var(--line-soft)', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}
@@ -147,16 +159,16 @@ function HinweisKarte({ h, daten }: { h: Hinweis; daten: ProjektDaten }) {
       <strong style={{ fontSize: 14 }}>{h.titel}</strong>
       {h.erklaerung && <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--ink-soft)' }}>{h.erklaerung}</span>}
       <fieldset style={{ border: 0, margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <legend style={{ fontSize: 12, paddingBottom: 4, ...leise }}>Gültige Schreibweise</legend>
+        <legend style={{ fontSize: 12, paddingBottom: 4, ...leise }}>{t.orte.schreibweisen.gueltigeSchreibweise}</legend>
         {varianten.map((v) => (
           <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 28, fontSize: 13 }}>
             <input type="radio" name={`${uid}-sw`} checked={wahl === v} onChange={() => setWahl(v)} style={{ margin: 0, accentColor: 'var(--ink)' }} />
-            »{v}«
+            {zitat(v)}
             {h.zitate
               .filter((z) => z.text.trim() === v)
               .map((z) => (
                 <LinkKnopf key={z.kapitel} onClick={() => markiere({ kapitel: z.kapitel, anker: zitatAnker(daten, z.kapitel, z.text) })}>
-                  Kap. {nr(z.kapitel)}
+                  {f(t.gemeinsam.kapitelKurz, { nr: nr(z.kapitel) })}
                 </LinkKnopf>
               ))}
           </label>
@@ -164,9 +176,9 @@ function HinweisKarte({ h, daten }: { h: Hinweis; daten: ProjektDaten }) {
       </fieldset>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <Button type="submit" klein variante="primaer" disabled={!wahl}>
-          Als gültig festlegen
+          {t.orte.schreibweisen.festlegen}
         </Button>
-        <span style={{ fontSize: 12, ...leise }}>{zielName ? `wird Name von ${zielName}, die übrigen werden Aliase` : 'keinem Ort und keiner Figur zugeordnet'}</span>
+        <span style={{ fontSize: 12, ...leise }}>{zielName ? f(t.orte.uebersicht.wirdName, { name: zielName }) : t.orte.uebersicht.keinemZugeordnet}</span>
       </span>
     </form>
   );
@@ -176,34 +188,45 @@ export function SchreibweisenAnsicht({ daten, index }: { daten: ProjektDaten; in
   const aufheben = useStore((s) => s.planung.schreibweiseAufheben);
   const offen = index.hinweise.filter((h) => h.typ === 'schreibweise' && h.status === 'neu');
   const entschieden = daten.entscheidungen.schreibweisen;
+  const t = useTexte();
+  const tu = t.orte.uebersicht;
+  const zitat = (text: string) => f(t.orte.karte.zitat, { text });
   return (
     <div style={seite}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <h1 style={h1}>Schreibweisen</h1>
-        <span style={{ fontSize: 13, ...leise }}>Derselbe Name, verschieden geschrieben: Lege fest, welche Schreibweise gilt. Der Text bleibt unverändert.</span>
+        <h1 style={h1}>{tu.titel}</h1>
+        <span style={{ fontSize: 13, ...leise }}>{tu.unter}</span>
       </div>
       <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-        <section style={{ flex: '1 1 460px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }} aria-label="Offene Schreibweisen">
-          <strong style={{ fontSize: 14 }}>Offen</strong>
-          {offen.length === 0 && <span style={{ fontSize: 13, ...leise }}>Keine abweichenden Schreibweisen gefunden.</span>}
+        <section style={{ flex: '1 1 460px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12 }} aria-label={tu.offenLabel}>
+          <strong style={{ fontSize: 14 }}>{tu.offen}</strong>
+          {offen.length === 0 && <span style={{ fontSize: 13, ...leise }}>{tu.keineAbweichenden}</span>}
           {offen.map((h) => (
             <HinweisKarte key={h.schluessel} h={h} daten={daten} />
           ))}
         </section>
-        <section style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label="Festgelegte Schreibweisen">
-          <strong style={{ fontSize: 14 }}>Festgelegt</strong>
-          {entschieden.length === 0 && <span style={{ fontSize: 13, ...leise }}>Noch nichts festgelegt.</span>}
+        <section style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 10 }} aria-label={tu.festgelegtLabel}>
+          <strong style={{ fontSize: 14 }}>{tu.festgelegt}</strong>
+          {entschieden.length === 0 && <span style={{ fontSize: 13, ...leise }}>{tu.nochNichts}</span>}
           {entschieden.map((s) => {
             const ziel = s.ziel ? (s.ziel.typ === 'ort' ? daten.orte[s.ziel.id]?.name : daten.figuren[s.ziel.id]?.name) : undefined;
             return (
               <div key={s.gueltig} className="pl-zeile" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', borderRadius: 8, background: 'var(--inspector)', fontSize: 13, lineHeight: 1.45 }}>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <b>»{s.gueltig}«</b>
+                  <b>{zitat(s.gueltig)}</b>
                   {ziel && <span style={leise}> · {ziel}</span>}
                   <br />
-                  <span style={{ fontSize: 12, ...leise }}>statt {s.varianten.filter((v) => v !== s.gueltig).map((v) => `»${v}«`).join(', ') || '–'}</span>
+                  <span style={{ fontSize: 12, ...leise }}>
+                    {f(tu.statt, {
+                      liste:
+                        s.varianten
+                          .filter((v) => v !== s.gueltig)
+                          .map(zitat)
+                          .join(', ') || '–',
+                    })}
+                  </span>
                 </span>
-                <button type="button" className="pl-zeile-weg" aria-label={`Schreibweise ${s.gueltig} aufheben`} onClick={() => void aufheben(s.gueltig)}>
+                <button type="button" className="pl-zeile-weg" aria-label={f(tu.aufhebenLabel, { name: s.gueltig })} onClick={() => void aufheben(s.gueltig)}>
                   ×
                 </button>
               </div>

@@ -8,6 +8,7 @@ import { bestaetigen as rueckfrage, Button, IconOrte } from '../../ui';
 import { Abschnitt, alleTexte, AngehefteteNotizen, ausschnitt, EntwurfBereich, EntwurfFeld, erwaehnungenVon, IconSchloss, LinkKnopf, stelleAnker } from '../akte/gemeinsam';
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { kapitelDesOrts, nachfahren, ortVarianten, variantenAusHinweis, zielFuerVarianten } from './logik';
+import { f, useTexte, vergleich } from '../../i18n';
 
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '8px 12px', alignItems: 'center', fontSize: 13 };
@@ -42,23 +43,25 @@ function AusDemText({ o, daten, index }: { o: Ort; daten: ProjektDaten; index: I
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
   const genannt = [...new Set(liste.map((e) => e.treffer))];
   const zeigen = (e: Erwaehnung) => markiere({ kapitel: e.kapitel, anker: stelleAnker(daten, e.kapitel, e.start, e.ende, e.treffer) });
+  const t = useTexte();
+  const tk = t.orte.karte;
   return (
-    <Abschnitt titel="Aus dem Text" rechts={<span style={{ fontSize: 11, ...leise }}>nur lesen · mit Belegstelle</span>} hintergrund="var(--inspector)" label="Aus dem Text">
+    <Abschnitt titel={tk.ausDemText} rechts={<span style={{ fontSize: 11, ...leise }}>{tk.nurLesen}</span>} hintergrund="var(--inspector)" label={tk.ausDemText}>
       {!indexBereit(index) ? (
-        <span style={{ fontSize: 13, ...leise }}>Der Text wird noch ausgewertet …</span>
+        <span style={{ fontSize: 13, ...leise }}>{tk.wirdAusgewertet}</span>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr) 54px', gap: '8px 12px', fontSize: 13, alignItems: 'baseline' }}>
           {kapitel.length === 0 && (
             <>
-              <span style={leise}>Im Text</span>
-              <span style={{ color: 'var(--accent-dark)' }}>noch nicht im Text</span>
+              <span style={leise}>{tk.imText}</span>
+              <span style={{ color: 'var(--accent-dark)' }}>{tk.nochNichtImText}</span>
               <span />
             </>
           )}
           {genannt.length > 0 && (
             <>
-              <span style={leise}>Genannt als</span>
-              <span>{genannt.map((g) => `»${g}«`).join(', ')}</span>
+              <span style={leise}>{tk.genanntAls}</span>
+              <span>{genannt.map((g) => f(tk.zitat, { text: g })).join(', ')}</span>
               <span />
             </>
           )}
@@ -68,13 +71,13 @@ function AusDemText({ o, daten, index }: { o: Ort; daten: ProjektDaten; index: I
             const [davor, treffer, danach] = ausschnitt(daten, k, e.start, e.ende, e.treffer);
             return (
               <div key={k} style={{ display: 'contents' }}>
-                <span style={leise}>{i === 0 ? 'Erstes Vorkommen' : daten.plaene[k]?.titel || 'im Text'}</span>
-                <button type="button" className="pl-link" style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.45 }} onClick={() => zeigen(e)} title="Stelle im Text zeigen">
+                <span style={leise}>{i === 0 ? tk.erstesVorkommen : daten.plaene[k]?.titel || tk.imTextKlein}</span>
+                <button type="button" className="pl-link" style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.45 }} onClick={() => zeigen(e)} title={tk.stelleZeigen}>
                   »{davor}
                   <b>{treffer}</b>
                   {danach}«{l.length > 1 && <span style={leise}> · {l.length}×</span>}
                 </button>
-                <LinkKnopf onClick={() => zeigen(e)}>Kap. {nr(k)}</LinkKnopf>
+                <LinkKnopf onClick={() => zeigen(e)}>{f(t.gemeinsam.kapitelKurz, { nr: nr(k) })}</LinkKnopf>
               </div>
             );
           })}
@@ -88,29 +91,30 @@ function Planung({ o, daten }: { o: Ort; daten: ProjektDaten }) {
   const p = useStore((s) => s.planung);
   const uid = useId();
   const ausgeschlossen = nachfahren(daten.orte, o.id);
+  const tk = useTexte().orte.karte;
   const moegliche = Object.values(daten.orte)
     .filter((x) => !ausgeschlossen.has(x.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => vergleich(a.name, b.name));
   return (
-    <Abschnitt titel="Deine Planung" rechts={<span style={{ fontSize: 11, ...leise }}>frei bearbeitbar</span>} label="Deine Planung">
+    <Abschnitt titel={tk.planung} rechts={<span style={{ fontSize: 11, ...leise }}>{tk.freiBearbeitbar}</span>} label={tk.planung}>
       <div style={grid2}>
-        <label htmlFor={`${uid}-aliase`} style={leise} title="Weitere Namen, unter denen der Ort im Text erkannt wird">
-          Auch genannt
+        <label htmlFor={`${uid}-aliase`} style={leise} title={tk.auchGenanntTitel}>
+          {tk.auchGenannt}
         </label>
         <EntwurfFeld
           key={`${o.id}-aliase`}
           id={`${uid}-aliase`}
           className="pl-eingabe"
           style={{ width: '100%' }}
-          placeholder="Aliase, mit Komma getrennt"
+          placeholder={tk.aliasePlatzhalter}
           wert={o.aliase.join(', ')}
-          onSpeichern={(t) => void p.ortAendern(o.id, { aliase: [...new Set(t.split(',').map((x) => x.trim()).filter(Boolean))] })}
+          onSpeichern={(text) => void p.ortAendern(o.id, { aliase: [...new Set(text.split(',').map((x) => x.trim()).filter(Boolean))] })}
         />
         <label htmlFor={`${uid}-in`} style={leise}>
-          Liegt in
+          {tk.liegtIn}
         </label>
         <select id={`${uid}-in`} className="pl-select" value={o.in ?? ''} onChange={(e) => void p.ortAendern(o.id, { in: e.target.value || undefined })}>
-          <option value="">– (eigenständiger Ort)</option>
+          <option value="">{tk.eigenstaendig}</option>
           {moegliche.map((x) => (
             <option key={x.id} value={x.id}>
               {x.name}
@@ -118,7 +122,7 @@ function Planung({ o, daten }: { o: Ort; daten: ProjektDaten }) {
           ))}
         </select>
         <label htmlFor={`${uid}-beschreibung`} style={{ ...leise, alignSelf: 'start', paddingTop: 8 }}>
-          Beschreibung
+          {tk.beschreibung}
         </label>
         <EntwurfBereich
           key={`${o.id}-beschreibung`}
@@ -126,7 +130,7 @@ function Planung({ o, daten }: { o: Ort; daten: ProjektDaten }) {
           className="pl-bereich"
           autoHoehe
           rows={3}
-          placeholder="Wie sieht es dort aus, was passiert hier?"
+          placeholder={tk.beschreibungPlatzhalter}
           verweise={{ typ: 'ort', id: o.id }}
           wert={o.beschreibung}
           onSpeichern={(beschreibung) => void p.ortAendern(o.id, { beschreibung })}
@@ -140,9 +144,11 @@ function KapitelStreifen({ o, daten, index }: { o: Ort; daten: ProjektDaten; ind
   const markiere = useStore((s) => s.markiere);
   const imText = new Map<Id, Erwaehnung>();
   for (const e of erwaehnungenVon(index, 'ort', o.id)) if (!imText.has(e.kapitel)) imText.set(e.kapitel, e);
+  const t = useTexte();
+  const tk = t.orte.karte;
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Kapitel">
-      <strong style={{ fontSize: 14 }}>Kapitel</strong>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label={tk.kapitel}>
+      <strong style={{ fontSize: 14 }}>{tk.kapitel}</strong>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, daten.projekt.kapitel.length)}, minmax(0, 1fr))`, gap: 4 }}>
         {daten.projekt.kapitel.map((k, i) => {
           const e = imText.get(k);
@@ -161,7 +167,11 @@ function KapitelStreifen({ o, daten, index }: { o: Ort; daten: ProjektDaten; ind
           if (e) Object.assign(stil, { background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600 });
           else if (geplant) Object.assign(stil, { background: 'transparent', border: '1.5px dashed var(--dotted)', color: 'var(--ink)', fontWeight: 600 });
           else if (ohneText) stil.background = 'repeating-linear-gradient(135deg, var(--schraffur) 0 4px, var(--surface) 4px 8px)';
-          const titel = `Kap. ${i + 1} ${daten.plaene[k]?.titel ?? ''} · ${e ? 'im Text' : geplant ? 'laut Plan' : ohneText ? 'noch kein Text' : '–'}`;
+          const titel = f(tk.zelle, {
+            kap: f(t.gemeinsam.kapitelKurz, { nr: i + 1 }),
+            titel: daten.plaene[k]?.titel ?? '',
+            stand: e ? tk.imTextKlein : geplant ? tk.lautPlan : ohneText ? tk.nochKeinText : '–',
+          });
           return e ? (
             <button
               key={k}
@@ -181,7 +191,7 @@ function KapitelStreifen({ o, daten, index }: { o: Ort; daten: ProjektDaten; ind
           );
         })}
       </div>
-      <span style={{ fontSize: 12, ...leise }}>Gefüllt: im Text · gestrichelt: nur laut Plan · schraffiert: Kapitel noch ohne Text</span>
+      <span style={{ fontSize: 12, ...leise }}>{tk.streifenLegende}</span>
     </section>
   );
 }
@@ -205,24 +215,27 @@ function Schreibweisen({ o, daten, index }: { o: Ort; daten: ProjektDaten; index
   const [wahl, setWahl] = useState<string>(standard);
   const gewaehlt = optionen.includes(wahl) ? wahl : standard;
   const uid = useId();
+  const t = useTexte();
+  const ts = t.orte.schreibweisen;
+  const zitat = (text: string) => f(t.orte.karte.zitat, { text });
 
   const stelle = (text: string) => {
     const v = gefunden.find((x) => x.text === text);
     if (!v) return null;
     return (
       <span style={{ fontSize: 12, ...leise }}>
-        {v.anzahl}× ·{' '}
+        {f(ts.anzahl, { n: v.anzahl })} ·{' '}
         {v.kapitel.map((k, i) => (
           <span key={k}>
             {i > 0 && ', '}
             <LinkKnopf
               onClick={() => {
-                const t = texte.find((x) => x.kapitel === k)?.text ?? '';
-                const pos = k === v.erste.kapitel ? v.erste.start : t.indexOf(text);
+                const kt = texte.find((x) => x.kapitel === k)?.text ?? '';
+                const pos = k === v.erste.kapitel ? v.erste.start : kt.indexOf(text);
                 markiere({ kapitel: k, anker: stelleAnker(daten, k, pos, pos + text.length, text) });
               }}
             >
-              Kap. {nr(k)}
+              {f(t.gemeinsam.kapitelKurz, { nr: nr(k) })}
             </LinkKnopf>
           </span>
         ))}
@@ -237,21 +250,21 @@ function Schreibweisen({ o, daten, index }: { o: Ort; daten: ProjektDaten; index
     inhalt = (
       <>
         <span style={{ fontSize: 13 }}>
-          Gültig: <b>»{entscheidung.gueltig}«</b>
-          {zusammen.length > 0 && <span style={leise}> · zusammengeführt: {zusammen.map((v) => `»${v}«`).join(', ')}</span>}
+          {ts.gueltig} <b>{zitat(entscheidung.gueltig)}</b>
+          {zusammen.length > 0 && <span style={leise}>{f(ts.zusammengefuehrt, { liste: zusammen.map(zitat).join(', ') })}</span>}
         </span>
         {abweichend.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 10px', borderRadius: 6, background: 'var(--ruhend)' }}>
-            <span style={{ fontSize: 12, color: 'var(--warm-dark)' }}>Im Text noch anders geschrieben – im Editor angleichen:</span>
+            <span style={{ fontSize: 12, color: 'var(--warm-dark)' }}>{ts.nochAnders}</span>
             {abweichend.map((v) => (
               <span key={v.text} style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13 }}>
-                »{v.text}« {stelle(v.text)}
+                {zitat(v.text)} {stelle(v.text)}
               </span>
             ))}
           </div>
         )}
         <LinkKnopf style={{ alignSelf: 'flex-start', color: 'var(--ink-quiet)' }} onClick={() => void aufheben(entscheidung.gueltig)}>
-          Entscheidung aufheben
+          {ts.aufheben}
         </LinkKnopf>
       </>
     );
@@ -264,38 +277,38 @@ function Schreibweisen({ o, daten, index }: { o: Ort; daten: ProjektDaten; index
           void festlegen(optionen.filter((v) => v !== gewaehlt), gewaehlt, { typ: 'ort', id: o.id });
         }}
       >
-        <span style={{ fontSize: 12, color: 'var(--warm-dark)' }}>Derselbe Ort steht in {optionen.length} Schreibweisen im Text. Welche gilt?</span>
+        <span style={{ fontSize: 12, color: 'var(--warm-dark)' }}>{f(ts.frage, { n: optionen.length })}</span>
         <fieldset style={{ border: 0, margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <legend className="pw-sr">Gültige Schreibweise</legend>
+          <legend className="pw-sr">{ts.gueltigeSchreibweise}</legend>
           {optionen.map((v) => (
             <label key={v} style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 28, fontSize: 13 }}>
               <input type="radio" name={`${uid}-sw`} checked={gewaehlt === v} onChange={() => setWahl(v)} style={{ margin: 0, accentColor: 'var(--ink)' }} />
-              <span>»{v}«</span>
+              <span>{zitat(v)}</span>
               {stelle(v)}
             </label>
           ))}
         </fieldset>
         <Button type="submit" klein variante="primaer" style={{ alignSelf: 'flex-start' }}>
-          Als gültig festlegen
+          {ts.festlegen}
         </Button>
-        <span style={{ fontSize: 11, ...leise }}>Die anderen Schreibweisen werden als Aliase erkannt; den Text änderst du selbst.</span>
+        <span style={{ fontSize: 11, ...leise }}>{ts.aliasHinweis}</span>
       </form>
     );
   } else {
-    inhalt = <span style={{ fontSize: 13, ...leise }}>{gefunden.length ? 'Im Text einheitlich geschrieben.' : 'Kommt im Text noch nicht vor.'}</span>;
+    inhalt = <span style={{ fontSize: 13, ...leise }}>{gefunden.length ? ts.einheitlich : ts.kommtNichtVor}</span>;
   }
 
   return (
     <Abschnitt
-      titel="Schreibweisen"
+      titel={ts.titel}
       rechts={
         hinweise.length > 0 ? (
           <LinkKnopf fett onClick={() => oeffne('hinweise', { hinweis: hinweise[0]!.schluessel })}>
-            In Hinweisen
+            {ts.inHinweisen}
           </LinkKnopf>
         ) : undefined
       }
-      label="Schreibweisen"
+      label={ts.titel}
     >
       {inhalt}
     </Abschnitt>
@@ -306,24 +319,26 @@ function Unterorte({ o, daten, index }: { o: Ort; daten: ProjektDaten; index: In
   const anlegen = useStore((s) => s.planung.ortAnlegen);
   const waehle = useStore((s) => s.waehle);
   const [neu, setNeu] = useState<string | null>(null);
+  const t = useTexte();
+  const tu = t.orte.unterorte;
   const kinder = Object.values(daten.orte)
     .filter((x) => x.in === o.id)
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => vergleich(a.name, b.name));
   return (
-    <Abschnitt titel="Unterorte" label="Unterorte">
-      {kinder.length === 0 && neu === null && <span style={{ fontSize: 13, ...leise }}>Keine Unterorte.</span>}
+    <Abschnitt titel={tu.titel} label={tu.titel}>
+      {kinder.length === 0 && neu === null && <span style={{ fontSize: 13, ...leise }}>{tu.keine}</span>}
       {kinder.map((k) => (
         <span key={k.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
           <OrtSymbol groesse={26} />
           <button type="button" className="pl-link" style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, flex: 1 }} onClick={() => waehle({ ort: k.id })}>
             {k.name}
           </button>
-          <span style={{ fontSize: 11, ...leise }}>{kapitelDesOrts(k.id, daten, index).length} Kap.</span>
+          <span style={{ fontSize: 11, ...leise }}>{f(t.orte.liste.kapKurz, { n: kapitelDesOrts(k.id, daten, index).length })}</span>
         </span>
       ))}
       {neu === null ? (
         <button type="button" className="pl-link" style={{ alignSelf: 'flex-start', height: 30, padding: '0 10px', fontWeight: 600 }} onClick={() => setNeu('')}>
-          + Unterort
+          {tu.plus}
         </button>
       ) : (
         <form
@@ -337,8 +352,8 @@ function Unterorte({ o, daten, index }: { o: Ort; daten: ProjektDaten; index: In
             autoFocus
             className="pl-eingabe"
             style={{ width: '100%' }}
-            placeholder="Name, Enter"
-            aria-label="Name des Unterorts"
+            placeholder={t.orte.liste.namePlatzhalter}
+            aria-label={tu.label}
             value={neu}
             onChange={(e) => setNeu(e.target.value)}
             onBlur={() => !neu.trim() && setNeu(null)}
@@ -356,6 +371,8 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
   const waehle = useStore((s) => s.waehle);
   const entfernen = useStore((s) => s.entferneOrt);
   const uid = useId();
+  const t = useTexte();
+  const tk = t.orte.karte;
   const o = daten.orte[id];
   if (!o) return null;
   const kapitel = kapitelDesOrts(o.id, daten, index);
@@ -371,7 +388,7 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
             <EntwurfFeld
               key={`${o.id}-name`}
               className="pl-still"
-              aria-label="Name"
+              aria-label={tk.name}
               style={{ fontFamily: 'var(--schrift-titel)', fontWeight: 400, fontSize: 40, lineHeight: 1, width: '100%', padding: '0 6px' }}
               wert={o.name}
               onSpeichern={(name) => name.trim() && void p.ortAendern(o.id, { name: name.trim() })}
@@ -380,7 +397,7 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
           <span style={{ display: 'flex', gap: 8, alignItems: 'baseline', fontSize: 13, ...leise }}>
             {eltern && (
               <span>
-                in{' '}
+                {tk.in}{' '}
                 <LinkKnopf style={{ fontSize: 13 }} onClick={() => waehle({ ort: eltern.id })}>
                   {eltern.name}
                 </LinkKnopf>{' '}
@@ -388,17 +405,17 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
               </span>
             )}
             <span>
-              {kapitel.length} {kapitel.length === 1 ? 'Kapitel' : 'Kapitel'}
-              {!indexBereit(index) && ' laut Plan'}
+              {f(tk.anzahlKapitel, { n: kapitel.length })}
+              {!indexBereit(index) && tk.lautPlanZusatz}
             </span>
           </span>
         </div>
         <Button
           disabled={!erste}
-          title={erste ? undefined : 'Der Ort kommt im Text noch nicht vor'}
+          title={erste ? undefined : tk.kommtNichtVor}
           onClick={() => erste && markiere({ kapitel: erste.kapitel, anker: stelleAnker(daten, erste.kapitel, erste.start, erste.ende, erste.treffer) })}
         >
-          Im Text zeigen
+          {tk.imTextZeigen}
         </Button>
       </div>
       <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -414,21 +431,21 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
             titel={
               <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <IconSchloss />
-                Notizen
+                {tk.notizen}
               </span>
             }
-            label="Notizen"
+            label={tk.notizen}
           >
-            <span style={{ fontSize: 11, marginTop: -6, ...leise }}>Nur für dich – geht nie an die KI.</span>
+            <span style={{ fontSize: 11, marginTop: -6, ...leise }}>{tk.nurFuerDich}</span>
             <AngehefteteNotizen ziele={[{ typ: 'ort', id: o.id }]} daten={daten} />
             <EntwurfBereich
               key={`${o.id}-notizen`}
               id={`${uid}-notizen`}
-              aria-label="Notizen"
+              aria-label={tk.notizen}
               className="pl-bereich"
               autoHoehe
               rows={3}
-              placeholder="Idee, Frage, Detail … mit [[ verlinken"
+              placeholder={tk.notizenPlatzhalter}
               verweise={{ typ: 'ort', id: o.id }}
               wert={o.notizen}
               onSpeichern={(notizen) => void p.ortAendern(o.id, { notizen })}
@@ -439,9 +456,9 @@ export function OrtKarte({ id, daten, index }: { id: Id; daten: ProjektDaten; in
             type="button"
             className="pl-link"
             style={{ alignSelf: 'flex-start', color: 'var(--ink-quiet)' }}
-            onClick={async () => (await rueckfrage(`Ort „${o.name}“ löschen? Vorher wird ein Schnappschuss angelegt.`, { knopf: 'Löschen' })) && void entfernen(o.id)}
+            onClick={async () => (await rueckfrage(f(tk.loeschenFrage, { name: o.name }), { knopf: t.gemeinsam.loeschen })) && void entfernen(o.id)}
           >
-            Ort löschen
+            {tk.loeschen}
           </button>
         </div>
       </div>

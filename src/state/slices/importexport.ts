@@ -4,6 +4,8 @@ import { kommentareAlsAnmerkungen, type ImportErgebnis } from '@core/docx/index'
 import type { Id, Kapitel, KapitelPlan } from '@core/model/types';
 import { standardPlan } from '@core/projekt';
 import { klartext } from '@core/text/index';
+import { buchSprache } from '@core/i18n';
+import { texte } from '../../i18n';
 import type { Store } from '../store';
 
 export type ExportFormat = 'docx' | 'pdf';
@@ -63,13 +65,14 @@ export interface ImportExportSlice {
 
 /** „<Titel>.docx“ ohne Zeichen, die macOS/Windows in Dateinamen nicht mögen. */
 export function exportDateiname(titel: string, format: ExportFormat): string {
-  const basis = titel.replace(/[/\\:*?"<>|\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ').trim().replace(/^\.+/, '') || 'Manuskript';
+  const basis =
+    titel.replace(/[/\\:*?"<>|\u0000-\u001f]+/g, '-').replace(/\s+/g, ' ').trim().replace(/^\.+/, '') || texte().state.standard.manuskript;
   return `${basis}.${format}`;
 }
 
 export class ImportAbgebrochen extends Error {
   constructor() {
-    super('Kein neues Projekt angelegt.');
+    super(texte().state.importexport.keinNeuesProjekt);
   }
 }
 
@@ -81,15 +84,15 @@ export const createImportExportSlice: StateCreator<Store, [], [], ImportExportSl
   async importUebernehmen(ergebnis, optionen) {
     if (optionen.ziel === 'neu') {
       const vorher = get().fs;
-      await get().neuesProjekt(optionen.projektTitel?.trim() || ergebnis.buchtitel || 'Neues Projekt');
+      await get().neuesProjekt(optionen.projektTitel?.trim() || ergebnis.buchtitel || texte().state.standard.projekt);
       if (get().fs === vorher || get().ladeStatus !== 'bereit') throw new ImportAbgebrochen();
     }
     const daten = get().daten;
-    if (!daten) throw new Error('Kein Projekt geöffnet');
+    if (!daten) throw new Error(texte().state.fehler.keinProjekt);
 
     const liste: { titel: string; text: string }[] = [];
     const mitVorspann = !!(optionen.vorspannAlsKapitel && klartext(ergebnis.vorspann).trim());
-    if (mitVorspann) liste.push({ titel: optionen.vorspannTitel?.trim() || 'Vorspann', text: ergebnis.vorspann });
+    if (mitVorspann) liste.push({ titel: optionen.vorspannTitel?.trim() || texte().state.standard.vorspann, text: ergebnis.vorspann });
     liste.push(...ergebnis.kapitel);
 
     const vergeben = new Set<string>([...daten.projekt.kapitel, ...Object.keys(daten.kapitel), ...Object.keys(daten.plaene)]);
@@ -140,7 +143,7 @@ export const createImportExportSlice: StateCreator<Store, [], [], ImportExportSl
   async exportErstellen(auftrag) {
     await get().editorSichern();
     const daten = get().daten;
-    if (!daten) throw new Error('Kein Projekt geöffnet');
+    if (!daten) throw new Error(texte().state.fehler.keinProjekt);
     const gewaehlt = new Set(auftrag.kapitel);
     const kapitel = daten.projekt.kapitel
       .filter((id) => gewaehlt.has(id))
@@ -148,18 +151,18 @@ export const createImportExportSlice: StateCreator<Store, [], [], ImportExportSl
     const titel = daten.projekt.titel;
     if (auftrag.format === 'docx') {
       const { exportiereDocxMit } = await import('@core/docx/index');
-      return exportiereDocxMit(kapitel, titel, { schrift: auftrag.schrift, titelseite: auftrag.titelseite });
+      return exportiereDocxMit(kapitel, titel, { schrift: auftrag.schrift, titelseite: auftrag.titelseite, sprache: buchSprache(daten.projekt.angaben) });
     }
     const [{ exportierePdfMit }, { ladePdfSchriften }] = await Promise.all([
       import('@core/pdf/index'),
       import('../../features/importexport/pdfSchriften'),
     ]);
-    return exportierePdfMit(kapitel, titel, { schriften: await ladePdfSchriften(), titelseite: auftrag.titelseite });
+    return exportierePdfMit(kapitel, titel, { schriften: await ladePdfSchriften(), titelseite: auftrag.titelseite, sprache: buchSprache(daten.projekt.angaben) });
   },
 
   async exportieren(auftrag) {
     const backend = get().backend;
-    if (!backend) throw new Error('Kein Backend verfügbar');
+    if (!backend) throw new Error(texte().state.fehler.keinBackend);
     const datei = await get().exportErstellen(auftrag);
     return backend.dateiSpeichern(auftrag.dateiname, datei);
   },

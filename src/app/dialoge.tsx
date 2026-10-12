@@ -1,5 +1,6 @@
 /** Zuordnung DialogId → Komponente (lazy). Die Feature-Dialoge gehören ihren Bereichen. */
 import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
+import { f, useTexte } from '../i18n';
 import { useStore, type DialogId } from '../state/store';
 import { Button, Dialog } from '../ui';
 import type { DialogKomponentenProps } from './dialogTypen';
@@ -30,21 +31,22 @@ export const DIALOGE: Record<DialogId, DialogKomponente> = {
 export function DialogHost() {
   const dialog = useStore((s) => s.dialog);
   const schliessen = useStore((s) => s.schliesseDialog);
+  const t = useTexte();
   if (!dialog) return null;
   const Komponente = DIALOGE[dialog.id];
   return (
     <Fehlergrenze
-      bereich={`Dialog ${dialog.id}`}
+      bereich={f(t.app.fehlergrenze.dialog, { id: dialog.id })}
       schluessel={dialog.id}
       ersatz={(fehler) => (
         <Dialog
-          titel="Der Dialog konnte nicht geöffnet werden"
+          titel={t.app.dialogFehler.titel}
           onSchliessen={schliessen}
           aktionen={
             <>
-              <Button onClick={() => window.location.reload()}>App neu laden</Button>
+              <Button onClick={() => window.location.reload()}>{t.app.dialogFehler.neuLaden}</Button>
               <Button variante="primaer" onClick={schliessen}>
-                Schließen
+                {t.gemeinsam.schliessen}
               </Button>
             </>
           }

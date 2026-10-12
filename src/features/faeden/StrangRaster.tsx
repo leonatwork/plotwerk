@@ -12,31 +12,36 @@ import { useStore } from '../../state/store';
 import { Button, klassen, LeerZustand, StrangPunkt } from '../../ui';
 import { strangFarbe, strangGeplant } from '../akte/gemeinsam';
 import { kapitelVoll, roemisch } from './gemeinsam';
+import { f, texte, useTexte, type Woerterbuch } from '../../i18n';
 import './faeden.css';
 
+type FarbName = keyof Woerterbuch['faeden']['raster']['farben'];
+
 /** Farben für neue Stränge (Hex wie in plan/straenge.md; die Anzeige läuft über strangFarbe → Token). */
-const STRANG_FARBEN: { hex: string; name: string }[] = [
-  { hex: '#3D5A75', name: 'Blau' },
-  { hex: '#C2405C', name: 'Rosa' },
-  { hex: '#A86A12', name: 'Ocker' },
-  { hex: '#6A4C9C', name: 'Violett' },
-  { hex: '#2F6B45', name: 'Grün' },
-  { hex: '#4A4A4F', name: 'Grau' },
+const STRANG_FARBEN: { hex: string; name: FarbName }[] = [
+  { hex: '#3D5A75', name: 'blau' },
+  { hex: '#C2405C', name: 'rosa' },
+  { hex: '#A86A12', name: 'ocker' },
+  { hex: '#6A4C9C', name: 'violett' },
+  { hex: '#2F6B45', name: 'gruen' },
+  { hex: '#4A4A4F', name: 'grau' },
 ];
 
 function strangInfo(z: RasterZeile): { text: string; warn: boolean } {
-  if (z.anzahl === 0) return { text: 'in keinem Kapitel geplant', warn: true };
-  const teile = [z.erstes === z.letztes ? `nur Kap. ${z.erstes}` : `Kap. ${z.erstes}–${z.letztes} · ${z.anzahl} Kap.`];
+  const t = texte().faeden.raster;
+  if (z.anzahl === 0) return { text: t.inKeinem, warn: true };
+  const teile = [z.erstes === z.letztes ? f(t.nurKap, { nr: z.erstes }) : f(t.bereich, { von: z.erstes, bis: z.letztes, n: z.anzahl })];
   const lang = z.luecken.filter((l) => l.laenge > 0);
-  if (lang.length) teile.push(lang.map((l) => (l.von === l.bis ? `fehlt in ${l.von}` : `fehlt in ${l.von}–${l.bis}`)).join(', '));
-  if (z.endetVorStand) teile.push(`verschwindet nach Kap. ${z.letztes}`);
+  if (lang.length) teile.push(lang.map((l) => (l.von === l.bis ? f(t.fehltIn, { nr: l.von }) : f(t.fehltInBereich, { von: l.von, bis: l.bis }))).join(', '));
+  if (z.endetVorStand) teile.push(f(t.verschwindet, { nr: z.letztes }));
   const warn = z.endetVorStand || z.zellen.some((c) => c.langeLuecke);
   return { text: teile.join(' · '), warn };
 }
 
 function zellenTitel(daten: ProjektDaten, strang: Strang, c: RasterZelle): string {
-  const was = c.belegt ? `${strang.name}: geplant` : c.langeLuecke ? `${strang.name}: fehlt (lange Lücke)` : c.luecke ? `${strang.name}: fehlt (Lücke)` : `${strang.name}: nicht geplant`;
-  return `${kapitelVoll(daten, c.kapitel)}${c.ohneText ? ' (noch ohne Text)' : ''} – ${was}`;
+  const t = texte().faeden.raster;
+  const was = f(c.belegt ? t.zelleGeplant : c.langeLuecke ? t.zelleLangeLuecke : c.luecke ? t.zelleLuecke : t.zelleNicht, { name: strang.name });
+  return `${kapitelVoll(daten, c.kapitel)}${c.ohneText ? t.nochOhneText : ''} – ${was}`;
 }
 
 function NeuerStrang({ daten, onFertig }: { daten: ProjektDaten; onFertig(): void }) {
@@ -44,6 +49,7 @@ function NeuerStrang({ daten, onFertig }: { daten: ProjektDaten; onFertig(): voi
   const [name, setName] = useState('');
   const frei = STRANG_FARBEN.find((f) => !daten.straenge.some((s) => s.farbe.toLowerCase() === f.hex.toLowerCase())) ?? STRANG_FARBEN[0]!;
   const [farbe, setFarbe] = useState(frei.hex);
+  const t = useTexte();
   const anlegen = () => {
     const n = name.trim();
     if (!n) return;
@@ -68,27 +74,34 @@ function NeuerStrang({ daten, onFertig }: { daten: ProjektDaten; onFertig(): voi
         }
       }}
     >
-      <input className="pl-eingabe" autoFocus aria-label="Name des Strangs" placeholder="Name des Strangs" value={name} onChange={(e) => setName(e.target.value)} />
-      <div role="radiogroup" aria-label="Farbe" className="fd-farbwahl">
-        {STRANG_FARBEN.map((f) => (
+      <input
+        className="pl-eingabe"
+        autoFocus
+        aria-label={t.faeden.raster.nameLabel}
+        placeholder={t.faeden.raster.nameLabel}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <div role="radiogroup" aria-label={t.faeden.raster.farbe} className="fd-farbwahl">
+        {STRANG_FARBEN.map((fb) => (
           <button
-            key={f.hex}
+            key={fb.hex}
             type="button"
             role="radio"
-            aria-checked={farbe === f.hex}
-            aria-label={f.name}
-            title={f.name}
+            aria-checked={farbe === fb.hex}
+            aria-label={t.faeden.raster.farben[fb.name]}
+            title={t.faeden.raster.farben[fb.name]}
             className="fd-farbwahl__knopf"
-            style={{ background: strangFarbe(f.hex) }}
-            onClick={() => setFarbe(f.hex)}
+            style={{ background: strangFarbe(fb.hex) }}
+            onClick={() => setFarbe(fb.hex)}
           />
         ))}
       </div>
       <Button type="submit" klein variante="primaer" disabled={!name.trim()}>
-        Anlegen
+        {t.faeden.raster.anlegen}
       </Button>
       <Button klein variante="leise" onClick={onFertig}>
-        Abbrechen
+        {t.gemeinsam.abbrechen}
       </Button>
     </form>
   );
@@ -103,20 +116,17 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
   const [fokus, setFokus] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
   const [neu, setNeu] = useState(false);
   const gitter = useRef<HTMLDivElement>(null);
+  const t = useTexte();
+  const tr = t.faeden.raster;
 
   const n = raster.kapitel.length;
   if (daten.straenge.length === 0 && !neu)
     return (
-      <LeerZustand titel="Noch keine Stränge" aktionen={<Button onClick={() => setNeu(true)}>+ Strang</Button>}>
-        Stränge bündeln Kapitel zu Handlungslinien (Auftraggeber, Begegnungen, Briefe …). Lege einen an und markiere im Raster, in welchen Kapiteln er vorkommt.
+      <LeerZustand titel={tr.leerTitel} aktionen={<Button onClick={() => setNeu(true)}>{tr.plusStrang}</Button>}>
+        {tr.leerText}
       </LeerZustand>
     );
-  if (n === 0)
-    return (
-      <LeerZustand titel="Noch keine Kapitel">
-        Plane im Akt-Board Kapitel; hier siehst du dann, welcher Strang in welchem Kapitel vorkommt.
-      </LeerZustand>
-    );
+  if (n === 0) return <LeerZustand titel={tr.keineKapitelTitel}>{tr.keineKapitelText}</LeerZustand>;
 
   const zeilen = raster.zeilen.length;
   const r0 = Math.min(fokus.r, Math.max(0, zeilen - 1));
@@ -151,7 +161,7 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
         <div
           ref={gitter}
           role="grid"
-          aria-label="Stränge je Kapitel"
+          aria-label={tr.gitter}
           aria-rowcount={zeilen + 2}
           aria-colcount={n + 1}
           className="fd-raster"
@@ -164,7 +174,7 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
             {raster.akte.map((a) => {
               const akt = a.akt !== null ? daten.akte.find((x) => x.nummer === a.akt) : undefined;
               const zusatz = akt?.titel.trim() && !/^akt\s+[ivx\d]+$/i.test(akt.titel.trim()) ? ` · ${akt.titel.trim()}` : '';
-              const titel = a.akt === null ? 'ohne Akt' : `AKT ${roemisch(a.akt)}${zusatz}`;
+              const titel = a.akt === null ? tr.ohneAkt : `${f(tr.akt, { nr: roemisch(a.akt) })}${zusatz}`;
               return (
                 <div key={`${a.akt}-${a.start}`} role="columnheader" className="fd-raster__akt" title={titel} style={{ gridRow: 1, gridColumn: `${a.start + 2} / span ${a.anzahl}` }}>
                   {titel}
@@ -175,7 +185,7 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
           {/* Kapitel */}
           <div role="row" style={{ display: 'contents' }}>
             <div role="columnheader" className="fd-raster__ecke fd-label" style={{ gridRow: 2, alignSelf: 'center' }}>
-              Strang · Kapitel
+              {tr.ecke}
             </div>
             {raster.kapitel.map((k, i) => (
               <div key={k.id} role="columnheader" style={{ gridRow: 2, gridColumn: i + 2, display: 'flex' }}>
@@ -184,8 +194,8 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
                   className={klassen('fd-raster__kapitel', k.ohneText && 'fd-raster__kapitel--ohnetext')}
                   style={{ flex: 1 }}
                   aria-current={gewaehlt === k.id ? 'true' : undefined}
-                  title={`Kap. ${k.nummer} · ${k.titel}${k.ohneText ? ' (noch ohne Text)' : ''} – im Inspektor planen`}
-                  aria-label={`Kapitel ${k.nummer} ${k.titel} planen`}
+                  title={f(tr.kapitelTitel, { kap: f(t.gemeinsam.kapitelKurz, { nr: k.nummer }), titel: k.titel, ohneText: k.ohneText ? tr.nochOhneText : '' })}
+                  aria-label={f(tr.kapitelLabel, { nr: k.nummer, titel: k.titel })}
                   tabIndex={-1}
                   onClick={() => waehle({ plan: k.id, kapitel: k.id })}
                 >
@@ -242,34 +252,30 @@ export function StrangRaster({ daten }: { daten: ProjektDaten }) {
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
-        <div className="fd-legende" aria-label="Legende Strang-Raster" style={{ flex: '1 1 320px' }}>
+        <div className="fd-legende" aria-label={tr.legende} style={{ flex: '1 1 320px' }}>
           <span className="fd-legende__eintrag">
             <span className="fd-legende__muster" style={{ background: 'var(--ink)' }} />
-            Strang im Kapitelplan
+            {tr.imPlan}
           </span>
           <span className="fd-legende__eintrag">
             <span className="fd-legende__muster" style={{ background: 'var(--ruhend)' }} />
-            Lücke
+            {tr.luecke}
           </span>
           <span className="fd-legende__eintrag">
             <span className="fd-legende__muster" style={{ background: 'var(--ruhend)', border: '1.5px dashed var(--real-offen)' }} />
-            Lücke ab {schwelle} Kapiteln
+            {f(tr.langeLuecke, { n: schwelle })}
           </span>
           <span className="fd-legende__eintrag">
             <span className="fd-legende__muster" style={{ background: 'repeating-linear-gradient(135deg, var(--schraffur) 0 3px, var(--surface) 3px 6px)', border: '1px solid var(--line)' }} />
-            Kapitel ohne Text
+            {tr.ohneText}
           </span>
-          <span className="fd-legende__eintrag">Klick oder Leertaste: Strang im Kapitel an/aus · Pfeiltasten wandern · Kapitelnummer: im Inspektor planen</span>
+          <span className="fd-legende__eintrag">{tr.tastatur}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {verschwunden > 0 && (
-            <span className="fd-etikett fd-etikett--warn">
-              {verschwunden} {verschwunden === 1 ? 'Strang verschwindet' : 'Stränge verschwinden'} oder pausiert lange
-            </span>
-          )}
+          {verschwunden > 0 && <span className="fd-etikett fd-etikett--warn">{f(tr.verschwinden, { n: verschwunden })}</span>}
           {!neu && (
             <Button klein variante="leise" onClick={() => setNeu(true)}>
-              + Strang
+              {tr.plusStrang}
             </Button>
           )}
         </div>

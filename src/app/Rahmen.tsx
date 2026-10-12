@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { VorschauEbene } from '../features/vorschau';
+import { useSprache } from '../i18n';
 import { useStore } from '../state/store';
 import { bereichDefinition, bereicheVorladen, useBereichModul } from './bereiche';
 import { deepLinkAnwenden } from './deeplink';
@@ -20,6 +21,8 @@ export function Rahmen() {
   const bereich = useStore((s) => s.bereich);
   const fokus = useStore((s) => s.fokusModus);
   const modul = useBereichModul(bereich);
+  // Bereichsnamen folgen der Oberflächensprache: beim Umschalten neu zeichnen
+  useSprache();
   useEffect(() => {
     const id = window.setTimeout(bereicheVorladen, 300);
     return () => window.clearTimeout(id);

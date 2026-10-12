@@ -6,6 +6,7 @@ import type { Id } from '@core/model/types';
 import { kapitelFuerFassung } from '@core/statistik';
 import { useId, useMemo, useState } from 'react';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button, Checkbox, Dialog, Feld, Radio, Textbereich, Textfeld } from '../../ui';
 import { kapitelAnzeige } from '../schreiben/verweise';
@@ -31,6 +32,8 @@ export default function FassungDialog({ param, schliessen }: DialogKomponentenPr
   const [fehler, setFehler] = useState<string | null>(null);
   const gruppe = useId();
   const formId = useId();
+  const tt = useTexte();
+  const t = tt.statistik.dialog;
 
   if (!daten) return null;
 
@@ -54,7 +57,7 @@ export default function FassungDialog({ param, schliessen }: DialogKomponentenPr
 
   return (
     <Dialog
-      titel="Fassung sichern"
+      titel={t.titel}
       onSchliessen={schliessen}
       modalFest={laeuft}
       breite={520}
@@ -66,10 +69,10 @@ export default function FassungDialog({ param, schliessen }: DialogKomponentenPr
             </span>
           )}
           <Button onClick={schliessen} disabled={laeuft}>
-            Abbrechen
+            {tt.gemeinsam.abbrechen}
           </Button>
           <Button variante="primaer" type="submit" form={formId} disabled={!bereit}>
-            {laeuft ? 'Sichert …' : anzahl === 1 ? 'Kapitel sichern' : `${anzahl} Kapitel sichern`}
+            {laeuft ? t.sichert : f(t.kapitelSichern, { n: anzahl })}
           </Button>
         </>
       }
@@ -83,44 +86,44 @@ export default function FassungDialog({ param, schliessen }: DialogKomponentenPr
         }}
       >
         <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-soft)', lineHeight: 1.5 }}>
-          Sichert den jetzigen Text unter einem Namen. Benannte Fassungen werden nie automatisch aufgeräumt; du kannst sie später mit dem aktuellen Text vergleichen oder wiederherstellen.
+          {t.erklaerung}
         </p>
         {mitText.length === 0 ? (
           <p className="pw-st-leise" style={{ margin: 0 }}>
-            Es gibt noch kein Kapitel mit Text. Sobald du geschrieben hast, kannst du hier eine Fassung sichern.
+            {t.keinText}
           </p>
         ) : (
           <>
-            <Feld label="Name">
-              {(id) => <Textfeld id={id} data-autofocus placeholder="z. B. Fassung vor Lektorat" value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />}
+            <Feld label={t.name}>
+              {(id) => <Textfeld id={id} data-autofocus placeholder={t.namePlatzhalter} value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />}
             </Feld>
-            <Feld label="Notiz (optional)">
-              {(id) => <Textbereich id={id} rows={2} placeholder="Was ist das Besondere an diesem Stand?" value={notiz} onChange={(e) => setNotiz(e.target.value)} />}
+            <Feld label={t.notiz}>
+              {(id) => <Textbereich id={id} rows={2} placeholder={t.notizPlatzhalter} value={notiz} onChange={(e) => setNotiz(e.target.value)} />}
             </Feld>
             <fieldset style={{ border: 0, margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <legend className="pw-feld__label" style={{ padding: 0, marginBottom: 4 }}>
-                Umfang
+                {t.umfang}
               </legend>
               <Radio name={gruppe} checked={umfang === 'buch'} onChange={() => setUmfang('buch')}>
-                Ganzes Buch ({mitText.length === 1 ? '1 Kapitel' : `${mitText.length} Kapitel`} mit Text)
+                {f(t.ganzesBuch, { kapitel: f(tt.statistik.fassungen.kapitelAnzahl, { n: mitText.length }) })}
               </Radio>
               {aktuelles && (
                 <Radio name={gruppe} checked={umfang === 'kapitel'} onChange={() => setUmfang('kapitel')}>
-                  Nur {kapitelAnzeige(daten, aktuelles)}
+                  {f(t.nur, { kapitel: kapitelAnzeige(daten, aktuelles) })}
                 </Radio>
               )}
               <Radio name={gruppe} checked={umfang === 'auswahl'} onChange={() => setUmfang('auswahl')}>
-                Kapitel auswählen …
+                {t.auswaehlen}
               </Radio>
             </fieldset>
             {umfang === 'auswahl' && (
-              <div className="pw-st-auswahlliste" role="group" aria-label="Kapitel für die Fassung">
+              <div className="pw-st-auswahlliste" role="group" aria-label={t.auswahlListe}>
                 <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
                   <Button variante="text" klein onClick={() => setAuswahl(new Set(mitText))}>
-                    Alle
+                    {t.alle}
                   </Button>
                   <Button variante="text" klein onClick={() => setAuswahl(new Set())}>
-                    Keine
+                    {t.keine}
                   </Button>
                 </div>
                 {mitText.map((id) => (

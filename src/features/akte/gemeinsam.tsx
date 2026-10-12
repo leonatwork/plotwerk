@@ -16,6 +16,7 @@ import { ankerErzeugen, findeZitat, klartext, normalisiere } from '@core/text/in
 import { useStore } from '../../state/store';
 import { REALITAET_FARBE } from '../../ui';
 import { VerweisFeld, VerweisText } from '../schreiben/VerweisFeld';
+import { f, locale, texte, useTexte, zahl as zahlFormat } from '../../i18n';
 import './planung.css';
 
 // ---------------------------------------------------------------------------
@@ -48,13 +49,25 @@ export function strangGeplant(s: Strang, daten: ProjektDaten): boolean {
   return !!s.gruppe && daten.gruppen[s.gruppe]?.status === 'geplant';
 }
 
-export const STATUS_TEXT: Record<KapitelStatus, string> = { geschrieben: 'geschrieben', entwurf: 'Entwurf', geplant: 'geplant' };
+/** Kapitelstatus als Text; die Getter lesen bei jedem Zugriff die aktuelle Oberflächensprache. */
+export const STATUS_TEXT: Record<KapitelStatus, string> = {
+  get geschrieben() {
+    return texte().akte.gemeinsam.status.geschrieben;
+  },
+  get entwurf() {
+    return texte().akte.gemeinsam.status.entwurf;
+  },
+  get geplant() {
+    return texte().akte.gemeinsam.status.geplant;
+  },
+};
 
-const zahlFormat = new Intl.NumberFormat('de-DE');
-export const zahl = (n: number): string => zahlFormat.format(n);
+/** Zahl im Format der Oberflächensprache (1.234 bzw. 1,234). */
+export const zahl = (n: number): string => zahlFormat(n);
 
+/** „Kapitel“/„Kapiteln“ (Dativ) bzw. „chapter“/„chapters“ – ohne Zahl. */
 export function kapitelWort(n: number): string {
-  return n === 1 ? 'Kapitel' : 'Kapiteln';
+  return f(texte().akte.gemeinsam.kapitelWort, { n });
 }
 
 /** Darstellung einer Figur: Farbe aus dem ersten Strang ihrer Beziehungen bzw. ihrer Gruppe. */
@@ -107,11 +120,20 @@ export function artJeKapitel(liste: Erwaehnung[]): Map<Id, ErwaehnungsArt> {
   return m;
 }
 
+/** Art einer Erwähnung als Text; die Getter lesen bei jedem Zugriff die aktuelle Oberflächensprache. */
 export const ART_TEXT: Record<ErwaehnungsArt, string> = {
-  auftritt: 'tritt auf',
-  nachricht: 'per Nachricht',
-  erwaehnt: 'erwähnt',
-  unbestimmt: 'im Text',
+  get auftritt() {
+    return texte().akte.gemeinsam.art.auftritt;
+  },
+  get nachricht() {
+    return texte().akte.gemeinsam.art.nachricht;
+  },
+  get erwaehnt() {
+    return texte().akte.gemeinsam.art.erwaehnt;
+  },
+  get unbestimmt() {
+    return texte().akte.gemeinsam.art.unbestimmt;
+  },
 };
 
 function textFuer(daten: ProjektDaten, kapitel: Id, start: number, ende: number, treffer?: string): { text: string; start: number; ende: number } | null {
@@ -328,6 +350,7 @@ export const EntwurfBereich = forwardRef<HTMLTextAreaElement, EntwurfBereichProp
  */
 export function AngehefteteNotizen({ ziele, daten }: { ziele: Verweis[]; daten: ProjektDaten }) {
   const markiere = useStore((s) => s.markiere);
+  const t = useTexte();
   const liste = daten.anmerkungen.filter((a) => a.ziel && ziele.some((z) => z.typ === a.ziel!.typ && z.id === a.ziel!.id));
   if (!liste.length) return null;
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
@@ -342,7 +365,7 @@ export function AngehefteteNotizen({ ziele, daten }: { ziele: Verweis[]; daten: 
             <VerweisText text={a.notiz} />
           </span>
           <LinkKnopf onClick={() => markiere({ kapitel: a.anker.kapitel, anker: a.anker })}>
-            angeheftet an Kap. {nr(a.anker.kapitel)} · »{a.anker.exakt}«
+            {f(t.akte.gemeinsam.angeheftet, { nr: nr(a.anker.kapitel), zitat: a.anker.exakt })}
           </LinkKnopf>
         </div>
       ))}
@@ -385,7 +408,7 @@ export function AuswahlMenue({
   knopf,
   optionen,
   onWaehle,
-  leer = 'Nichts mehr frei',
+  leer,
   zusatz,
   knopfStil,
 }: {
@@ -400,6 +423,7 @@ export function AuswahlMenue({
   const [offen, setOffen] = useState(false);
   const [suche, setSuche] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const t = useTexte();
   useEffect(() => {
     if (!offen) return;
     const weg = (e: MouseEvent) => {
@@ -409,7 +433,7 @@ export function AuswahlMenue({
     return () => document.removeEventListener('mousedown', weg);
   }, [offen]);
   const gefiltert = optionen.filter((o) =>
-    `${typeof o.label === 'string' ? o.label : ''} ${o.suche ?? ''}`.toLocaleLowerCase('de').includes(suche.toLocaleLowerCase('de')),
+    `${typeof o.label === 'string' ? o.label : ''} ${o.suche ?? ''}`.toLocaleLowerCase(locale()).includes(suche.toLocaleLowerCase(locale())),
   );
   return (
     <div ref={ref} style={{ position: 'relative', display: 'inline-flex' }}>
@@ -440,8 +464,8 @@ export function AuswahlMenue({
             <input
               autoFocus
               className="pl-menue__suche"
-              placeholder={zusatz ? 'Suchen oder neu anlegen' : 'Suchen'}
-              aria-label="Suchen"
+              placeholder={zusatz ? t.akte.gemeinsam.sucheOderNeu : t.gemeinsam.suchen}
+              aria-label={t.gemeinsam.suchen}
               value={suche}
               onChange={(e) => setSuche(e.target.value)}
               onKeyDown={(e) => {
@@ -471,7 +495,7 @@ export function AuswahlMenue({
                 {o.label}
               </button>
             ))}
-            {gefiltert.length === 0 && <span className="pl-menue__leer">{leer}</span>}
+            {gefiltert.length === 0 && <span className="pl-menue__leer">{leer ?? t.akte.gemeinsam.nichtsFrei}</span>}
           </div>
           {zusatz && (
             <button
@@ -507,6 +531,7 @@ export function EntfernbarerChip({
   farbe?: 'accent';
   title?: string;
 }) {
+  const t = useTexte();
   return (
     <span className={`pl-chip pl-chip--${variante}${farbe ? ' pl-chip--accent' : ''}`} title={title}>
       {onClick ? (
@@ -516,7 +541,7 @@ export function EntfernbarerChip({
       ) : (
         <span className="pl-chip__text">{children}</span>
       )}
-      <button type="button" className="pl-chip__weg" aria-label={`${typeof children === 'string' ? children : 'Eintrag'} entfernen`} onClick={onEntfernen}>
+      <button type="button" className="pl-chip__weg" aria-label={f(t.akte.gemeinsam.entfernen, { name: typeof children === 'string' ? children : t.akte.gemeinsam.eintrag })} onClick={onEntfernen}>
         ×
       </button>
     </span>

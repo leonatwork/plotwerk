@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { demoGeaendert, demoZuruecksetzen } from '../backend/demoSpeicher';
+import { useTexte } from '../i18n';
 import { useStore } from '../state/store';
 import { Button, IconDokument, IconOrdner, IconPlus, Textfeld } from '../ui';
 
@@ -14,6 +15,7 @@ export function Startbildschirm() {
   const [titel, setTitel] = useState('');
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [meldung, setMeldung] = useState<string | null>(null);
+  const t = useTexte();
 
   const ausfuehren = async (aktion: () => Promise<void>) => {
     setBeschaeftigt(true);
@@ -31,10 +33,10 @@ export function Startbildschirm() {
     <div className="pw-start">
       <div className="pw-start__karte">
         <h1 className="pw-start__titel">Plotwerk</h1>
-        <p className="pw-start__text">Schreiben und planen im eigenen Projektordner.</p>
+        <p className="pw-start__text">{t.app.start.text}</p>
         <div className="pw-start__aktionen">
           <Button variante="primaer" icon={<IconOrdner size={14} />} disabled={!backend || beschaeftigt} onClick={() => ausfuehren(projektOeffnen)}>
-            Projektordner öffnen
+            {t.app.start.oeffnen}
           </Button>
           {neu ? (
             <form
@@ -44,18 +46,24 @@ export function Startbildschirm() {
                 if (titel.trim()) void ausfuehren(() => neuesProjekt(titel.trim()));
               }}
             >
-              <Textfeld autoFocus aria-label="Titel des neuen Projekts" placeholder="Titel des Buchs" value={titel} onChange={(e) => setTitel(e.target.value)} />
+              <Textfeld
+                autoFocus
+                aria-label={t.app.start.titelLabel}
+                placeholder={t.app.start.titelPlatzhalter}
+                value={titel}
+                onChange={(e) => setTitel(e.target.value)}
+              />
               <Button type="submit" disabled={!titel.trim() || beschaeftigt}>
-                Anlegen
+                {t.app.start.anlegen}
               </Button>
             </form>
           ) : (
             <Button icon={<IconPlus size={14} />} disabled={!backend || beschaeftigt} onClick={() => setNeu(true)}>
-              Neues Projekt
+              {t.app.start.neu}
             </Button>
           )}
           <Button icon={<IconDokument size={14} />} disabled={!backend || beschaeftigt} onClick={() => oeffneDialog('import')}>
-            Word-Datei importieren
+            {t.app.start.importieren}
           </Button>
         </div>
         {(meldung || fehler) && (
@@ -65,7 +73,7 @@ export function Startbildschirm() {
         )}
         {backend?.art === 'demo' && demoGeaendert() && (
           <Button variante="text" klein onClick={demoZuruecksetzen}>
-            Demo zurücksetzen
+            {t.app.start.demoZuruecksetzen}
           </Button>
         )}
       </div>

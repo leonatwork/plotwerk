@@ -12,10 +12,14 @@ const MAX_LAENGE: usize = 8 * 1024;
 /// Prüft eine Adresse für `open`. Ok = die unveränderte Adresse.
 pub fn link_pruefen(url: &str) -> Result<&str, String> {
     if url.is_empty() || url.len() > MAX_LAENGE {
-        return Err("Ungültige Adresse.".into());
+        return Err(crate::sprache::t("Ungültige Adresse.", "Invalid address.").into());
     }
     if url.chars().any(|c| c.is_whitespace() || c.is_control()) {
-        return Err("Die Adresse enthält Leer- oder Steuerzeichen.".into());
+        return Err(crate::sprache::t(
+            "Die Adresse enthält Leer- oder Steuerzeichen.",
+            "The address contains spaces or control characters.",
+        )
+        .into());
     }
     let klein = url.to_ascii_lowercase();
     let rest = if let Some(r) = klein.strip_prefix("https://") {
@@ -23,11 +27,19 @@ pub fn link_pruefen(url: &str) -> Result<&str, String> {
     } else if let Some(r) = klein.strip_prefix("http://") {
         r
     } else {
-        return Err("Nur http- und https-Adressen können geöffnet werden.".into());
+        return Err(crate::sprache::t(
+            "Nur http- und https-Adressen können geöffnet werden.",
+            "Only http and https addresses can be opened.",
+        )
+        .into());
     };
     let host = rest.split(['/', '?', '#']).next().unwrap_or("");
     if host.is_empty() || host.contains('@') {
-        return Err("Die Adresse hat keinen gültigen Host.".into());
+        return Err(crate::sprache::t(
+            "Die Adresse hat keinen gültigen Host.",
+            "The address has no valid host.",
+        )
+        .into());
     }
     Ok(url)
 }
@@ -39,11 +51,20 @@ pub async fn link_oeffnen(url: String) -> Result<(), String> {
     let status = Command::new("/usr/bin/open")
         .arg(url)
         .status()
-        .map_err(|e| format!("Browser konnte nicht geöffnet werden: {e}"))?;
+        .map_err(|e| {
+            crate::tf!(
+                "Browser konnte nicht geöffnet werden: {e}",
+                "The browser could not be opened: {e}"
+            )
+        })?;
     if status.success() {
         Ok(())
     } else {
-        Err("Browser konnte nicht geöffnet werden.".into())
+        Err(crate::sprache::t(
+            "Browser konnte nicht geöffnet werden.",
+            "The browser could not be opened.",
+        )
+        .into())
     }
 }
 

@@ -1,8 +1,10 @@
 /** Import und Export von Word-Dateien (S-11, S-12). Besitzer: Import/Export. */
+import type { Sprache } from '../i18n';
 import type { Kapitel } from '../model/types';
 import { exportiereDocxMit } from './exportieren';
 
 export {
+  DOCX_TEXTE,
   DocxFehler,
   endetMittenImSatz,
   IMPORT_KAPITEL_PRAEFIX,
@@ -28,7 +30,7 @@ export {
   type Lauf,
 } from './markdown';
 
-/** Kapitel als Überschrift 1, ohne Anmerkungen/Markierungen. */
-export async function exportiereDocx(kapitel: Kapitel[], buchtitel: string): Promise<Uint8Array> {
-  return exportiereDocxMit(kapitel, buchtitel);
+/** Kapitel als Überschrift 1, ohne Anmerkungen/Markierungen. `sprache`: Buchsprache. */
+export async function exportiereDocx(kapitel: Kapitel[], buchtitel: string, sprache: Sprache = 'de'): Promise<Uint8Array> {
+  return exportiereDocxMit(kapitel, buchtitel, { sprache });
 }

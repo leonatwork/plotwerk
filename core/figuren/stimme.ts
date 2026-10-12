@@ -5,9 +5,22 @@
  * Status: Leons Entscheidung steht – wie bei allen Hinweisen – in entscheidungen.json (Schlüssel der Beobachtung)
  * und hat Vorrang; der Status in der Ablage wird mitgeführt. Entschiedenes kommt bei einem neuen Lauf nicht wieder.
  */
+import { fmt, texteJe, type Sprache } from '../i18n';
 import type { Entscheidungen, Hinweis, Id, KiAblage, ProjektDaten, StimmenBeobachtung } from '../model/types';
 import { redestellen, redestellenDerFigur, type Redestelle } from '../ki/stimmeRede';
 import { findeZitat, klartext } from '../text';
+
+/** Rahmen um die KI-Beobachtung (Oberflächensprache); Titel und Erklärung der KI bleiben, wie sie sind. */
+const T = texteJe(
+  {
+    titel: 'Stimme von {name}: {titel}',
+    erklaerung: '{erklaerung} (Erste Zitate: die auffällige Stelle, danach typische Stellen zum Vergleich.)',
+  },
+  {
+    titel: 'Voice of {name}: {titel}',
+    erklaerung: '{erklaerung} (First quotes: the passage that stands out, then typical passages for comparison.)',
+  },
+);
 
 export type StimmenStatus = StimmenBeobachtung['status'];
 
@@ -106,7 +119,8 @@ export function offeneStimmen(daten: ProjektDaten, figur?: Id): number {
  * Beobachtungen als Hinweise (Typ „sprache“, Quelle KI) für die Hinweise-Ansicht. Schlüssel = Schlüssel der
  * Beobachtung, damit „Ist Absicht“/„Erledigt“ in beiden Ansichten gilt. Ungültige (Zitat nicht mehr im Text) fallen weg.
  */
-export function stimmenHinweise(daten: ProjektDaten): Hinweis[] {
+export function stimmenHinweise(daten: ProjektDaten, sprache: Sprache = 'de'): Hinweis[] {
+  const t = T(sprache);
   return (daten.kiStimmen?.eintraege ?? [])
     .filter((b) => stimmeGueltig(daten, b))
     .map((b) => {
@@ -114,9 +128,9 @@ export function stimmenHinweise(daten: ProjektDaten): Hinweis[] {
       return {
         schluessel: b.schluessel,
         typ: 'sprache' as const,
-        titel: `Stimme von ${name}: ${b.titel}`,
+        titel: fmt(t.titel, { name, titel: b.titel }),
         zitate: [...b.zitate, ...b.vergleich],
-        erklaerung: `${b.erklaerung} (Erste Zitate: die auffällige Stelle, danach typische Stellen zum Vergleich.)`,
+        erklaerung: fmt(t.erklaerung, { erklaerung: b.erklaerung }),
         quelle: 'ki' as const,
         status: stimmenStatus(b, daten.entscheidungen),
       };

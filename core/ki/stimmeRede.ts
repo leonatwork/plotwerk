@@ -1,8 +1,9 @@
 /**
  * Redestellen je Figur (G3 Figurenstimme), lokal und ohne KI. Besitzer: G3 Figuren.
  *
- * Heuristik: wörtliche Rede steht in Anführungszeichen („…“, "…", »…«). Als mögliche Sprecher gelten
- * die Figuren, die im selben Absatz genannt werden; „sage ich“/„frage ich“ … markiert den Ich-Erzähler.
+ * Heuristik: wörtliche Rede steht in Anführungszeichen („…“, “…”, "…", »…«). Als mögliche Sprecher gelten
+ * die Figuren, die im selben Absatz genannt werden; „sage ich“/„frage ich“ bzw. „I said“/„asked I“ markiert den
+ * Ich-Erzähler. Englische Rede in einfachen Anführungszeichen (‘…’, britisch) wird noch nicht erkannt.
  * Das Ergebnis dient nur der Orientierung (Aufgabentext für das Modell, Zähler in der Oberfläche) –
  * die Zuordnung ist unsicher und wird nie als Tatsache gespeichert.
  * Nur core/text, kein Dateizugriff (harte Regel 1).
@@ -31,6 +32,8 @@ export interface RedeFigur {
 /** Anführungszeichen-Paare: öffnend → mögliche schließende Zeichen */
 const REDE = /[„"“»]([^„"“”»«\n]{2,600}?)[“”"«]/g;
 const ICH = /(?<![\p{L}])(sage|sagte|frage|fragte|rufe|rief|antworte|antwortete|flüstere|flüsterte|schreibe|schrieb|murmele|murmle|meine)\s+ich(?![\p{L}])|(?<![\p{L}])ich\s+(sage|sagte|frage|fragte|rufe|rief|antworte|antwortete|flüstere|flüsterte|schreibe|schrieb|murmele|meine)(?![\p{L}])/iu;
+/** Englisch: „I say“, „I asked“, „said I“ (Groß-I, damit „i“ in anderen Wörtern nicht zählt). */
+const ICH_EN = /(?<![\p{L}])I\s+(say|said|ask|asked|shout|shouted|call|called|answer|answered|reply|replied|whisper|whispered|write|wrote|murmur|murmured|mutter|muttered|tell|told)(?![\p{L}])|(?<![\p{L}])(said|asked|replied|answered|whispered|shouted|wrote)\s+I(?![\p{L}])/u;
 
 function escape(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -61,7 +64,7 @@ export function redestellenImKapitel(kapitel: Id, klartext: string, figuren: Red
       .filter((x) => x.pos >= 0)
       .sort((a, b) => a.pos - b.pos)
       .map((x) => x.id);
-    const ich = ICH.test(norm);
+    const ich = ICH.test(norm) || ICH_EN.test(norm);
     for (const m of absatz.matchAll(REDE)) {
       const text = (m[1] ?? '').trim();
       // Einzelwörter in Anführungszeichen (Titel, Betreffzeilen in Versalien) sind keine Rede

@@ -12,6 +12,7 @@ mod pfad;
 mod projekt;
 mod recherche;
 mod schluessel;
+mod sprache;
 mod ueberwachung;
 mod vorlesen;
 
@@ -61,7 +62,7 @@ pub fn run() {
         )
         .manage(Zustand::default())
         .manage(vorlesen::Vorleser::default())
-        .menu(menue::erstellen)
+        .menu(menue::beim_start)
         .on_menu_event(menue::ereignis)
         .on_window_event(beenden::fensterereignis)
         .setup(|app| {
@@ -96,6 +97,8 @@ pub fn run() {
             vorlesen::vorlesen_sagen,
             vorlesen::vorlesen_stopp,
             beenden::app_beenden,
+            sprache::sprache_info,
+            sprache::sprache_setzen,
         ])
         .build(tauri::generate_context!())
         .expect("Plotwerk konnte nicht gestartet werden")

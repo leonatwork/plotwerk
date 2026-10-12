@@ -83,12 +83,18 @@ fn stimme_pruefen(stimme: &str) -> Result<(), String> {
 /// Stimmen des Systems (`say -v '?'`).
 #[tauri::command]
 pub async fn vorlesen_stimmen() -> Result<Vec<SayStimme>, String> {
-    let ausgabe = Command::new(SAY)
-        .args(["-v", "?"])
-        .output()
-        .map_err(|e| format!("Sprachausgabe nicht verfügbar: {e}"))?;
+    let ausgabe = Command::new(SAY).args(["-v", "?"]).output().map_err(|e| {
+        crate::tf!(
+            "Sprachausgabe nicht verfügbar: {e}",
+            "Speech output not available: {e}"
+        )
+    })?;
     if !ausgabe.status.success() {
-        return Err("Sprachausgabe nicht verfügbar.".into());
+        return Err(crate::sprache::t(
+            "Sprachausgabe nicht verfügbar.",
+            "Speech output not available.",
+        )
+        .into());
     }
     Ok(stimmen_auswerten(&String::from_utf8_lossy(&ausgabe.stdout)))
 }
@@ -102,7 +108,11 @@ pub async fn vorlesen_sagen(
     tempo: Option<f64>,
 ) -> Result<String, String> {
     if text.len() > MAX_TEXT {
-        return Err("Der Text ist zu lang zum Vorlesen.".into());
+        return Err(crate::sprache::t(
+            "Der Text ist zu lang zum Vorlesen.",
+            "The text is too long to read aloud.",
+        )
+        .into());
     }
     zustand.stoppen();
     let mut befehl = Command::new(SAY);
@@ -115,20 +125,22 @@ pub async fn vorlesen_sagen(
         .stdin(Stdio::piped())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    let mut kind = befehl
-        .spawn()
-        .map_err(|e| format!("Sprachausgabe nicht verfügbar: {e}"))?;
+    let mut kind = befehl.spawn().map_err(|e| {
+        crate::tf!(
+            "Sprachausgabe nicht verfügbar: {e}",
+            "Speech output not available: {e}"
+        )
+    })?;
     if let Some(mut eingabe) = kind.stdin.take() {
         eingabe
             .write_all(text.as_bytes())
-            .map_err(|e| format!("Vorlesen fehlgeschlagen: {e}"))?;
+            .map_err(|e| crate::tf!("Vorlesen fehlgeschlagen: {e}", "Reading aloud failed: {e}"))?;
     }
     let nr = zustand.zaehler.fetch_add(1, Ordering::SeqCst) + 1;
     {
-        let mut l = zustand
-            .laufend
-            .lock()
-            .map_err(|_| "Vorlesen gesperrt".to_string())?;
+        let mut l = zustand.laufend.lock().map_err(|_| {
+            crate::sprache::t("Vorlesen gesperrt", "Reading aloud locked").to_string()
+        })?;
         *l = Some((nr, kind));
     }
     let laufend = Arc::clone(&zustand.laufend);
@@ -136,7 +148,11 @@ pub async fn vorlesen_sagen(
         {
             let mut l = match laufend.lock() {
                 Ok(l) => l,
-                Err(_) => return Err("Vorlesen gesperrt".to_string()),
+                Err(_) => {
+                    return Err(
+                        crate::sprache::t("Vorlesen gesperrt", "Reading aloud locked").to_string(),
+                    )
+                }
             };
             match l.as_mut() {
                 Some((n, kind)) if *n == nr => match kind.try_wait() {
@@ -152,7 +168,10 @@ pub async fn vorlesen_sagen(
                     Ok(None) => {}
                     Err(e) => {
                         *l = None;
-                        return Err(format!("Vorlesen fehlgeschlagen: {e}"));
+                        return Err(crate::tf!(
+                            "Vorlesen fehlgeschlagen: {e}",
+                            "Reading aloud failed: {e}"
+                        ));
                     }
                 },
                 _ => return Ok("abgebrochen".to_string()),
@@ -161,7 +180,7 @@ pub async fn vorlesen_sagen(
         std::thread::sleep(Duration::from_millis(40));
     })
     .await
-    .map_err(|e| format!("Vorlesen fehlgeschlagen: {e}"))?
+    .map_err(|e| crate::tf!("Vorlesen fehlgeschlagen: {e}", "Reading aloud failed: {e}"))?
 }
 
 /// Bricht das Vorlesen ab (der wartende `vorlesen_sagen` meldet „abgebrochen“).

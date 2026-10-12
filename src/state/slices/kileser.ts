@@ -20,6 +20,7 @@ import {
 } from '@core/ki/index';
 import type { BuchFrage, Id, KiAblage, LeserStand } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
+import { f, sprache, texte } from '../../i18n';
 import type { Store } from '../store';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from './ki';
 
@@ -84,7 +85,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
   /** Nur-Lese-Sicht auf das Projekt (harte Regel 1). Vorher Editor und Schreibvorgänge abwarten. */
   async function leser(): Promise<ProjektLeser> {
     const fs = get().fs;
-    if (!fs || !get().daten) throw new KiFehler('auftrag', 'Kein Projekt geöffnet.');
+    if (!fs || !get().daten) throw new KiFehler('auftrag', texte().state.fehler.keinProjekt);
     await get().editorSichern();
     await get().alleSpeichernAbwarten();
     return { lesen: (p) => fs.lesen(p), auflisten: (o) => fs.auflisten(o), existiert: (p) => fs.existiert(p) };
@@ -92,7 +93,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
 
   function transport() {
     const b = get().backend;
-    if (!b) throw new KiFehler('nicht_bereit', 'Die App ist noch nicht bereit.');
+    if (!b) throw new KiFehler('nicht_bereit', texte().state.fehler.nichtBereit);
     return b.ki;
   }
 
@@ -114,7 +115,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
       fragenSchaetzung: null,
 
       async schaetzen(kapitel, tiefencheck) {
-        return schaetzeAufgabe(await leser(), transport(), get().kiEinstellungen(), leserSimulationAufgabe(kapitel, { tiefencheck }));
+        return schaetzeAufgabe(await leser(), transport(), get().kiEinstellungen(), leserSimulationAufgabe(kapitel, { tiefencheck }), sprache());
       },
 
       async simulieren(kapitel, tiefencheck) {
@@ -126,6 +127,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
           const basisHash = hash(kapitel);
           const r = await fuehreAufgabeAus(await leser(), transport(), get().kiEinstellungen(), leserSimulationAufgabe(kapitel, { tiefencheck, basisHash }), {
             signal: steuerung.signal,
+            oberflaeche: sprache(),
           });
           // Kam die Antwort trotz Abbruch an (Transport kann nicht abbrechen): verwerfen, nichts speichern.
           if (steuerung.signal.aborted) return false;
@@ -168,7 +170,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
         if (vorhanden && vorhanden.schnell === schnell) return vorhanden.wert;
         try {
           const rolle = schnell ? 'erkennung' : 'pruefung';
-          const s = await schaetzeAufgabe(await leser(), transport(), get().kiEinstellungen(), frageAufgabe('Wo kommt das im Buch vor?', { rolle }));
+          const s = await schaetzeAufgabe(await leser(), transport(), get().kiEinstellungen(), frageAufgabe('Wo kommt das im Buch vor?', { rolle }), sprache());
           const preis = preisFuer(s.modell, rolle, s.eingabeTokens);
           const wert: FragenSchaetzung = {
             modell: s.modell,
@@ -188,17 +190,17 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
         const frage = roh.trim();
         if (!frage || zustand().frageLauf) return false;
         if (schreibAuftrag(frage)) {
-          setze({ frageFehler: { art: 'auftrag', text: 'Die KI schreibt keinen Text für das Buch. Frag nach Stellen, Figuren oder Ereignissen im Text.' } });
+          setze({ frageFehler: { art: 'auftrag', text: texte().state.kileser.schreibAuftrag } });
           return false;
         }
         setze({ frageLauf: { frage, seit: Date.now() }, frageFehler: null });
         try {
           const verlauf = (get().daten?.kiFragen?.eintraege ?? []).map((f) => ({ frage: f.frage, antwort: f.antwort }));
           const rolle = zustand().schnell ? 'erkennung' : 'pruefung';
-          const r = await fuehreAufgabeAus(await leser(), transport(), get().kiEinstellungen(), frageAufgabe(frage, { verlauf, rolle }));
+          const r = await fuehreAufgabeAus(await leser(), transport(), get().kiEinstellungen(), frageAufgabe(frage, { verlauf, rolle }), { oberflaeche: sprache() });
           if (r.ergebnis.verworfen) {
             // Formulierungsvorschlag oder nicht prüfbarer Text: nichts speichern, nur melden
-            setze({ frageFehler: { art: 'antwort', text: `Die Antwort wurde verworfen (${r.ergebnis.verworfen}). Es wurde nichts gespeichert.` } });
+            setze({ frageFehler: { art: 'antwort', text: f(texte().state.kileser.antwortVerworfen, { grund: r.ergebnis.verworfen }) } });
             return false;
           }
           const daten = get().daten;
@@ -215,7 +217,7 @@ export const createKiLeserSlice: StateCreator<Store, [], [], KiLeserSlice> = (se
           });
           const hinweis =
             r.ergebnis.verworfeneBelege > 0
-              ? `${r.ergebnis.verworfeneBelege === 1 ? '1 Beleg' : `${r.ergebnis.verworfeneBelege} Belege`} verworfen – nicht wörtlich im Buch.`
+              ? f(texte().state.kileser.belegeVerworfen, { n: r.ergebnis.verworfeneBelege })
               : '';
           if (hinweis) setze({ frageHinweise: { ...zustand().frageHinweise, [id]: hinweis } });
           // Die Antwort hat dieselbe Prefix-Länge wie die Schätzung; die nächste Frage liest den Cache.

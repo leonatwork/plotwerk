@@ -59,8 +59,11 @@ impl Anbieter {
         match wert.map(str::trim) {
             None | Some("" | "foundry") => Ok(Self::Foundry),
             Some("claude") => Ok(Self::Claude),
-            Some(andere) => Err(KiFehler::Einstellung(format!(
-                "Unbekannter KI-Anbieter „{andere}“. Erwartet wird „foundry“ oder „claude“."
+            Some(andere) => Err(KiFehler::Einstellung(Text::neu(
+                format!(
+                    "Unbekannter KI-Anbieter „{andere}“. Erwartet wird „foundry“ oder „claude“."
+                ),
+                format!("Unknown AI provider “{andere}”. Expected “foundry” or “claude”."),
             ))),
         }
     }
@@ -73,10 +76,41 @@ impl Anbieter {
     }
 }
 
+/// Meldung auf Deutsch und Englisch; welche angezeigt wird, entscheidet der Aufrufer
+/// (Oberflächensprache). `Display` zeigt die deutsche Fassung.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Text {
+    pub de: String,
+    pub en: String,
+}
+
+impl Text {
+    pub fn neu(de: impl Into<String>, en: impl Into<String>) -> Self {
+        Self {
+            de: de.into(),
+            en: en.into(),
+        }
+    }
+
+    pub fn in_sprache(&self, englisch: bool) -> &str {
+        if englisch {
+            &self.en
+        } else {
+            &self.de
+        }
+    }
+}
+
+impl fmt::Display for Text {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.de)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum KiFehler {
     /// Endpoint, Schlüssel oder Body sind unbrauchbar (kein Netzaufruf erfolgt).
-    Einstellung(String),
+    Einstellung(Text),
     /// Keine Verbindung (DNS, TLS, Netz weg).
     Verbindung(String),
     Zeitueberschreitung,
@@ -108,20 +142,30 @@ impl KiFehler {
     }
 }
 
-impl fmt::Display for KiFehler {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl KiFehler {
+    /// Meldung für die Oberfläche in der gewählten Sprache (Deutsch oder Englisch).
+    pub fn meldung(&self, englisch: bool) -> String {
+        let de = !englisch;
         match self {
-            KiFehler::Einstellung(m) => write!(f, "{m}"),
-            KiFehler::Verbindung(m) => write!(
-                f,
+            KiFehler::Einstellung(m) => m.in_sprache(englisch).to_string(),
+            KiFehler::Verbindung(m) if de => format!(
                 "Keine Verbindung zum KI-Endpoint. Bitte Internetverbindung und Endpoint-URL in den KI-Einstellungen prüfen. ({m})"
             ),
-            KiFehler::Zeitueberschreitung => write!(
-                f,
+            KiFehler::Verbindung(m) => format!(
+                "No connection to the AI endpoint. Please check the internet connection and the endpoint URL in the AI settings. ({m})"
+            ),
+            KiFehler::Zeitueberschreitung if de => format!(
                 "Die KI hat nicht innerhalb von {} Minuten geantwortet. Bitte später erneut versuchen.",
                 ZEITLIMIT.as_secs() / 60
             ),
-            KiFehler::Antwort(m) => write!(f, "Die Antwort des KI-Dienstes ist unbrauchbar: {m}"),
+            KiFehler::Zeitueberschreitung => format!(
+                "The AI did not answer within {} minutes. Please try again later.",
+                ZEITLIMIT.as_secs() / 60
+            ),
+            KiFehler::Antwort(m) if de => {
+                format!("Die Antwort des KI-Dienstes ist unbrauchbar: {m}")
+            }
+            KiFehler::Antwort(m) => format!("The response of the AI service is unusable: {m}"),
             KiFehler::Http {
                 status,
                 meldung,
@@ -129,52 +173,56 @@ impl fmt::Display for KiFehler {
             } => {
                 let zusatz = meldung
                     .as_deref()
-                    .map(|m| format!(" Meldung des Dienstes: {m}"))
-                    .unwrap_or_default();
-                match status {
-                    401 => write!(
-                        f,
-                        "Der API-Schlüssel wurde abgelehnt (401). Bitte den Schlüssel in den KI-Einstellungen prüfen."
-                    ),
-                    403 => write!(
-                        f,
-                        "Zugriff verweigert (403). Bitte Schlüssel und Berechtigungen prüfen (Foundry-Ressource bzw. Anthropic-Konto).{zusatz}"
-                    ),
-                    404 => write!(
-                        f,
-                        "Modell oder Endpoint nicht gefunden (404). Bitte in den KI-Einstellungen die Endpoint-URL und den Modell- bzw. Deployment-Namen prüfen.{zusatz}"
-                    ),
-                    408 | 504 => write!(
-                        f,
-                        "Zeitüberschreitung beim KI-Dienst ({status}). Bitte später erneut versuchen."
-                    ),
-                    413 => write!(
-                        f,
-                        "Die Anfrage ist zu groß für den KI-Dienst (413). Bitte einen kleineren Umfang prüfen."
-                    ),
-                    429 => {
-                        write!(
-                            f,
-                            "Zu viele Anfragen oder Kontingent erschöpft (429). Bitte später erneut versuchen"
-                        )?;
-                        match wiederholen_nach {
-                            Some(s) => write!(f, " – frühestens in {s} s."),
-                            None => write!(f, "."),
+                    .map(|m| {
+                        if de {
+                            format!(" Meldung des Dienstes: {m}")
+                        } else {
+                            format!(" Message from the service: {m}")
                         }
+                    })
+                    .unwrap_or_default();
+                let status = *status;
+                if de {
+                    match status {
+                        401 => "Der API-Schlüssel wurde abgelehnt (401). Bitte den Schlüssel in den KI-Einstellungen prüfen.".to_string(),
+                        403 => format!("Zugriff verweigert (403). Bitte Schlüssel und Berechtigungen prüfen (Foundry-Ressource bzw. Anthropic-Konto).{zusatz}"),
+                        404 => format!("Modell oder Endpoint nicht gefunden (404). Bitte in den KI-Einstellungen die Endpoint-URL und den Modell- bzw. Deployment-Namen prüfen.{zusatz}"),
+                        408 | 504 => format!("Zeitüberschreitung beim KI-Dienst ({status}). Bitte später erneut versuchen."),
+                        413 => "Die Anfrage ist zu groß für den KI-Dienst (413). Bitte einen kleineren Umfang prüfen.".to_string(),
+                        429 => match wiederholen_nach {
+                            Some(s) => format!("Zu viele Anfragen oder Kontingent erschöpft (429). Bitte später erneut versuchen – frühestens in {s} s."),
+                            None => "Zu viele Anfragen oder Kontingent erschöpft (429). Bitte später erneut versuchen.".to_string(),
+                        },
+                        529 => "Der KI-Dienst ist gerade überlastet (529). Bitte später erneut versuchen.".to_string(),
+                        500..=599 => format!("Der KI-Dienst meldet einen Fehler ({status}). Bitte später erneut versuchen.{zusatz}"),
+                        400 => format!("Der KI-Dienst hat die Anfrage abgelehnt (400).{zusatz}"),
+                        _ => format!("Unerwartete Antwort des KI-Dienstes ({status}).{zusatz}"),
                     }
-                    529 => write!(
-                        f,
-                        "Der KI-Dienst ist gerade überlastet (529). Bitte später erneut versuchen."
-                    ),
-                    500..=599 => write!(
-                        f,
-                        "Der KI-Dienst meldet einen Fehler ({status}). Bitte später erneut versuchen.{zusatz}"
-                    ),
-                    400 => write!(f, "Der KI-Dienst hat die Anfrage abgelehnt (400).{zusatz}"),
-                    _ => write!(f, "Unerwartete Antwort des KI-Dienstes ({status}).{zusatz}"),
+                } else {
+                    match status {
+                        401 => "The API key was rejected (401). Please check the key in the AI settings.".to_string(),
+                        403 => format!("Access denied (403). Please check the key and permissions (Foundry resource or Anthropic account).{zusatz}"),
+                        404 => format!("Model or endpoint not found (404). Please check the endpoint URL and the model or deployment name in the AI settings.{zusatz}"),
+                        408 | 504 => format!("The AI service timed out ({status}). Please try again later."),
+                        413 => "The request is too large for the AI service (413). Please check a smaller scope.".to_string(),
+                        429 => match wiederholen_nach {
+                            Some(s) => format!("Too many requests or quota exhausted (429). Please try again later – in {s} s at the earliest."),
+                            None => "Too many requests or quota exhausted (429). Please try again later.".to_string(),
+                        },
+                        529 => "The AI service is overloaded right now (529). Please try again later.".to_string(),
+                        500..=599 => format!("The AI service reports an error ({status}). Please try again later.{zusatz}"),
+                        400 => format!("The AI service rejected the request (400).{zusatz}"),
+                        _ => format!("Unexpected response from the AI service ({status}).{zusatz}"),
+                    }
                 }
             }
         }
+    }
+}
+
+impl fmt::Display for KiFehler {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.meldung(false))
     }
 }
 
@@ -189,9 +237,10 @@ pub fn basis_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler>
     if e.is_empty() {
         match anbieter {
             Anbieter::Claude => e = CLAUDE_API_ENDPOINT.to_string(),
-            Anbieter::Foundry => return Err(KiFehler::Einstellung(
-                "Kein KI-Endpoint eingetragen. Bitte in den KI-Einstellungen die Foundry-URL angeben (https://<ressource>.services.ai.azure.com/anthropic).".into(),
-            )),
+            Anbieter::Foundry => return Err(KiFehler::Einstellung(Text::neu(
+                "Kein KI-Endpoint eingetragen. Bitte in den KI-Einstellungen die Foundry-URL angeben (https://<ressource>.services.ai.azure.com/anthropic).",
+                "No AI endpoint set. Please enter the Foundry URL in the AI settings (https://<resource>.services.ai.azure.com/anthropic).",
+            ))),
         }
     }
     let beispiel = match anbieter {
@@ -205,8 +254,9 @@ pub fn basis_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler>
         }
     }
     let url = reqwest::Url::parse(&e).map_err(|_| {
-        KiFehler::Einstellung(format!(
-            "Der KI-Endpoint „{e}“ ist keine gültige URL. Erwartet wird z. B. {beispiel}."
+        KiFehler::Einstellung(Text::neu(
+            format!("Der KI-Endpoint „{e}“ ist keine gültige URL. Erwartet wird z. B. {beispiel}."),
+            format!("The AI endpoint “{e}” is not a valid URL. Expected e.g. {beispiel}."),
         ))
     })?;
     let lokal = matches!(url.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"));
@@ -214,16 +264,17 @@ pub fn basis_url(anbieter: Anbieter, endpoint: &str) -> Result<String, KiFehler>
         "https" => {}
         "http" if lokal => {}
         _ => {
-            return Err(KiFehler::Einstellung(
-                "Der KI-Endpoint muss mit https:// beginnen.".into(),
-            ))
+            return Err(KiFehler::Einstellung(Text::neu(
+                "Der KI-Endpoint muss mit https:// beginnen.",
+                "The AI endpoint must start with https://.",
+            )))
         }
     }
     if url.query().is_some() || url.fragment().is_some() || !url.username().is_empty() {
-        return Err(KiFehler::Einstellung(
-            "Der KI-Endpoint darf keine Parameter (?…), Anker (#…) oder Zugangsdaten enthalten."
-                .into(),
-        ));
+        return Err(KiFehler::Einstellung(Text::neu(
+            "Der KI-Endpoint darf keine Parameter (?…), Anker (#…) oder Zugangsdaten enthalten.",
+            "The AI endpoint must not contain parameters (?…), anchors (#…) or credentials.",
+        )));
     }
     Ok(e)
 }
@@ -257,7 +308,10 @@ pub fn beta_fuer(anbieter: Anbieter, body: &Value) -> Option<&'static str> {
 /// Body für `count_tokens`: nur die dort erlaubten Felder.
 pub fn token_body(body: &Value) -> Result<Value, KiFehler> {
     let objekt = body.as_object().ok_or_else(|| {
-        KiFehler::Einstellung("Der KI-Request-Body muss ein JSON-Objekt sein.".into())
+        KiFehler::Einstellung(Text::neu(
+            "Der KI-Request-Body muss ein JSON-Objekt sein.",
+            "The AI request body must be a JSON object.",
+        ))
     })?;
     let gefiltert: Map<String, Value> = objekt
         .iter()
@@ -275,14 +329,16 @@ pub fn kopfzeilen(
 ) -> Result<HeaderMap, KiFehler> {
     let schluessel = schluessel.trim();
     if schluessel.is_empty() {
-        return Err(KiFehler::Einstellung(
-            "Kein API-Schlüssel hinterlegt. Bitte in den KI-Einstellungen eintragen.".into(),
-        ));
+        return Err(KiFehler::Einstellung(Text::neu(
+            "Kein API-Schlüssel hinterlegt. Bitte in den KI-Einstellungen eintragen.",
+            "No API key stored. Please enter it in the AI settings.",
+        )));
     }
     let mut wert = HeaderValue::from_str(schluessel).map_err(|_| {
-        KiFehler::Einstellung(
-            "Der gespeicherte API-Schlüssel enthält ungültige Zeichen. Bitte neu eintragen.".into(),
-        )
+        KiFehler::Einstellung(Text::neu(
+            "Der gespeicherte API-Schlüssel enthält ungültige Zeichen. Bitte neu eintragen.",
+            "The stored API key contains invalid characters. Please enter it again.",
+        ))
     })?;
     wert.set_sensitive(true);
     let mut h = HeaderMap::new();
@@ -345,7 +401,12 @@ impl KiKlient {
             .connect_timeout(VERBINDUNGS_ZEITLIMIT)
             .user_agent(concat!("Plotwerk/", env!("CARGO_PKG_VERSION")))
             .build()
-            .map_err(|e| KiFehler::Einstellung(format!("HTTP-Client nicht verfügbar: {e}")))?;
+            .map_err(|e| {
+                KiFehler::Einstellung(Text::neu(
+                    format!("HTTP-Client nicht verfügbar: {e}"),
+                    format!("HTTP client not available: {e}"),
+                ))
+            })?;
         Ok(Self {
             http,
             wartezeiten: vec![Duration::from_secs(2), Duration::from_secs(8)],
@@ -421,9 +482,10 @@ impl KiKlient {
         body: &Value,
     ) -> Result<Value, KiFehler> {
         if !body.is_object() {
-            return Err(KiFehler::Einstellung(
-                "Der KI-Request-Body muss ein JSON-Objekt sein.".into(),
-            ));
+            return Err(KiFehler::Einstellung(Text::neu(
+                "Der KI-Request-Body muss ein JSON-Objekt sein.",
+                "The AI request body must be a JSON object.",
+            )));
         }
         let url = nachrichten_url(anbieter, endpoint)?;
         let kopf = kopfzeilen(anbieter, schluessel, body)?;
@@ -562,6 +624,36 @@ mod tests {
         };
         assert!(mit.to_string().contains("30 s"));
         assert_eq!(mit.wiederholen_nach(), Some(30));
+    }
+
+    #[test]
+    fn meldungen_englisch() {
+        let http = |s: u16, meldung: Option<&str>| {
+            KiFehler::Http {
+                status: s,
+                meldung: meldung.map(str::to_string),
+                wiederholen_nach: None,
+            }
+            .meldung(true)
+        };
+        assert!(http(401, None).starts_with("The API key was rejected (401)."));
+        assert!(http(404, Some("x")).ends_with("Message from the service: x"));
+        assert!(http(529, None).contains("overloaded"));
+        let ohne = basis_url(F, "").unwrap_err();
+        assert!(ohne.meldung(true).starts_with("No AI endpoint set."));
+        assert!(ohne
+            .to_string()
+            .starts_with("Kein KI-Endpoint eingetragen."));
+        assert!(Anbieter::aus_text(Some("openai"))
+            .unwrap_err()
+            .meldung(true)
+            .contains("Unknown AI provider “openai”"));
+        assert!(KiFehler::Zeitueberschreitung
+            .meldung(true)
+            .contains("did not answer within"));
+        assert!(KiFehler::Verbindung("dns".into())
+            .meldung(true)
+            .starts_with("No connection to the AI endpoint."));
     }
 
     #[test]

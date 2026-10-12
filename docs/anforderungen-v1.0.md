@@ -238,7 +238,7 @@ Verbindliche Vorlage sind die Mac-Screens im Mockup der Story-App, Reihe „Mac-
 | strang-dates | #C2405C | Dates und Begegnungen |
 | strang-warm | #A86A12 | Strang in Ocker |
 | strang-violett | #6A4C9C | Strang in Violett |
-| strang-organisation | #4A4A4F | Antagonist Organisation |
+| strang-organisation | #4A4A4F | Antagonist Konsortium |
 | real-gesichert | #2F6B45 | Realitätsebene gesichert |
 | real-offen | #A86A12 | Realitätsebene noch offen |
 | real-vage | #6A4C9C | Realitätsebene bewusst vage |
@@ -293,7 +293,7 @@ Die Phasen laufen nacheinander; die KI kommt bewusst zuletzt, weil Erkennung und
 
 - [ ] Endgültiger Name der App (Plotwerk ist Arbeitstitel)
 - [ ] Akt-Grenzen, Quintessenzen und Wendepunkte schreibt Leon selbst; die Werte im Mockup sind Vorschläge
-- [ ] Name, Mitglieder und erste Szene der Organisation
+- [ ] Name, Mitglieder und erste Szene des Konsortiums
 - [ ] Azure Foundry: Abo und EU-Region festlegen, Verfügbarkeit von Haiku, Sonnet und Opus im Tenant prüfen
 - [ ] Aufbewahrung der Schnappschüsse im Versionsverlauf (Vorschlag: 90 Tage, danach einer pro Woche)
 - [ ] Sprach-Hinweise wie Tempuswechsel schon in Phase 4 oder später

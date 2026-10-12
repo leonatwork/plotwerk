@@ -1,5 +1,6 @@
-/** invoke mit verständlichen Fehlern: Rust-Kommandos liefern deutsche Meldungen als String oder {meldung}. */
+/** invoke mit verständlichen Fehlern: Rust-Kommandos liefern Meldungen in der Oberflächensprache als String oder {meldung}. */
 import { invoke, type InvokeArgs, type InvokeOptions } from '@tauri-apps/api/core';
+import { f, texte } from '../../i18n';
 
 export class TauriFehler extends Error {
   /** HTTP-Status bei KI-Fehlern (401, 404, 429 …) */
@@ -22,7 +23,7 @@ export function alsFehler(e: unknown, kommando: string): Error {
     const f = e as { meldung: string; status?: number | null; wiederholenNach?: number | null };
     return new TauriFehler(f.meldung, f.status ?? undefined, f.wiederholenNach ?? undefined);
   }
-  return new TauriFehler(`${kommando} fehlgeschlagen: ${String(e)}`);
+  return new TauriFehler(f(texte().backend.aufrufFehlgeschlagen, { kommando, fehler: String(e) }));
 }
 
 export async function aufruf<T>(kommando: string, args?: InvokeArgs, optionen?: InvokeOptions): Promise<T> {

@@ -7,6 +7,7 @@
  * Widerspruch zu einer bewusst vagen Figur – die Antwortprüfung in core/ki muss sie verwerfen.
  */
 import { KiFehler, leseAufgabenKopf, leseBuchKontext, type GelesenerKontext, type KiTransport } from '@core/ki/index';
+import { texte } from '../../i18n';
 import { demoAntwortFuer } from './demoAntworten/index';
 
 type Kap = GelesenerKontext['kapitel'][number];
@@ -491,7 +492,7 @@ export function erstelleDemoKiTransport(optionen: DemoKiOptionen = {}): KiTransp
     },
     async senden(body, optionen = {}) {
       const { signal } = optionen;
-      if (signal?.aborted) throw new KiFehler('abgebrochen', 'Die Anfrage wurde abgebrochen.');
+      if (signal?.aborted) throw new KiFehler('abgebrochen', texte().backend.anfrageAbgebrochen);
       if (verzoegerung > 0) {
         // Wartezeit abbrechbar (wie eine echte Anfrage, die unterwegs abgebrochen wird)
         await new Promise<void>((erfuellt, verworfen) => {
@@ -502,7 +503,7 @@ export function erstelleDemoKiTransport(optionen: DemoKiOptionen = {}): KiTransp
           };
           const abbruch = () => {
             clearTimeout(timer);
-            verworfen(new KiFehler('abgebrochen', 'Die Anfrage wurde abgebrochen.'));
+            verworfen(new KiFehler('abgebrochen', texte().backend.anfrageAbgebrochen));
           };
           const timer = setTimeout(fertig, verzoegerung);
           signal?.addEventListener('abort', abbruch, { once: true });

@@ -8,6 +8,7 @@ import { EFFORT, formatiereUsd, kiEndpoint, type Schaetzung } from '@core/ki/ind
 import type { Id } from '@core/model/types';
 import { hauptfigur, offeneZeitVorschlaege, offeneZustandVorschlaege, zeitEinheiten } from '@core/zeit/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, useTexte, vergleich, zahl as zahlFormat, sprache } from '../../i18n';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import type { ZeitKiArt, ZeitKiAuftrag } from '../../state/slices/zeit';
 import { useStore } from '../../state/store';
@@ -16,7 +17,7 @@ import { ZeitVorschlagKarte, ZustandVorschlagKarte } from './gemeinsam';
 import '../ki/ki.css';
 import './zeitleiste.css';
 
-const zahl = (n: number) => Math.round(n).toLocaleString('de-DE');
+const zahl = (n: number) => zahlFormat(Math.round(n));
 
 function leseParam(param: unknown): { art?: ZeitKiArt; figur?: Id } {
   if (!param || typeof param !== 'object') return {};
@@ -28,12 +29,13 @@ function leseParam(param: unknown): { art?: ZeitKiArt; figur?: Id } {
 }
 
 function FehlerKasten({ fehler, einstellungen }: { fehler: KiFehlerAnzeige; einstellungen(): void }) {
+  const t = useTexte();
   return (
     <div className="pw-ki-hinweis" role="alert">
       <span>{fehler.text}</span>
       {fehler.art === 'nicht_bereit' && (
         <Button klein onClick={einstellungen}>
-          Einstellungen öffnen
+          {t.gemeinsam.einstellungenOeffnen}
         </Button>
       )}
     </div>
@@ -52,6 +54,8 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
   const kiEinstellungen = useStore((s) => s.kiEinstellungen);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const spurFigur = useStore((s) => s.zeit.figur);
+  const tt = useTexte();
+  const t = tt.zeitleiste.dialog;
 
   const p = leseParam(param);
   const [art, setArt] = useState<ZeitKiArt>(p.art ?? 'zeit');
@@ -100,15 +104,16 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
 
   if (!daten) {
     return (
-      <Dialog titel="Vorschlagen" onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>Schließen</Button>}>
-        <p className="pw-ki-text">Öffne zuerst ein Projekt.</p>
+      <Dialog titel={t.vorschlagen} onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>{tt.gemeinsam.schliessen}</Button>}>
+        <p className="pw-ki-text">{t.projektOeffnen}</p>
       </Dialog>
     );
   }
 
   const einstellungenOeffnen = () => oeffneDialog('ki-einstellungen');
   const endpointFehlt = backendArt === 'tauri' && !kiEndpoint(kiEinstellungen());
-  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? a.name.localeCompare(b.name, 'de') : a.rolle === 'haupt' ? -1 : 1));
+  const figuren = Object.values(daten.figuren).sort((a, b) => (a.rolle === b.rolle ? vergleich(a.name, b.name) : a.rolle === 'haupt' ? -1 : 1));
+  const zustandOffen = offeneZustandVorschlaege(daten).length;
   const zeitListe = offeneZeitVorschlaege(daten);
   const zustandListe = offeneZustandVorschlaege(daten, art === 'zustand' ? figur : undefined);
   const liste = art === 'zeit' ? zeitListe : zustandListe;
@@ -117,102 +122,98 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
 
   return (
     <Dialog
-      titel={art === 'zeit' ? 'Zeitpunkte vorschlagen' : 'Zustände vorschlagen'}
+      titel={art === 'zeit' ? t.titelZeit : t.titelZustand}
       breite={600}
       onSchliessen={schliessen}
       aktionen={
         lauf ? (
           <>
-            <Button onClick={schliessen}>Im Hintergrund weiter</Button>
-            <Button onClick={abbrechen}>Abbrechen</Button>
+            <Button onClick={schliessen}>{t.imHintergrund}</Button>
+            <Button onClick={abbrechen}>{tt.gemeinsam.abbrechen}</Button>
           </>
         ) : (
           <>
-            <Button onClick={schliessen}>Schließen</Button>
+            <Button onClick={schliessen}>{tt.gemeinsam.schliessen}</Button>
             <Button
               variante="primaer"
               disabled={!s || schaetzung.laedt || !!schaetzung.fehler || nichtsZuTun || endpointFehlt || (art === 'zustand' && !figur)}
               onClick={() => void vorschlagen(auftrag)}
             >
-              {ergebnis ? 'Erneut vorschlagen' : 'Vorschläge holen'}
+              {ergebnis ? t.erneut : t.holen}
             </Button>
           </>
         )
       }
     >
       <Segment<ZeitKiArt>
-        label="Art der Vorschläge"
+        label={t.art}
         rolle="tablist"
         voll
         groesse="hoch"
         wert={art}
         onChange={(w) => !lauf && setArt(w)}
         optionen={[
-          { wert: 'zeit', label: `Zeitpunkte${zeitListe.length ? ` · ${zeitListe.length} offen` : ''}` },
-          { wert: 'zustand', label: `Zustände${offeneZustandVorschlaege(daten).length ? ` · ${offeneZustandVorschlaege(daten).length} offen` : ''}` },
+          { wert: 'zeit', label: zeitListe.length ? f(t.zeitpunkteOffen, { n: zeitListe.length }) : t.zeitpunkte },
+          { wert: 'zustand', label: zustandOffen ? f(t.zustaendeOffen, { n: zustandOffen }) : t.zustaende },
         ]}
       />
-      <p className="pw-ki-text">
-        {art === 'zeit'
-          ? 'Die KI liest das Buch und schlägt für Kapitel und Szenen vor, wann sie spielen – jeweils mit wörtlichem Beleg. Deine eingetragenen Zeitpunkte bekommt sie nicht zu sehen. Du übernimmst oder verwirfst jeden Vorschlag einzeln.'
-          : `Die KI schlägt vor, in welchem Zustand ${figurName || 'eine Figur'} in den Kapiteln ist – nur mit wörtlichem Beleg und nur aus deiner Zustandsliste. Du entscheidest einzeln.`}
-      </p>
+      <p className="pw-ki-text">{art === 'zeit' ? t.erklaerungZeit : f(t.erklaerungZustand, { figur: figurName || t.eineFigur })}</p>
       {laufFehler && <FehlerKasten fehler={laufFehler} einstellungen={einstellungenOeffnen} />}
-      {endpointFehlt && <FehlerKasten fehler={{ art: 'nicht_bereit', text: 'Es ist noch kein Foundry-Endpoint eingetragen.' }} einstellungen={einstellungenOeffnen} />}
+      {endpointFehlt && <FehlerKasten fehler={{ art: 'nicht_bereit', text: t.endpointFehlt }} einstellungen={einstellungenOeffnen} />}
 
       {lauf ? (
         <div className="pw-ki-abschnitt" aria-live="polite">
-          <p className="pw-ki-text">{lauf.art === 'zeit' ? 'Die KI liest das Buch und sucht Zeitangaben …' : `Die KI liest das Buch und achtet auf ${daten.figuren[lauf.figur ?? '']?.name ?? 'die Figur'} …`}</p>
-          <div className="pw-ki-balken" role="progressbar" aria-label="Vorschläge werden geholt" aria-busy="true">
+          <p className="pw-ki-text">{lauf.art === 'zeit' ? t.liestZeit : f(t.liestZustand, { figur: daten.figuren[lauf.figur ?? '']?.name ?? t.dieFigur })}</p>
+          <div className="pw-ki-balken" role="progressbar" aria-label={t.werdenGeholt} aria-busy="true">
             <span style={{ width: '45%' }} />
           </div>
-          <p className="pw-ki-klein">Die KI ändert keinen Text. Gespeichert werden nur die Vorschläge.</p>
+          <p className="pw-ki-klein">{t.aendertNichts}</p>
         </div>
       ) : (
         <>
           <div className="pw-ki-abschnitt" style={{ gap: 8 }}>
             {art === 'zeit' ? (
               <Segment<'offen' | 'alle'>
-                label="Umfang"
+                label={t.umfang}
                 rolle="group"
                 voll
                 wert={umfang}
                 onChange={setUmfang}
                 optionen={[
-                  { wert: 'offen', label: `Ohne gesicherten Zeitpunkt · ${offeneKapitel.length}` },
-                  { wert: 'alle', label: `Alle Kapitel mit Text · ${mitText}` },
+                  { wert: 'offen', label: f(t.ohneGesichert, { n: offeneKapitel.length }) },
+                  { wert: 'alle', label: f(t.alleMitText, { n: mitText }) },
                 ]}
               />
             ) : (
               <label className="pw-feld" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <span className="pw-feld__label">Figur</span>
+                <span className="pw-feld__label">{t.figur}</span>
                 <select className="zl-select" value={figur ?? ''} onChange={(e) => setFigur(e.target.value || undefined)}>
-                  {!figur && <option value="">Figur wählen …</option>}
-                  {figuren.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.name}
+                  {!figur && <option value="">{t.figurWaehlen}</option>}
+                  {figuren.map((fig) => (
+                    <option key={fig.id} value={fig.id}>
+                      {fig.name}
                     </option>
                   ))}
                 </select>
               </label>
             )}
             <Checkbox checked={tiefencheck} onChange={(e) => setTiefencheck(e.target.checked)}>
-              Tiefencheck mit Opus – gründlicher, teurer
+              {t.tiefencheck}
             </Checkbox>
           </div>
           {ergebnis && ergebnis.art === art && (
             <div className="pw-ki-kasten" role="status">
               <div className="pw-ki-reihe" style={{ gap: 14, alignItems: 'baseline', flexWrap: 'wrap' }}>
-                <span className="pw-ki-zahl">{ergebnis.neu === 1 ? '1 Vorschlag neu' : `${ergebnis.neu} Vorschläge neu`}</span>
+                <span className="pw-ki-zahl">{f(t.neu, { n: ergebnis.neu })}</span>
                 <span className="pw-ki-text">
-                  {ergebnis.schonEingetragen > 0 && `${ergebnis.schonEingetragen} schon eingetragen · `}
-                  {ergebnis.bereitsEntschieden > 0 && `${ergebnis.bereitsEntschieden} schon verworfen · `}
-                  {ergebnis.verworfen.length === 1 ? '1 verworfen' : `${ergebnis.verworfen.length} verworfen`} · {formatiereUsd(ergebnis.kostenUsd)}
+                  {ergebnis.schonEingetragen > 0 && f(t.schonEingetragen, { n: ergebnis.schonEingetragen })}
+                  {ergebnis.bereitsEntschieden > 0 && f(t.schonVerworfen, { n: ergebnis.bereitsEntschieden })}
+                  {f(t.verworfen, { n: ergebnis.verworfen.length })} · {formatiereUsd(ergebnis.kostenUsd, sprache())}
                 </span>
               </div>
               {ergebnis.verworfen.length > 0 && (
                 <details className="pw-ki-details">
-                  <summary>Gründe für Verworfenes anzeigen</summary>
+                  <summary>{t.gruende}</summary>
                   <ul className="pw-ki-gruende">
                     {ergebnis.verworfen.map((v, i) => (
                       <li key={i}>{v.grund}</li>
@@ -225,25 +226,25 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
           {!ergebnis && (
             <div className="pw-ki-kasten" aria-live="polite">
               {nichtsZuTun ? (
-                <p className="pw-ki-text">Alle Kapitel mit Text haben schon einen gesicherten Zeitpunkt. Wähle „Alle Kapitel“, um trotzdem Vorschläge zu holen.</p>
+                <p className="pw-ki-text">{t.nichtsZuTun}</p>
               ) : art === 'zustand' && !figur ? (
-                <p className="pw-ki-text">Wähle eine Figur.</p>
+                <p className="pw-ki-text">{t.waehleFigur}</p>
               ) : schaetzung.fehler ? (
                 <FehlerKasten fehler={schaetzung.fehler} einstellungen={einstellungenOeffnen} />
               ) : !s || schaetzung.laedt ? (
-                <p className="pw-ki-klein">Tokens werden geschätzt …</p>
+                <p className="pw-ki-klein">{t.schaetzt}</p>
               ) : (
                 <dl className="pw-ki-zeilen">
-                  <dt>Modell</dt>
+                  <dt>{t.modell}</dt>
                   <dd>
                     {s.modell} · Effort {EFFORT[s.rolle]}
                   </dd>
-                  <dt>Eingabe</dt>
-                  <dd>≈ {zahl(s.eingabeTokens)} Tokens (ganzes Buch)</dd>
-                  <dt>Ausgabe</dt>
-                  <dd>≈ {zahl(s.ausgabeTokens)} Tokens</dd>
-                  <dt>Kosten</dt>
-                  <dd>{formatiereUsd(s.kostenUsd)} (grob, Listenpreis)</dd>
+                  <dt>{t.eingabe}</dt>
+                  <dd>{f(t.eingabeWert, { n: zahl(s.eingabeTokens) })}</dd>
+                  <dt>{t.ausgabe}</dt>
+                  <dd>{f(t.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
+                  <dt>{t.kosten}</dt>
+                  <dd>{f(t.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
                 </dl>
               )}
             </div>
@@ -251,8 +252,8 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
         </>
       )}
 
-      <section aria-label="Offene Vorschläge" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span className="zl-label">{liste.length ? `Offene Vorschläge · ${liste.length}` : 'Keine offenen Vorschläge'}</span>
+      <section aria-label={t.offeneVorschlaege} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <span className="zl-label">{liste.length ? f(t.offeneVorschlaegeAnzahl, { n: liste.length }) : t.keineOffenen}</span>
         {liste.length > 0 && (
           <div className="zl-liste">
             {art === 'zeit'
@@ -261,7 +262,7 @@ export default function ZeitVorschlagDialog({ param, schliessen }: DialogKompone
           </div>
         )}
       </section>
-      {backendArt === 'demo' && <p className="pw-ki-klein">Browser-Demo: Die Antworten kommen vom Demo-Transport, es gehen keine Daten ins Netz.</p>}
+      {backendArt === 'demo' && <p className="pw-ki-klein">{t.demo}</p>}
     </Dialog>
   );
 }

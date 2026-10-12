@@ -1,15 +1,15 @@
 /** F-02–F-05: Figurenkarte nach docs/design/screens/Figur.dc.html. */
 import { useId, useState, type CSSProperties } from 'react';
-import { bogenVon, sortiereStufen, stufeImKapitel, stufenOrt, stufenSpanne } from '@core/figuren/index';
+import { bogenVon, sortiereStufen, stufeImKapitel, stufenSpanne } from '@core/figuren/index';
 import type { Index } from '@core/index/index';
 import { hauptfigur } from '@core/zeit/zustand';
 import type { Beziehung, BeziehungsKategorie, Erwaehnung, Figur, FigurRolle, Hinweis, Id, ProjektDaten } from '@core/model/types';
+import { f as fmt, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
 import { indexBereit, notizAbsaetze } from '../../state/slices/planung';
 import { Avatar, bestaetigen as rueckfrage, Button, RealitaetsUmschalter, Segment, StrangPunkt } from '../../ui';
 import {
   Abschnitt,
-  ART_TEXT,
   artJeKapitel,
   ausschnitt,
   EntwurfBereich,
@@ -23,20 +23,11 @@ import {
 } from '../akte/gemeinsam';
 import { RechercheLeiste } from '../recherche/RechercheLeiste';
 import { VerweisFeld, VerweisText } from '../schreiben/VerweisFeld';
+import { kapKurz, stufenOrtText, zitat } from './texte';
 
 const grid2: CSSProperties = { display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: '8px 12px', alignItems: 'center', fontSize: 13 };
 const leise: CSSProperties = { color: 'var(--ink-quiet)' };
 const eingabe: CSSProperties = { width: '100%' };
-
-const HINWEIS_TYP: Record<Hinweis['typ'], string> = {
-  pruefen: 'Prüfen',
-  schreibweise: 'Schreibweise',
-  offener_faden: 'Offener Faden',
-  unbekannt: 'Unbekannt',
-  struktur: 'Struktur',
-  zeitleiste: 'Zeitleiste',
-  sprache: 'Sprache',
-};
 
 function namenDerFigur(f: Figur): string[] {
   return [f.name, ...f.aliase, ...(f.formen ?? [])].filter((n) => n.trim().length >= 2);
@@ -63,6 +54,7 @@ function Kopf({ f, daten, ersteStelle }: { f: Figur; daten: ProjektDaten; ersteS
   const aendern = useStore((s) => s.planung.figurAendern);
   const markiere = useStore((s) => s.markiere);
   const d = figurDarstellung(f, daten);
+  const t = useTexte().figuren;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
       <Avatar name={f.name} farbe={d.farbe} groesse={64} unsicher={d.unsicher} textfarbe={d.textfarbe} />
@@ -71,7 +63,7 @@ function Kopf({ f, daten, ersteStelle }: { f: Figur; daten: ProjektDaten; ersteS
           <EntwurfFeld
             key={`${f.id}-name`}
             className="pl-still"
-            aria-label="Name"
+            aria-label={t.karte.name}
             style={{ fontFamily: 'var(--schrift-titel)', fontWeight: 400, fontSize: 40, lineHeight: 1, width: 'calc(100% + 6px)', height: 42, padding: '0 5px', margin: '-1px 0 -1px -6px' }}
             wert={f.name}
             onSpeichern={(name) => name.trim() && void aendern(f.id, { name: name.trim() })}
@@ -81,8 +73,8 @@ function Kopf({ f, daten, ersteStelle }: { f: Figur; daten: ProjektDaten; ersteS
           <EntwurfFeld
             key={`${f.id}-kurz`}
             className="pl-still"
-            aria-label="Kurzbeschreibung"
-            placeholder="Kurzbeschreibung"
+            aria-label={t.karte.kurz}
+            placeholder={t.karte.kurz}
             style={{ fontSize: 13, color: 'var(--ink-quiet)', ...inhaltsBreite((f.kurz ?? '').length), maxWidth: 260, height: 18, padding: '0 5px', margin: '-1px 0 -1px -6px' }}
             wert={f.kurz ?? ''}
             onSpeichern={(kurz) => void aendern(f.id, { kurz: kurz.trim() || undefined })}
@@ -97,10 +89,10 @@ function Kopf({ f, daten, ersteStelle }: { f: Figur; daten: ProjektDaten; ersteS
       </div>
       <Button
         disabled={!ersteStelle}
-        title={ersteStelle ? undefined : 'Die Figur kommt im Text noch nicht vor'}
+        title={ersteStelle ? undefined : t.karte.nichtImText}
         onClick={() => ersteStelle && markiere({ kapitel: ersteStelle.kapitel, anker: stelleAnker(daten, ersteStelle.kapitel, ersteStelle.start, ersteStelle.ende, ersteStelle.treffer) })}
       >
-        Im Text zeigen
+        {t.imTextZeigen}
       </Button>
     </div>
   );
@@ -113,24 +105,26 @@ function AusDemText({ daten, index, nachKapitel }: { daten: ProjektDaten; index:
   const kapitel = daten.projekt.kapitel.filter((k) => nachKapitel.has(k));
   const genannt = [...new Set([...nachKapitel.values()].flat().map((e) => e.treffer))];
   const zeigen = (e: Erwaehnung) => markiere({ kapitel: e.kapitel, anker: stelleAnker(daten, e.kapitel, e.start, e.ende, e.treffer) });
+  const t = useTexte().figuren;
+  const ta = t.karte.ausDemText;
 
   return (
-    <Abschnitt titel="Aus dem Text" rechts={<span style={{ fontSize: 11, ...leise }}>nur lesen · mit Belegstelle</span>} hintergrund="var(--inspector)" label="Aus dem Text">
+    <Abschnitt titel={ta.titel} rechts={<span style={{ fontSize: 11, ...leise }}>{ta.rechts}</span>} hintergrund="var(--inspector)" label={ta.titel}>
       {!indexBereit(index) ? (
-        <span style={{ fontSize: 13, ...leise }}>Der Text wird noch ausgewertet …</span>
+        <span style={{ fontSize: 13, ...leise }}>{ta.auswerten}</span>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr) 54px', gap: '8px 12px', fontSize: 13, alignItems: 'baseline' }}>
           {kapitel.length === 0 && (
             <>
-              <span style={leise}>Im Text</span>
-              <span style={{ color: 'var(--accent-dark)' }}>noch nicht im Text</span>
+              <span style={leise}>{ta.imText}</span>
+              <span style={{ color: 'var(--accent-dark)' }}>{ta.nochNicht}</span>
               <span />
             </>
           )}
           {genannt.length > 0 && (
             <>
-              <span style={leise}>Genannt als</span>
-              <span>{genannt.map((g) => `»${g}«`).join(', ')}</span>
+              <span style={leise}>{ta.genanntAls}</span>
+              <span>{genannt.map((g) => zitat(g)).join(', ')}</span>
               <span />
             </>
           )}
@@ -140,13 +134,16 @@ function AusDemText({ daten, index, nachKapitel }: { daten: ProjektDaten; index:
             const anzahl = nachKapitel.get(k)!.length;
             return (
               <div key={k} style={{ display: 'contents' }}>
-                <span style={leise}>{i === 0 ? 'Erstes Vorkommen' : ART_TEXT[arten.get(k) ?? 'unbestimmt']}</span>
-                <button type="button" className="pl-link" style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.45 }} onClick={() => zeigen(e)} title="Stelle im Text zeigen">
-                  »{davor}
+                <span style={leise}>{i === 0 ? ta.erstesVorkommen : t.art[arten.get(k) ?? 'unbestimmt']}</span>
+                <button type="button" className="pl-link" style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.45 }} onClick={() => zeigen(e)} title={ta.stelleZeigen}>
+                  {t.zitatAuf}
+                  {davor}
                   <b>{treffer}</b>
-                  {danach}«{anzahl > 1 && <span style={leise}> · {anzahl}×</span>}
+                  {danach}
+                  {t.zitatZu}
+                  {anzahl > 1 && <span style={leise}> · {anzahl}×</span>}
                 </button>
-                <LinkKnopf onClick={() => zeigen(e)}>Kap. {nr(k)}</LinkKnopf>
+                <LinkKnopf onClick={() => zeigen(e)}>{kapKurz(nr(k))}</LinkKnopf>
               </div>
             );
           })}
@@ -159,6 +156,8 @@ function AusDemText({ daten, index, nachKapitel }: { daten: ProjektDaten; index:
 function FeldZeile({ f, feld, umbenennen, setUmbenennen }: { f: Figur; feld: string; umbenennen: boolean; setUmbenennen(v: string | null): void }) {
   const p = useStore((s) => s.planung);
   const id = useId();
+  const t = useTexte();
+  const tf = t.figuren.karte.feld;
   return (
     <div className="pl-zeile" style={{ display: 'contents' }}>
       {umbenennen ? (
@@ -167,13 +166,13 @@ function FeldZeile({ f, feld, umbenennen, setUmbenennen }: { f: Figur; feld: str
           onFocus={(e) => e.currentTarget.select()}
           className="pl-eingabe"
           style={{ height: 28, fontSize: 12 }}
-          aria-label="Feldname"
+          aria-label={tf.feldname}
           wert={feld}
           onSpeichern={(neu) => void p.planFeldUmbenennen(f.id, feld, neu)}
           onBlur={() => setUmbenennen(null)}
         />
       ) : (
-        <label htmlFor={id} style={{ ...leise, overflow: 'hidden', textOverflow: 'ellipsis' }} onDoubleClick={() => setUmbenennen(feld)} title="Doppelklick zum Umbenennen">
+        <label htmlFor={id} style={{ ...leise, overflow: 'hidden', textOverflow: 'ellipsis' }} onDoubleClick={() => setUmbenennen(feld)} title={tf.umbenennenTitel}>
           {feld}
         </label>
       )}
@@ -189,16 +188,16 @@ function FeldZeile({ f, feld, umbenennen, setUmbenennen }: { f: Figur; feld: str
           onSpeichern={(wert) => void p.planFeldSetzen(f.id, feld, wert)}
         />
         <span className="pl-hover-zeigen" style={{ position: 'absolute', right: 4, top: 5, display: 'flex', gap: 2, background: 'var(--surface)', borderRadius: 4 }}>
-          <button type="button" className="pl-zeile-weg" style={{ opacity: 1 }} aria-label={`${feld} umbenennen`} title="Umbenennen" onClick={() => setUmbenennen(feld)}>
+          <button type="button" className="pl-zeile-weg" style={{ opacity: 1 }} aria-label={fmt(tf.umbenennenLabel, { feld })} title={tf.umbenennen} onClick={() => setUmbenennen(feld)}>
             ✎
           </button>
           <button
             type="button"
             className="pl-zeile-weg"
             style={{ opacity: 1 }}
-            aria-label={`Feld ${feld} löschen`}
-            title="Feld löschen"
-            onClick={async () => (!f.plan[feld] || (await rueckfrage(`Feld „${feld}“ mit Inhalt löschen?`, { knopf: 'Löschen' }))) && void p.planFeldEntfernen(f.id, feld)}
+            aria-label={fmt(tf.loeschenLabel, { feld })}
+            title={tf.loeschen}
+            onClick={async () => (!f.plan[feld] || (await rueckfrage(fmt(tf.loeschenFrage, { feld }), { knopf: t.gemeinsam.loeschen }))) && void p.planFeldEntfernen(f.id, feld)}
           >
             ×
           </button>
@@ -213,33 +212,35 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const oeffne = useStore((s) => s.oeffne);
   const [umbenennen, setUmbenennen] = useState<string | null>(null);
   const uid = useId();
-  const gruppen = Object.values(daten.gruppen).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+  const t = useTexte();
+  const tp = t.figuren.karte.planung;
+  const gruppen = Object.values(daten.gruppen).sort((a, b) => vergleich(a.name, b.name));
   return (
-    <Abschnitt titel="Deine Planung" rechts={<span style={{ fontSize: 11, ...leise }}>frei bearbeitbar</span>} label="Deine Planung">
+    <Abschnitt titel={tp.titel} rechts={<span style={{ fontSize: 11, ...leise }}>{tp.rechts}</span>} label={tp.titel}>
       <div style={grid2}>
-        <span style={leise}>Existenz</span>
-        <RealitaetsUmschalter variante="segment" label="Existenz" wert={f.existenz} onChange={(existenz) => void p.figurAendern(f.id, { existenz })} />
-        <span style={leise}>Rolle</span>
+        <span style={leise}>{tp.existenz}</span>
+        <RealitaetsUmschalter variante="segment" label={tp.existenz} wert={f.existenz} onChange={(existenz) => void p.figurAendern(f.id, { existenz })} />
+        <span style={leise}>{tp.rolle}</span>
         <Segment<FigurRolle>
           rolle="group"
-          label="Rolle"
+          label={tp.rolle}
           voll
           wert={f.rolle}
           onChange={(rolle) => void p.figurAendern(f.id, { rolle })}
           optionen={[
-            { wert: 'haupt', label: 'Hauptfigur' },
-            { wert: 'neben', label: 'Nebenfigur' },
+            { wert: 'haupt', label: t.figuren.rolle.haupt },
+            { wert: 'neben', label: t.figuren.rolle.neben },
           ]}
         />
-        <label htmlFor={`${uid}-aliase`} style={leise} title="Weitere Namen, unter denen die Figur im Text erkannt wird">
-          Auch genannt
+        <label htmlFor={`${uid}-aliase`} style={leise} title={tp.auchGenanntTitel}>
+          {tp.auchGenannt}
         </label>
         <EntwurfFeld
           key={`${f.id}-aliase`}
           id={`${uid}-aliase`}
           className="pl-eingabe"
           style={eingabe}
-          placeholder="Aliase, mit Komma getrennt"
+          placeholder={tp.aliasePlatzhalter}
           wert={f.aliase.join(', ')}
           onSpeichern={(t) =>
             void p.figurAendern(f.id, {
@@ -248,7 +249,7 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
           }
         />
         <label htmlFor={`${uid}-gruppe`} style={leise}>
-          Gruppe
+          {tp.gruppe}
         </label>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
           <select
@@ -258,7 +259,7 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
             value={f.gruppe ?? ''}
             onChange={(e) => void p.figurAendern(f.id, { gruppe: e.target.value || null })}
           >
-            <option value="">keine</option>
+            <option value="">{t.gemeinsam.keine}</option>
             {gruppen.map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
@@ -267,7 +268,7 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
           </select>
           {f.gruppe && daten.gruppen[f.gruppe] && (
             <LinkKnopf fett onClick={() => oeffne('beziehungen', { gruppe: f.gruppe!, figur: f.id })}>
-              im Netz
+              {tp.imNetz}
             </LinkKnopf>
           )}
         </span>
@@ -279,9 +280,9 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
         type="button"
         className="pl-link"
         style={{ alignSelf: 'flex-start', height: 30, padding: '0 10px', fontWeight: 600 }}
-        onClick={() => void p.planFeldHinzufuegen(f.id, 'Neues Feld').then((name) => setUmbenennen(name))}
+        onClick={() => void p.planFeldHinzufuegen(f.id, tp.neuesFeld).then((name) => setUmbenennen(name))}
       >
-        + Eigenes Feld
+        {tp.eigenesFeld}
       </button>
     </Abschnitt>
   );
@@ -291,14 +292,16 @@ function Auftritte({ daten, nachKapitel, farbe }: { daten: ProjektDaten; nachKap
   const markiere = useStore((s) => s.markiere);
   const arten = artJeKapitel([...nachKapitel.values()].flat());
   const reihenfolge = daten.projekt.kapitel;
+  const t = useTexte().figuren;
+  const tau = t.karte.auftritte;
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Auftritte">
-      <strong style={{ fontSize: 14 }}>Auftritte</strong>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label={tau.titel}>
+      <strong style={{ fontSize: 14 }}>{tau.titel}</strong>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, reihenfolge.length)}, minmax(0, 1fr))`, gap: 4 }}>
         {reihenfolge.map((k, i) => {
           const art = arten.get(k);
           const ohneText = !daten.kapitel[k]?.text.trim();
-          const titel = `Kap. ${i + 1} ${daten.plaene[k]?.titel ?? ''} · ${art ? ART_TEXT[art] : ohneText ? 'noch kein Text' : '–'}`;
+          const titel = `${kapKurz(i + 1)} ${daten.plaene[k]?.titel ?? ''} · ${art ? t.art[art] : ohneText ? tau.keinText : '–'}`;
           const stil: CSSProperties = {
             height: 34,
             borderRadius: 4,
@@ -335,7 +338,7 @@ function Auftritte({ daten, nachKapitel, farbe }: { daten: ProjektDaten; nachKap
           );
         })}
       </div>
-      <span style={{ fontSize: 12, ...leise }}>Gefüllt: tritt auf · umrandet: nur per Nachricht · gestrichelt: nur erwähnt · hell: im Text, Art noch offen</span>
+      <span style={{ fontSize: 12, ...leise }}>{tau.legende}</span>
     </section>
   );
 }
@@ -354,6 +357,7 @@ function Bogen({ f, daten, farbe }: { f: Figur; daten: ProjektDaten; farbe: stri
   const kapitel = gewaehltesKapitel && daten.projekt.kapitel.includes(gewaehltesKapitel) ? gewaehltesKapitel : undefined;
   const nr = kapitel ? daten.projekt.kapitel.indexOf(kapitel) + 1 : 0;
   const aktuell = kapitel ? stufeImKapitel(daten, bogen, kapitel) : [...stufen].reverse().find((s) => stufenSpanne(daten, s));
+  const tb = useTexte().figuren.karte.bogen;
   const zuBoegen = (stufe?: Id) => {
     oeffne('figuren', { figur: f.id });
     waehleStufe(stufe ? { figur: f.id, stufe } : null);
@@ -361,24 +365,24 @@ function Bogen({ f, daten, farbe }: { f: Figur; daten: ProjektDaten; farbe: stri
   };
   return (
     <Abschnitt
-      titel="Bogen"
+      titel={tb.titel}
       rechts={
         <LinkKnopf fett onClick={() => zuBoegen()}>
-          Bögen öffnen
+          {tb.oeffnen}
         </LinkKnopf>
       }
-      label="Bogen"
+      label={tb.titel}
     >
       {stufen.length === 0 ? (
         <span style={{ fontSize: 13, ...leise }}>
-          Noch keine Entwicklungsstufen geplant.{' '}
+          {tb.leer}{' '}
           <LinkKnopf fett style={{ fontSize: 13 }} onClick={() => zuBoegen()}>
-            Bogen anlegen
+            {tb.anlegen}
           </LinkKnopf>
         </span>
       ) : (
         <>
-          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }} aria-label={`Bogen von ${f.name}`}>
+          <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }} aria-label={fmt(tb.listeLabel, { name: f.name })}>
             {stufen.map((s, i) => {
               const ist = s.id === aktuell?.id;
               const n = s.belege.length;
@@ -396,25 +400,24 @@ function Bogen({ f, daten, farbe }: { f: Figur; daten: ProjektDaten; farbe: stri
                     className="pl-link"
                     aria-current={ist ? 'step' : undefined}
                     style={{ fontSize: 13, color: 'var(--ink)', fontWeight: ist ? 700 : 400, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    title={`${s.titel} · ${stufenOrt(daten, s)}${s.notiz ? `\n${s.notiz}` : ''} – im Tab „Bögen“ öffnen`}
+                    title={fmt(tb.stufeTitel, { text: `${s.titel} · ${stufenOrtText(daten, s)}${s.notiz ? `\n${s.notiz}` : ''}` })}
                     onClick={() => zuBoegen(s.id)}
                   >
                     {s.titel}
                   </button>
                   {ist && (
                     <span className="pl-etikett" style={{ background: 'var(--chip-accent)', color: 'var(--accent-dark)' }}>
-                      aktuell
+                      {tb.aktuell}
                     </span>
                   )}
-                  {n > 0 && <span style={{ fontSize: 11, ...leise, whiteSpace: 'nowrap' }}>{n === 1 ? '1 Beleg' : `${n} Belege`}</span>}
-                  <span style={{ fontSize: 11, ...leise, whiteSpace: 'nowrap', minWidth: 44, textAlign: 'right' }}>{stufenOrt(daten, s)}</span>
+                  {n > 0 && <span style={{ fontSize: 11, ...leise, whiteSpace: 'nowrap' }}>{fmt(tb.belege, { n })}</span>}
+                  <span style={{ fontSize: 11, ...leise, whiteSpace: 'nowrap', minWidth: 44, textAlign: 'right' }}>{stufenOrtText(daten, s)}</span>
                 </li>
               );
             })}
           </ol>
           <span style={{ fontSize: 11, ...leise }}>
-            {kapitel ? (aktuell ? `Aktuell: die Stufe, die in Kap. ${nr} gilt.` : `In Kap. ${nr} ist noch keine Stufe erreicht.`) : 'Aktuell: die letzte geplante Stufe.'} Klick
-            öffnet die Stufe im Tab „Bögen“.
+            {kapitel ? fmt(aktuell ? tb.giltIn : tb.keineIn, { nr }) : tb.letzte} {tb.klick}
           </span>
         </>
       )}
@@ -430,47 +433,49 @@ function Notizen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const anmerkungen = daten.anmerkungen.filter((a) => a.ziel?.typ === 'figur' && a.ziel.id === f.id);
   const eigene = notizAbsaetze(f.notizen);
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
+  const t = useTexte();
+  const tn = t.figuren.karte.notizen;
   const hinzufuegen = () => {
     if (!neu.trim()) return;
     void p.figurNotizHinzufuegen(f.id, neu);
     setNeu('');
   };
   return (
-    <Abschnitt titel="Notizen" label="Notizen">
+    <Abschnitt titel={tn.titel} label={tn.titel}>
       {anmerkungen.map((a) => (
         <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '10px 12px', borderRadius: 8, background: 'var(--accent-flaeche)', fontSize: 13, lineHeight: 1.45 }}>
           <span style={{ whiteSpace: 'pre-wrap' }}>
             <VerweisText text={a.notiz} />
           </span>
           <LinkKnopf onClick={() => markiere({ kapitel: a.anker.kapitel, anker: a.anker })}>
-            angeheftet an Kap. {nr(a.anker.kapitel)} · »{a.anker.exakt}«
+            {fmt(tn.angeheftet, { nr: nr(a.anker.kapitel), zitat: zitat(a.anker.exakt) })}
           </LinkKnopf>
         </div>
       ))}
-      {eigene.map((t, i) => (
+      {eigene.map((notiz, i) => (
         <div
-          key={`${i}-${t.slice(0, 12)}`}
+          key={`${i}-${notiz.slice(0, 12)}`}
           className="pl-zeile"
           style={{ display: 'flex', gap: 6, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, background: 'var(--inspector)', fontSize: 13, lineHeight: 1.45 }}
         >
           <span style={{ flex: 1, whiteSpace: 'pre-wrap', minWidth: 0 }}>
-            <VerweisText text={t} />
+            <VerweisText text={notiz} />
           </span>
-          <button type="button" className="pl-zeile-weg" aria-label="Notiz löschen" onClick={async () => (await rueckfrage('Notiz löschen?', { knopf: 'Löschen' })) && void p.figurNotizEntfernen(f.id, i)}>
+          <button type="button" className="pl-zeile-weg" aria-label={tn.loeschen} onClick={async () => (await rueckfrage(tn.loeschenFrage, { knopf: t.gemeinsam.loeschen })) && void p.figurNotizEntfernen(f.id, i)}>
             ×
           </button>
         </div>
       ))}
       <label htmlFor={`${uid}-notiz`} style={{ fontSize: 12, ...leise }}>
-        Neue Notiz
+        {tn.neu}
       </label>
       <VerweisFeld
         id={`${uid}-notiz`}
         feldKlasse="pl-bereich"
         feldStil={{ lineHeight: 'normal' }}
         zeilen={3}
-        label="Neue Notiz"
-        placeholder="Idee, Frage, Detail … mit [[ verlinken"
+        label={tn.neu}
+        placeholder={tn.platzhalter}
         kontext={{ typ: 'figur', id: f.id }}
         wert={neu}
         onChange={setNeu}
@@ -483,9 +488,9 @@ function Notizen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
       />
       {neu.trim() && (
         <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, ...leise }}>⌘↩ speichert</span>
+          <span style={{ fontSize: 11, ...leise }}>{tn.tastatur}</span>
           <Button klein variante="primaer" onClick={hinzufuegen}>
-            Notiz speichern
+            {tn.speichern}
           </Button>
         </span>
       )}
@@ -496,25 +501,26 @@ function Notizen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
 function Wahrheit({ f }: { f: Figur }) {
   const p = useStore((s) => s.planung);
   const uid = useId();
+  const tw = useTexte().figuren.karte.wahrheit;
   return (
     <Abschnitt
       titel={
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <IconSchloss />
-          Wahrheit hinter den Kulissen
+          {tw.titel}
         </span>
       }
-      label="Wahrheit hinter den Kulissen"
+      label={tw.titel}
     >
-      <span style={{ fontSize: 11, marginTop: -6, ...leise }}>Nur für dich – geht nie an die KI.</span>
+      <span style={{ fontSize: 11, marginTop: -6, ...leise }}>{tw.hinweis}</span>
       <EntwurfBereich
         key={`${f.id}-wahrheit`}
         id={`${uid}-wahrheit`}
-        aria-label="Wahrheit hinter den Kulissen"
+        aria-label={tw.titel}
         className="pl-bereich"
         autoHoehe
         rows={3}
-        placeholder="Was wirklich hinter der Figur steckt – erscheint nie im Text und in keiner Analyse."
+        placeholder={tw.platzhalter}
         verweise={{ typ: 'figur', id: f.id }}
         wert={f.wahrheit}
         onSpeichern={(wahrheit) => void p.figurAendern(f.id, { wahrheit })}
@@ -523,13 +529,15 @@ function Wahrheit({ f }: { f: Figur }) {
   );
 }
 
-const KATEGORIE_TEXT: Record<BeziehungsKategorie, string> = { arbeit: 'Arbeit', dates: 'Dates', sonstige: 'Sonstige' };
+const KATEGORIEN: BeziehungsKategorie[] = ['arbeit', 'dates', 'sonstige'];
 
 function Beziehungen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const p = useStore((s) => s.planung);
   const oeffne = useStore((s) => s.oeffne);
   const [form, setForm] = useState<{ zu: Id; art: string; kategorie: BeziehungsKategorie; abKapitel: Id } | null>(null);
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
+  const t = useTexte();
+  const tz = t.figuren.karte.beziehungen;
   type Zeile = { von: Id; index: number; b: Beziehung; anderer: Id };
   const zeilen: Zeile[] = [
     ...f.beziehungen.map((b, index) => ({ von: f.id, index, b, anderer: b.zu })),
@@ -540,28 +548,28 @@ function Beziehungen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   const mitgliedIn = Object.values(daten.gruppen).filter((g) => g.id === f.gruppe || g.mitglieder.includes(f.id));
   const andere = Object.values(daten.figuren)
     .filter((x) => x.id !== f.id)
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => vergleich(a.name, b.name));
 
   return (
     <Abschnitt
-      titel="Beziehungen"
+      titel={tz.titel}
       rechts={
         <LinkKnopf fett onClick={() => oeffne('beziehungen', { figur: f.id })}>
-          Netz öffnen
+          {tz.netzOeffnen}
         </LinkKnopf>
       }
-      label="Beziehungen"
+      label={tz.titel}
     >
       {mitgliedIn.map((g) => (
         <span key={g.id} style={{ fontSize: 13 }}>
-          Gruppe:{' '}
+          {tz.gruppe}{' '}
           <LinkKnopf fett style={{ fontSize: 13 }} onClick={() => oeffne('beziehungen', { gruppe: g.id, figur: f.id })}>
             {g.name}
           </LinkKnopf>
-          {g.typ === 'antagonist' && <span style={leise}> · Antagonist</span>}
+          {g.typ === 'antagonist' && <span style={leise}> · {tz.antagonist}</span>}
         </span>
       ))}
-      {zeilen.length === 0 && mitgliedIn.length === 0 && <span style={{ fontSize: 13, ...leise }}>Noch keine Beziehungen.</span>}
+      {zeilen.length === 0 && mitgliedIn.length === 0 && <span style={{ fontSize: 13, ...leise }}>{tz.leer}</span>}
       {zeilen.map((z) => {
         const x = daten.figuren[z.anderer];
         if (!x) return null;
@@ -574,14 +582,14 @@ function Beziehungen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
                 {x.name}
               </button>{' '}
               · {z.b.art || '–'}
-              {z.b.unsicher && <span style={leise}> (unsicher)</span>}
+              {z.b.unsicher && <span style={leise}> {tz.unsicher}</span>}
             </span>
-            {z.b.abKapitel && <span style={{ fontSize: 11, ...leise, whiteSpace: 'nowrap' }}>seit Kap. {nr(z.b.abKapitel)}</span>}
+            {z.b.abKapitel && <span style={{ fontSize: 11, ...leise, whiteSpace: 'nowrap' }}>{fmt(tz.seit, { nr: nr(z.b.abKapitel) })}</span>}
             <button
               type="button"
               className="pl-zeile-weg"
-              aria-label="Beziehung entfernen"
-              onClick={async () => (await rueckfrage(`Beziehung „${z.b.art}“ entfernen?`, { knopf: 'Entfernen' })) && void p.beziehungEntfernen(z.von, z.index)}
+              aria-label={tz.entfernen}
+              onClick={async () => (await rueckfrage(fmt(tz.entfernenFrage, { art: z.b.art }), { knopf: t.gemeinsam.entfernen })) && void p.beziehungEntfernen(z.von, z.index)}
             >
               ×
             </button>
@@ -604,37 +612,37 @@ function Beziehungen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
           }}
           onKeyDown={(e) => e.key === 'Escape' && setForm(null)}
         >
-          <select className="pl-select" aria-label="Zu Figur" value={form.zu} onChange={(e) => setForm({ ...form, zu: e.target.value })}>
+          <select className="pl-select" aria-label={tz.zuFigur} value={form.zu} onChange={(e) => setForm({ ...form, zu: e.target.value })}>
             {andere.map((x) => (
               <option key={x.id} value={x.id}>
                 {x.name}
               </option>
             ))}
           </select>
-          <input autoFocus className="pl-eingabe" aria-label="Art der Beziehung" placeholder="Art, z. B. Kollege, Verabredung" value={form.art} onChange={(e) => setForm({ ...form, art: e.target.value })} />
+          <input autoFocus className="pl-eingabe" aria-label={tz.art} placeholder={tz.artPlatzhalter} value={form.art} onChange={(e) => setForm({ ...form, art: e.target.value })} />
           <span style={{ display: 'flex', gap: 6 }}>
-            <select className="pl-select" style={{ flex: 1 }} aria-label="Kategorie" value={form.kategorie} onChange={(e) => setForm({ ...form, kategorie: e.target.value as BeziehungsKategorie })}>
-              {(Object.keys(KATEGORIE_TEXT) as BeziehungsKategorie[]).map((k) => (
+            <select className="pl-select" style={{ flex: 1 }} aria-label={tz.kategorie} value={form.kategorie} onChange={(e) => setForm({ ...form, kategorie: e.target.value as BeziehungsKategorie })}>
+              {KATEGORIEN.map((k) => (
                 <option key={k} value={k}>
-                  {KATEGORIE_TEXT[k]}
+                  {tz.kategorien[k]}
                 </option>
               ))}
             </select>
-            <select className="pl-select" style={{ flex: 1 }} aria-label="Gilt ab Kapitel" value={form.abKapitel} onChange={(e) => setForm({ ...form, abKapitel: e.target.value })}>
-              <option value="">von Anfang an</option>
+            <select className="pl-select" style={{ flex: 1 }} aria-label={tz.abKapitel} value={form.abKapitel} onChange={(e) => setForm({ ...form, abKapitel: e.target.value })}>
+              <option value="">{tz.vonAnfang}</option>
               {daten.projekt.kapitel.map((k, i) => (
                 <option key={k} value={k}>
-                  ab Kap. {i + 1}
+                  {fmt(tz.ab, { nr: i + 1 })}
                 </option>
               ))}
             </select>
           </span>
           <span style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
             <Button klein onClick={() => setForm(null)}>
-              Abbrechen
+              {t.gemeinsam.abbrechen}
             </Button>
             <Button klein type="submit" variante="primaer" disabled={!form.art.trim()}>
-              Hinzufügen
+              {t.gemeinsam.hinzufuegen}
             </Button>
           </span>
         </form>
@@ -646,7 +654,7 @@ function Beziehungen({ f, daten }: { f: Figur; daten: ProjektDaten }) {
             style={{ alignSelf: 'flex-start', height: 30, padding: '0 10px', fontWeight: 600 }}
             onClick={() => setForm({ zu: andere.find((x) => x.id === hauptfigur(daten))?.id ?? andere[0]!.id, art: '', kategorie: 'sonstige', abKapitel: '' })}
           >
-            + Beziehung
+            {tz.neu}
           </button>
         )
       )}
@@ -658,24 +666,25 @@ function Hinweise({ f, daten, index }: { f: Figur; daten: ProjektDaten; index: I
   const markiere = useStore((s) => s.markiere);
   const oeffne = useStore((s) => s.oeffne);
   const liste = hinweiseFuerFigur(index.hinweise, f);
+  const th = useTexte().figuren.karte.hinweise;
   if (liste.length === 0) return null;
   const nr = (k: Id) => daten.projekt.kapitel.indexOf(k) + 1;
   return (
-    <Abschnitt titel="Hinweise" rechts={<span style={{ fontSize: 11, ...leise }}>{liste.length} offen</span>} label="Hinweise zur Figur">
+    <Abschnitt titel={th.titel} rechts={<span style={{ fontSize: 11, ...leise }}>{fmt(th.offen, { n: liste.length })}</span>} label={th.label}>
       {liste.map((h) => (
         <div key={h.schluessel} style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingBottom: 8, borderBottom: '1px solid var(--line-faint)' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <span className="pl-etikett" style={{ background: 'var(--chip)', color: 'var(--ink-soft)' }}>
-              {HINWEIS_TYP[h.typ]}
+              {th.typ[h.typ]}
             </span>
             {h.offen && (
               <span className="pl-etikett" style={{ background: 'var(--ruhend)', color: 'var(--warm-dark)' }}>
-                offen
+                {th.offenEtikett}
               </span>
             )}
             {h.plan?.figur === f.id && (
               <span className="pl-etikett" style={{ background: 'var(--chip-accent)', color: 'var(--accent-dark)' }}>
-                {h.plan.feld ? `Plan · ${h.plan.feld}` : 'Plan'}
+                {h.plan.feld ? fmt(th.planFeld, { feld: h.plan.feld }) : th.plan}
               </span>
             )}
           </span>
@@ -684,7 +693,7 @@ function Hinweise({ f, daten, index }: { f: Figur; daten: ProjektDaten; index: I
           </button>
           {h.zitate.map((z, i) => (
             <LinkKnopf key={i} onClick={() => markiere({ kapitel: z.kapitel, anker: zitatAnker(daten, z.kapitel, z.text) })}>
-              Kap. {nr(z.kapitel)} · »{z.text}«
+              {kapKurz(nr(z.kapitel))} · {zitat(z.text)}
             </LinkKnopf>
           ))}
         </div>
@@ -695,6 +704,7 @@ function Hinweise({ f, daten, index }: { f: Figur; daten: ProjektDaten; index: I
 
 export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten; index: Index }) {
   const entfernen = useStore((s) => s.entferneFigur);
+  const t = useTexte();
   const f = daten.figuren[id];
   if (!f) return null;
   const liste = erwaehnungenVon(index, 'figur', id);
@@ -730,9 +740,9 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
             type="button"
             className="pl-link"
             style={{ alignSelf: 'flex-start', color: 'var(--ink-quiet)' }}
-            onClick={async () => (await rueckfrage(`Figur „${f.name}“ löschen? Vorher wird ein Schnappschuss angelegt.`, { knopf: 'Löschen' })) && void entfernen(f.id)}
+            onClick={async () => (await rueckfrage(fmt(t.figuren.karte.loeschenFrage, { name: f.name }), { knopf: t.gemeinsam.loeschen })) && void entfernen(f.id)}
           >
-            Figur löschen
+            {t.figuren.karte.loeschen}
           </button>
         </div>
       </div>

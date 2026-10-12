@@ -4,7 +4,8 @@
  * Vorschläge nimmt nur Leon in die Liste auf; ignorierte Wörter meldet die Heuristik nie wieder.
  */
 import type { Id, Marke, Markenliste } from '../model/types';
-import { saetze, STOPPWOERTER, woerter, type Wort } from './woerter';
+import { fmt, localeVon, texteJe, type Sprache } from '../i18n';
+import { istStoppwort, saetze, woerter, type Wort } from './woerter';
 
 export interface MarkenStelle {
   start: number;
@@ -27,12 +28,45 @@ export interface MarkenKandidat {
   stellen: MarkenStelle[];
 }
 
-export const GRUND_TEXT: Record<KandidatGrund, string> = {
-  versalien: 'in Versalien',
-  eigenname: 'mehrteiliger Eigenname',
-  muster: 'typische Schreibweise',
-  bekannt: 'bekannte Marke',
-};
+/** Texte der Marken-Werkzeuge für die Oberfläche (Gründe, Export); Sprache = Oberflächensprache. */
+const MARKEN_TEXTE = texteJe(
+  {
+    grund: {
+      versalien: 'in Versalien',
+      eigenname: 'mehrteiliger Eigenname',
+      muster: 'typische Schreibweise',
+      bekannt: 'bekannte Marke',
+    } as Record<KandidatGrund, string>,
+    titel: 'Markennamen – {titel}',
+    stand: 'Stand: {datum} · {marken} Marken im Text, {vorkommen} Vorkommen',
+    spalten: ['Marke', 'Kategorie', 'Vorkommen', 'Kapitel', 'Schreibweisen', 'Notiz'],
+    ohneVorkommen: 'Ohne Vorkommen im Text: {namen}',
+    kapitel: 'Kap. {nr} „{titel}“ ({n}×)',
+    schreibweise: '{text} ({n}×)',
+  },
+  {
+    grund: {
+      versalien: 'in capitals',
+      eigenname: 'multi-word proper name',
+      muster: 'typical spelling',
+      bekannt: 'known brand',
+    },
+    titel: 'Brand names – {titel}',
+    stand: 'As of {datum} · {marken} brands in the text, {vorkommen} occurrences',
+    spalten: ['Brand', 'Category', 'Occurrences', 'Chapters', 'Spellings', 'Note'],
+    ohneVorkommen: 'Not found in the text: {namen}',
+    kapitel: 'Ch. {nr} “{titel}” ({n}×)',
+    schreibweise: '{text} ({n}×)',
+  },
+);
+
+/** Gründe der Heuristik (deutsch); für die Oberflächensprache `grundText`. */
+export const GRUND_TEXT: Record<KandidatGrund, string> = MARKEN_TEXTE('de').grund;
+
+/** Grund eines Kandidaten in der Oberflächensprache. */
+export function grundText(grund: KandidatGrund, sprache: Sprache = 'de'): string {
+  return MARKEN_TEXTE(sprache).grund[grund];
+}
 
 /** Häufige Marken, die die Heuristik auch ohne Leons Liste meldet. */
 export const BEKANNTE_MARKEN: readonly string[] = [
@@ -54,11 +88,14 @@ const KEINE_MARKEN = new Set(
   ),
 );
 
-/** Wörter, die mitten im Satz groß geschrieben werden, aber keine Eigennamen sind. */
+/** Wörter, die mitten im Satz groß geschrieben werden, aber keine Eigennamen sind (deutsch und englisch). */
 const KEINE_EIGENNAMEN = new Set(
-  'herr frau herrn doktor dr professor prof montag dienstag mittwoch donnerstag freitag samstag sonntag morgen abend mittag nacht januar februar märz april mai juni juli august september oktober november dezember gott'.split(
-    ' ',
-  ),
+  [
+    'herr frau herrn doktor dr professor prof montag dienstag mittwoch donnerstag freitag samstag sonntag morgen abend mittag nacht januar februar märz april mai juni juli august september oktober november dezember gott',
+    'mr mrs ms miss sir madam doctor monday tuesday wednesday thursday friday saturday sunday january february march may june july october december god mom mum dad i',
+  ]
+    .join(' ')
+    .split(' '),
 );
 
 const ROEMISCH = /^[IVXLCDM]+$/u;
@@ -119,8 +156,8 @@ function einheitlich(s: string): string {
   return s.normalize('NFC').replace(/[\s\-‐]+/gu, ' ').replace(/’/gu, "'");
 }
 
-function satzAnfaenge(text: string): Set<number> {
-  return new Set(saetze(text).flatMap((s) => (s.erstesWort ? [s.erstesWort.start] : [])));
+function satzAnfaenge(text: string, sprache: Sprache): Set<number> {
+  return new Set(saetze(text, sprache).flatMap((s) => (s.erstesWort ? [s.erstesWort.start] : [])));
 }
 
 function grossGeschrieben(w: Wort): boolean {
@@ -146,7 +183,13 @@ function nachSatzzeichen(text: string, start: number): boolean {
  * Vorschläge für Marken, die noch nicht in Leons Liste stehen.
  * `bekannteNamen`: Figuren, Orte, Gruppen, Motive … mit Aliasen – die gelten nie als Marke.
  */
-export function markenKandidaten(text: string, liste: Markenliste, bekannteNamen: Iterable<string> = []): MarkenKandidat[] {
+export function markenKandidaten(
+  text: string,
+  liste: Markenliste,
+  bekannteNamen: Iterable<string> = [],
+  sprache: Sprache = 'de',
+): MarkenKandidat[] {
+  const stopp = (w: Wort) => istStoppwort(w.klein, sprache);
   const ausgeschlossen = new Set<string>();
   const ausschliessen = (s: string) => {
     const n = s.normalize('NFC').toLowerCase().replace(/[\s\-‐]+/gu, ' ').trim();
@@ -154,7 +197,7 @@ export function markenKandidaten(text: string, liste: Markenliste, bekannteNamen
   };
   for (const n of bekannteNamen) {
     ausschliessen(n);
-    for (const w of woerter(n)) ausschliessen(w.text);
+    for (const w of woerter(n, sprache)) ausschliessen(w.text);
   }
   for (const n of liste.ignoriert) ausschliessen(n);
   // bereits gelistete Marken (auch Teile mehrteiliger Namen nicht noch einmal vorschlagen)
@@ -184,8 +227,8 @@ export function markenKandidaten(text: string, liste: Markenliste, bekannteNamen
     }
   }
 
-  const alle = woerter(text);
-  const anfaenge = satzAnfaenge(text);
+  const alle = woerter(text, sprache);
+  const anfaenge = satzAnfaenge(text, sprache);
   const istAnfang = (w: Wort) => anfaenge.has(w.start) || nachSatzzeichen(text, w.start);
   const nurLeerraum = (a: Wort, b: Wort) => /^[  ]$/u.test(text.slice(a.ende, b.start));
   const wortZahl = new Map<string, number>();
@@ -209,7 +252,7 @@ export function markenKandidaten(text: string, liste: Markenliste, bekannteNamen
       const vorher = alle[i - 1];
       const nachher = alle[i + 1];
       const inFolge = (vorher && nurGross(vorher) && nurLeerraum(vorher, w)) || (nachher && nurGross(nachher) && nurLeerraum(w, nachher));
-      if (!inFolge && !KEINE_MARKEN.has(w.text.replace(/[\-‐&]/gu, '')) && !ROEMISCH.test(w.text) && !STOPPWOERTER.has(w.klein)) hinzu(w.start, w.ende, 'versalien');
+      if (!inFolge && !KEINE_MARKEN.has(w.text.replace(/[\-‐&]/gu, '')) && !ROEMISCH.test(w.text) && !stopp(w)) hinzu(w.start, w.ende, 'versalien');
       continue;
     }
     // 3. typische Muster: Binnenmajuskel (iPhone, PlayStation, YouTube), Buchstaben mit Ziffern (A4, X5)
@@ -218,11 +261,11 @@ export function markenKandidaten(text: string, liste: Markenliste, bekannteNamen
       continue;
     }
     // 4. mehrteilige Eigennamen mitten im Satz („Carl Hansen“, „Schwip Schwap“)
-    if (grossGeschrieben(w) && !istAnfang(w) && !KEINE_EIGENNAMEN.has(w.klein) && !STOPPWOERTER.has(w.klein)) {
+    if (grossGeschrieben(w) && !istAnfang(w) && !KEINE_EIGENNAMEN.has(w.klein) && !stopp(w)) {
       let j = i;
       while (j + 1 < alle.length) {
         const n = alle[j + 1]!;
-        if (!grossGeschrieben(n) || !nurLeerraum(alle[j]!, n) || KEINE_EIGENNAMEN.has(n.klein) || STOPPWOERTER.has(n.klein) || versalien(n)) break;
+        if (!grossGeschrieben(n) || !nurLeerraum(alle[j]!, n) || KEINE_EIGENNAMEN.has(n.klein) || stopp(n) || versalien(n)) break;
         j++;
       }
       const teile = alle.slice(i, j + 1);
@@ -307,7 +350,12 @@ function schreibweiseNormal(t: string): string {
   return t.replace(/(?:[’']s?)$/u, '').replace(/(?<=\p{L}{3})s$/u, '');
 }
 
-export function markenUebersicht(kapitel: KapitelText[], liste: Markenliste, bekannteNamen: Iterable<string> = []): MarkenUebersicht {
+export function markenUebersicht(
+  kapitel: KapitelText[],
+  liste: Markenliste,
+  bekannteNamen: Iterable<string> = [],
+  sprache: Sprache = 'de',
+): MarkenUebersicht {
   const namen = [...bekannteNamen];
   const zeilen = new Map<Id, MarkenZeile>();
   const kandidaten = new Map<string, KandidatImBuch>();
@@ -324,7 +372,7 @@ export function markenUebersicht(kapitel: KapitelText[], liste: Markenliste, bek
       }
       zeilen.set(t.marke.id, z);
     }
-    for (const c of markenKandidaten(k.text, liste, namen)) {
+    for (const c of markenKandidaten(k.text, liste, namen, sprache)) {
       const schluessel = c.name.toLowerCase().replace(/[\s\-‐]+/gu, ' ');
       const g = kandidaten.get(schluessel) ?? { name: c.name, grund: c.grund, gesamt: 0, kapitel: [] };
       g.gesamt += c.stellen.length;
@@ -345,62 +393,83 @@ export function markenUebersicht(kapitel: KapitelText[], liste: Markenliste, bek
 // Liste fürs Lektorat
 // ---------------------------------------------------------------------------
 
-function kapitelAngabe(zeile: { kapitel: MarkeImKapitel[] }, kapitel: KapitelText[]): string[] {
+function kapitelAngabe(zeile: { kapitel: MarkeImKapitel[] }, kapitel: KapitelText[], sprache: Sprache): string[] {
   return zeile.kapitel.map((k) => {
     const nr = kapitel.findIndex((x) => x.id === k.kapitel) + 1;
     const titel = kapitel[nr - 1]?.titel ?? k.kapitel;
-    return `Kap. ${nr} „${titel}“ (${k.stellen.length}×)`;
+    return fmt(MARKEN_TEXTE(sprache).kapitel, { nr, titel, n: k.stellen.length });
   });
+}
+
+function schreibweisenAngabe(z: MarkenZeile, sprache: Sprache): string {
+  const t = MARKEN_TEXTE(sprache);
+  return z.schreibweisen.length > 1 ? z.schreibweisen.map((s) => fmt(t.schreibweise, { text: s.text, n: s.anzahl })).join(', ') : '';
 }
 
 function zelle(s: string): string {
   return s.replace(/\|/gu, '\\|').replace(/\s+/gu, ' ').trim();
 }
 
-/** Markdown-Liste aller Marken mit Vorkommen je Kapitel (für die Lektorin). */
-export function markenAlsMarkdown(u: MarkenUebersicht, kapitel: KapitelText[], buchtitel: string, datum = new Date()): string {
+/**
+ * Markdown-Liste aller Marken mit Vorkommen je Kapitel (für die Lektorin).
+ * `sprache`: Oberflächensprache für Überschrift, Spalten und Datum (Standard Deutsch).
+ */
+export function markenAlsMarkdown(
+  u: MarkenUebersicht,
+  kapitel: KapitelText[],
+  buchtitel: string,
+  datum = new Date(),
+  sprache: Sprache = 'de',
+): string {
+  const t = MARKEN_TEXTE(sprache);
+  const tag = datum.toLocaleDateString(localeVon(sprache), { day: 'numeric', month: 'long', year: 'numeric' });
+  const vorkommen = u.zeilen.reduce((s, z) => s + z.gesamt, 0);
   const zeilen = [
-    `# Markennamen – ${buchtitel}`,
+    `# ${fmt(t.titel, { titel: buchtitel })}`,
     '',
-    `Stand: ${datum.toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' })} · ${u.zeilen.length} Marken im Text, ${u.zeilen.reduce((s, z) => s + z.gesamt, 0)} Vorkommen`,
+    fmt(t.stand, { datum: tag, marken: u.zeilen.length, vorkommen }),
     '',
-    '| Marke | Kategorie | Vorkommen | Kapitel | Schreibweisen | Notiz |',
+    `| ${t.spalten.join(' | ')} |`,
     '| --- | --- | ---: | --- | --- | --- |',
     ...u.zeilen.map((z) =>
       `| ${[
         zelle(z.marke.name),
         zelle(z.marke.kategorie ?? ''),
         String(z.gesamt),
-        zelle(kapitelAngabe(z, kapitel).join('; ')),
-        zelle(z.schreibweisen.length > 1 ? z.schreibweisen.map((s) => `${s.text} (${s.anzahl}×)`).join(', ') : ''),
+        zelle(kapitelAngabe(z, kapitel, sprache).join('; ')),
+        zelle(schreibweisenAngabe(z, sprache)),
         zelle(z.marke.notiz ?? ''),
       ].join(' | ')} |`,
     ),
   ];
-  if (u.ohneTreffer.length) zeilen.push('', `Ohne Vorkommen im Text: ${u.ohneTreffer.map((m) => m.name).join(', ')}`);
+  if (u.ohneTreffer.length) zeilen.push('', fmt(t.ohneVorkommen, { namen: u.ohneTreffer.map((m) => m.name).join(', ') }));
   return `${zeilen.join('\n')}\n`;
 }
 
-function csvFeld(s: string): string {
-  return /[";\n]/u.test(s) ? `"${s.replace(/"/gu, '""')}"` : s;
+function csvFeld(s: string, trenner: string): string {
+  return /["\n]/u.test(s) || s.includes(trenner) ? `"${s.replace(/"/gu, '""')}"` : s;
 }
 
-/** CSV (Semikolon, für Excel/Numbers in deutscher Einstellung). */
-export function markenAlsCsv(u: MarkenUebersicht, kapitel: KapitelText[]): string {
-  const kopf = ['Marke', 'Kategorie', 'Vorkommen', 'Kapitel', 'Schreibweisen', 'Notiz'];
+/**
+ * CSV für Excel/Numbers: Deutsch mit Semikolon (deutsche Einstellung), Englisch mit Komma.
+ * `sprache`: Oberflächensprache für Kopfzeile und Kapitelangaben (Standard Deutsch).
+ */
+export function markenAlsCsv(u: MarkenUebersicht, kapitel: KapitelText[], sprache: Sprache = 'de'): string {
+  const trenner = sprache === 'de' ? ';' : ',';
+  const kopf = MARKEN_TEXTE(sprache).spalten.map((s) => csvFeld(s, trenner));
   const zeilen = u.zeilen.map((z) =>
     [
       z.marke.name,
       z.marke.kategorie ?? '',
       String(z.gesamt),
-      kapitelAngabe(z, kapitel).join('; '),
-      z.schreibweisen.length > 1 ? z.schreibweisen.map((s) => `${s.text} (${s.anzahl}×)`).join(', ') : '',
+      kapitelAngabe(z, kapitel, sprache).join('; '),
+      schreibweisenAngabe(z, sprache),
       z.marke.notiz ?? '',
     ]
-      .map(csvFeld)
-      .join(';'),
+      .map((s) => csvFeld(s, trenner))
+      .join(trenner),
   );
-  return `﻿${[kopf.join(';'), ...zeilen].join('\r\n')}\r\n`;
+  return `﻿${[kopf.join(trenner), ...zeilen].join('\r\n')}\r\n`;
 }
 
 /** Eindeutige ID für eine neue Marke (Slug aus dem Namen). */

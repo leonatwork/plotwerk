@@ -4,6 +4,7 @@
  */
 import { BLOCK_WOERTER, PUFFER_MINUTEN, woerterAm } from '@core/statistik';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { f, prozent, sprache, texte, useTexte } from '../../i18n';
 import type { StatistikAnsicht } from '../../state/slices/statistik';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
@@ -14,14 +15,11 @@ import { tagAnzeige, useHeute, useSchreibstatistik, woerterText, zahl } from './
 import { Ueberblick } from './Ueberblick';
 import './statistik.css';
 
-const ANSICHTEN: { wert: StatistikAnsicht; label: string }[] = [
-  { wert: 'ueberblick', label: 'Überblick' },
-  { wert: 'fassungen', label: 'Fassungen' },
-];
+const ANSICHTEN: StatistikAnsicht[] = ['ueberblick', 'fassungen'];
 
-/** Zahl aus einem Eingabefeld („80.000“, „80 000“); leer = undefined, ungültig = NaN. */
+/** Zahl aus einem Eingabefeld („80.000“, „80 000“, engl. „80,000“); leer = undefined, ungültig = NaN. */
 function zahlLesen(s: string): number | undefined {
-  const t = s.replace(/[\s.’']/g, '').trim();
+  const t = s.replace(sprache() === 'en' ? /[\s,’']/g : /[\s.’']/g, '').trim();
   if (!t) return undefined;
   return /^\d+$/.test(t) ? Number(t) : NaN;
 }
@@ -35,6 +33,7 @@ function ZieleFormular({ fokusAnfrage }: { fokusAnfrage: number }) {
   const [fehler, setFehler] = useState<string | null>(null);
   const [gespeichert, setGespeichert] = useState(false);
   const erstes = useRef<HTMLInputElement>(null);
+  const t = useTexte().statistik.ziele;
 
   const ausSpeicher = () => {
     setTag(st.ziel.tagWoerter > 0 ? String(st.ziel.tagWoerter) : '');
@@ -55,19 +54,19 @@ function ZieleFormular({ fokusAnfrage }: { fokusAnfrage: number }) {
 
   const absenden = async (e: FormEvent) => {
     e.preventDefault();
-    const t = zahlLesen(tag);
+    const tw = zahlLesen(tag);
     const b = zahlLesen(buch);
-    if (Number.isNaN(t) || Number.isNaN(b)) {
-      setFehler('Bitte nur ganze Zahlen eingeben.');
+    if (Number.isNaN(tw) || Number.isNaN(b)) {
+      setFehler(t.fehlerZahlen);
       return;
     }
     if (abgabe && !/^\d{4}-\d{2}-\d{2}$/.test(abgabe)) {
-      setFehler('Bitte ein gültiges Datum wählen.');
+      setFehler(t.fehlerDatum);
       return;
     }
     setFehler(null);
     try {
-      await zielSetzen({ tagWoerter: t ?? 0, buchWoerter: b || undefined, abgabe: abgabe || undefined });
+      await zielSetzen({ tagWoerter: tw ?? 0, buchWoerter: b || undefined, abgabe: abgabe || undefined });
       setGespeichert(true);
       setTimeout(() => setGespeichert(false), 1800);
     } catch (err) {
@@ -78,25 +77,25 @@ function ZieleFormular({ fokusAnfrage }: { fokusAnfrage: number }) {
   return (
     <form className="pw-st-insp__abschnitt" onSubmit={absenden} aria-labelledby="pw-st-ziele-titel">
       <Abschnittslabel as="h2" id="pw-st-ziele-titel">
-        Ziele
+        {t.titel}
       </Abschnittslabel>
-      <Feld label="Tagesziel (Wörter)">
-        {(id) => <Textfeld ref={erstes} id={id} inputMode="numeric" placeholder="z. B. 500" value={tag} onChange={(e) => setTag(e.target.value)} />}
+      <Feld label={t.tagesziel}>
+        {(id) => <Textfeld ref={erstes} id={id} inputMode="numeric" placeholder={t.tageszielPlatzhalter} value={tag} onChange={(e) => setTag(e.target.value)} />}
       </Feld>
-      <Feld label="Zielumfang des Buchs (Wörter)">
-        {(id) => <Textfeld id={id} inputMode="numeric" placeholder="z. B. 80000" value={buch} onChange={(e) => setBuch(e.target.value)} />}
+      <Feld label={t.zielumfang}>
+        {(id) => <Textfeld id={id} inputMode="numeric" placeholder={t.zielumfangPlatzhalter} value={buch} onChange={(e) => setBuch(e.target.value)} />}
       </Feld>
-      <Feld label="Abgabe (optional)">{(id) => <Textfeld id={id} type="date" value={abgabe} onChange={(e) => setAbgabe(e.target.value)} />}</Feld>
+      <Feld label={t.abgabe}>{(id) => <Textfeld id={id} type="date" value={abgabe} onChange={(e) => setAbgabe(e.target.value)} />}</Feld>
       {fehler && <span className="pw-st-fehler">{fehler}</span>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
-        {gespeichert && !geaendert && <span className="pw-st-leise">Gesichert</span>}
+        {gespeichert && !geaendert && <span className="pw-st-leise">{t.gesichert}</span>}
         {geaendert && (
           <Button klein onClick={ausSpeicher}>
-            Zurücksetzen
+            {t.zuruecksetzen}
           </Button>
         )}
         <Button klein variante="primaer" type="submit" disabled={!geaendert}>
-          Ziele sichern
+          {t.sichern}
         </Button>
       </div>
     </form>
@@ -110,24 +109,25 @@ function TagDetails({ tag, heute }: { tag: string; heute: string }) {
   const geschrieben = woerterAm(st, tag);
   const ziel = st.ziel.tagWoerter;
   const stand = tag === heute ? gesamt : eintrag?.stand;
+  const t = useTexte().statistik.tag;
   return (
     <section className="pw-st-insp__abschnitt" aria-labelledby="pw-st-tag-titel" aria-live="polite">
-      <Abschnittslabel>{tag === heute ? 'Heute' : 'Ausgewählter Tag'}</Abschnittslabel>
+      <Abschnittslabel>{tag === heute ? t.heute : t.ausgewaehlt}</Abschnittslabel>
       <span className="pw-st-insp__tag" id="pw-st-tag-titel">
         {tagAnzeige(tag)}
       </span>
       <dl>
-        <dt>Geschrieben</dt>
+        <dt>{t.geschrieben}</dt>
         <dd>{woerterText(geschrieben)}</dd>
         {ziel > 0 && (
           <>
-            <dt>Tagesziel</dt>
-            <dd>{geschrieben >= ziel ? 'erreicht' : `${zahl.format(Math.round((geschrieben / ziel) * 100))} %`}</dd>
+            <dt>{t.tagesziel}</dt>
+            <dd>{geschrieben >= ziel ? t.erreicht : prozent(geschrieben / ziel)}</dd>
           </>
         )}
         {stand !== undefined && eintrag && (
           <>
-            <dt>{tag === heute ? 'Buch jetzt' : 'Buch am Abend'}</dt>
+            <dt>{tag === heute ? t.buchJetzt : t.buchAbend}</dt>
             <dd>{woerterText(stand)}</dd>
           </>
         )}
@@ -137,18 +137,17 @@ function TagDetails({ tag, heute }: { tag: string; heute: string }) {
 }
 
 function Zaehlregel() {
+  const t = useTexte().statistik.regel;
   return (
     <section className="pw-st-insp__abschnitt" aria-labelledby="pw-st-regel-titel">
       <Abschnittslabel as="h2" id="pw-st-regel-titel">
-        So wird gezählt
+        {t.titel}
       </Abschnittslabel>
       <ul className="pw-st-regel">
-        <li>Neue Wörter zählen an dem Tag, an dem du sie speicherst (Mitternacht nach der Uhr deines Macs).</li>
-        <li>Löschen und Kürzen ziehen nichts ab – dein Tagesziel kann nicht sinken.</li>
-        <li>
-          Verschobene Absätze zählen nicht doppelt: Ein eingefügter Block ab {BLOCK_WOERTER} Wörtern wird mit dem verrechnet, was du in den {PUFFER_MINUTEN} Minuten davor gelöscht hast.
-        </li>
-        <li>Import, Wiederherstellen von Versionen und Änderungen von außen zählen nicht als geschrieben.</li>
+        <li>{t.tag}</li>
+        <li>{t.loeschen}</li>
+        <li>{f(t.verschieben, { woerter: BLOCK_WOERTER, minuten: PUFFER_MINUTEN })}</li>
+        <li>{t.import}</li>
       </ul>
     </section>
   );
@@ -165,19 +164,21 @@ export default function Ansicht() {
   const gesamt = useGesamtWoerter();
   const [tag, setTag] = useState(heute);
   const [zielFokus, setZielFokus] = useState(0);
+  const tt = useTexte().statistik;
+  const t = tt.ansicht;
 
   useEffect(() => setTag(heute), [heute]);
   if (!daten) return null;
 
   const ziel = st.ziel.tagWoerter;
-  const hinweis = `${woerterText(gesamt)}${ziel ? ` · Tagesziel ${zahl.format(ziel)}` : ''}`;
+  const hinweis = ziel ? f(t.hinweisZiel, { woerter: woerterText(gesamt), ziel: zahl.format(ziel) }) : woerterText(gesamt);
 
   return (
     <Werkzeugseite
-      titel="Statistik"
+      titel={tt.titel}
       hinweis={hinweis}
       inspektor={
-        <Inspektor label="Ziele und Tagesdetails" breite={320}>
+        <Inspektor label={t.inspektor} breite={320}>
           <div className="pw-st-insp">
             <TagDetails tag={tag} heute={heute} />
             <ZieleFormular fokusAnfrage={zielFokus} />
@@ -189,19 +190,23 @@ export default function Ansicht() {
       <div className="pw-st-seite">
         <div className="pw-st-leiste">
           <Segment<StatistikAnsicht>
-            label="Ansicht"
+            label={t.label}
             rolle="tablist"
             voll={false}
-            optionen={ANSICHTEN.map((a) => ({ ...a, label: a.wert === 'fassungen' && anzahlFassungen ? `Fassungen (${anzahlFassungen})` : a.label, steuert: 'pw-st-ansicht' }))}
+            optionen={ANSICHTEN.map((wert) => ({
+              wert,
+              label: wert === 'ueberblick' ? t.ueberblick : anzahlFassungen ? f(t.fassungenAnzahl, { n: anzahlFassungen }) : t.fassungen,
+              steuert: 'pw-st-ansicht',
+            }))}
             wert={ansicht}
             onChange={setzeAnsicht}
           />
           <span style={{ display: 'flex', gap: 8 }}>
             <Button klein onClick={() => oeffneDialog('versionsvergleich')}>
-              Fassungen vergleichen …
+              {t.vergleichen}
             </Button>
             <Button klein variante="primaer" onClick={() => oeffneDialog('fassung')}>
-              Fassung sichern …
+              {t.sichern}
             </Button>
           </span>
         </div>
@@ -218,5 +223,6 @@ export default function Ansicht() {
 }
 
 export function kontext(state: Store): string {
-  return state.statistik.ansicht === 'fassungen' ? 'Fassungen' : 'Statistik';
+  const t = texte().statistik;
+  return state.statistik.ansicht === 'fassungen' ? t.fassungenTitel : t.titel;
 }

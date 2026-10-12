@@ -1,15 +1,15 @@
 /** Antagonisten/Gruppen (A-01, A-02): Präsenzstreifen, wiederverwendbare Karte und Inspektor-Inhalt. */
 import { useMemo, useState } from 'react';
 import type { Gruppe, GruppenTyp, Id } from '@core/model/types';
+import { f, useTexte, vergleich } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Chip, klassen, Segment, Textfeld } from '../../ui';
 import { EntwurfFeld } from '../beziehungen/EntwurfFeld';
-import { farbSatz, findeStelle, GRUPPENTYP_LABEL, kapitelTitel, roemisch, strangVon } from '../beziehungen/gemeinsam';
+import { farbSatz, findeStelle, kapitelTitel, roemisch, strangVon } from '../beziehungen/gemeinsam';
 import { praesenzProAkt, praesenzProKapitel, spurPruefen, type KapitelPraesenz } from './logik';
 import './gruppen.css';
 
-const STATUS_LABEL: Record<Gruppe['status'], string> = { im_text: 'im Text', geplant: 'geplant' };
-const SPUR_LABEL = { vorschlag: 'Vorschlag', bestaetigt: 'bestätigt', verworfen: 'verworfen' } as const;
+const STATUS: Gruppe['status'][] = ['im_text', 'geplant'];
 const TYPEN: GruppenTyp[] = ['antagonist', 'firma', 'familie', 'sonstige'];
 
 function useGruppe(id: Id) {
@@ -20,19 +20,13 @@ function useGruppe(id: Id) {
   return { daten, index, gruppe, farben };
 }
 
-const ZUSTAND_TEXT: Record<KapitelPraesenz['zustand'], string> = {
-  im_text: 'Mitglied im Text',
-  spur: 'Spur im Text',
-  plan: 'nur im Plan',
-  leer: 'nicht präsent',
-};
-
 /** Kapitelstreifen der Präsenz: gefüllt = Mitglied im Text, umrandet = Spur, schraffiert = nur im Plan. */
 export function PraesenzStreifen({ gruppe: id, kompakt }: { gruppe: Id; kompakt?: boolean }) {
   const { daten, index, gruppe, farben } = useGruppe(id);
   const markiere = useStore((s) => s.markiere);
   const oeffne = useStore((s) => s.oeffne);
   const zellen = useMemo(() => (daten && gruppe ? praesenzProKapitel(daten, index, gruppe) : []), [daten, index, gruppe]);
+  const t = useTexte().gruppen;
   if (!daten || !gruppe) return null;
 
   const oeffneZelle = (z: KapitelPraesenz) => {
@@ -53,12 +47,12 @@ export function PraesenzStreifen({ gruppe: id, kompakt }: { gruppe: Id; kompakt?
       className={klassen('pw-gr-streifen', kompakt && 'pw-gr-streifen--kompakt')}
       style={{ gridTemplateColumns: `repeat(${zellen.length}, minmax(0, 1fr))` }}
       role="list"
-      aria-label={`Präsenz von ${gruppe.name} pro Kapitel`}
+      aria-label={f(t.streifenLabel, { name: gruppe.name })}
     >
       {zellen.map((z) => {
         const name = z.mitglieder.map((m) => daten.figuren[m]?.name ?? m).join(', ');
-        const titel = `${kapitelTitel(daten, z.kapitel)}: ${ZUSTAND_TEXT[z.zustand]}${name ? ` (${name})` : ''}${
-          z.spuren.length ? ` · ${z.spuren.map((s) => `»${s.text}«`).join(', ')}` : ''
+        const titel = `${kapitelTitel(daten, z.kapitel)}: ${t.zustand[z.zustand]}${name ? ` (${name})` : ''}${
+          z.spuren.length ? ` · ${z.spuren.map((s) => f(t.zitat, { text: s.text })).join(', ')}` : ''
         }`;
         return (
           <button
@@ -95,6 +89,7 @@ export interface GruppenKarteProps {
 /** Wiederverwendbare Karte einer Gruppe: Typ, Status, Mitglieder, Präsenz pro Kapitel, offene Spuren. */
 export function GruppenKarte({ gruppe: id, kompakt, aktiv, onClick }: GruppenKarteProps) {
   const { daten, gruppe, farben } = useGruppe(id);
+  const t = useTexte().gruppen;
   if (!daten || !gruppe) return null;
   const mitglieder = gruppe.mitglieder.map((m) => daten.figuren[m]?.name).filter(Boolean);
   const vorschlaege = gruppe.spuren.filter((s) => s.status === 'vorschlag').length;
@@ -108,15 +103,13 @@ export function GruppenKarte({ gruppe: id, kompakt, aktiv, onClick }: GruppenKar
       aria-pressed={onClick ? !!aktiv : undefined}
     >
       <span className="pw-gr-karte__label" style={{ color: farben.dunkel }}>
-        {GRUPPENTYP_LABEL[gruppe.typ]} · {STATUS_LABEL[gruppe.status]}
+        {t.typ[gruppe.typ]} · {t.status[gruppe.status]}
       </span>
       <span className="pw-gr-karte__name">{gruppe.name}</span>
-      <span className="pw-gr-karte__mitglieder">{mitglieder.length ? mitglieder.join(', ') : 'noch keine Figur'}</span>
+      <span className="pw-gr-karte__mitglieder">{mitglieder.length ? mitglieder.join(', ') : t.keineFigur}</span>
       <PraesenzStreifen gruppe={id} kompakt />
       {!kompakt && vorschlaege > 0 && (
-        <span className="pw-gr-karte__mitglieder">
-          {vorschlaege} {vorschlaege === 1 ? 'Spur' : 'Spuren'} zu prüfen
-        </span>
+        <span className="pw-gr-karte__mitglieder">{f(t.spurenPruefen, { n: vorschlaege })}</span>
       )}
     </Element>
   );
@@ -148,12 +141,14 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
     () => (daten && gruppe ? gruppe.spuren.map((s) => spurPruefen(daten, s)) : []),
     [daten, gruppe],
   );
-  if (!daten || !gruppe) return <span className="pw-gr-legende">Gruppe nicht gefunden.</span>;
+  const tt = useTexte();
+  const t = tt.gruppen;
+  if (!daten || !gruppe) return <span className="pw-gr-legende">{t.nichtGefunden}</span>;
 
   const zeigeFigur = onFigur ?? ((f: Id) => oeffne('figuren', { figur: f }));
   const nichtMitglieder = Object.values(daten.figuren)
     .filter((f) => !gruppe.mitglieder.includes(f.id))
-    .sort((a, b) => a.name.localeCompare(b.name, 'de'));
+    .sort((a, b) => vergleich(a.name, b.name));
   const sichtbar = pruefungen.filter((p) => p.spur.status !== 'verworfen');
   const verworfen = pruefungen.filter((p) => p.spur.status === 'verworfen');
   const offen = sichtbar.filter((p) => p.spur.status === 'vorschlag').length;
@@ -171,49 +166,49 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
     const spur = await spurHinzufuegen(id, { text: neueSpur, kapitel });
     if (!spur) return;
     setNeueSpur('');
-    setMeldung(spur.anker ? null : `»${spur.text}« steht nicht wörtlich in ${kapitelTitel(daten, kapitel)}.`);
+    setMeldung(spur.anker ? null : f(t.nichtWoertlich, { zitat: f(t.zitat, { text: spur.text }), kapitel: kapitelTitel(daten, kapitel) }));
   };
 
   const spurListe = (liste: typeof pruefungen) =>
     liste.map((p) => (
       <div key={p.spur.id} className={klassen('pw-gr-spur', p.spur.status === 'verworfen' && 'pw-gr-spur--verworfen')}>
         <div className="pw-gr-spur__kopf">
-          <span className="pw-gr-spur__text">»{p.spur.text}«</span>
+          <span className="pw-gr-spur__text">{f(t.zitat, { text: p.spur.text })}</span>
           <span style={{ color: 'var(--ink-quiet)' }}>{p.kapitelLabel}</span>
           <span
             className="pw-gr-spur__status"
             style={{ color: p.spur.status === 'bestaetigt' ? 'var(--real-gesichert)' : p.spur.status === 'vorschlag' ? farben.dunkel : 'var(--ink-quiet)' }}
           >
-            {SPUR_LABEL[p.spur.status]}
+            {t.spur[p.spur.status]}
           </span>
         </div>
         {p.stelle ? (
           <button
             type="button"
             className="pw-gr-spur__stelle"
-            title="Stelle im Text öffnen"
+            title={t.stelleOeffnen}
             onClick={() => markiere({ kapitel: p.spur.kapitel, anker: p.stelle!.anker })}
           >
             {p.ausschnitt}
           </button>
         ) : (
           <span className="pw-gr-spur__warnung">
-            {p.zustand === 'verwaist' ? 'Stelle nicht mehr eindeutig im Text (verwaist).' : 'Wortlaut nicht im Kapitel gefunden.'}
+            {p.zustand === 'verwaist' ? t.verwaist : t.wortlautFehlt}
           </span>
         )}
         <div className="pw-gr-spur__aktionen">
           {p.spur.status === 'vorschlag' ? (
             <>
               <Button klein onClick={() => void spurStatusSetzen(id, p.spur.id, 'bestaetigt')}>
-                Bestätigen
+                {t.bestaetigen}
               </Button>
               <Button klein variante="text" onClick={() => void spurStatusSetzen(id, p.spur.id, 'verworfen')}>
-                Verwerfen
+                {t.verwerfen}
               </Button>
             </>
           ) : (
             <Button klein variante="text" onClick={() => void spurStatusSetzen(id, p.spur.id, 'vorschlag')}>
-              {p.spur.status === 'verworfen' ? 'Wiederherstellen' : 'Zurücksetzen'}
+              {p.spur.status === 'verworfen' ? t.wiederherstellen : t.zuruecksetzen}
             </Button>
           )}
         </div>
@@ -223,11 +218,11 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
   return (
     <div className="pw-gr-inspektor">
       <Abschnittslabel farbe={farben.dunkel}>
-        {GRUPPENTYP_LABEL[gruppe.typ]} · {STATUS_LABEL[gruppe.status]}
+        {t.typ[gruppe.typ]} · {t.status[gruppe.status]}
       </Abschnittslabel>
       <div className="pw-gr-abschnitt">
         <label className="pw-gr-feldlabel" htmlFor={`gruppe-name-${id}`}>
-          Name
+          {t.name}
         </label>
         <EntwurfFeld
           key={`name-${id}`}
@@ -238,32 +233,29 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
         />
       </div>
       <div className="pw-gr-abschnitt">
-        <span className="pw-gr-feldlabel">Typ</span>
+        <span className="pw-gr-feldlabel">{t.typLabel}</span>
         <Segment
           rolle="group"
           voll
-          label="Typ"
+          label={t.typLabel}
           wert={gruppe.typ}
           onChange={(typ) => void gruppeAendern(id, { typ })}
-          optionen={TYPEN.map((t) => ({ wert: t, label: GRUPPENTYP_LABEL[t] }))}
+          optionen={TYPEN.map((typ) => ({ wert: typ, label: t.typ[typ] }))}
         />
       </div>
       <div className="pw-gr-abschnitt">
-        <span className="pw-gr-feldlabel">Status</span>
+        <span className="pw-gr-feldlabel">{t.statusLabel}</span>
         <Segment
           rolle="group"
           voll
-          label="Status"
+          label={t.statusLabel}
           wert={gruppe.status}
           onChange={(status) => void gruppeAendern(id, { status })}
-          optionen={[
-            { wert: 'im_text', label: 'im Text' },
-            { wert: 'geplant', label: 'geplant' },
-          ]}
+          optionen={STATUS.map((st) => ({ wert: st, label: t.status[st] }))}
         />
       </div>
       <div className="pw-gr-abschnitt">
-        <span className="pw-gr-feldlabel">Strang</span>
+        <span className="pw-gr-feldlabel">{t.strang}</span>
         <div className="pw-gr-chips">
           {daten.straenge.map((s) => (
             <Chip
@@ -279,31 +271,31 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
         </div>
       </div>
       <div className="pw-gr-abschnitt">
-        <span className="pw-gr-feldlabel">Mitglieder</span>
+        <span className="pw-gr-feldlabel">{t.mitglieder}</span>
         <div className="pw-gr-chips">
           {gruppe.mitglieder.map((m) => (
             <span key={m} className="pw-gr-mitglied">
               <button type="button" className="pw-gr-mitglied__name" onClick={() => zeigeFigur(m)}>
                 {daten.figuren[m]?.name ?? m}
               </button>
-              <button type="button" aria-label={`${daten.figuren[m]?.name ?? m} entfernen`} onClick={() => void mitgliedEntfernen(id, m)}>
+              <button type="button" aria-label={f(t.mitgliedEntfernen, { name: daten.figuren[m]?.name ?? m })} onClick={() => void mitgliedEntfernen(id, m)}>
                 ×
               </button>
             </span>
           ))}
-          {gruppe.mitglieder.length === 0 && <span className="pw-gr-legende">noch keine Figur</span>}
+          {gruppe.mitglieder.length === 0 && <span className="pw-gr-legende">{t.keineFigur}</span>}
           {nichtMitglieder.length > 0 && (
             <select
               className="pw-gr-auswahl"
-              aria-label="Mitglied hinzufügen"
+              aria-label={t.mitgliedHinzufuegen}
               value=""
               onChange={(e) => e.target.value && void mitgliedHinzufuegen(id, e.target.value)}
             >
-              <option value="">+ Mitglied</option>
-              {nichtMitglieder.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name}
-                  {f.gruppe && daten.gruppen[f.gruppe] ? ` (bisher ${daten.gruppen[f.gruppe]!.name})` : ''}
+              <option value="">{t.plusMitglied}</option>
+              {nichtMitglieder.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.name}
+                  {x.gruppe && daten.gruppen[x.gruppe] ? ` ${f(t.bisher, { name: daten.gruppen[x.gruppe]!.name })}` : ''}
                 </option>
               ))}
             </select>
@@ -311,22 +303,22 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
         </div>
       </div>
       <div className="pw-gr-abschnitt">
-        <span className="pw-gr-feldlabel">Präsenz pro Kapitel</span>
+        <span className="pw-gr-feldlabel">{t.praesenzKapitel}</span>
         <PraesenzStreifen gruppe={id} />
-        <span className="pw-gr-legende">Gefüllt: Mitglied im Text · umrandet: Spur · schraffiert: nur im Plan</span>
+        <span className="pw-gr-legende">{t.legende}</span>
       </div>
       <div className="pw-gr-abschnitt">
-        <span className="pw-gr-feldlabel">Präsenz pro Akt</span>
+        <span className="pw-gr-feldlabel">{t.praesenzAkt}</span>
         {akte.map((a) => (
           <div key={a.akt.nummer} className="pw-gr-akt">
             <label className="pw-gr-akt__titel" htmlFor={`praesenz-${id}-${a.akt.nummer}`}>
-              Akt {roemisch(a.akt.nummer)}
+              {f(t.akt, { nr: roemisch(a.akt.nummer) })}
             </label>
             <EntwurfFeld
               key={`praesenz-${id}-${a.akt.nummer}`}
               id={`praesenz-${id}-${a.akt.nummer}`}
               wert={a.geplant}
-              placeholder="geplant, z. B. setzt die Frist"
+              placeholder={t.aktPlatzhalter}
               onSpeichern={(t) => praesenzSetzen(a.akt.nummer, t)}
             />
             <span className="pw-gr-akt__imtext">{a.imText}</span>
@@ -335,13 +327,14 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
       </div>
       <div className="pw-gr-abschnitt">
         <span className="pw-gr-feldlabel">
-          Spuren im Text{offen > 0 ? ` · ${offen} ${offen === 1 ? 'Vorschlag' : 'Vorschläge'}` : ''}
+          {t.spuren}
+          {offen > 0 ? ` · ${f(t.vorschlaege, { n: offen })}` : ''}
         </span>
-        {sichtbar.length === 0 && <span className="pw-gr-legende">Noch keine Spuren.</span>}
+        {sichtbar.length === 0 && <span className="pw-gr-legende">{t.keineSpuren}</span>}
         {spurListe(sichtbar)}
         {verworfen.length > 0 && (
           <Button klein variante="text" style={{ alignSelf: 'flex-start' }} onClick={() => setVerworfeneZeigen((v) => !v)}>
-            {verworfeneZeigen ? 'Verworfene ausblenden' : `Verworfene zeigen (${verworfen.length})`}
+            {verworfeneZeigen ? t.verworfeneAusblenden : f(t.verworfeneZeigen, { n: verworfen.length })}
           </Button>
         )}
         {verworfeneZeigen && spurListe(verworfen)}
@@ -353,13 +346,13 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
           }}
         >
           <Textfeld
-            aria-label="Neue Spur, wörtlich aus dem Text"
-            placeholder="Spur, wörtlich aus dem Text"
+            aria-label={t.neueSpurLabel}
+            placeholder={t.neueSpurPlatzhalter}
             value={neueSpur}
             onChange={(e) => setNeueSpur(e.target.value)}
           />
-          <select aria-label="Kapitel der Spur" value={neuesKapitel} onChange={(e) => setNeuesKapitel(e.target.value)}>
-            <option value="">Kapitel</option>
+          <select aria-label={t.kapitelDerSpur} value={neuesKapitel} onChange={(e) => setNeuesKapitel(e.target.value)}>
+            <option value="">{tt.gemeinsam.kapitel}</option>
             {kapitelMitText.map((k) => (
               <option key={k} value={k}>
                 {kapitelTitel(daten, k)}
@@ -374,7 +367,7 @@ export function GruppenInspektor({ gruppe: id, onFigur }: GruppenInspektorProps)
       </div>
       <div className="pw-gr-abschnitt">
         <label className="pw-gr-feldlabel" htmlFor={`gruppe-notizen-${id}`}>
-          Notizen <span style={{ fontWeight: 600 }}>(nur für dich)</span>
+          {t.notizen} <span style={{ fontWeight: 600 }}>{t.nurFuerDich}</span>
         </label>
         <EntwurfFeld
           key={`notizen-${id}`}

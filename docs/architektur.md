@@ -159,10 +159,48 @@ Zeitpunkte, Zustände, Bögen, Marken, Recherche und Lektorat gehören nicht daz
 - Rust-Kommandos (camelCase-Argumente via Tauri): `projekt_oeffnen(pfad)`, `fs_lesen(pfad)`, `fs_schreiben(pfad, inhalt)`, `fs_auflisten(ordner)`, `fs_existiert(pfad)`, `fs_entfernen(pfad)`, `vorlesen_stimmen()`, `vorlesen_sagen(text, stimme?, tempo?)` → `"fertig"`/`"abgebrochen"`, `vorlesen_stopp()` (macOS `say`, Text über stdin; in der Mac-App immer statt der Web Speech API), `link_oeffnen(url)` (nur http/https), `schluessel_setzen(wert, anbieter?)`, `schluessel_vorhanden(anbieter?)`, `schluessel_loeschen(anbieter?)`, `ki_anfrage(endpoint, body, anbieter?)`, `ki_tokens(endpoint, body, anbieter?)` (`anbieter`: `"foundry"` (Standard) oder `"claude"`). Alle `fs_*` arbeiten relativ zum geöffneten Projekt und lehnen `..`/absolute Pfade ab.
 - Binärdateien (G8): `fs_lesen_binaer(kennung?, pfad)` → rohe Bytes (`ipc::Response`, in TS `ArrayBuffer`), `fs_schreiben_binaer` mit rohem Body und Kopfzeilen `plotwerk-pfad` (URI-kodiert) und `plotwerk-kennung`. Nur unter `recherche/` und `.versionen/recherche/` (`dateien::binaer_erlaubt` = `binaerPfadErlaubt` in TS), atomar, gleicher Pfadwächter. TS: optionale Methoden `lesenBinaer`/`schreibenBinaer` an `ProjektDateisystem` (TauriFs, MemoryFs), Aufruf über `leseBinaer`/`schreibeBinaer`/`entferneBinaerMitSchnappschuss` (core/projekt) bzw. Store `leseBinaerDatei`/`speichereBinaerDatei`/`entferneBinaerDatei`.
 
+## Sprachen (i18n, ab 2026-10-12)
+
+Oberfläche Deutsch (Standard und Quellsprache) und Englisch, ohne i18n-Bibliothek.
+
+- **Wörterbuch** je Bereich: `src/i18n/de/<bereich>.ts` (Quelle) und `src/i18n/en/<bereich>.ts`. Die englische
+  Datei hat den Typ `Form<typeof de>` – TypeScript meldet jeden fehlenden oder überzähligen Schlüssel.
+  Texte sind Zeichenketten mit Platzhaltern `{name}` oder Pluralformen `{ one, other, zero? }` (gewählt über `n`).
+  `src/i18n/i18n.test.ts` prüft de ↔ en: gleiche Schlüssel, gleiche Platzhalter, keine Umlaute im Englischen.
+- **Nutzung**: in Komponenten `const t = useTexte()` (rendert beim Umschalten neu) und `f(t.x.y, { n })`; außerhalb
+  von React `texte()`, `sprache()`, `f()`. Zahlen/Daten über `zahl`, `datum`, `datumZeit`, `uhrzeit`, `liste`,
+  `relativ` (Intl mit `de-DE` bzw. `en-US`). Beschriftungen nie in Modul-Konstanten auswerten.
+- **Text ergänzen**: Schlüssel in `de/<bereich>.ts` anlegen, dieselbe Stelle in `en/<bereich>.ts` füllen
+  (`npm run typecheck` zeigt, was fehlt). Neuer Bereich: Dateipaar anlegen und in `de/index.ts` und `en/index.ts`
+  eintragen. Gemeinsame Wörter (Abbrechen, Schließen, „Kap. {nr}“, Wortzahlen …) stehen in `gemeinsam`.
+- **core/** bleibt ohne DOM: `core/i18n` liefert `Sprache`, `fmt`, `texteJe(de, en)` und `buchSprache()`.
+  Funktionen mit nutzersichtbaren Texten (lokale Hinweise, Lade-/Import-Warnungen …) haben einen optionalen
+  Parameter `sprache` (Standard `'de'`); die Oberfläche übergibt `sprache()`. Die lokalen Hinweise entstehen in
+  `berechneIndex(daten, vorher, sprache)`; der Store rechnet sie beim Sprachwechsel neu. Hinweis-Schlüssel
+  hängen nicht von der Sprache ab (Entscheidungen bleiben gültig).
+- **Sprachwahl**: Einstellungen (⌘,) → System / Deutsch / English. „System“ folgt der ersten bevorzugten
+  macOS-Sprache (Deutsch → de, sonst en). Gespeichert als App-Einstellung `sprache` in `einstellungen.json` im
+  App-Ordner (Rust: `sprache_info`, `sprache_setzen`; fehlt = System), in der Browser-Demo in `localStorage`
+  (`plotwerk:sprache`), nie im Projektordner. Das native Menü und die Dateidialoge (`src-tauri/src/sprache.rs`,
+  `menue.rs`) folgen der Sprache beim Start und beim Umschalten. Tests laufen fest auf Deutsch
+  (`src/test/setup.ts`).
+- **Buchsprache ≠ Oberflächensprache**: `projekt.md → angaben.sprache` (BCP-47, leer = de) steuert Typografie
+  beim Tippen, `lang` von Editor und Buch-Vorschau (Silbentrennung, Rechtschreibung), Stil-Werkzeuge,
+  Namenserkennung (Genitiv/Possessiv), Vorlesestimme, die Sprache der KI-Beobachtungen und die Beschriftungen
+  der Export-Dokumente (`buchSprache()`, in src `useBuchSprache()` aus `src/i18n/buch`).
+- Nicht übersetzt: Nutzerdaten, das Demo-Projekt (`fixtures/`), Demo-KI-Antworten, Meldungen des Rust-Kerns
+  (Fehlertexte) und `console`-Ausgaben.
+- **Folgeschritte**: Rust-Fehlermeldungen (Dateien, Schlüsselbund, KI-Transport) zweisprachig; englisches
+  „standard manuscript format“ statt Normseite 30×60 (bisher nur Beschriftungen englisch); `KapitelAnalyse` merkt sich
+  die Sprache nicht – nach Wechsel der Buchsprache bei unverändertem Text greift der Cache nicht, „Prüfung erzwingen“
+  rechnet neu (additives Feld `sprache?` nötig); britische Dialoge in ‘…’ erkennt `stimmeRede` noch nicht; englische
+  Prompts an echten Modellantworten feinjustieren; Word-Kommentare (`kommentarNotiz`) bleiben deutsch, weil der
+  Rückimport Doppelte über den Text erkennt; englisches Demo-Projekt.
+
 ## Harte Regeln
 
-1. Die KI schreibt nie: `core/ki` importiert nichts, was schreiben kann (nur `ProjektLeser`, `KiTransport`, `core/text`, `core/model`). Ein Test prüft die Importe und einen vollen Lauf gegen ein Dateisystem, das bei jedem Schreibversuch fehlschlägt. Der Rust-Teil der KI hat keinen Dateizugriff.
+1. Die KI schreibt nie: `core/ki` importiert nichts, was schreiben kann (nur `ProjektLeser`, `KiTransport`, `core/text`, `core/model`, `core/i18n`). Ein Test prüft die Importe und einen vollen Lauf gegen ein Dateisystem, das bei jedem Schreibversuch fehlschlägt. Der Rust-Teil der KI hat keinen Dateizugriff.
 2. Kein Ersatztext: Das Antwortschema hat kein Feld dafür; Erklärungen mit Formulierungsvorschlägen („stattdessen“, „besser:“, „ersetze“, „formuliere“ …) werden verworfen.
 3. Jedes Zitat wird nach E6 gegen den Text geprüft, sonst wird der Hinweis verworfen.
 4. Bewusst vage markierte Figuren/Stellen erzeugen nie Hinweise vom Typ `pruefen`.
-5. UI-Texte Deutsch, Code-Bezeichner Deutsch wie im Datenmodell.
+5. UI-Texte nur über das Wörterbuch (`src/i18n`, Deutsch als Quelle), Code-Bezeichner Deutsch wie im Datenmodell.

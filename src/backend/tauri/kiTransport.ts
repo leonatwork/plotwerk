@@ -10,6 +10,7 @@
  */
 import type { KiTransport } from '@core/ki/index';
 import type { KiAnbieter } from '@core/model/types';
+import { texte } from '../../i18n';
 import { aufruf, TauriFehler } from './aufruf';
 
 /** Anbieter und Basis-URL der aktuellen Einstellungen ('' = kein Endpoint). */
@@ -20,12 +21,6 @@ export interface KiZiel {
 
 /** Modelle mit serverseitigem Fallback `"default"` auf der Claude API. */
 export const SERVER_FALLBACK_MODELLE: readonly string[] = ['claude-sonnet-5-5', 'claude-opus-5-5'];
-
-const KEIN_ENDPOINT: Record<KiAnbieter, string> = {
-  foundry:
-    'Kein KI-Endpoint eingetragen. Bitte in den KI-Einstellungen die Foundry-URL angeben (https://<ressource>.services.ai.azure.com/anthropic).',
-  claude: 'Keine Basis-URL für die Claude API eingetragen. Bitte in den KI-Einstellungen prüfen (Standard: https://api.anthropic.com).',
-};
 
 /**
  * Ergänzt `fallbacks: "default"` für die Claude API bei claude-sonnet-5-5 und claude-opus-5-5.
@@ -43,7 +38,7 @@ export function erstelleTauriKiTransport(ziel: () => Promise<KiZiel>): KiTranspo
   async function pflichtZiel(): Promise<KiZiel> {
     const z = await ziel();
     const endpoint = z.endpoint.trim();
-    if (!endpoint) throw new TauriFehler(KEIN_ENDPOINT[z.anbieter]);
+    if (!endpoint) throw new TauriFehler(texte().backend.keinEndpoint[z.anbieter]);
     return { anbieter: z.anbieter, endpoint };
   }
 

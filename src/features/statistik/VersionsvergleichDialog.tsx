@@ -28,6 +28,7 @@ import { wortzahl } from '@core/text/index';
 import { versionenAuflisten, type Version } from '@core/versionen/index';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, texte, useTexte } from '../../i18n';
 import { useStore } from '../../state/store';
 import { Button, Dialog } from '../../ui';
 import { kapitelAnzeige } from '../schreiben/verweise';
@@ -42,25 +43,29 @@ interface Param {
   pfad?: string;
 }
 
-const STATUS_TEXT: Record<KapitelVergleich['status'], { text: string; klasse: string }> = {
+type StatusSchluessel = keyof ReturnType<typeof texte>['statistik']['vergleich']['status'];
+
+const STATUS_TEXT: Record<KapitelVergleich['status'], { text: StatusSchluessel; klasse: string }> = {
   gleich: { text: 'gleich', klasse: '' },
-  geaendert: { text: 'geändert', klasse: 'pw-st-etikett--geaendert' },
-  'nur-links': { text: 'nur links', klasse: 'pw-st-etikett--warn' },
-  'nur-rechts': { text: 'neu', klasse: 'pw-st-etikett--neu' },
-  'datei-fehlt': { text: 'fehlt', klasse: 'pw-st-etikett--warn' },
+  geaendert: { text: 'geaendert', klasse: 'pw-st-etikett--geaendert' },
+  'nur-links': { text: 'nurLinks', klasse: 'pw-st-etikett--warn' },
+  'nur-rechts': { text: 'nurRechts', klasse: 'pw-st-etikett--neu' },
+  'datei-fehlt': { text: 'dateiFehlt', klasse: 'pw-st-etikett--warn' },
 };
 
 function quellenName(q: Quelle, fassungen: readonly BenannteFassung[]): string {
+  const t = texte().statistik.vergleich;
   const a = quelleLesen(q);
-  if (a.art === 'aktuell') return 'Aktueller Text';
-  if (a.art === 'fassung') return fassungen.find((f) => f.id === a.id)?.name ?? 'Fassung (entfernt)';
-  return 'Version';
+  if (a.art === 'aktuell') return t.aktuell;
+  if (a.art === 'fassung') return fassungen.find((x) => x.id === a.id)?.name ?? t.fassungEntfernt;
+  return t.version;
 }
 
-function leerText(t: QuellenText | null, q: Quelle): string | undefined {
-  if (!t) return undefined;
-  if (t.status === 'fehlt-in-fassung') return quelleLesen(q).art === 'aktuell' ? 'Dieses Kapitel ist nicht mehr im Buch.' : 'Dieses Kapitel gehört nicht zu dieser Fassung.';
-  if (t.status === 'datei-fehlt') return `Der Schnappschuss fehlt im Projektordner (${t.pfad}).`;
+function leerText(qt: QuellenText | null, q: Quelle): string | undefined {
+  const t = texte().statistik.vergleich;
+  if (!qt) return undefined;
+  if (qt.status === 'fehlt-in-fassung') return quelleLesen(q).art === 'aktuell' ? t.nichtMehrImBuch : t.nichtInFassung;
+  if (qt.status === 'datei-fehlt') return f(t.schnappschussFehlt, { pfad: qt.pfad });
   return undefined;
 }
 
@@ -91,6 +96,8 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
   const steuerung = useRef<SpaltenvergleichSteuerung>(null);
   const linksId = useId();
   const rechtsId = useId();
+  const tt = useTexte();
+  const t = tt.statistik.vergleich;
 
   // Ausstehende Eingaben sichern, damit „aktueller Text“ stimmt
   useEffect(() => {
@@ -190,18 +197,18 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
     const extraVersion = v.art === 'version' && !versionen.some((x) => x.versionsPfad === v.pfad) ? v.pfad : null;
     return (
       <>
-        <option value={AKTUELL}>Aktueller Text</option>
+        <option value={AKTUELL}>{t.aktuell}</option>
         {fassungen.length > 0 && (
-          <optgroup label="Benannte Fassungen">
-            {fassungen.map((f) => (
-              <option key={f.id} value={fassungsQuelle(f.id)} disabled={!!kapitel && !buch && !fassungsVersion(f, kapitel) && eigene !== fassungsQuelle(f.id)}>
-                {f.name} · {zeitpunktAnzeige(f.datum)}
+          <optgroup label={t.benannte}>
+            {fassungen.map((fa) => (
+              <option key={fa.id} value={fassungsQuelle(fa.id)} disabled={!!kapitel && !buch && !fassungsVersion(fa, kapitel) && eigene !== fassungsQuelle(fa.id)}>
+                {fa.name} · {zeitpunktAnzeige(fa.datum)}
               </option>
             ))}
           </optgroup>
         )}
         {kapitel && (versionen.length > 0 || extraVersion) && (
-          <optgroup label={`Versionen von ${name(kapitel)}`}>
+          <optgroup label={f(t.versionenVon, { name: name(kapitel) })}>
             {extraVersion && <option value={versionsQuelle(extraVersion)}>{extraVersion.split('/').pop()}</option>}
             {versionen.map((x) => (
               <option key={x.versionsPfad} value={versionsQuelle(x.versionsPfad)}>
@@ -218,7 +225,7 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
     const a = quelleLesen(q);
     if (a.art === 'version') {
       const v = versionen.find((x) => x.versionsPfad === a.pfad);
-      return v ? `Version ${versionsLabel(v)}` : 'Version';
+      return v ? f(t.versionMit, { label: versionsLabel(v) }) : t.version;
     }
     return quellenName(q, fassungen);
   };
@@ -226,7 +233,16 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
   const bereit = texte?.schluessel === schluessel;
 
   return (
-    <Dialog titel="Fassungen vergleichen" breite={1140} onSchliessen={schliessen} aktionen={<Button variante="primaer" onClick={schliessen}>Schließen</Button>}>
+    <Dialog
+      titel={t.titel}
+      breite={1140}
+      onSchliessen={schliessen}
+      aktionen={
+        <Button variante="primaer" onClick={schliessen}>
+          {tt.gemeinsam.schliessen}
+        </Button>
+      }
+    >
       <div
         className="pw-st-vgl"
         onKeyDown={(e) => {
@@ -243,7 +259,7 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
         <div className="pw-st-vgl__wahl">
           <div className="pw-feld">
             <label className="pw-feld__label" htmlFor={linksId}>
-              Links (vorher)
+              {t.links}
             </label>
             <select id={linksId} className="pw-st-select" value={links} onChange={(e) => setLinks(e.target.value)} data-autofocus>
               {optionen(links)}
@@ -251,8 +267,8 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
           </div>
           <Button
             className="pw-st-vgl__tauschen"
-            title="Seiten tauschen (⌥⇧T)"
-            aria-label="Seiten tauschen"
+            title={t.tauschenTitel}
+            aria-label={t.tauschen}
             onClick={() => {
               setLinks(rechts);
               setRechts(links);
@@ -262,7 +278,7 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
           </Button>
           <div className="pw-feld">
             <label className="pw-feld__label" htmlFor={rechtsId}>
-              Rechts (nachher)
+              {t.rechts}
             </label>
             <select id={rechtsId} className="pw-st-select" value={rechts} onChange={(e) => setRechts(e.target.value)}>
               {optionen(rechts)}
@@ -273,25 +289,23 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
         <div style={{ display: 'grid', gridTemplateColumns: buch ? '230px minmax(0, 1fr)' : 'minmax(0, 1fr)', gap: 12, minHeight: 0 }}>
           {buch && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minHeight: 0 }}>
-              <span className="pw-feld__label">
-                Kapitel · {buch.filter((b) => b.status === 'geaendert').length} geändert
-              </span>
+              <span className="pw-feld__label">{f(t.kapitelGeaendert, { n: buch.filter((b) => b.status === 'geaendert').length })}</span>
               {buch.length === 0 ? (
-                <span className="pw-st-leise">Keine Kapitel mit Text.</span>
+                <span className="pw-st-leise">{t.keineKapitel}</span>
               ) : (
-                <ul className="pw-st-buchliste" aria-label="Kapitel" style={{ maxHeight: 'min(58vh, 560px)' }}>
+                <ul className="pw-st-buchliste" aria-label={t.kapitel} style={{ maxHeight: 'min(58vh, 560px)' }}>
                   {buch.map((b) => {
                     const s = STATUS_TEXT[b.status];
                     return (
                       <li key={b.id}>
                         <button type="button" aria-pressed={b.id === kapitel} onClick={() => kapitelWaehlen(b.id)}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name(b.id)}</span>
-                          <span className="pw-st-zahl" title="Wörter links → rechts">
+                          <span className="pw-st-zahl" title={t.woerterLinksRechts}>
                             {b.status === 'geaendert' && b.linksWoerter !== null && b.rechtsWoerter !== null
                               ? `${b.rechtsWoerter - b.linksWoerter >= 0 ? '+' : '−'}${zahl.format(Math.abs(b.rechtsWoerter - b.linksWoerter))}`
                               : ''}
                           </span>
-                          <span className={`pw-st-etikett ${s.klasse}`}>{s.text}</span>
+                          <span className={`pw-st-etikett ${s.klasse}`}>{t.status[s.text]}</span>
                         </button>
                       </li>
                     );
@@ -304,8 +318,8 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
             <div className="pw-st-vgl__kapitel">
               {!buch && kapitel && <strong style={{ fontSize: 13 }}>{name(kapitel)}</strong>}
               {!buch && !kapitel && kapitelListe.length > 0 && (
-                <select className="pw-st-select" aria-label="Kapitel" value="" onChange={(e) => kapitelWaehlen(e.target.value)}>
-                  <option value="">Kapitel wählen …</option>
+                <select className="pw-st-select" aria-label={tt.gemeinsam.kapitel} value="" onChange={(e) => kapitelWaehlen(e.target.value)}>
+                  <option value="">{t.kapitelWaehlen}</option>
                   {kapitelListe.map((id) => (
                     <option key={id} value={id}>
                       {name(id)}
@@ -318,20 +332,20 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
                   <span className="pw-st-fehler">{fehler}</span>
                 ) : zaehlung && bereit ? (
                   zaehlung.neu === 0 && zaehlung.entfernt === 0 ? (
-                    <span>Beide Fassungen sind gleich.</span>
+                    <span>{t.gleich}</span>
                   ) : (
                     <>
                       <span>
-                        <span className="pw-st-diff--entfernt">entfernt</span> {woerterText(zaehlung.entfernt)}
+                        <span className="pw-st-diff--entfernt">{t.entfernt}</span> {woerterText(zaehlung.entfernt)}
                       </span>
                       <span>
-                        <span className="pw-st-diff--neu">neu</span> {woerterText(zaehlung.neu)}
+                        <span className="pw-st-diff--neu">{t.neu}</span> {woerterText(zaehlung.neu)}
                       </span>
-                      <Button variante="text" klein title="Vorige Änderung (⌥↑)" onClick={() => steuerung.current?.springe(-1)}>
-                        ↑ Vorige
+                      <Button variante="text" klein title={t.vorigeTitel} onClick={() => steuerung.current?.springe(-1)}>
+                        {t.vorige}
                       </Button>
-                      <Button variante="text" klein title="Nächste Änderung (⌥↓)" onClick={() => steuerung.current?.springe(1)}>
-                        Nächste ↓
+                      <Button variante="text" klein title={t.naechsteTitel} onClick={() => steuerung.current?.springe(1)}>
+                        {t.naechste}
                       </Button>
                     </>
                   )
@@ -340,7 +354,7 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
             </div>
             {!kapitel ? (
               <p className="pw-st-leise" style={{ margin: 0 }}>
-                {daten.projekt.kapitel.length === 0 ? 'Das Buch hat noch keine Kapitel.' : 'Wähle ein Kapitel, um die Fassungen zu vergleichen.'}
+                {daten.projekt.kapitel.length === 0 ? t.buchLeer : t.waehleKapitel}
               </p>
             ) : (
               <Spaltenvergleich
@@ -350,8 +364,8 @@ export default function VersionsvergleichDialog({ param, schliessen }: DialogKom
                 rechtsTitel={titel(rechts)}
                 linksNeben={bereit ? neben(texte?.links) : ''}
                 rechtsNeben={bereit ? neben(texte?.rechts) : ''}
-                linksLeer={bereit ? leerText(texte!.links, links) : 'Lädt …'}
-                rechtsLeer={bereit ? leerText(texte!.rechts, rechts) : 'Lädt …'}
+                linksLeer={bereit ? leerText(texte!.links, links) : tt.gemeinsam.laedt}
+                rechtsLeer={bereit ? leerText(texte!.rechts, rechts) : tt.gemeinsam.laedt}
               />
             )}
           </div>

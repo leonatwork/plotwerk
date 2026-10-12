@@ -28,7 +28,7 @@ pub fn lesen(datei: &Path, schluessel: &str) -> Option<Value> {
 /// `Value::Null` entfernt den Eintrag.
 pub fn schreiben(datei: &Path, schluessel: &str, wert: Value) -> Result<(), String> {
     if schluessel.trim().is_empty() {
-        return Err("Leerer Einstellungsname".into());
+        return Err(crate::sprache::t("Leerer Einstellungsname", "Empty setting name").into());
     }
     let mut daten = alle(datei);
     if wert.is_null() {
@@ -37,8 +37,12 @@ pub fn schreiben(datei: &Path, schluessel: &str, wert: Value) -> Result<(), Stri
         daten.insert(schluessel.to_string(), wert);
     }
     let text = serde_json::to_string_pretty(&Value::Object(daten)).map_err(|e| e.to_string())?;
-    schreiben_atomar(datei, text.as_bytes())
-        .map_err(|e| format!("Einstellungen nicht gespeichert: {e}"))
+    schreiben_atomar(datei, text.as_bytes()).map_err(|e| {
+        crate::tf!(
+            "Einstellungen nicht gespeichert: {e}",
+            "Settings not saved: {e}"
+        )
+    })
 }
 
 #[cfg(test)]

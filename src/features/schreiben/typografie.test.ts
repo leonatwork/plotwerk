@@ -75,3 +75,26 @@ describe('Typografie im Editor', () => {
     expect(letzter.marks.map((m) => m.type.name)).toEqual(['italic']);
   });
 });
+
+describe('Typografie im Editor – Buchsprache', () => {
+  it('setzt bei englischer Buchsprache englische Anführungszeichen und Geviertstrich', () => {
+    let sprache: 'de' | 'en' = 'en';
+    editor = new Editor({
+      element: document.createElement('div'),
+      extensions: [...basisErweiterungen(), Typografie.configure({ sprache: () => sprache })],
+      content: '<p></p>',
+    });
+    tippe(editor, '"Don\'t," she said -- and left...');
+    expect(editor.state.doc.textContent).toBe('“Don’t,” she said — and left…');
+    // Die Sprache wird zur Tippzeit gelesen (geänderte Angabe wirkt ohne Neustart)
+    sprache = 'de';
+    tippe(editor, ' "Ja"');
+    expect(editor.state.doc.textContent).toBe('“Don’t,” she said — and left… „Ja“');
+  });
+
+  it('liest ohne Einstellung die Buchsprache aus dem Store (kein Projekt = Deutsch)', () => {
+    const ed = neuerEditor();
+    tippe(ed, '"a"');
+    expect(ed.state.doc.textContent).toBe('„a“');
+  });
+});

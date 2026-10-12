@@ -7,7 +7,10 @@
  * src-tauri/src/vorlesen.rs) – unabhängig davon, ob die WKWebView die Web Speech API mitbringt; dieselben
  * Stimmen wie in den Systemeinstellungen. Im Browser (Demo) gilt die Web Speech API. Fehlt beides, zeigt
  * die Werkzeugleiste „Vorlesen ist hier nicht verfügbar“.
+ *
+ * Satzgrenzen und die Standardstimme richten sich nach der Buchsprache (Deutsch: de-DE, Englisch: en-US vor en-GB).
  */
+import { localeVon, type Sprache } from '@core/i18n';
 import { saetze } from '@core/stil/index';
 import { istTauri } from '../../../backend';
 import { SayAeusserung, SaySprachausgabe } from '../../../backend/tauri/vorlesen';
@@ -19,9 +22,9 @@ export interface VorleseSatz {
 }
 
 /** Sätze im Bereich [von, bis) – angeschnittene Sätze am Rand werden auf den Bereich gekürzt. */
-export function vorleseSaetze(text: string, von = 0, bis = text.length): VorleseSatz[] {
+export function vorleseSaetze(text: string, von = 0, bis = text.length, sprache: Sprache = 'de'): VorleseSatz[] {
   const ergebnis: VorleseSatz[] = [];
-  for (const s of saetze(text)) {
+  for (const s of saetze(text, sprache)) {
     if (s.ende <= von || s.start >= bis) continue;
     const start = Math.max(s.start, von);
     const ende = Math.min(s.ende, bis);
@@ -45,12 +48,19 @@ export interface StimmeInfo {
   default: boolean;
 }
 
-/** Qualität einer Stimme für deutschen Text (höher = besser). */
-export function stimmenRang(s: StimmeInfo): number {
+/** Bevorzugte Varianten je Buchsprache (Rang 100, 95, …); andere Varianten der Sprache 80. */
+const VARIANTEN: Record<Sprache, string[]> = {
+  de: ['de-de'],
+  en: ['en-us', 'en-gb'],
+};
+
+/** Qualität einer Stimme für Text in der Buchsprache (höher = besser, -1 = andere Sprache). */
+export function stimmenRang(s: StimmeInfo, sprache: Sprache = 'de'): number {
   const lang = s.lang.replace('_', '-').toLowerCase();
   let rang = 0;
-  if (lang === 'de-de') rang += 100;
-  else if (lang.startsWith('de')) rang += 80;
+  const variante = VARIANTEN[sprache].indexOf(lang);
+  if (variante >= 0) rang += 100 - 5 * variante;
+  else if (lang === sprache || lang.startsWith(`${sprache}-`)) rang += 80;
   else return -1;
   if (/premium/iu.test(s.name)) rang += 30;
   else if (/enhanced|erweitert|verbessert|neural|siri/iu.test(s.name)) rang += 20;
@@ -61,20 +71,28 @@ export function stimmenRang(s: StimmeInfo): number {
   return rang;
 }
 
-/** Deutsche Stimmen, beste zuerst. */
-export function deutscheStimmen<T extends StimmeInfo>(stimmen: readonly T[]): T[] {
+/** Stimmen für die Buchsprache, beste zuerst. */
+export function stimmenFuer<T extends StimmeInfo>(stimmen: readonly T[], sprache: Sprache = 'de'): T[] {
   return stimmen
-    .filter((s) => stimmenRang(s) >= 0)
-    .sort((a, b) => stimmenRang(b) - stimmenRang(a) || a.name.localeCompare(b.name, 'de'));
+    .filter((s) => stimmenRang(s, sprache) >= 0)
+    .sort((a, b) => stimmenRang(b, sprache) - stimmenRang(a, sprache) || a.name.localeCompare(b.name, localeVon(sprache)));
 }
 
-/** Gewählte Stimme (falls noch vorhanden), sonst die beste deutsche, sonst null. */
-export function waehleStimme<T extends StimmeInfo>(stimmen: readonly T[], gewuenscht: string | null): T | null {
+/** Deutsche Stimmen, beste zuerst. */
+export function deutscheStimmen<T extends StimmeInfo>(stimmen: readonly T[]): T[] {
+  return stimmenFuer(stimmen, 'de');
+}
+
+/**
+ * Gewählte Stimme (falls noch vorhanden und – bei englischer Buchsprache – eine englische), sonst die beste
+ * Stimme der Buchsprache, sonst null. Bei Deutsch gilt die Wahl wie bisher unabhängig von ihrer Sprache.
+ */
+export function waehleStimme<T extends StimmeInfo>(stimmen: readonly T[], gewuenscht: string | null, sprache: Sprache = 'de'): T | null {
   if (gewuenscht) {
     const g = stimmen.find((s) => s.voiceURI === gewuenscht);
-    if (g) return g;
+    if (g && (sprache === 'de' || stimmenRang(g, sprache) >= 0)) return g;
   }
-  return deutscheStimmen(stimmen)[0] ?? null;
+  return stimmenFuer(stimmen, sprache)[0] ?? null;
 }
 
 let say: SaySprachausgabe | null = null;
@@ -86,10 +104,13 @@ export function sprachausgabe(): SpeechSynthesis | null {
   return s && typeof globalThis.SpeechSynthesisUtterance === 'function' ? s : null;
 }
 
-/** Äußerung passend zu `sprachausgabe()`. */
-export function neueAeusserung(text: string): SpeechSynthesisUtterance {
-  if (istTauri()) return new SayAeusserung(text) as unknown as SpeechSynthesisUtterance;
-  return new SpeechSynthesisUtterance(text);
+/** Äußerung passend zu `sprachausgabe()`, `lang` nach der Buchsprache (de-DE bzw. en-US). */
+export function neueAeusserung(text: string, sprache: Sprache = 'de'): SpeechSynthesisUtterance {
+  const lang = localeVon(sprache);
+  if (istTauri()) return new SayAeusserung(text, lang) as unknown as SpeechSynthesisUtterance;
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = lang;
+  return u;
 }
 
 /** Wie bei `start` des Vorlesens: ab Anfang, ab Cursor (Standard) oder nur die Auswahl. */

@@ -1,5 +1,6 @@
 /** Bereich „Figuren“ (F-01–F-06) nach docs/design/screens/Figur.dc.html. Besitzer: Planung. */
 import { useEffect, useState } from 'react';
+import { f, texte, useTexte, vergleich } from '../../i18n';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { Button, Segment } from '../../ui';
@@ -15,7 +16,8 @@ export default function Ansicht() {
   const waehle = useStore((s) => s.waehle);
   const figurenAnsicht = useStore((s) => s.figurenbogen.figurenAnsicht);
   const stimmeSpalte = useStore((s) => s.figurenbogen.stimmeSpalte);
-  const figuren = daten ? Object.values(daten.figuren).sort((a, b) => a.name.localeCompare(b.name, 'de')) : [];
+  const t = useTexte();
+  const figuren = daten ? Object.values(daten.figuren).sort((a, b) => vergleich(a.name, b.name)) : [];
   const id =
     gewaehlt && daten?.figuren[gewaehlt]
       ? gewaehlt
@@ -36,8 +38,8 @@ export default function Ansicht() {
         </>
       ) : (
         <div className="pw-leer">
-          <h2 className="pw-leer__titel">Noch keine Figuren</h2>
-          <div className="pw-leer__text">Lege links eine Figur vorab an, auch bevor sie im Text vorkommt.</div>
+          <h2 className="pw-leer__titel">{t.figuren.ansicht.leerTitel}</h2>
+          <div className="pw-leer__text">{t.figuren.ansicht.leerText}</div>
         </div>
       )}
     </div>
@@ -51,28 +53,29 @@ export function Titelaktionen() {
   const [neu, setNeu] = useState<string | null>(null);
   const figurenAnsicht = useStore((s) => s.figurenbogen.figurenAnsicht);
   const setzeFigurenAnsicht = useStore((s) => s.figurenbogen.setzeFigurenAnsicht);
+  const t = useTexte();
   return (
     <>
       <Segment<'karte' | 'boegen'>
         rolle="group"
-        label="Ansicht"
+        label={t.figuren.ansicht.ansicht}
         hintergrund="selected"
         groesse="klein"
         wert={figurenAnsicht}
         onChange={setzeFigurenAnsicht}
         optionen={[
-          { wert: 'karte', label: 'Karte' },
-          { wert: 'boegen', label: 'Bögen' },
+          { wert: 'karte', label: t.figuren.ansicht.karte },
+          { wert: 'boegen', label: t.figuren.ansicht.boegen },
         ]}
       />
       {figurenAnsicht === 'karte' && <StimmeKnopf />}
       <label htmlFor="figuren-suche" className="pw-sr">
-        Suchen
+        {t.gemeinsam.suchen}
       </label>
       <input
         id="figuren-suche"
         type="search"
-        placeholder="Suchen"
+        placeholder={t.gemeinsam.suchen}
         value={suche}
         onChange={(e) => setzeSuche(e.target.value)}
         style={{
@@ -89,7 +92,7 @@ export function Titelaktionen() {
       />
       {neu === null ? (
         <Button variante="primaer" onClick={() => setNeu('')}>
-          + Neue Figur
+          {t.figuren.ansicht.neueFigur}
         </Button>
       ) : (
         <form
@@ -101,8 +104,8 @@ export function Titelaktionen() {
         >
           <input
             autoFocus
-            aria-label="Name der neuen Figur"
-            placeholder="Name, Enter"
+            aria-label={t.figuren.ansicht.nameNeu}
+            placeholder={t.figuren.ansicht.namePlatzhalter}
             value={neu}
             onChange={(e) => setNeu(e.target.value)}
             onBlur={() => !neu.trim() && setNeu(null)}
@@ -128,5 +131,6 @@ export function Titelaktionen() {
 export function kontext(state: Store): string {
   const id = state.auswahl.figur;
   const name = id ? state.daten?.figuren[id]?.name : undefined;
-  return name ? `Figuren · ${name}` : 'Figuren';
+  const t = texte().figuren.ansicht;
+  return name ? f(t.kontextMit, { name }) : t.kontext;
 }

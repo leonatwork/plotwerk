@@ -19,12 +19,13 @@ import {
 import type { Id, LeserAussage, ProjektDaten } from '@core/model/types';
 import { fadenKarten } from '@core/struktur/faeden';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
+import { f, useTexte, zahl as zahlFormat, sprache } from '../../i18n';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button, Checkbox, Dialog, Segment } from '../../ui';
 import { Belege, Etikett, formatiereDatum, kapitelTitel, kapNr, KiFehlerKasten, PlanStatus } from './gemeinsam';
 
-const zahl = (n: number) => Math.round(n).toLocaleString('de-DE');
+const zahl = (n: number) => zahlFormat(Math.round(n));
 
 type Reiter = 'weiss' | 'fragen' | 'vermutungen' | 'spannung' | 'plan';
 
@@ -69,13 +70,15 @@ function Aussagen({ daten, liste, schliessen }: { daten: ProjektDaten; liste: Le
 }
 
 function PlanListe({ daten, plan, schliessen }: { daten: ProjektDaten; plan: PlanAbgleich[]; schliessen(): void }) {
+  const t = useTexte().fragen.simulation;
   return (
     <ul className="pw-kl-liste">
       {plan.map((p, i) => (
         <li key={`${p.kapitel}|${i}`} className="pw-kl-punkt">
           <div className="pw-kl-punkt__zeile">
             <span className="pw-kl-plan">
-              <span className="pw-kl-plan__vor">{kapNr(daten, p.kapitel)} · Plan sagt:</span>„{p.aussage}“
+              <span className="pw-kl-plan__vor">{f(t.planSagt, { kap: kapNr(daten, p.kapitel) })}</span>
+              {f(t.planAussage, { aussage: p.aussage })}
             </span>
             <PlanStatus status={p.status} />
           </div>
@@ -88,28 +91,28 @@ function PlanListe({ daten, plan, schliessen }: { daten: ProjektDaten; plan: Pla
 }
 
 function FadenListe({ daten, liste }: { daten: ProjektDaten; liste: FadenAbgleich[] }) {
+  const t = useTexte().fragen.simulation;
   return (
     <ul className="pw-kl-liste">
-      {liste.map((f) => (
-        <li key={f.faden.id} className="pw-kl-punkt">
+      {liste.map((fa) => (
+        <li key={fa.faden.id} className="pw-kl-punkt">
           <div className="pw-kl-punkt__zeile">
             <span>
-              <b style={{ fontWeight: 600 }}>{f.faden.name}</b>
+              <b style={{ fontWeight: 600 }}>{fa.faden.name}</b>
               <span className="pw-kl-klein">
-                {' '}
-                · Plan: {f.soll === 'offen' ? 'für die Leserin noch offen' : 'aufgelöst'}
-                {f.faden.aufloesungIn ? ` (Auflösung ${kapNr(daten, f.faden.aufloesungIn)})` : ''}
+                {fa.soll === 'offen' ? t.planOffen : t.planAufgeloest}
+                {fa.faden.aufloesungIn ? f(t.aufloesung, { kap: kapNr(daten, fa.faden.aufloesungIn) }) : ''}
               </span>
             </span>
-            {f.passt === undefined ? (
-              <span className="pw-kl-status pw-kl-status--teilweise">keine passende Leserfrage</span>
-            ) : f.passt ? (
-              <span className="pw-kl-status pw-kl-status--belegt">passt</span>
+            {fa.passt === undefined ? (
+              <span className="pw-kl-status pw-kl-status--teilweise">{t.keinePassende}</span>
+            ) : fa.passt ? (
+              <span className="pw-kl-status pw-kl-status--belegt">{t.passt}</span>
             ) : (
-              <span className="pw-kl-status pw-kl-status--nicht_belegt">{f.soll === 'offen' ? 'Leserin hält es für beantwortet' : 'für die Leserin noch offen'}</span>
+              <span className="pw-kl-status pw-kl-status--nicht_belegt">{fa.soll === 'offen' ? t.haeltBeantwortet : t.nochOffen}</span>
             )}
           </div>
-          {f.frage && <p className="pw-kl-erklaerung">Leserfrage: „{f.frage.frage}“</p>}
+          {fa.frage && <p className="pw-kl-erklaerung">{f(t.leserfrage, { frage: fa.frage.frage })}</p>}
         </li>
       ))}
     </ul>
@@ -119,6 +122,7 @@ function FadenListe({ daten, liste }: { daten: ProjektDaten; liste: FadenAbgleic
 function Ergebnis({ daten, sim, schliessen }: { daten: ProjektDaten; sim: LeserSimulation; schliessen(): void }) {
   const index = useStore((s) => s.index);
   const [reiter, setReiter] = useState<Reiter>('fragen');
+  const t = useTexte().fragen.simulation;
   const offen = offeneFragen(sim);
   const beantwortet = sim.fragen.filter((f) => f.beantwortetIn);
   const faeden = useMemo(() => {
@@ -127,41 +131,41 @@ function Ergebnis({ daten, sim, schliessen }: { daten: ProjektDaten; sim: LeserS
   }, [daten, index.faeden, sim]);
 
   const optionen: { wert: Reiter; label: string }[] = [
-    { wert: 'fragen', label: `Offene Fragen ${offen.length}` },
-    { wert: 'weiss', label: `Weiß ${sim.weiss.length}` },
-    { wert: 'vermutungen', label: `Ahnt ${sim.vermutungen.length}` },
-    { wert: 'spannung', label: `Spannung ${sim.spannung.length}` },
-    { wert: 'plan', label: `Plan ${sim.plan.length + faeden.length}` },
+    { wert: 'fragen', label: f(t.reiterFragen, { n: offen.length }) },
+    { wert: 'weiss', label: f(t.reiterWeiss, { n: sim.weiss.length }) },
+    { wert: 'vermutungen', label: f(t.reiterAhnt, { n: sim.vermutungen.length }) },
+    { wert: 'spannung', label: f(t.reiterSpannung, { n: sim.spannung.length }) },
+    { wert: 'plan', label: f(t.reiterPlan, { n: sim.plan.length + faeden.length }) },
   ];
 
   return (
     <>
-      <Segment<Reiter> label="Ergebnis der Leser-Simulation" wert={reiter} onChange={(w) => setReiter(w)} optionen={optionen.map((o) => ({ ...o, steuert: `pw-kl-reiter-${o.wert}` }))} />
+      <Segment<Reiter> label={t.ergebnisLabel} wert={reiter} onChange={(w) => setReiter(w)} optionen={optionen.map((o) => ({ ...o, steuert: `pw-kl-reiter-${o.wert}` }))} />
       <div id={`pw-kl-reiter-${reiter}`} role="tabpanel" className="pw-kl-abschnitte" aria-label={optionen.find((o) => o.wert === reiter)?.label}>
         {reiter === 'fragen' && (
           <>
-            <Abschnitt titel="Fragen, die die Leserin offen hat" anzahl={offen.length} leer="Keine offenen Fragen.">
+            <Abschnitt titel={t.offenTitel} anzahl={offen.length} leer={t.offenLeer}>
               <ul className="pw-kl-liste">
-                {offen.map((f) => (
-                  <li key={f.id} className="pw-kl-punkt">
+                {offen.map((fr) => (
+                  <li key={fr.id} className="pw-kl-punkt">
                     <div className="pw-kl-punkt__zeile">
-                      <span>{f.frage}</span>
+                      <span>{fr.frage}</span>
                     </div>
-                    <Belege daten={daten} belege={f.belege} nachOeffnen={schliessen} kompakt />
+                    <Belege daten={daten} belege={fr.belege} nachOeffnen={schliessen} kompakt />
                   </li>
                 ))}
               </ul>
             </Abschnitt>
             {beantwortet.length > 0 && (
-              <Abschnitt titel="Bis hier schon beantwortet" anzahl={beantwortet.length}>
+              <Abschnitt titel={t.beantwortetTitel} anzahl={beantwortet.length}>
                 <ul className="pw-kl-liste">
-                  {beantwortet.map((f) => (
-                    <li key={f.id} className="pw-kl-punkt">
+                  {beantwortet.map((fr) => (
+                    <li key={fr.id} className="pw-kl-punkt">
                       <div className="pw-kl-punkt__zeile">
-                        <span style={{ color: 'var(--ink-soft)' }}>{f.frage}</span>
-                        <Etikett>beantwortet in {kapNr(daten, f.beantwortetIn!)}</Etikett>
+                        <span style={{ color: 'var(--ink-soft)' }}>{fr.frage}</span>
+                        <Etikett>{f(t.beantwortetIn, { kap: kapNr(daten, fr.beantwortetIn!) })}</Etikett>
                       </div>
-                      <Belege daten={daten} belege={f.belege} nachOeffnen={schliessen} kompakt />
+                      <Belege daten={daten} belege={fr.belege} nachOeffnen={schliessen} kompakt />
                     </li>
                   ))}
                 </ul>
@@ -170,28 +174,28 @@ function Ergebnis({ daten, sim, schliessen }: { daten: ProjektDaten; sim: LeserS
           </>
         )}
         {reiter === 'weiss' && (
-          <Abschnitt titel="Was die Leserin sicher weiß" anzahl={sim.weiss.length} leer="Nichts mit Beleg.">
+          <Abschnitt titel={t.weissTitel} anzahl={sim.weiss.length} leer={t.weissLeer}>
             <Aussagen daten={daten} liste={sim.weiss} schliessen={schliessen} />
           </Abschnitt>
         )}
         {reiter === 'vermutungen' && (
-          <Abschnitt titel="Was sie ahnt oder vermutet" anzahl={sim.vermutungen.length} leer="Keine Vermutungen mit Beleg.">
+          <Abschnitt titel={t.ahntTitel} anzahl={sim.vermutungen.length} leer={t.ahntLeer}>
             <Aussagen daten={daten} liste={sim.vermutungen} schliessen={schliessen} />
           </Abschnitt>
         )}
         {reiter === 'spannung' && (
-          <Abschnitt titel="Wo Spannung entsteht" anzahl={sim.spannung.length} leer="Keine Spannungspunkte mit Beleg.">
+          <Abschnitt titel={t.spannungTitel} anzahl={sim.spannung.length} leer={t.spannungLeer}>
             <Aussagen daten={daten} liste={sim.spannung} schliessen={schliessen} />
           </Abschnitt>
         )}
         {reiter === 'plan' && (
           <>
-            <Abschnitt titel="Kapitelpläne: im Text belegt?" anzahl={sim.plan.length} leer="Für Kapitel 1 bis hier gibt es keine Kapitelpläne – oder die KI hat nichts mit Beleg gefunden.">
+            <Abschnitt titel={t.planTitel} anzahl={sim.plan.length} leer={t.planLeer}>
               <PlanListe daten={daten} plan={sim.plan} schliessen={schliessen} />
             </Abschnitt>
-            <Abschnitt titel="Fäden-Planung neben den Leserfragen" anzahl={faeden.length} leer="Bis hier ist kein Faden eröffnet.">
+            <Abschnitt titel={t.faedenTitel} anzahl={faeden.length} leer={t.faedenLeer}>
               <FadenListe daten={daten} liste={faeden} />
-              <p className="pw-kl-klein">Lokaler Abgleich: Die Fäden-Planung geht nicht an die KI. Zugeordnet wird über gemeinsame Wörter.</p>
+              <p className="pw-kl-klein">{t.faedenLokal}</p>
             </Abschnitt>
           </>
         )}
@@ -214,6 +218,8 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
   const sim = useMemo(() => (stand ? ausLeserStand(stand) : null), [stand]);
   const phase: 'laeuft' | 'ergebnis' | 'start' = k.simLauf ? 'laeuft' : sim && !neu ? 'ergebnis' : 'start';
   const schaetzen = k.schaetzen;
+  const tt = useTexte();
+  const t = tt.fragen.simulation;
 
   useEffect(() => {
     if (phase !== 'start' || !kapitel) return;
@@ -230,8 +236,8 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
 
   if (!daten || !kapitel) {
     return (
-      <Dialog titel="Leser-Simulation" onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>Schließen</Button>}>
-        <p className="pw-kl-text">{daten ? 'Das Buch hat noch keine Kapitel.' : 'Öffne zuerst ein Projekt.'}</p>
+      <Dialog titel={t.titel} onSchliessen={schliessen} aktionen={<Button onClick={schliessen}>{tt.gemeinsam.schliessen}</Button>}>
+        <p className="pw-kl-text">{daten ? t.keineKapitel : t.projektOeffnen}</p>
       </Dialog>
     );
   }
@@ -246,7 +252,7 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
   const kopf = (
     <div className="pw-kl-kopf">
       <label className="pw-kl-klein" htmlFor="pw-kl-kapitel">
-        Leserin nach
+        {t.leserinNach}
       </label>
       <select
         id="pw-kl-kapitel"
@@ -271,8 +277,8 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
         </span>
       )}
       {phase === 'ergebnis' && veraltet && (
-        <Etikett art="warn" title="Text oder Plan eines Kapitels bis hier hat sich seit der Simulation geändert">
-          veraltet
+        <Etikett art="warn" title={t.veraltetTitel}>
+          {t.veraltet}
         </Etikett>
       )}
     </div>
@@ -282,29 +288,24 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
     const lnr = daten.projekt.kapitel.indexOf(k.simLauf.kapitel) + 1;
     return (
       <Dialog
-        titel="Leser-Simulation"
+        titel={t.titel}
         breite={680}
         onSchliessen={schliessen}
         className="pw-kl-dialog"
         seite={phase}
         aktionen={
           <>
-            <Button onClick={schliessen}>Im Hintergrund weiter</Button>
-            <Button onClick={k.simAbbrechen}>Abbrechen</Button>
+            <Button onClick={schliessen}>{t.imHintergrund}</Button>
+            <Button onClick={k.simAbbrechen}>{tt.gemeinsam.abbrechen}</Button>
           </>
         }
       >
         <div className="pw-kl-abschnitt" aria-live="polite">
-          <p className="pw-kl-text">
-            Die KI liest Kapitel 1 bis {lnr} wie eine Erstleserin{k.simLauf.tiefencheck ? ' (Tiefencheck mit Opus)' : ''} …
-          </p>
-          <div className="pw-kl-balken" role="progressbar" aria-label="Leser-Simulation läuft" aria-busy="true">
+          <p className="pw-kl-text">{f(k.simLauf.tiefencheck ? t.liestTief : t.liest, { nr: lnr })}</p>
+          <div className="pw-kl-balken" role="progressbar" aria-label={t.laeuft} aria-busy="true">
             <span />
           </div>
-          <p className="pw-kl-klein">
-            Was danach kommt, bekommt sie nicht zu sehen. Das Ergebnis wird im Projektordner gespeichert, auch wenn du den Dialog schließt. „Abbrechen“ verwirft den
-            Lauf – es wird nichts gespeichert.
-          </p>
+          <p className="pw-kl-klein">{t.laeuftHinweis}</p>
         </div>
       </Dialog>
     );
@@ -313,7 +314,7 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
   if (phase === 'ergebnis' && sim) {
     return (
       <Dialog
-        titel={`Was weiß die Leserin nach Kap. ${nr}?`}
+        titel={f(t.ergebnisTitel, { nr })}
         breite={720}
         onSchliessen={schliessen}
         className="pw-kl-dialog"
@@ -323,13 +324,13 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
             <Button
               variante="leise"
               style={{ marginRight: 'auto' }}
-              onClick={async () => (await bestaetigen(`Leser-Simulation nach Kap. ${nr} entfernen?`, { knopf: 'Entfernen' })) && void k.standEntfernen(kapitel)}
+              onClick={async () => (await bestaetigen(f(t.entfernenFrage, { nr }), { knopf: tt.gemeinsam.entfernen })) && void k.standEntfernen(kapitel)}
             >
-              Entfernen
+              {tt.gemeinsam.entfernen}
             </Button>
-            <Button onClick={() => setNeu(true)}>{veraltet ? 'Neu simulieren …' : 'Erneut simulieren …'}</Button>
+            <Button onClick={() => setNeu(true)}>{veraltet ? t.neuSimulieren : t.erneutSimulieren}</Button>
             <Button variante="primaer" onClick={schliessen}>
-              Schließen
+              {tt.gemeinsam.schliessen}
             </Button>
           </>
         }
@@ -339,7 +340,7 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
         {verworfen.length > 0 && (
           <details>
             <summary className="pw-kl-klein" style={{ cursor: 'pointer' }}>
-              {verworfen.length === 1 ? '1 Eintrag verworfen' : `${verworfen.length} Einträge verworfen`} – ohne wörtlichen Beleg oder mit Schreibvorschlag
+              {f(t.verworfen, { n: verworfen.length })}
             </summary>
             <ul className="pw-kl-regeln" style={{ marginTop: 6 }}>
               {verworfen.map((g, i) => (
@@ -356,14 +357,14 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
   const s = schaetzung.wert;
   return (
     <Dialog
-      titel="Leser-Simulation"
+      titel={t.titel}
       breite={600}
       onSchliessen={schliessen}
       className="pw-kl-dialog"
       seite={phase}
       aktionen={
         <>
-          <Button onClick={sim ? () => setNeu(false) : schliessen}>{sim ? 'Zurück zum Ergebnis' : 'Abbrechen'}</Button>
+          <Button onClick={sim ? () => setNeu(false) : schliessen}>{sim ? t.zurueck : tt.gemeinsam.abbrechen}</Button>
           <Button
             variante="primaer"
             disabled={!s || schaetzung.laedt || !!schaetzung.fehler || !textBisN}
@@ -372,51 +373,45 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
               if (ok) setNeu(false);
             }}
           >
-            Simulation starten
+            {t.starten}
           </Button>
         </>
       }
     >
-      <p className="pw-kl-text">
-        Die KI liest nur Kapitel 1 bis {nr} – wie eine Erstleserin, die nicht weiß, was danach kommt. Sie beschreibt, was die Leserin weiß, welche Fragen sie offen
-        hat, was sie ahnt und wo Spannung entsteht, und gleicht das mit deinen Kapitelplänen ab. Jede Aussage braucht ein wörtliches Zitat. Die KI schreibt keinen
-        Text.
-      </p>
+      <p className="pw-kl-text">{f(t.erklaerung, { nr })}</p>
       {kopf}
       {fehler && <KiFehlerKasten fehler={fehler} onSchliessen={k.fehlerZuruecksetzen} />}
       <Checkbox checked={tiefencheck} onChange={(e) => setTiefencheck(e.target.checked)}>
-        Tiefencheck mit Opus – gründlicher, teurer
+        {t.tiefencheck}
       </Checkbox>
       <div className="pw-kl-kasten" aria-live="polite">
         {!textBisN ? (
-          <p className="pw-kl-text">Bis Kap. {nr} gibt es noch keinen Text.</p>
+          <p className="pw-kl-text">{f(t.keinText, { nr })}</p>
         ) : schaetzung.fehler ? (
           <KiFehlerKasten fehler={schaetzung.fehler} />
         ) : !s || schaetzung.laedt ? (
-          <p className="pw-kl-klein">Tokens werden geschätzt …</p>
+          <p className="pw-kl-klein">{t.schaetzt}</p>
         ) : (
           <>
             <dl className="pw-kl-zeilen">
-              <dt>Modell</dt>
+              <dt>{t.modell}</dt>
               <dd>
                 {s.modell} · Effort {EFFORT[s.rolle]}
               </dd>
-              <dt>Liest</dt>
-              <dd>
-                Kap. 1–{nr} · {s.kapitel.length === 1 ? '1 Kapitel mit Text' : `${s.kapitel.length} Kapitel mit Text`} · 1 Anfrage
-              </dd>
-              <dt>Eingabe</dt>
-              <dd>≈ {zahl(s.eingabeTokens)} Tokens</dd>
-              <dt>Ausgabe</dt>
-              <dd>≈ {zahl(s.ausgabeTokens)} Tokens (mit Denken, großzügig)</dd>
-              <dt>Kosten</dt>
-              <dd>{formatiereUsd(s.kostenUsd)} (grob, Listenpreis)</dd>
+              <dt>{t.liestLabel}</dt>
+              <dd>{f(t.liestWert, { nr, kapitel: f(t.kapitelAnzahl, { n: s.kapitel.length }) })}</dd>
+              <dt>{t.eingabe}</dt>
+              <dd>{f(t.eingabeWert, { n: zahl(s.eingabeTokens) })}</dd>
+              <dt>{t.ausgabe}</dt>
+              <dd>{f(t.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
+              <dt>{t.kosten}</dt>
+              <dd>{f(t.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
             </dl>
-            {!s.gezaehlt && <p className="pw-kl-klein">count_tokens war nicht erreichbar, geschätzt über die Zeichenzahl.</p>}
+            {!s.gezaehlt && <p className="pw-kl-klein">{t.nichtGezaehlt}</p>}
           </>
         )}
       </div>
-      {backendArt === 'demo' && <p className="pw-kl-klein">Browser-Demo: Die Antworten kommen vom Demo-Transport, es gehen keine Daten ins Netz.</p>}
+      {backendArt === 'demo' && <p className="pw-kl-klein">{t.demo}</p>}
     </Dialog>
   );
 }

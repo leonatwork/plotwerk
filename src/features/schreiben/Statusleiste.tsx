@@ -3,8 +3,7 @@ import type { Id } from '@core/model/types';
 import { useStore } from '../../state/store';
 import { EditorWerkzeugleiste } from './werkzeuge';
 import { SchreibzielAnzeige } from '../statistik/SchreibzielAnzeige';
-
-const zahl = new Intl.NumberFormat('de-DE');
+import { f, useTexte } from '../../i18n';
 
 /** Wörter des Kapitels: live aus dem Editor, sonst aus dem Index. */
 export function useKapitelWoerter(id: Id | undefined): number | undefined {
@@ -34,13 +33,15 @@ export function Statusleiste({ kapitelId, ungespeichert, meldung }: { kapitelId:
   const editorSichern = useStore((s) => s.editorSichern);
   const kapitel = useKapitelWoerter(kapitelId) ?? 0;
   const gesamt = useGesamtWoerter();
+  const t = useTexte();
+  const T = t.schreiben.statusleiste;
 
   const stand = fehler ? (
     <span className="pw-s-status__fehler" title={fehler}>
-      Speichern fehlgeschlagen: {fehler}
+      {f(T.fehlgeschlagen, { fehler })}
     </span>
   ) : (
-    <span>{meldung ?? (ungespeichert || laufend ? 'Speichert …' : 'Automatisch gespeichert')}</span>
+    <span>{meldung ?? (ungespeichert || laufend ? T.speichert : T.gespeichert)}</span>
   );
 
   return (
@@ -55,14 +56,14 @@ export function Statusleiste({ kapitelId, ungespeichert, meldung }: { kapitelId:
             oeffneDialog('versionen', { kapitel: kapitelId });
           }}
         >
-          Versionsverlauf
+          {T.versionsverlauf}
         </button>
       </span>
       <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <EditorWerkzeugleiste kapitelId={kapitelId} />
         <SchreibzielAnzeige />
         <span>
-          {zahl.format(kapitel)} {kapitel === 1 ? 'Wort' : 'Wörter'} in diesem Kapitel · {zahl.format(gesamt)} gesamt
+          {f(T.woerter, { n: kapitel })} · {f(T.gesamt, { n: gesamt })}
         </span>
       </span>
     </div>

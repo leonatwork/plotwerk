@@ -8,7 +8,14 @@
  *   Klein beginnende Namen („alter Mann“) auch am Satzanfang; „Herr X“ auch als „Herrn X“.
  * - Schreibweisen aus entscheidungen.schreibweisen sowie Varianten mit/ohne Leerzeichen/Bindestrich
  *   werden erst NACH Leons Entscheidung erkannt; vorher meldet schreibweisenHinweise sie.
+ *
+ * Buchsprache (projekt.angaben.sprache, nicht die Oberflächensprache): Die deutschen Regeln (Genitiv-s ohne
+ * Apostroph „Pauls“, Artikel der/die/das, „Herrn“, -e/-en) gelten nur für deutsche Bücher. Englisch: Possessiv
+ * ’s/'s („Lotte’s“, „James’s“), bei Namen auf -s auch nur ’ („James’“), Plural-Possessiv s’ („the Millers’“),
+ * Artikel „The“ („The Stranger“ / „the Stranger“); ein schließendes doppeltes Anführungszeichen nach dem Namen
+ * gehört nie zum Treffer.
  */
+import { buchSprache, fmt, texteJe, type Sprache } from '../i18n';
 import type { Erwaehnung, Figur, Hinweis, Id, Kapitel, Motiv, Ort, ProjektDaten, Schreibweise, Zitat } from '../model/types';
 import {
   absaetze,
@@ -22,7 +29,15 @@ import {
   zuOriginalBereich,
 } from '../text';
 
-export type ErkennungsDaten = Pick<ProjektDaten, 'figuren' | 'orte' | 'entscheidungen'>;
+/** `projekt.angaben.sprache` bestimmt die Buchsprache der Erkennung (fehlt = Deutsch). */
+export type ErkennungsDaten = Pick<ProjektDaten, 'figuren' | 'orte' | 'entscheidungen'> & {
+  projekt?: { angaben?: { sprache?: string } };
+};
+
+/** Buchsprache der Erkennung (nicht die Sprache der Oberfläche oder der Hinweistexte). */
+export function erkennungsSprache(daten: { projekt?: { angaben?: { sprache?: string } } }): Sprache {
+  return buchSprache(daten.projekt?.angaben);
+}
 
 export interface NamensTreffer {
   zielTyp: 'figur' | 'ort';
@@ -57,10 +72,23 @@ function istKlein(c: string): boolean {
 
 const ARTIKEL = /^(der|die|das)$/i;
 
-/** Regex-Baustein für einen Namen (normalisiert), inklusive Genitiv. */
-function namensMuster(name: string): string | null {
+/** Englisch: „The Stranger“ trifft auch „the Stranger“; Possessiv nur mit Apostroph (normalisiert "). */
+function namensMusterEn(n: string): string {
+  const woerter = n.split(' ');
+  const teile = woerter.map(esc);
+  const erstes = woerter[0]!;
+  if (woerter.length >= 2 && /^the$/i.test(erstes)) teile[0] = '[Tt]he';
+  else if (istKlein(erstes[0]!)) teile[0] = `[${erstes[0]!}${erstes[0]!.toLocaleUpperCase('en')}]${esc(erstes.slice(1))}`;
+  // James’ / James’s; sonst Lotte’s und Plural-Possessiv Millers’
+  const possessiv = /s$/i.test(n) ? '(?:"s|")?' : '(?:"s|s")?';
+  return teile.join(' ') + possessiv;
+}
+
+/** Regex-Baustein für einen Namen (normalisiert), inklusive Genitiv bzw. Possessiv der Buchsprache. */
+function namensMuster(name: string, sprache: Sprache = 'de'): string | null {
   const n = norm(name);
   if (!n) return null;
+  if (sprache === 'en') return namensMusterEn(n);
   const woerter = n.split(' ');
   const teile = woerter.map(esc);
   const mehrwortig = woerter.length >= 2;
@@ -80,10 +108,10 @@ function namensMuster(name: string): string | null {
 }
 
 /** Nach Entscheidung: Buchstabenfolge mit optionalem Leerzeichen/Bindestrich dazwischen, ohne Groß/klein. */
-function kompaktMuster(s: string): string | null {
+function kompaktMuster(s: string, sprache: Sprache = 'de'): string | null {
   const k = kompakt(s);
   if (k.length < 4) return null;
-  return [...k].map(esc).join('[ -]?') + '(?:s|"s|")?';
+  return [...k].map(esc).join('[ -]?') + (sprache === 'en' ? '(?:"s|")?' : '(?:s|"s|")?');
 }
 
 interface Ziel {
@@ -101,19 +129,20 @@ function passtZuSchreibweise(sw: Schreibweise, zielTyp: 'figur' | 'ort', id: Id,
 }
 
 function zielBauen(zielTyp: 'figur' | 'ort', id: Id, formen: string[], daten: ErkennungsDaten): Ziel | null {
+  const sprache = erkennungsSprache(daten);
   const definiert = [...new Set(formen.map(norm).filter(Boolean))];
   const exakt = new Set<string>();
   const ohneFall = new Set<string>();
   for (const f of definiert) {
-    const m = namensMuster(f);
+    const m = namensMuster(f, sprache);
     if (m) exakt.add(m);
   }
   for (const sw of daten.entscheidungen?.schreibweisen ?? []) {
     if (!passtZuSchreibweise(sw, zielTyp, id, definiert)) continue;
     for (const v of [sw.gueltig, ...sw.varianten, ...definiert]) {
-      const m = namensMuster(v);
+      const m = namensMuster(v, sprache);
       if (m) exakt.add(m);
-      const k = kompaktMuster(v);
+      const k = kompaktMuster(v, sprache);
       if (k) ohneFall.add(k);
     }
   }
@@ -132,7 +161,11 @@ export function erkennungsSignatur(daten: ErkennungsDaten): string {
   const orte = Object.values(daten.orte ?? {})
     .map((o) => [o.id, o.name, o.aliase])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return textHash(JSON.stringify(['e1', figuren, orte, daten.entscheidungen?.schreibweisen ?? []]));
+  const teile: unknown[] = ['e1', figuren, orte, daten.entscheidungen?.schreibweisen ?? []];
+  // Buchsprache nur, wenn nicht Deutsch (bestehende Signaturen deutscher Projekte bleiben gleich)
+  const sprache = erkennungsSprache(daten);
+  if (sprache !== 'de') teile.push(sprache);
+  return textHash(JSON.stringify(teile));
 }
 
 const zielSpeicher = new Map<string, Ziel[]>();
@@ -158,6 +191,9 @@ function zieleFuer(daten: ErkennungsDaten): Ziel[] {
 /** Alle Namen im Text (beliebiger Text, z. B. Hinweis-Titel); Offsets im übergebenen Text. */
 export function erkenneInText(text: string, daten: ErkennungsDaten): NamensTreffer[] {
   const n = normalisiereMitBereichen(text);
+  const englisch = erkennungsSprache(daten) === 'en';
+  /** Englisch: nur ’ ' ‘ ` ´ sind Apostrophe, ein schließendes ” oder " nach dem Namen gehört nicht dazu. */
+  const keinApostroph = (i: number) => !/[’'‘`´′]/u.test(text.charAt(n.start[i] ?? -1));
   const alle: (NamensTreffer & { laenge: number })[] = [];
   for (const z of zieleFuer(daten)) {
     const eigene: { a: number; b: number }[] = [];
@@ -169,8 +205,13 @@ export function erkenneInText(text: string, daten: ErkennungsDaten): NamensTreff
           continue;
         }
         let ende = m.index + m[0].length;
+        if (englisch) {
+          // „James”“ (Rede endet) → James; „Lotte”s“ gibt es nicht → Lotte
+          if (m[0].endsWith('"') && keinApostroph(ende - 1)) ende--;
+          else if (m[0].endsWith('"s') && keinApostroph(ende - 2)) ende -= 2;
+        }
         // Apostroph ohne s nur bei Namen auf s/x/z/ß als Teil des Treffers
-        if (m[0].endsWith('"') && !/[sxzß]"$/i.test(m[0])) ende--;
+        else if (m[0].endsWith('"') && !/[sxzß]"$/i.test(m[0])) ende--;
         eigene.push({ a: m.index, b: ende });
       }
     }
@@ -238,9 +279,41 @@ function kapitelReihenfolge(daten: ProjektDaten): Id[] {
   return reihe;
 }
 
-function kapNr(reihe: Id[], id: Id): string {
+/** Texte der Schreibweisen-Hinweise (Oberflächensprache); die Schlüssel hängen nur an den Zitaten. */
+const SW = texteJe(
+  {
+    kap: 'Kap. {n}',
+    zahlwoerter: ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf'],
+    zitat: '»{text}«',
+    oder: ' oder ',
+    figur: 'Die Figur',
+    ort: 'Der Ort',
+    statt: '»{form}« statt »{name}«',
+    mehrereFormen: '{art} »{name}« steht in {zahl} Schreibweisen im Text: {belege}.',
+    andereForm: '{art} ist als »{name}« angelegt, im Text steht {belege}.',
+    derselbeName: 'Derselbe Name steht in {zahl} Schreibweisen im Text: {belege}.',
+    aehnlich: 'Sehr ähnliche Namen, die sich nur in einem Zeichen unterscheiden: {belege}.',
+    angelegt: '»{form}« (angelegt)',
+  },
+  {
+    kap: 'Ch. {n}',
+    zahlwoerter: ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'],
+    zitat: '“{text}”',
+    oder: ' or ',
+    figur: 'The character',
+    ort: 'The place',
+    statt: '“{form}” instead of “{name}”',
+    mehrereFormen: '{art} “{name}” appears in {zahl} spellings in the text: {belege}.',
+    andereForm: '{art} is set up as “{name}”, but the text has {belege}.',
+    derselbeName: 'The same name appears in {zahl} spellings in the text: {belege}.',
+    aehnlich: 'Very similar names that differ by only one character: {belege}.',
+    angelegt: '“{form}” (set up)',
+  },
+);
+
+function kapNr(reihe: Id[], id: Id, sprache: Sprache = 'de'): string {
   const i = reihe.indexOf(id);
-  return i >= 0 ? `Kap. ${i + 1}` : id;
+  return i >= 0 ? fmt(SW(sprache).kap, { n: i + 1 }) : id;
 }
 
 /** Fügt einen Beleg hinzu (je Form höchstens ein Beleg pro Kapitel, höchstens MAX_BELEGKAPITEL Kapitel). */
@@ -262,12 +335,12 @@ function entschieden(daten: ProjektDaten, formen: string[]): boolean {
   });
 }
 
-const ZAHLWOERTER = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf'];
-const zahlwort = (n: number) => ZAHLWOERTER[n] ?? String(n);
+const zahlwort = (n: number, sprache: Sprache = 'de') => SW(sprache).zahlwoerter[n] ?? String(n);
 
-function liste(formen: string[]): string {
-  const q = formen.map((f) => `»${f}«`);
-  return q.length <= 1 ? q.join('') : `${q.slice(0, -1).join(', ')} oder ${q[q.length - 1]}`;
+function liste(formen: string[], sprache: Sprache = 'de'): string {
+  const t = SW(sprache);
+  const q = formen.map((f) => fmt(t.zitat, { text: f }));
+  return q.length <= 1 ? q.join('') : `${q.slice(0, -1).join(', ')}${t.oder}${q[q.length - 1]}`;
 }
 
 function hinweisAus(titel: string, erklaerung: string, formen: Form[], reihe: Id[]): Hinweis {
@@ -278,10 +351,10 @@ function hinweisAus(titel: string, erklaerung: string, formen: Form[], reihe: Id
   return { schluessel: zitatSchluessel('schreibweise', zitate), typ: 'schreibweise', titel, zitate, erklaerung, quelle: 'lokal', status: 'neu' };
 }
 
-function belegText(formen: Form[], reihe: Id[]): string {
+function belegText(formen: Form[], reihe: Id[], sprache: Sprache = 'de'): string {
   return formen
     .filter((f) => f.belege.length)
-    .map((f) => `»${f.form}« (${f.belege.map((b) => kapNr(reihe, b.kapitel)).join(', ')})`)
+    .map((f) => `${fmt(SW(sprache).zitat, { text: f.form })} (${f.belege.map((b) => kapNr(reihe, b.kapitel, sprache)).join(', ')})`)
     .join(', ');
 }
 
@@ -294,6 +367,22 @@ const STOPPWOERTER = new Set(
     'ja nein nun also denn sondern während danach davor dabei darauf trotzdem eben gerade immer nie vielleicht ihnen ihm ihn mir mich dir dich uns euch'
   ).split(' '),
 );
+
+/** Englische Buchsprache: großgeschriebene Funktionswörter am Satzanfang gehören nicht zum Namen. */
+const STOPPWOERTER_EN = new Set(
+  (
+    'the a an i he she it we they you me him her us them my your his its our their this that these those there here ' +
+    'then when where what who whom whose why how which while after before because but and or nor so if as at in on of to for from with ' +
+    'by into onto about over under up down out off not no yes oh well now just also yet still even again once later maybe perhaps ' +
+    'nobody someone somebody everyone everybody nothing something everything anyone anything today tonight tomorrow yesterday ' +
+    'every each all some any both either neither neither another such only already always never sometimes though although unless until since'
+  ).split(' '),
+);
+
+/** Stoppwörter für Namensfolgen je Buchsprache (Vergleich klein, normalisiert). */
+function namensStoppwoerter(daten: ErkennungsDaten): Set<string> {
+  return erkennungsSprache(daten) === 'en' ? STOPPWOERTER_EN : STOPPWOERTER;
+}
 
 const NAMENSFOLGE = /(?<![\p{L}\p{N}\p{M}])\p{Lu}[\p{L}\p{M}\p{N}]*(?:-[\p{L}\p{N}][\p{L}\p{M}\p{N}]*)*(?:[ \u00a0]+\p{Lu}[\p{L}\p{M}\p{N}]*(?:-[\p{L}\p{N}][\p{L}\p{M}\p{N}]*)*)*(?![\p{L}\p{N}\p{M}])/gu;
 
@@ -337,7 +426,8 @@ class Gruppen {
 }
 
 /** Hinweise vom Typ 'schreibweise' (z. B. Lindenhof / Linden Hof / Linden-Hof). */
-export function schreibweisenHinweise(daten: ProjektDaten): Hinweis[] {
+export function schreibweisenHinweise(daten: ProjektDaten, sprache: Sprache = 'de'): Hinweis[] {
+  const sw = SW(sprache);
   const reihe = kapitelReihenfolge(daten);
   const texte = reihe
     .map((id) => ({ id, kt: klartextAus(daten.kapitel?.[id]?.text ?? '') }))
@@ -382,16 +472,18 @@ export function schreibweisenHinweise(daten: ProjektDaten): Hinweis[] {
     const abweichend = gefunden.filter((f) => !b.definiert.has(f.form.toLocaleLowerCase('de')));
     if (!abweichend.length) continue;
     if (entschieden(daten, gefunden.map((f) => f.form))) continue;
-    const art = b.zielTyp === 'figur' ? 'Die Figur' : 'Der Ort';
-    const titel = gefunden.length > 1 ? liste(gefunden.map((f) => f.form)) : `»${gefunden[0]!.form}« statt »${b.name}«`;
+    const art = b.zielTyp === 'figur' ? sw.figur : sw.ort;
+    const titel = gefunden.length > 1 ? liste(gefunden.map((f) => f.form), sprache) : fmt(sw.statt, { form: gefunden[0]!.form, name: b.name });
+    const belege = belegText(gefunden, reihe, sprache);
     const erklaerung =
       gefunden.length > 1
-        ? `${art} »${b.name}« steht in ${zahlwort(gefunden.length)} Schreibweisen im Text: ${belegText(gefunden, reihe)}.`
-        : `${art} ist als »${b.name}« angelegt, im Text steht ${belegText(gefunden, reihe)}.`;
+        ? fmt(sw.mehrereFormen, { art, name: b.name, zahl: zahlwort(gefunden.length, sprache), belege })
+        : fmt(sw.andereForm, { art, name: b.name, belege });
     hinweise.push(hinweisAus(titel, erklaerung, gefunden, reihe));
   }
 
-  // B) Ähnliche Eigennamen ohne angelegte Figur/Ort
+  // B) Ähnliche Eigennamen ohne angelegte Figur/Ort (Funktionswörter der Buchsprache am Rand abschneiden)
+  const stopp = namensStoppwoerter(daten);
   const kandidaten = new Map<string, Form>(); // nur mehrwortige Namensfolgen
   const kompaktFormen = new Map<string, Map<string, Form>>(); // kompakter Schlüssel → Formen
   const einzelwoerter = new Map<string, Form>();
@@ -402,8 +494,8 @@ export function schreibweisenHinweise(daten: ProjektDaten): Hinweis[] {
         const woerter: { w: string; a: number }[] = [];
         const wre = /\S+/g;
         for (let w = wre.exec(m[0]); w; w = wre.exec(m[0])) woerter.push({ w: w[0], a: m.index + w.index });
-        while (woerter.length && STOPPWOERTER.has(woerter[0]!.w.toLocaleLowerCase('de'))) woerter.shift();
-        while (woerter.length && STOPPWOERTER.has(woerter[woerter.length - 1]!.w.toLocaleLowerCase('de'))) woerter.pop();
+        while (woerter.length && stopp.has(woerter[0]!.w.toLocaleLowerCase('de'))) woerter.shift();
+        while (woerter.length && stopp.has(woerter[woerter.length - 1]!.w.toLocaleLowerCase('de'))) woerter.pop();
         if (!woerter.length) continue;
         const letztes = woerter[woerter.length - 1]!;
         const a = woerter[0]!.a;
@@ -438,8 +530,8 @@ export function schreibweisenHinweise(daten: ProjektDaten): Hinweis[] {
     formen.forEach((f) => gemeldet.add(f.form));
     hinweise.push(
       hinweisAus(
-        liste(formen.map((f) => f.form)),
-        `Derselbe Name steht in ${zahlwort(formen.length)} Schreibweisen im Text: ${belegText(formen, reihe)}.`,
+        liste(formen.map((f) => f.form), sprache),
+        fmt(sw.derselbeName, { zahl: zahlwort(formen.length, sprache), belege: belegText(formen, reihe, sprache) }),
         formen,
         reihe,
       ),
@@ -485,12 +577,12 @@ export function schreibweisenHinweise(daten: ProjektDaten): Hinweis[] {
       const kb = b.belege[0] ? reihe.indexOf(b.belege[0].kapitel) : Infinity;
       return ka - kb;
     });
-    const angelegt = formen.filter((f) => istDefiniert(f.form) && !f.belege.length).map((f) => `»${f.form}« (angelegt)`);
-    const belegt = belegText(formen, reihe);
+    const angelegt = formen.filter((f) => istDefiniert(f.form) && !f.belege.length).map((f) => fmt(sw.angelegt, { form: f.form }));
+    const belegt = belegText(formen, reihe, sprache);
     hinweise.push(
       hinweisAus(
-        `${liste(formen.map((f) => f.form))}?`,
-        `Sehr ähnliche Namen, die sich nur in einem Zeichen unterscheiden: ${[belegt, ...angelegt].filter(Boolean).join(', ')}.`,
+        `${liste(formen.map((f) => f.form), sprache)}?`,
+        fmt(sw.aehnlich, { belege: [belegt, ...angelegt].filter(Boolean).join(', ') }),
         formen,
         reihe,
       ),
@@ -513,16 +605,18 @@ export interface MotivTreffer {
 
 /**
  * Motive im Klartext eines Kapitels: Name und Aliase mit Wortgrenzen, dazu die üblichen
- * Endungen (Bleistift → Bleistifte, Postkarte → Postkarten, Kolas). Groß-/Kleinschreibung zählt wie bei Namen.
+ * Endungen der Buchsprache (Deutsch: Bleistift → Bleistifte, Postkarte → Postkarten, Kolas; Englisch: pencil → pencils, box → boxes,
+ * pencil’s). Groß-/Kleinschreibung zählt wie bei Namen.
  */
-export function motiveImText(klartext: string, motive: Motiv[]): MotivTreffer[] {
+export function motiveImText(klartext: string, motive: Motiv[], sprache: Sprache = 'de'): MotivTreffer[] {
   const n = normalisiereMitBereichen(klartext);
   const ergebnis: MotivTreffer[] = [];
+  const endungen = sprache === 'en' ? '(?:es|s|"s)?' : '(?:e|en|n|s|es|er|ern)?';
   for (const m of motive) {
     const formen = [m.name, ...m.aliase].map(norm).filter((f) => f.length >= 2);
     if (!formen.length) continue;
     const alternativen = [...new Set(formen)].sort((a, b) => b.length - a.length).map(esc);
-    const re = new RegExp(`${VOR}(?:${alternativen.join('|')})(?:e|en|n|s|es|er|ern)?${NACH}`, 'gu');
+    const re = new RegExp(`${VOR}(?:${alternativen.join('|')})${endungen}${NACH}`, 'gu');
     for (const t of n.text.matchAll(re)) {
       const b = zuOriginalBereich(n, t.index, t.index + t[0].length, klartext.length);
       ergebnis.push({ motiv: m.id, start: b.start, ende: b.ende, treffer: klartext.slice(b.start, b.ende) });

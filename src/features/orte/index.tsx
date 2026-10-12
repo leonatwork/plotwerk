@@ -7,7 +7,8 @@ import { useStore } from '../../state/store';
 import { Button, Zaehler } from '../../ui';
 import { kapitelDesOrts, ortBaum } from './logik';
 import { OrtKarte, OrtSymbol } from './OrtKarte';
-import { genitiv, SchreibweisenAnsicht, WegAnsicht, wegFigurVon } from './Uebersichten';
+import { SchreibweisenAnsicht, wegFigurVon, wegTitel, WegAnsicht } from './Uebersichten';
+import { f, locale, texte, useTexte } from '../../i18n';
 
 const kopf: CSSProperties = { fontSize: 11, fontWeight: 600, letterSpacing: '0.04em', color: 'var(--ink-quiet)' };
 
@@ -45,24 +46,26 @@ function OrteListe({ daten, index }: { daten: ProjektDaten; index: Index }) {
   const ansicht = useStore((s) => s.planung.orteAnsicht);
   const setzeAnsicht = useStore((s) => s.planung.setzeOrteAnsicht);
   const wegFigur = useStore((s) => s.planung.wegFigur);
-  const suche = useStore((s) => s.planung.orteSuche).trim().toLocaleLowerCase('de');
+  const suche = useStore((s) => s.planung.orteSuche).trim().toLocaleLowerCase(locale());
   const anlegen = useStore((s) => s.planung.ortAnlegen);
   const waehle = useStore((s) => s.waehle);
   const [neu, setNeu] = useState<string | null>(null);
-  const baum = ortBaum(daten.orte).filter(({ ort }) => !suche || [ort.name, ...ort.aliase].some((n) => n.toLocaleLowerCase('de').includes(suche)));
+  const t = useTexte();
+  const tl = t.orte.liste;
+  const baum = ortBaum(daten.orte).filter(({ ort }) => !suche || [ort.name, ...ort.aliase].some((n) => n.toLocaleLowerCase(locale()).includes(suche)));
   const offeneSchreibweisen = index.hinweise.filter((h) => h.typ === 'schreibweise' && h.status === 'neu').length;
-  const wegName = wegFigurVon(daten, wegFigur)?.name ?? 'Figur';
+  const wegName = wegFigurVon(daten, wegFigur)?.name ?? t.orte.weg.figur;
 
   return (
-    <nav aria-label="Orte" style={{ flex: '0 0 250px', borderRight: '1px solid var(--line-soft)', padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
-      <span style={{ ...kopf, padding: '4px 10px' }}>ÜBERBLICK</span>
+    <nav aria-label={tl.label} style={{ flex: '0 0 250px', borderRight: '1px solid var(--line-soft)', padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+      <span style={{ ...kopf, padding: '4px 10px' }}>{tl.ueberblick}</span>
       <button type="button" className="pl-listeneintrag" aria-current={ansicht === 'weg' ? 'true' : undefined} onClick={() => setzeAnsicht('weg')}>
         <Rund>
           <IconWeg />
         </Rund>
         <span style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>{genitiv(wegName)} Weg</span>
-          <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>Ortsfolge über alle Kapitel</span>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{wegTitel(wegName)}</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{tl.wegUnter}</span>
         </span>
       </button>
       <button type="button" className="pl-listeneintrag" aria-current={ansicht === 'schreibweisen' ? 'true' : undefined} onClick={() => setzeAnsicht('schreibweisen')}>
@@ -70,13 +73,13 @@ function OrteListe({ daten, index }: { daten: ProjektDaten; index: Index }) {
           <IconAa />
         </Rund>
         <span style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>Schreibweisen</span>
-          <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>zusammenführen, gültige festlegen</span>
+          <span style={{ fontSize: 13, fontWeight: 600 }}>{tl.schreibweisen}</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{tl.schreibweisenUnter}</span>
         </span>
-        {offeneSchreibweisen > 0 && <Zaehler wert={offeneSchreibweisen} label="offen" />}
+        {offeneSchreibweisen > 0 && <Zaehler wert={offeneSchreibweisen} label={tl.offen} />}
       </button>
-      <span style={{ ...kopf, padding: '12px 10px 4px' }}>ORTE</span>
-      {baum.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink-quiet)', padding: '0 10px 6px' }}>{suche ? 'Kein Ort gefunden.' : 'Noch keine Orte angelegt.'}</span>}
+      <span style={{ ...kopf, padding: '12px 10px 4px' }}>{tl.orte}</span>
+      {baum.length === 0 && <span style={{ fontSize: 12, color: 'var(--ink-quiet)', padding: '0 10px 6px' }}>{suche ? tl.keinGefunden : tl.keineAngelegt}</span>}
       {baum.map(({ ort, tiefe }) => {
         const n = kapitelDesOrts(ort.id, daten, index).length;
         return (
@@ -94,7 +97,7 @@ function OrteListe({ daten, index }: { daten: ProjektDaten; index: Index }) {
             <OrtSymbol />
             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ort.name}</span>
-              <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{n === 0 ? 'noch nicht im Text' : `${n} Kap.`}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-quiet)' }}>{n === 0 ? tl.nichtImText : f(tl.kapKurz, { n })}</span>
             </span>
           </button>
         );
@@ -102,7 +105,7 @@ function OrteListe({ daten, index }: { daten: ProjektDaten; index: Index }) {
       <span style={{ height: 8, flexShrink: 0 }} />
       {neu === null ? (
         <button type="button" className="pl-vorab" onClick={() => setNeu('')}>
-          + Ort anlegen
+          {tl.plusAnlegen}
         </button>
       ) : (
         <form
@@ -116,8 +119,8 @@ function OrteListe({ daten, index }: { daten: ProjektDaten; index: Index }) {
             autoFocus
             className="pl-eingabe"
             style={{ width: '100%', height: 40, borderRadius: 8 }}
-            placeholder="Name des Orts, Enter"
-            aria-label="Name des neuen Orts"
+            placeholder={tl.neuPlatzhalter}
+            aria-label={tl.neuLabel}
             value={neu}
             onChange={(e) => setNeu(e.target.value)}
             onBlur={() => !neu.trim() && setNeu(null)}
@@ -136,6 +139,7 @@ export default function Ansicht() {
   const ansicht = useStore((s) => s.planung.orteAnsicht);
   const waehle = useStore((s) => s.waehle);
   const id = gewaehlt && daten?.orte[gewaehlt] ? gewaehlt : daten ? ortBaum(daten.orte)[0]?.ort.id : undefined;
+  const t = useTexte();
   useEffect(() => {
     if (id && id !== gewaehlt) waehle({ ort: id });
   }, [id, gewaehlt, waehle]);
@@ -151,8 +155,8 @@ export default function Ansicht() {
         <OrtKarte key={id} id={id} daten={daten} index={index} />
       ) : (
         <div className="pw-leer">
-          <h2 className="pw-leer__titel">Noch keine Orte</h2>
-          <div className="pw-leer__text">Lege links einen Ort an, auch bevor er im Text vorkommt.</div>
+          <h2 className="pw-leer__titel">{t.orte.liste.leerTitel}</h2>
+          <div className="pw-leer__text">{t.orte.liste.leerText}</div>
         </div>
       )}
     </div>
@@ -164,6 +168,7 @@ export function Titelaktionen() {
   const setzeSuche = useStore((s) => s.planung.setzeOrteSuche);
   const anlegen = useStore((s) => s.planung.ortAnlegen);
   const [neu, setNeu] = useState<string | null>(null);
+  const t = useTexte();
   const feld: CSSProperties = {
     font: 'inherit',
     fontSize: 12,
@@ -177,12 +182,12 @@ export function Titelaktionen() {
   return (
     <>
       <label htmlFor="orte-suche" className="pw-sr">
-        Suchen
+        {t.gemeinsam.suchen}
       </label>
-      <input id="orte-suche" type="search" placeholder="Suchen" value={suche} onChange={(e) => setzeSuche(e.target.value)} style={{ ...feld, width: 200 }} />
+      <input id="orte-suche" type="search" placeholder={t.gemeinsam.suchen} value={suche} onChange={(e) => setzeSuche(e.target.value)} style={{ ...feld, width: 200 }} />
       {neu === null ? (
         <Button variante="primaer" onClick={() => setNeu('')}>
-          + Neuer Ort
+          {t.orte.liste.plusNeuerOrt}
         </Button>
       ) : (
         <form
@@ -194,8 +199,8 @@ export function Titelaktionen() {
         >
           <input
             autoFocus
-            aria-label="Name des neuen Orts"
-            placeholder="Name, Enter"
+            aria-label={t.orte.liste.neuLabel}
+            placeholder={t.orte.liste.namePlatzhalter}
             value={neu}
             onChange={(e) => setNeu(e.target.value)}
             onBlur={() => !neu.trim() && setNeu(null)}
@@ -209,10 +214,11 @@ export function Titelaktionen() {
 }
 
 export function kontext(state: Store): string {
+  const t = texte().orte.liste;
   const a = state.planung.orteAnsicht;
-  if (a === 'weg') return `Orte · ${genitiv((state.daten && wegFigurVon(state.daten, state.planung.wegFigur)?.name) ?? 'Figur')} Weg`;
-  if (a === 'schreibweisen') return 'Orte · Schreibweisen';
+  if (a === 'weg') return f(t.kontext, { was: wegTitel((state.daten && wegFigurVon(state.daten, state.planung.wegFigur)?.name) ?? texte().orte.weg.figur) });
+  if (a === 'schreibweisen') return f(t.kontext, { was: t.schreibweisen });
   const id = state.auswahl.ort;
   const name = id ? state.daten?.orte[id]?.name : undefined;
-  return name ? `Orte · ${name}` : 'Orte';
+  return name ? f(t.kontext, { was: name }) : t.titel;
 }

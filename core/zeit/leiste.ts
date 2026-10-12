@@ -5,6 +5,7 @@
  * bleiben hinter der vorigen Einheit desselben Tags (Lesereihenfolge). Einheiten ohne Tag stehen direkt
  * hinter der Einheit, nach der sie gelesen werden, in einer Spalte „Abstand unbekannt“.
  */
+import type { Sprache } from '../i18n';
 import type { Id, KapitelPlan, ProjektDaten, Szene, Wochentag, Zeitpunkt } from '../model/types';
 import { beginnVon, effektiverTag, erwarteterWochentag, erwartetesDatum, tagesMinute, type Beginn } from './zeitpunkt';
 
@@ -19,6 +20,8 @@ export interface ZeitEinheit {
   szenenNr?: number;
   /** Kapitel- bzw. Szenentitel */
   titel: string;
+  /** Szene ohne eigenen Titel (`titel` ist dann der deutsche Platzhalter „Szene n“, siehe szenenPlatzhalter) */
+  ohneTitel?: boolean;
   kapitelTitel: string;
   /** von Leon eingetragener Zeitpunkt dieser Einheit */
   eigen?: Zeitpunkt;
@@ -110,7 +113,8 @@ export function zeitEinheiten(daten: ProjektDaten, optionen: EinheitenOptionen =
         schluessel: einheitSchluessel(id, s.id),
         szene: s.id,
         szenenNr: j + 1,
-        titel: s.titel || `Szene ${j + 1}`,
+        titel: s.titel || szenenPlatzhalter(j + 1),
+        ...(s.titel ? {} : { ohneTitel: true }),
         ...(s.zeit ? { eigen: s.zeit } : {}),
         ...(zeit ? { zeit } : {}),
         geerbt: !s.zeit && !!erbe,
@@ -209,12 +213,21 @@ export function vorigeEinheitMitTag(einheiten: ZeitEinheit[], schluessel: string
   return undefined;
 }
 
-/** Beschriftung „Kap. 7 · Szene 2“ */
-export function einheitNummer(e: Pick<ZeitEinheit, 'nr' | 'szenenNr'>): string {
+/** Beschriftung „Kap. 7 · Szene 2“ / “Ch. 7 · scene 2” */
+export function einheitNummer(e: Pick<ZeitEinheit, 'nr' | 'szenenNr'>, sprache: Sprache = 'de'): string {
+  if (sprache === 'en') return e.szenenNr ? `Ch. ${e.nr} · scene ${e.szenenNr}` : `Ch. ${e.nr}`;
   return e.szenenNr ? `Kap. ${e.nr} · Szene ${e.szenenNr}` : `Kap. ${e.nr}`;
 }
 
-/** „Kap. 7 „Ebbe“ · Szene 2 „Kai bei Nacht““ */
-export function einheitName(e: ZeitEinheit): string {
-  return e.szene ? `Kap. ${e.nr} „${e.kapitelTitel}“, Szene ${e.szenenNr} „${e.titel}“` : `Kap. ${e.nr} „${e.kapitelTitel}“`;
+/** „Kap. 7 „Ebbe“, Szene 2 „Kai bei Nacht““ / “Ch. 7 “Low Tide”, scene 2 “Quay at night”” */
+export function einheitName(e: ZeitEinheit, sprache: Sprache = 'de'): string {
+  const titel = e.szene && e.ohneTitel ? szenenPlatzhalter(e.szenenNr ?? 0, sprache) : e.titel;
+  if (sprache === 'en')
+    return e.szene ? `Ch. ${e.nr} “${e.kapitelTitel}”, scene ${e.szenenNr} “${titel}”` : `Ch. ${e.nr} “${e.kapitelTitel}”`;
+  return e.szene ? `Kap. ${e.nr} „${e.kapitelTitel}“, Szene ${e.szenenNr} „${titel}“` : `Kap. ${e.nr} „${e.kapitelTitel}“`;
+}
+
+/** Titel einer Szene ohne eigenen Titel („Szene 2“ / “Scene 2”). */
+export function szenenPlatzhalter(nr: number, sprache: Sprache = 'de'): string {
+  return `${sprache === 'en' ? 'Scene' : 'Szene'} ${nr}`;
 }

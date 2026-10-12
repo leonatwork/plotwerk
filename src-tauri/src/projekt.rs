@@ -40,10 +40,12 @@ impl Projekte {
         let k = kennung
             .or(self.aktuell)
             .ok_or_else(|| "Kein Projekt geöffnet.".to_string())?;
-        self.liste
-            .get(&k)
-            .cloned()
-            .ok_or_else(|| format!("Unbekanntes Projekt (Kennung {k})."))
+        self.liste.get(&k).cloned().ok_or_else(|| {
+            crate::tf!(
+                "Unbekanntes Projekt (Kennung {k}).",
+                "Unknown project (ID {k})."
+            )
+        })
     }
 }
 
@@ -55,14 +57,19 @@ pub struct ProjektInfo {
     pub name: String,
 }
 
-fn einstellungsdatei(app: &AppHandle) -> Result<PathBuf, String> {
+pub(crate) fn einstellungsdatei(app: &AppHandle) -> Result<PathBuf, String> {
     app.path()
         .app_config_dir()
         .map(|d| d.join(einstellungen::DATEI))
-        .map_err(|e| format!("App-Ordner nicht verfügbar: {e}"))
+        .map_err(|e| {
+            crate::tf!(
+                "App-Ordner nicht verfügbar: {e}",
+                "App folder not available: {e}"
+            )
+        })
 }
 
-fn sperre<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+pub(crate) fn sperre<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
@@ -110,9 +117,12 @@ pub async fn projekt_oeffnen(
     zustand: State<'_, Zustand>,
     pfad: String,
 ) -> Result<ProjektInfo, String> {
-    let gewuenscht = PathBuf::from(&pfad)
-        .canonicalize()
-        .map_err(|_| format!("Projektordner nicht gefunden: {pfad}"))?;
+    let gewuenscht = PathBuf::from(&pfad).canonicalize().map_err(|_| {
+        crate::tf!(
+            "Projektordner nicht gefunden: {pfad}",
+            "Project folder not found: {pfad}"
+        )
+    })?;
     let letztes = {
         let _s = sperre(&zustand.einstellungen);
         einstellungen::lesen(&einstellungsdatei(&app)?, einstellungen::LETZTES_PROJEKT)
@@ -126,7 +136,11 @@ pub async fn projekt_oeffnen(
             .values()
             .any(|w| w.pfad() == gewuenscht);
     if !erlaubt {
-        return Err("Projektordner können nur über „Projekt öffnen …“ gewählt werden.".into());
+        return Err(crate::sprache::t(
+            "Projektordner können nur über „Projekt öffnen …“ gewählt werden.",
+            "Project folders can only be chosen via “Open Project…”.",
+        )
+        .into());
     }
     oeffnen(&app, &zustand, &gewuenscht)
 }
@@ -161,7 +175,10 @@ pub async fn projekt_waehlen(
         .dialog()
         .file()
         .set_parent(&fenster)
-        .set_title("Projektordner öffnen")
+        .set_title(crate::sprache::t(
+            "Projektordner öffnen",
+            "Open Project Folder",
+        ))
         .set_can_create_directories(true)
         .blocking_pick_folder();
     let Some(pfad) = gewaehlt else {
@@ -169,7 +186,7 @@ pub async fn projekt_waehlen(
     };
     let pfad = pfad
         .into_path()
-        .map_err(|e| format!("Ordner nicht lesbar: {e}"))?;
+        .map_err(|e| crate::tf!("Ordner nicht lesbar: {e}", "Folder not readable: {e}"))?;
     erlauben(&zustand, &pfad);
     oeffnen(&app, &zustand, &pfad).map(Some)
 }
@@ -199,9 +216,12 @@ pub async fn projekt_neu(
         .dialog()
         .file()
         .set_parent(&fenster)
-        .set_title("Neues Projekt anlegen")
+        .set_title(crate::sprache::t(
+            "Neues Projekt anlegen",
+            "Create New Project",
+        ))
         .set_file_name(if vorschlag.is_empty() {
-            "Neues Projekt"
+            crate::sprache::t("Neues Projekt", "New Project")
         } else {
             &vorschlag
         })
@@ -212,23 +232,29 @@ pub async fn projekt_neu(
     };
     let pfad = pfad
         .into_path()
-        .map_err(|e| format!("Ordner nicht verwendbar: {e}"))?;
+        .map_err(|e| crate::tf!("Ordner nicht verwendbar: {e}", "Folder not usable: {e}"))?;
     if pfad.is_file() {
-        return Err(format!("Dort liegt bereits eine Datei: {}", pfad.display()));
+        return Err(crate::tf!(
+            "Dort liegt bereits eine Datei: {}",
+            "There is already a file there: {}",
+            pfad.display()
+        ));
     }
     if pfad.is_dir() {
         let leer = std::fs::read_dir(&pfad)
-            .map_err(|e| format!("Ordner nicht lesbar: {e}"))?
+            .map_err(|e| crate::tf!("Ordner nicht lesbar: {e}", "Folder not readable: {e}"))?
             .flatten()
             .all(|e| e.file_name() == ".DS_Store");
         if !leer {
-            return Err(format!(
+            return Err(crate::tf!(
                 "Der Ordner „{}“ ist nicht leer. Bitte einen neuen Namen wählen.",
+                "The folder “{}” is not empty. Please choose a new name.",
                 pfad.display()
             ));
         }
     }
-    std::fs::create_dir_all(&pfad).map_err(|e| format!("Ordner nicht angelegt: {e}"))?;
+    std::fs::create_dir_all(&pfad)
+        .map_err(|e| crate::tf!("Ordner nicht angelegt: {e}", "Folder not created: {e}"))?;
     erlauben(&zustand, &pfad);
     oeffnen(&app, &zustand, &pfad).map(Some)
 }
@@ -309,18 +335,27 @@ pub fn binaer_kopf(
     pfad: Option<&str>,
     kennung: Option<&str>,
 ) -> Result<(String, Option<u32>), String> {
-    let roh = pfad.ok_or_else(|| "Pfad fehlt (Kopfzeile plotwerk-pfad).".to_string())?;
+    let roh = pfad.ok_or_else(|| {
+        crate::sprache::t(
+            "Pfad fehlt (Kopfzeile plotwerk-pfad).",
+            "Path missing (header plotwerk-pfad).",
+        )
+        .to_string()
+    })?;
     let pfad = percent_encoding::percent_decode_str(roh)
         .decode_utf8()
-        .map_err(|_| "Pfad ist kein gültiges UTF-8.".to_string())?
+        .map_err(|_| {
+            crate::sprache::t("Pfad ist kein gültiges UTF-8.", "Path is not valid UTF-8.")
+                .to_string()
+        })?
         .into_owned();
-    let kennung = match kennung {
-        None => None,
-        Some(k) => Some(
-            k.parse::<u32>()
-                .map_err(|_| format!("Ungültige Projektkennung: {k}"))?,
-        ),
-    };
+    let kennung =
+        match kennung {
+            None => None,
+            Some(k) => Some(k.parse::<u32>().map_err(|_| {
+                crate::tf!("Ungültige Projektkennung: {k}", "Invalid project ID: {k}")
+            })?),
+        };
     Ok((pfad, kennung))
 }
 
@@ -335,7 +370,7 @@ pub async fn fs_lesen_binaer(
     let w = sperre(&zustand.projekte).wurzel(kennung)?;
     match dateien::lesen_binaer(&w, &pfad)? {
         Some(daten) => Ok(tauri::ipc::Response::new(daten)),
-        None => Err(format!("Datei fehlt: {pfad}")),
+        None => Err(crate::tf!("Datei fehlt: {pfad}", "File missing: {pfad}")),
     }
 }
 
@@ -346,7 +381,7 @@ pub async fn fs_schreiben_binaer(
     request: tauri::ipc::Request<'_>,
 ) -> Result<(), String> {
     let tauri::ipc::InvokeBody::Raw(daten) = request.body() else {
-        return Err("Binärdaten erwartet.".into());
+        return Err(crate::sprache::t("Binärdaten erwartet.", "Binary data expected.").into());
     };
     let kopf = |name: &str| request.headers().get(name).and_then(|v| v.to_str().ok());
     let (pfad, kennung) = binaer_kopf(kopf(KOPF_PFAD), kopf(KOPF_KENNUNG))?;
@@ -380,7 +415,11 @@ pub async fn einstellung_schreiben(
     wert: serde_json::Value,
 ) -> Result<(), String> {
     if schluessel == einstellungen::LETZTES_PROJEKT {
-        return Err("„letztesProjekt“ wird nur beim Öffnen eines Projekts gesetzt.".into());
+        return Err(crate::sprache::t(
+            "„letztesProjekt“ wird nur beim Öffnen eines Projekts gesetzt.",
+            "“letztesProjekt” is only set when a project is opened.",
+        )
+        .into());
     }
     let _s = sperre(&zustand.einstellungen);
     einstellungen::schreiben(&einstellungsdatei(&app)?, &schluessel, wert)

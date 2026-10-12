@@ -3,9 +3,10 @@
  * unter .versionen/recherche/); Markdown/JSON laufen weiter über lesen/schreiben als Text.
  * Rust: fs_lesen_binaer / fs_schreiben_binaer mit demselben Pfadwächter.
  */
+import { fmt, type Sprache } from '../i18n';
 import { versionsPfadMitZusatz } from '../versionen/index';
 import type { ProjektDateisystem } from './fs';
-import { pruefePfad } from './memoryFs';
+import { FS_TEXTE, pruefePfad } from './memoryFs';
 
 /** Binär schreiben darf die App nur hier (gleiche Regel im Rust-Kern: dateien::binaer_erlaubt). */
 export const BINAER_ORDNER = ['recherche/', '.versionen/recherche/'] as const;
@@ -20,24 +21,24 @@ export function binaerPfadErlaubt(pfad: string): boolean {
   return BINAER_ORDNER.some((o) => p.startsWith(o) && p.length > o.length) && !p.endsWith('/recherche.json');
 }
 
-function pruefe(fs: ProjektDateisystem, pfad: string): string {
-  const p = pruefePfad(pfad);
-  if (!binaerPfadErlaubt(p)) throw new Error(`Binärdateien nur unter recherche/: ${pfad}`);
-  if (!fs.schreibenBinaer || !fs.lesenBinaer) throw new Error('Dieses Projekt kann keine Binärdateien speichern.');
+function pruefe(fs: ProjektDateisystem, pfad: string, sprache: Sprache): string {
+  const p = pruefePfad(pfad, sprache);
+  if (!binaerPfadErlaubt(p)) throw new Error(fmt(FS_TEXTE(sprache).nurRecherche, { pfad }));
+  if (!fs.schreibenBinaer || !fs.lesenBinaer) throw new Error(FS_TEXTE(sprache).binaerSpeichern);
   return p;
 }
 
-/** Liest eine Binärdatei (nur unter recherche/); null = fehlt. */
-export async function leseBinaer(fs: ProjektDateisystem, pfad: string): Promise<Uint8Array | null> {
-  const p = pruefePfad(pfad);
-  if (!binaerPfadErlaubt(p)) throw new Error(`Binärdateien nur unter recherche/: ${pfad}`);
-  if (!fs.lesenBinaer) throw new Error('Dieses Projekt kann keine Binärdateien lesen.');
+/** Liest eine Binärdatei (nur unter recherche/); null = fehlt. `sprache`: Sprache der Fehlermeldungen. */
+export async function leseBinaer(fs: ProjektDateisystem, pfad: string, sprache: Sprache = 'de'): Promise<Uint8Array | null> {
+  const p = pruefePfad(pfad, sprache);
+  if (!binaerPfadErlaubt(p)) throw new Error(fmt(FS_TEXTE(sprache).nurRecherche, { pfad }));
+  if (!fs.lesenBinaer) throw new Error(FS_TEXTE(sprache).binaerLesen);
   return fs.lesenBinaer(p);
 }
 
 /** Schreibt atomar (TauriFs) bzw. im Speicher; nur unter recherche/. */
-export async function schreibeBinaer(fs: ProjektDateisystem, pfad: string, daten: Uint8Array): Promise<void> {
-  const p = pruefe(fs, pfad);
+export async function schreibeBinaer(fs: ProjektDateisystem, pfad: string, daten: Uint8Array, sprache: Sprache = 'de'): Promise<void> {
+  const p = pruefe(fs, pfad, sprache);
   await fs.schreibenBinaer!(p, daten);
 }
 
@@ -48,8 +49,8 @@ export function binaerVersionsPfad(pfad: string, zeit: Date, n = 1): string {
 }
 
 /** Kopie vor dem Entfernen/Überschreiben (wie schnappschuss() für Text); null = Datei fehlt. */
-export async function schnappschussBinaer(fs: ProjektDateisystem, pfad: string, zeit: Date): Promise<string | null> {
-  const p = pruefe(fs, pfad);
+export async function schnappschussBinaer(fs: ProjektDateisystem, pfad: string, zeit: Date, sprache: Sprache = 'de'): Promise<string | null> {
+  const p = pruefe(fs, pfad, sprache);
   const daten = await fs.lesenBinaer!(p);
   if (daten === null) return null;
   for (let n = 1; ; n++) {
@@ -62,8 +63,8 @@ export async function schnappschussBinaer(fs: ProjektDateisystem, pfad: string, 
 }
 
 /** Entfernt eine Binärdatei, vorher Schnappschuss. Rückgabe: Schnappschuss-Pfad (null = Datei fehlte). */
-export async function entferneBinaerMitSchnappschuss(fs: ProjektDateisystem, pfad: string, zeit = new Date()): Promise<string | null> {
-  const ziel = await schnappschussBinaer(fs, pfad, zeit);
-  if (ziel !== null) await fs.entfernen(pruefePfad(pfad));
+export async function entferneBinaerMitSchnappschuss(fs: ProjektDateisystem, pfad: string, zeit = new Date(), sprache: Sprache = 'de'): Promise<string | null> {
+  const ziel = await schnappschussBinaer(fs, pfad, zeit, sprache);
+  if (ziel !== null) await fs.entfernen(pruefePfad(pfad, sprache));
   return ziel;
 }

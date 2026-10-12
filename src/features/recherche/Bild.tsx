@@ -1,6 +1,7 @@
 /** Bild aus recherche/dateien/ anzeigen: Bytes über die Binär-Kommandos lesen, als Blob-URL zeigen (CSP: img-src blob:). */
 import { useEffect, useState, type CSSProperties } from 'react';
 import { bildMimeTyp } from '@core/recherche/index';
+import { f, texte, useTexte } from '../../i18n';
 import { beiDateiAenderung } from '../../state/slices/recherche';
 import { useStore } from '../../state/store';
 import { klassen } from '../../ui';
@@ -16,7 +17,7 @@ function ladeUrl(pfad: string, fs: unknown, lesen: (p: string) => Promise<Uint8A
   const eintrag: Eintrag = { url: null, fehler: null, fs, warte: Promise.resolve('') };
   eintrag.warte = lesen(pfad).then(
     (daten) => {
-      if (!daten) throw new Error('Datei fehlt im Projektordner');
+      if (!daten) throw new Error(texte().recherche.bild.dateiFehlt);
       const kopie = new Uint8Array(daten.length);
       kopie.set(daten);
       eintrag.url = URL.createObjectURL(new Blob([kopie.buffer], { type: bildMimeTyp(pfad) }));
@@ -85,14 +86,15 @@ export interface RechercheBildProps {
 }
 
 export function RechercheBild({ pfad, vorschauUrl, alt, einpassen = 'cover', className, style }: RechercheBildProps) {
+  const t = useTexte().recherche.bild;
   const { url, fehler } = useBildUrl(vorschauUrl ? undefined : pfad);
   const [kaputt, setKaputt] = useState(false);
   const quelle = vorschauUrl ?? url;
   useEffect(() => setKaputt(false), [quelle]);
   if (fehler || kaputt)
     return (
-      <div className={klassen('rc-bild rc-bild--fehlt', className)} style={style} role="img" aria-label={`${alt} (keine Vorschau)`}>
-        <span>{fehler ? 'Bild fehlt' : 'Keine Vorschau'}</span>
+      <div className={klassen('rc-bild rc-bild--fehlt', className)} style={style} role="img" aria-label={f(t.keineVorschauLabel, { alt })}>
+        <span>{fehler ? t.fehlt : t.keineVorschau}</span>
       </div>
     );
   if (!quelle) return <div className={klassen('rc-bild rc-bild--laedt', className)} style={style} aria-hidden="true" />;
