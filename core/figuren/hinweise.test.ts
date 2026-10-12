@@ -141,3 +141,21 @@ describe('F-14 Statist in vielen Kapiteln', () => {
     expect(hinweise(d, 'aehnlich')).toEqual([]);
   });
 });
+
+describe('F-15 Besetzung', () => {
+  it('Figuren × Kapitel mit wichtigster Art, Kapitelplan als „plan“, Summen je Kapitel', async () => {
+    const { besetzung } = await import('./besetzung');
+    const d = projekt(['Ole kam. Paul sah ihn.', 'Paul schrieb.', 'Leer.'], [figur('ole', 'Ole', { rolle: 'haupt' }), figur('paul', 'Paul', { rolle: 'haupt' }), figur('uta', 'Uta', { rolle: 'statist' })]);
+    d.plaene = { k3: { ...Object.values(demo.plaene)[0]!, id: 'k3', figuren: ['ole'] } };
+    const b = besetzung(d, berechneIndex(d).erwaehnungen);
+    expect(b.kapitel).toEqual(['k1', 'k2', 'k3']);
+    expect(b.zeilen.map((z) => z.figur.id)).toEqual(['ole', 'paul', 'uta']);
+    const ole = b.zeilen[0]!;
+    expect(ole.zellen[0]).toBeTruthy();
+    expect(ole.zellen[1]).toBeNull();
+    expect(ole.zellen[2]).toBe('plan');
+    expect(ole.anzahl).toBe(1);
+    expect(b.summen).toEqual([2, 1, 0]);
+    expect(ole.erste[0]?.treffer).toBe('Ole');
+  });
+});

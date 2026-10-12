@@ -44,8 +44,8 @@ export interface StimmenLaufErgebnis {
 
 export interface Figurenbogen {
   /** Bereich „Figuren“: Figurenkarte oder Figuren-Bögen */
-  figurenAnsicht: 'karte' | 'boegen';
-  setzeFigurenAnsicht(a: 'karte' | 'boegen'): void;
+  figurenAnsicht: 'karte' | 'boegen' | 'besetzung';
+  setzeFigurenAnsicht(a: 'karte' | 'boegen' | 'besetzung'): void;
 
   /** Figurenkarte: Spalte „Stimme“ neben der Karte sichtbar */
   stimmeSpalte: boolean;

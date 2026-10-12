@@ -19,6 +19,7 @@ export const figuren = {
     ansicht: 'Ansicht',
     karte: 'Karte',
     boegen: 'Bögen',
+    besetzung: 'Besetzung',
     neueFigur: '+ Neue Figur',
     nameNeu: 'Name der neuen Figur',
     namePlatzhalter: 'Name, Enter',
@@ -41,6 +42,16 @@ export const figuren = {
     vorschlaege: { one: '{n} Vorschlag der KI', other: '{n} Vorschläge der KI' },
     vorab: '+ Figur vorab anlegen',
     namePlatzhalter: 'Name der Figur, Enter',
+  },
+
+  /** F-15 Besetzungsübersicht (Besetzung.tsx) */
+  besetzung: {
+    titel: 'Besetzung',
+    legende: 'Figuren × Kapitel · gefüllt: tritt auf · umrandet: per Nachricht · gestrichelt: erwähnt · hell: im Text · schraffiert: nur im Kapitelplan · gelb unterstrichen: ruht',
+    kap: 'Kap.',
+    jeKapitel: 'Figuren je Kapitel',
+    nurPlan: 'nur im Kapitelplan',
+    karteOeffnen: 'Figurenkarte öffnen',
   },
 
   karte: {
