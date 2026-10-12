@@ -64,3 +64,22 @@ describe('Figuren zusammenführen (Store)', () => {
     expect(store.getState().auswahl.figur).toBe('ole');
   });
 });
+
+describe('KI-Vorschlag als Spitznamen übernehmen (F-10)', () => {
+  it('ergänzt die Spitznamen der Zielfigur statt eine Figur anzulegen', async () => {
+    const { store } = await laden();
+    const s = store.getState();
+    const anzahl = Object.keys(s.daten!.figuren).length;
+    await s.speichereKiVorschlaege({
+      version: 1,
+      figuren: [{ schluessel: 'spitzname:ole|der-kollege', name: 'der Kollege', aliase: ['Fenster-Ole'], rolle: 'neben', kurz: '', belege: [], status: 'neu', ziel: 'ole' }],
+      orte: [],
+      beziehungen: [],
+    });
+    await store.getState().vorschlagUebernehmen('figur', 'spitzname:ole|der-kollege');
+    const d = store.getState().daten!;
+    expect(Object.keys(d.figuren)).toHaveLength(anzahl);
+    expect(d.figuren.ole!.aliase).toEqual(expect.arrayContaining(['der Kollege', 'Fenster-Ole']));
+    expect(d.kiVorschlaege!.figuren[0]).toMatchObject({ status: 'uebernommen', figur: 'ole' });
+  });
+});

@@ -366,6 +366,65 @@ describe('Editor (Integration)', () => {
       unmount();
     });
 
+    it('Figur: markierten Text als Spitznamen übernehmen (Suche + Enter) oder als neue Figur anlegen', async () => {
+      const { ed, unmount } = await mitAuswahl({ left: 300, top: 200 });
+      const satz = 'eine halbe Stunde';
+      const von = posVor(ed, satz);
+      act(() => {
+        ed.chain().focus().setTextSelection({ from: von, to: von + satz.length }).run();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(BLASE_VERZOEGERUNG_MS + 10);
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Figur' }));
+      // Artikel fällt weg
+      const name = screen.getByLabelText('Name bzw. Spitzname') as HTMLInputElement;
+      expect(name.value).toBe('halbe Stunde');
+      const suche = screen.getByRole('combobox');
+      // Fokus im Suchfeld, nicht im Text (sonst ersetzt Tippen die Markierung)
+      expect(document.activeElement).toBe(suche);
+      expect(screen.getByRole('toolbar', { name: 'Auswahl' })).toBeTruthy();
+      fireEvent.change(suche, { target: { value: 'Ole' } });
+      await act(async () => {
+        fireEvent.keyDown(suche, { key: 'Enter' });
+        await useStore.getState().alleSpeichernAbwarten();
+      });
+      expect(useStore.getState().daten!.figuren.ole!.aliase).toContain('halbe Stunde');
+      // Panel zu, Meldung in der Statusleiste
+      expect(screen.queryByRole('combobox')).toBeNull();
+      expect(screen.getByText(/ist jetzt ein Spitzname von Ole/)).toBeTruthy();
+
+      // neue Figur
+      const wort = 'Kirchturmuhr';
+      const w = posVor(ed, wort);
+      act(() => {
+        ed.chain().focus().setTextSelection({ from: w, to: w + wort.length }).run();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(BLASE_VERZOEGERUNG_MS + 10);
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Figur' }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Neue Figur/ }));
+        await useStore.getState().alleSpeichernAbwarten();
+      });
+      expect(Object.values(useStore.getState().daten!.figuren).some((f) => f.name === 'Kirchturmuhr')).toBe(true);
+      unmount();
+    });
+
+    it('Figur: ohne Knopf bei Auswahl über mehrere Absätze; vorhandener Name wird erkannt', async () => {
+      const { ed, unmount } = await mitAuswahl({ left: 300, top: 200 });
+      expect(screen.getByRole('button', { name: 'Figur' })).toBeTruthy();
+      act(() => {
+        ed.chain().focus().setTextSelection({ from: 2, to: ed.state.doc.content.size - 2 }).run();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(BLASE_VERZOEGERUNG_MS + 10);
+      });
+      expect(screen.queryByRole('button', { name: 'Figur' })).toBeNull();
+      unmount();
+    });
+
     it('schließt beim Laden eines anderen Kapitels', async () => {
       const { leiste, rerender } = await mitAuswahl({ left: 300, top: 200 });
       expect(leiste()).not.toBeNull();

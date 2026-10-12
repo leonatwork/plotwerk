@@ -487,6 +487,11 @@ export interface FigurVorschlag {
   status: VorschlagsStatus;
   /** nach der Übernahme: ID der angelegten Figur */
   figur?: Id;
+  /**
+   * F-10: keine neue Figur, sondern Spitznamen (`name` und `aliase`) für diese angelegte Figur;
+   * Schlüssel „spitzname:<figur>|<slug der Namen>“
+   */
+  ziel?: Id;
 }
 
 export interface OrtVorschlag {

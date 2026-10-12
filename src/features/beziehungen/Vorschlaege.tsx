@@ -229,10 +229,12 @@ interface EintragProps {
   arbeitet: string | null;
   aktion(schluessel: string, was: 'uebernehmen' | 'verwerfen', art: VorschlagsArt): void;
   uebernehmenTitel?: string;
+  /** Beschriftung statt „Übernehmen“ */
+  uebernehmenText?: string;
   children: ReactNode;
 }
 
-function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children }: EintragProps) {
+function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, uebernehmenText, children }: EintragProps) {
   const beschaeftigt = arbeitet !== null;
   const tv = useTexte().beziehungen.vorschlaege;
   return (
@@ -240,7 +242,7 @@ function Eintrag({ art, schluessel, arbeitet, aktion, uebernehmenTitel, children
       {children}
       <div className="pw-vs-knoepfe">
         <Button klein onClick={() => aktion(schluessel, 'uebernehmen', art)} disabled={beschaeftigt} title={uebernehmenTitel}>
-          {tv.uebernehmen}
+          {uebernehmenText ?? tv.uebernehmen}
         </Button>
         <Button klein variante="leise" onClick={() => aktion(schluessel, 'verwerfen', art)} disabled={beschaeftigt}>
           {tv.verwerfen}
@@ -369,17 +371,27 @@ export function VorschlaegePanel({ daten }: { daten: ProjektDaten }) {
       )}
 
       <Abschnitt titel={tv.figuren} anzahl={offen.figuren.length}>
-        {offen.figuren.map((fv: FigurVorschlag) => (
-          <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
-            <div className="pw-vs-zeile">
-              <strong>{fv.name}</strong>
-              <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : tv.nebenfigur}</span>
-            </div>
-            {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
-            {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
-            <Belege daten={daten} belege={fv.belege} />
-          </Eintrag>
-        ))}
+        {offen.figuren.map((fv: FigurVorschlag) =>
+          fv.ziel ? (
+            <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion} uebernehmenText={tv.alsSpitznamen}>
+              <div className="pw-vs-zeile">
+                <strong>{[fv.name, ...fv.aliase].join(', ')}</strong>
+              </div>
+              <span className="pw-vs-meta">{f(tv.spitznamenFuer, { name: daten.figuren[fv.ziel]?.name ?? fv.ziel })}</span>
+              <Belege daten={daten} belege={fv.belege} />
+            </Eintrag>
+          ) : (
+            <Eintrag key={fv.schluessel} art="figur" schluessel={fv.schluessel} arbeitet={arbeitet} aktion={aktion}>
+              <div className="pw-vs-zeile">
+                <strong>{fv.name}</strong>
+                <span className="pw-vs-meta">{fv.rolle === 'haupt' ? tv.hauptfigur : tv.nebenfigur}</span>
+              </div>
+              {fv.kurz && <span className="pw-vs-kurz">{fv.kurz}</span>}
+              {fv.aliase.length > 0 && <span className="pw-vs-meta">{f(tv.auch, { namen: fv.aliase.join(', ') })}</span>}
+              <Belege daten={daten} belege={fv.belege} />
+            </Eintrag>
+          ),
+        )}
       </Abschnitt>
 
       <Abschnitt titel={tv.orte} anzahl={offen.orte.length}>

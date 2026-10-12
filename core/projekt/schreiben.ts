@@ -315,7 +315,7 @@ export function serializeHinweise(hinweise: Hinweis[]): string {
 /** Schlüsselreihenfolge = Typdefinitionen KiVorschlaege, FigurVorschlag, OrtVorschlag, BeziehungsVorschlag */
 const SV = {
   ablage: ['version', 'figuren', 'orte', 'beziehungen', 'lauf'],
-  figur: ['schluessel', 'name', 'aliase', 'rolle', 'kurz', 'belege', 'status', 'figur'],
+  figur: ['schluessel', 'name', 'aliase', 'rolle', 'kurz', 'belege', 'status', 'figur', 'ziel'],
   ort: ['schluessel', 'name', 'aliase', 'in', 'belege', 'status', 'ort'],
   beziehung: ['schluessel', 'von', 'zu', 'art', 'kategorie', 'abKapitel', 'unsicher', 'belege', 'begruendung', 'status'],
   verweis: ['typ', 'id', 'name'],

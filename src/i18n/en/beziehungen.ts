@@ -178,6 +178,8 @@ export const beziehungen: Form<typeof de> = {
     hauptfigur: 'Main character',
     nebenfigur: 'Supporting character',
     auch: 'also: {namen}',
+    spitznamenFuer: 'Nicknames for {name}',
+    alsSpitznamen: 'Add as nicknames',
     inOrt: 'in {name}',
     legtAuchAn: { one: 'Also creates the character {namen}', other: 'Also creates the characters {namen}' },
     abKap: ' · from {kap}',

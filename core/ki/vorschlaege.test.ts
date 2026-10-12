@@ -241,12 +241,14 @@ describe('Antwortprüfung', () => {
       ],
     };
     const r = await pruefe(antwort);
-    expect(r.figuren.map((f) => [f.schluessel, f.name, f.aliase])).toEqual([
-      ['figur:fiete', 'Fiete', ['der Krabbenmann', 'Fietje']],
+    expect(r.figuren.map((f) => [f.schluessel, f.name, f.aliase, f.ziel])).toEqual([
+      ['figur:fiete', 'Fiete', ['der Krabbenmann', 'Fietje'], undefined],
+      // F-10: der Spitzname einer angelegten Figur wird kein neuer Figurvorschlag, sondern ein Spitzname für Ole
+      ['spitzname:ole|der-mann-am-fenster', 'der Mann am Fenster', [], 'ole'],
       // ohne Eigennamen bleibt die Bezeichnung der Name
-      ['figur:die-stimme-am-telefon', 'die Stimme am Telefon', ['die Anruferin']],
+      ['figur:die-stimme-am-telefon', 'die Stimme am Telefon', ['die Anruferin'], undefined],
     ]);
-    expect(r.bereitsAngelegt).toBe(1);
+    expect(r.bereitsAngelegt).toBe(0);
     // die Beziehung nennt Ole beim Spitznamen und wird trotzdem der angelegten Figur zugeordnet
     expect(r.beziehungen.map((b) => [b.von, b.zu])).toEqual([
       [{ typ: 'angelegt', id: 'ole', name: 'Ole' }, { typ: 'vorschlag', id: 'figur:fiete', name: 'Fiete' }],
@@ -261,8 +263,24 @@ describe('Antwortprüfung', () => {
       beziehungen: [],
     };
     const zweiter = pruefeVorschlaege(daten, antwort);
-    expect(zweiter.figuren.map((f) => f.name)).toEqual(['die Stimme am Telefon']);
+    expect(zweiter.figuren.map((f) => f.name)).toEqual(['der Mann am Fenster', 'die Stimme am Telefon']);
     expect(zweiter.bereitsEntschieden).toBe(2);
+  });
+
+  it('F-10: Spitznamen-Vorschlag ist offen, bis die Figur alle Namen trägt; Übernehmen ergänzt sie, Ablage hält „ziel“', async () => {
+    const ole = beleg('grundriss', 'Ole sitzt auf der Fensterbank neben dem Oleander und isst einen Apfel.');
+    const daten = await ladeProjekt(fsMit());
+    const r = pruefeVorschlaege(daten, {
+      figuren: [{ name: 'der Mann am Fenster', aliase: ['Ole', 'Fenster-Ole'], rolle: 'neben', kurz: '', belege: [ole] }],
+      orte: [],
+      beziehungen: [],
+    });
+    expect(r.figuren).toEqual([expect.objectContaining({ ziel: 'ole', name: 'der Mann am Fenster', aliase: ['Fenster-Ole'] })]);
+    const { ablage } = mischeVorschlaege(undefined, r);
+    expect(parseKiVorschlaege(serializeKiVorschlaege(ablage)).figuren[0]!.ziel).toBe('ole');
+    expect(offeneVorschlaege(ablage, daten).figuren).toHaveLength(1);
+    daten.figuren.ole = { ...daten.figuren.ole!, aliase: ['der Mann am Fenster', 'Fenster-Ole'] };
+    expect(offeneVorschlaege(ablage, daten).figuren).toHaveLength(0);
   });
 
   it('Ersatztext-Filter auf kurz, art und begruendung; art höchstens vier Wörter; abKapitel und Kategorie werden geprüft', async () => {
