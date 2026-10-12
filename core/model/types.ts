@@ -205,6 +205,11 @@ export interface Figur {
   notizen: string;
   /** Position der Karte im Beziehungsnetz */
   netz?: { x: number; y: number };
+  /**
+   * F-13: nach so vielen Kapiteln ohne Vorkommen melden; null = nie; fehlt = nach Rolle
+   * (Hauptfigur 3, Nebenfigur 6, Statist nie)
+   */
+  ruheSchwelle?: number | null;
 }
 
 export type GruppenTyp = 'antagonist' | 'firma' | 'familie' | 'sonstige';
@@ -349,7 +354,9 @@ export type HinweisTyp =
   | 'unbekannt'
   | 'struktur'
   | 'zeitleiste'
-  | 'sprache';
+  | 'sprache'
+  /** lokal: Namen und Vorkommen von Figuren (F-11–F-13) */
+  | 'figuren';
 
 export interface Zitat {
   kapitel: Id;

@@ -453,6 +453,7 @@ export function parseFigur(text: string, id?: Id): Figur {
     wahrheit,
     notizen: verbinde(notizen, rest),
     netz,
+    ruheSchwelle: daten.ruheSchwelle === null ? null : typeof daten.ruheSchwelle === 'number' ? Math.max(1, Math.round(daten.ruheSchwelle)) : undefined,
   });
 }
 
@@ -600,7 +601,7 @@ export function parseAnalyse(text: string, id?: Id): KapitelAnalyse {
   };
 }
 
-const HINWEIS_TYPEN = ['pruefen', 'schreibweise', 'offener_faden', 'unbekannt', 'struktur', 'zeitleiste', 'sprache'] as const;
+const HINWEIS_TYPEN = ['pruefen', 'schreibweise', 'offener_faden', 'unbekannt', 'struktur', 'zeitleiste', 'sprache', 'figuren'] as const;
 
 export function parseHinweise(text: string): Hinweis[] {
   return liste(json(text))

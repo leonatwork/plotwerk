@@ -1,6 +1,6 @@
 /** F-02–F-05: Figurenkarte nach docs/design/screens/Figur.dc.html. */
 import { useId, useState, type CSSProperties } from 'react';
-import { bogenVon, sortiereStufen, stufeImKapitel, stufenSpanne } from '@core/figuren/index';
+import { bogenVon, RUHE_SCHWELLE, ruhendeStrecken, ruheSchwelle, sortiereStufen, stufeImKapitel, stufenSpanne } from '@core/figuren/index';
 import type { Index } from '@core/index/index';
 import { hauptfigur } from '@core/zeit/zustand';
 import type { Beziehung, BeziehungsKategorie, Erwaehnung, Figur, FigurRolle, Hinweis, Id, ProjektDaten } from '@core/model/types';
@@ -328,20 +328,63 @@ function DeinePlanung({ f, daten }: { f: Figur; daten: ProjektDaten }) {
   );
 }
 
-function Auftritte({ daten, nachKapitel, farbe }: { daten: ProjektDaten; nachKapitel: Map<Id, Erwaehnung[]>; farbe: string }) {
+/** Auswahl „Ruht seit … melden“: Standard nach Rolle, feste Schwellen oder nie (F-13). */
+const RUHE_STUFEN = [2, 3, 4, 6, 10] as const;
+
+function Auftritte({
+  f,
+  daten,
+  index,
+  nachKapitel,
+  farbe,
+}: {
+  f: Figur;
+  daten: ProjektDaten;
+  index: Index;
+  nachKapitel: Map<Id, Erwaehnung[]>;
+  farbe: string;
+}) {
   const markiere = useStore((s) => s.markiere);
+  const figurAendern = useStore((s) => s.planung.figurAendern);
+  const uid = useId();
   const arten = artJeKapitel([...nachKapitel.values()].flat());
   const reihenfolge = daten.projekt.kapitel;
   const t = useTexte().figuren;
   const tau = t.karte.auftritte;
+  const ruhend = new Set(ruhendeStrecken(daten, index.erwaehnungen, f).flatMap((s) => s.kapitel));
+  const standard = f.rolle === 'haupt' ? RUHE_SCHWELLE.haupt : f.rolle === 'neben' ? RUHE_SCHWELLE.neben : null;
+  const wert = f.ruheSchwelle === undefined ? 'standard' : f.ruheSchwelle === null ? 'nie' : String(f.ruheSchwelle);
+  const schwelle = ruheSchwelle(f);
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label={tau.titel}>
-      <strong style={{ fontSize: 14 }}>{tau.titel}</strong>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <strong style={{ fontSize: 14, flex: 1 }}>{tau.titel}</strong>
+        <label htmlFor={`${uid}-ruhe`} style={{ fontSize: 12, ...leise }}>
+          {tau.ruheLabel}
+        </label>
+        <select
+          id={`${uid}-ruhe`}
+          className="pl-select"
+          value={wert}
+          onChange={(e) => {
+            const v = e.target.value;
+            void figurAendern(f.id, { ruheSchwelle: v === 'standard' ? undefined : v === 'nie' ? null : Number(v) });
+          }}
+        >
+          <option value="standard">{standard === null ? tau.ruheStandardNie : fmt(tau.ruheStandard, { n: standard })}</option>
+          {RUHE_STUFEN.map((n) => (
+            <option key={n} value={String(n)}>
+              {fmt(tau.ruheNach, { n })}
+            </option>
+          ))}
+          <option value="nie">{tau.ruheNie}</option>
+        </select>
+      </span>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.max(1, reihenfolge.length)}, minmax(0, 1fr))`, gap: 4 }}>
         {reihenfolge.map((k, i) => {
           const art = arten.get(k);
           const ohneText = !daten.kapitel[k]?.text.trim();
-          const titel = `${kapKurz(i + 1)} ${daten.plaene[k]?.titel ?? ''} · ${art ? t.art[art] : ohneText ? tau.keinText : '–'}`;
+          const titel = `${kapKurz(i + 1)} ${daten.plaene[k]?.titel ?? ''} · ${art ? t.art[art] : ohneText ? tau.keinText : '–'}${ruhend.has(k) ? ` · ${tau.ruht}` : ''}`;
           const stil: CSSProperties = {
             height: 34,
             borderRadius: 4,
@@ -358,6 +401,8 @@ function Auftritte({ daten, nachKapitel, farbe }: { daten: ProjektDaten; nachKap
           else if (art === 'unbestimmt')
             Object.assign(stil, { background: `color-mix(in srgb, ${farbe} 22%, var(--surface))`, color: 'var(--ink)', fontWeight: 600 });
           else if (ohneText) stil.background = 'repeating-linear-gradient(135deg, var(--schraffur) 0 4px, var(--surface) 4px 8px)';
+          // F-13: Kapitel einer ruhenden Strecke
+          if (ruhend.has(k)) Object.assign(stil, { boxShadow: 'inset 0 -3px 0 var(--ampel-gelb)' });
           const e = nachKapitel.get(k)?.[0];
           return e ? (
             <button
@@ -378,7 +423,10 @@ function Auftritte({ daten, nachKapitel, farbe }: { daten: ProjektDaten; nachKap
           );
         })}
       </div>
-      <span style={{ fontSize: 12, ...leise }}>{tau.legende}</span>
+      <span style={{ fontSize: 12, ...leise }}>
+        {tau.legende}
+        {ruhend.size > 0 && schwelle !== null && ` · ${fmt(tau.ruhtLegende, { n: schwelle })}`}
+      </span>
     </section>
   );
 }
@@ -850,7 +898,7 @@ export function Figurenkarte({ id, daten, index }: { id: Id; daten: ProjektDaten
         <div style={{ flex: '1 1 500px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <AusDemText daten={daten} index={index} nachKapitel={nachKapitel} />
           <DeinePlanung f={f} daten={daten} />
-          <Auftritte daten={daten} nachKapitel={nachKapitel} farbe={farbe} />
+          <Auftritte f={f} daten={daten} index={index} nachKapitel={nachKapitel} farbe={farbe} />
           <Bogen f={f} daten={daten} farbe={farbe} />
         </div>
         <div style={{ flex: '0 1 330px', minWidth: 280, display: 'flex', flexDirection: 'column', gap: 16 }}>

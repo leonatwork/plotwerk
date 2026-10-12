@@ -142,6 +142,7 @@ export const schreiben = {
       struktur: 'Struktur',
       zeitleiste: 'Zeitleiste',
       sprache: 'Sprache',
+      figuren: 'Figuren',
     },
     // Erkannt
     keineErkannt: 'Noch keine Figuren oder Orte im Text erkannt.',

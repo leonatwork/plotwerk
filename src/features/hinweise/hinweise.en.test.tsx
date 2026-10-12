@@ -54,7 +54,7 @@ describe('Hinweise-Ansicht auf Englisch', () => {
   it('Typ- und Status-Bezeichnungen sowie der Kontext folgen der Sprache', () => {
     expect(STATUS_LABEL).toMatchObject({ neu: 'New', absicht: 'Intentional', erledigt: 'Done' });
     expect(TYP_LABEL.pruefen).toBe('Check');
-    expect(HINWEIS_TYPEN.map((t) => t.label)).toEqual(['Check', 'Spelling', 'Open thread', 'Unknown', 'Structure', 'Timeline', 'Language']);
+    expect(HINWEIS_TYPEN.map((t) => t.label)).toEqual(['Check', 'Spelling', 'Open thread', 'Unknown', 'Structure', 'Timeline', 'Language', 'Characters']);
     expect(kontext(useStore.getState())).toMatch(/^Notes( · \d+ new)?$/);
     festeSprache('de');
     expect(STATUS_LABEL.absicht).toBe('Ist Absicht');
