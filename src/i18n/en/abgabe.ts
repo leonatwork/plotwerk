@@ -6,7 +6,8 @@ export const abgabe: Form<typeof de> = {
   kapitelAnzahl: { one: '{n} chapter', other: '{n} chapters' },
   export: {
     titel: 'Export for submission',
-    formate: { normseite: 'Standard manuscript', expose: 'Synopsis', epub: 'EPUB', mappe: 'Editing report' },
+    formate: { normseite: 'Standard manuscript', expose: 'Synopsis', epub: 'EPUB', mappe: 'Editing report', personen: 'Characters' },
+    vorspann: 'Put the character list in front (settings as under “Characters”)',
     wasExportieren: 'What to export?',
     umfang: 'Scope',
     ganzesBuch: { one: 'Whole book ({n} chapter with text)', other: 'Whole book ({n} chapters with text)' },
@@ -53,6 +54,18 @@ export const abgabe: Form<typeof de> = {
       text: 'E-book in EPUB 3 format with a table of contents, typeset like the e-book preview: justified with hyphenation, chapter heading, scene breaks.',
       titelseite: 'Title page',
       schrift: 'Embed Newsreader (otherwise the reading device chooses the font)',
+    },
+    personen: {
+      text: 'A list of the characters with nicknames, short description and role in their group – for editors, publishers or as a page at the front of the book. Private fields are never included.',
+      gliederung: 'Arrangement',
+      nachGruppen: 'By group',
+      nachRolle: 'By role (main, supporting characters)',
+      statisten: 'Include walk-ons',
+      spitznamen: 'Name nicknames',
+      geplante: 'Also characters not yet in the text',
+      bisKapitel: 'Only characters up to',
+      alleKapitel: 'end of the book',
+      anzahl: { one: '1 character', other: '{n} characters' },
     },
     mappe: {
       text: 'The open notes as a PDF to pass on or print – type, title, quote and explanation for each note. Notes marked as intentional or done are left out.',

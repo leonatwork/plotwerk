@@ -161,3 +161,17 @@ describe('Mehrere Gruppen und Rollen (A-05, A-06)', () => {
     expect(g.rollen).toEqual({ ole: 'Bauleiter' });
   });
 });
+
+describe('Personenverzeichnis (Abgabe)', () => {
+  it('als Markdown-Datei und als Vorspann der Normseite', async () => {
+    const { store } = await laden();
+    const md = new TextDecoder().decode(
+      await store.getState().abgabe.erstellen({ format: 'personen', ziel: 'md', optionen: { gliederung: 'rolle' } }),
+    );
+    expect(md).toContain('# Personen');
+    expect(md).toContain('**Paul**');
+    const mit = await store.getState().abgabe.erstellen({ format: 'normseite', kapitel: ['grundriss'], titelseite: false, personen: { gliederung: 'rolle' } });
+    const ohne = await store.getState().abgabe.erstellen({ format: 'normseite', kapitel: ['grundriss'], titelseite: false });
+    expect(mit.length).toBeGreaterThan(ohne.length);
+  });
+});
