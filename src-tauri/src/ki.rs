@@ -47,7 +47,7 @@ async fn im_hintergrund<T: Send + 'static>(
     })?
 }
 
-/// `anbieter`: "foundry" (Standard, auch wenn es fehlt) oder "claude".
+/// `anbieter`: "foundry" (Standard, auch wenn es fehlt), "claude" oder "openai".
 fn anbieter(wert: Option<String>) -> Result<Anbieter, String> {
     Anbieter::aus_text(wert.as_deref()).map_err(|e| KiFehlerAntwort::from(e).meldung)
 }
@@ -78,7 +78,16 @@ fn klient(zustand: &Zustand) -> Result<KiKlient, KiFehlerAntwort> {
     Ok(zustand.ki.get_or_init(|| k).clone())
 }
 
-/// POST {endpoint}/v1/messages mit dem Schlüssel des Anbieters aus dem Schlüsselbund.
+/// Schlüssel des Anbieters; beim OpenAI-kompatiblen Dienst darf er fehlen (lokale Server).
+async fn schluessel_fuer(a: Anbieter) -> Result<String, String> {
+    match a {
+        Anbieter::OpenAi => im_hintergrund(move || schluessel::lesen_optional(a)).await,
+        _ => im_hintergrund(move || schluessel::lesen(a)).await,
+    }
+}
+
+/// POST {endpoint}/v1/messages bzw. {endpoint}/chat/completions mit dem Schlüssel des Anbieters
+/// aus dem Schlüsselbund.
 #[tauri::command]
 pub async fn ki_anfrage(
     zustand: State<'_, Zustand>,
@@ -88,7 +97,7 @@ pub async fn ki_anfrage(
 ) -> Result<Value, KiFehlerAntwort> {
     let a = Anbieter::aus_text(anbieter.as_deref())?;
     let k = klient(&zustand)?;
-    let schluessel = im_hintergrund(move || schluessel::lesen(a)).await?;
+    let schluessel = schluessel_fuer(a).await?;
     Ok(k.nachricht(a, &endpoint, &schluessel, &body).await?)
 }
 
@@ -102,7 +111,7 @@ pub async fn ki_tokens(
 ) -> Result<u64, KiFehlerAntwort> {
     let a = Anbieter::aus_text(anbieter.as_deref())?;
     let k = klient(&zustand)?;
-    let schluessel = im_hintergrund(move || schluessel::lesen(a)).await?;
+    let schluessel = schluessel_fuer(a).await?;
     Ok(k.tokens_zaehlen(a, &endpoint, &schluessel, &body).await?)
 }
 

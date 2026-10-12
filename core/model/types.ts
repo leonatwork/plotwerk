@@ -18,8 +18,14 @@ export type Realitaet = 'gesichert' | 'offen' | 'bewusst_vage';
 // Projekt (projekt.md)
 // ---------------------------------------------------------------------------
 
-/** KI-Anbieter: Claude in Microsoft Foundry oder die Claude API von Anthropic direkt. */
-export type KiAnbieter = 'foundry' | 'claude';
+/**
+ * KI-Anbieter: Claude in Microsoft Foundry, die Claude API von Anthropic direkt oder ein Dienst mit
+ * OpenAI-kompatibler Chat-Completions-API (OpenAI, OpenRouter, Qwen, Ollama, LM Studio …).
+ */
+export type KiAnbieter = 'foundry' | 'claude' | 'openai';
+
+/** Vorlage für den OpenAI-kompatiblen Anbieter: bestimmt Standard-URL und kleine Unterschiede im Request. */
+export type KiVorlage = 'openai' | 'openrouter' | 'qwen' | 'ollama' | 'lmstudio' | 'eigen';
 
 /** Modell je Aufgabe (Foundry: Deployment-Namen, Claude API: Modell-IDs). */
 export interface KiModelle {
@@ -39,6 +45,17 @@ export interface KiClaudeEinstellungen {
   modelle: KiModelle;
 }
 
+/** OpenAI-kompatibler Dienst. Schlüssel (optional, lokal meist keiner) im Schlüsselbund, Konto „openai-kompatibel“. */
+export interface KiOpenAiEinstellungen {
+  vorlage: KiVorlage;
+  /** Basis-URL ohne /chat/completions, z. B. http://localhost:11434/v1 */
+  endpoint: string;
+  /** Modellnamen des Dienstes; leer = das Modell einer anderen Rolle (kein Claude-Standard) */
+  modelle: KiModelle;
+  /** Kontextlänge des Modells in Tokens; größere Anfragen werden vor dem Senden abgelehnt statt still gekürzt */
+  kontextTokens?: number;
+}
+
 export interface KiEinstellungen {
   /** Foundry: z. B. https://<resource>.services.ai.azure.com/anthropic – ohne /v1/messages */
   endpoint: string;
@@ -55,6 +72,8 @@ export interface KiEinstellungen {
   anbieter?: KiAnbieter;
   /** Einstellungen der Claude API; bleiben erhalten, solange Foundry gewählt ist. */
   claude?: KiClaudeEinstellungen;
+  /** Einstellungen des OpenAI-kompatiblen Dienstes; bleiben erhalten, solange ein anderer Anbieter gewählt ist. */
+  openai?: KiOpenAiEinstellungen;
 }
 
 export interface Projekt {

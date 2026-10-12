@@ -56,7 +56,9 @@ function Kostenzeile() {
   const schaetzung = useStore((s) => s.kileser.fragenSchaetzung);
   const schaetzen = useStore((s) => s.kileser.fragenSchaetzen);
   const hatDaten = useStore((s) => !!s.daten);
-  const t = useTexte().fragen.ansicht;
+  const alle = useTexte();
+  const t = alle.fragen.ansicht;
+  const kostenUnbekanntText = alle.ki.kostenUnbekannt;
   useEffect(() => {
     if (hatDaten) void schaetzen();
   }, [schnell, hatDaten, schaetzen]);
@@ -64,7 +66,7 @@ function Kostenzeile() {
   if (!w) return <span>{t.kostenSchaetzen}</span>;
   return (
     <span title={f(w.gezaehlt ? t.kostenTitel : t.kostenTitelGeschaetzt, { modell: w.modell, n: zahl(w.eingabeTokens) })}>
-      {f(t.kostenZeile, { erste: formatiereKosten(w.ersteUsd), weitere: formatiereKosten(w.weitereUsd) })}
+      {w.kostenBekannt === false ? kostenUnbekanntText : f(t.kostenZeile, { erste: formatiereKosten(w.ersteUsd), weitere: formatiereKosten(w.weitereUsd) })}
     </span>
   );
 }

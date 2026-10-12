@@ -8,7 +8,7 @@ import {
   ausLeserStand,
   EFFORT,
   fadenAbgleich,
-  formatiereUsd,
+ 
   leserStandVeraltet,
   offeneFragen,
   type FadenAbgleich,
@@ -19,7 +19,8 @@ import {
 import type { Id, LeserAussage, ProjektDaten } from '@core/model/types';
 import { fadenKarten } from '@core/struktur/faeden';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
-import { f, useTexte, zahl as zahlFormat, sprache } from '../../i18n';
+import { f, useTexte, zahl as zahlFormat } from '../../i18n';
+import { kostenWert } from '../ki/kosten';
 import { kiFehlerAnzeige, type KiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { bestaetigen, Button, Checkbox, Dialog, Segment } from '../../ui';
@@ -405,7 +406,7 @@ export default function LeserSimulationDialog({ param, schliessen }: DialogKompo
               <dt>{t.ausgabe}</dt>
               <dd>{f(t.ausgabeWert, { n: zahl(s.ausgabeTokens) })}</dd>
               <dt>{t.kosten}</dt>
-              <dd>{f(t.kostenWert, { kosten: formatiereUsd(s.kostenUsd, sprache()) })}</dd>
+              <dd>{kostenWert(s, t.kostenWert, 'kosten')}</dd>
             </dl>
             {!s.gezaehlt && <p className="pw-kl-klein">{t.nichtGezaehlt}</p>}
           </>

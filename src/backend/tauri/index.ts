@@ -9,7 +9,7 @@
  */
 import { listen } from '@tauri-apps/api/event';
 import Database from '@tauri-apps/plugin-sql';
-import { kiAnbieter, kiEndpoint } from '@core/ki/index';
+import { kiAnbieter, kiEndpoint, kiMitStandards } from '@core/ki/index';
 import type { KiEinstellungen } from '@core/model/types';
 import { parseProjekt } from '@core/projekt';
 import type { Backend, GewaehlteDatei } from '../types';
@@ -57,11 +57,14 @@ export async function erstelleTauriBackend(): Promise<Backend> {
     }
   }
 
-  /** Gewählter Anbieter und dessen Basis-URL (Foundry ohne Endpoint: ''). */
+  /** Gewählter Anbieter und dessen Basis-URL (Foundry ohne Endpoint: ''); OpenAI-kompatibel mit Vorlage und Kontextlänge. */
   async function kiZiel(): Promise<KiZiel> {
     if (!aktuell) return { anbieter: 'foundry', endpoint: '' };
     const ki = await kiEinstellungen();
-    return { anbieter: kiAnbieter(ki), endpoint: kiEndpoint(ki) };
+    const anbieter = kiAnbieter(ki);
+    if (anbieter !== 'openai') return { anbieter, endpoint: kiEndpoint(ki) };
+    const { vorlage, kontextTokens } = kiMitStandards(ki).openai;
+    return { anbieter, endpoint: kiEndpoint(ki), openai: { vorlage, ...(kontextTokens ? { kontextTokens } : {}) } };
   }
 
   const indexSpeicher = erstelleSqlIndexSpeicher(

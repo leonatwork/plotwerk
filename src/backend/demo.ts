@@ -112,7 +112,7 @@ export function erstelleDemoBackend(): Backend {
   let aktuellOffen: MemoryFs | null = null;
   const oeffne = () => (aktuellOffen = demo());
   /** je Anbieter, nur im Speicher (die Demo nutzt keinen Schlüssel) */
-  const schluesselGesetzt: Record<KiAnbieter, boolean> = { foundry: false, claude: false };
+  const schluesselGesetzt: Record<KiAnbieter, boolean> = { foundry: false, claude: false, openai: false };
 
   return {
     art: 'demo',

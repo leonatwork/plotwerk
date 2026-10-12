@@ -18,7 +18,7 @@ import {
   stimmenStatus,
 } from '@core/figuren/index';
 import { mischeFakten, setzeFaktStatus } from '@core/figuren/fakten';
-import { KiFehler, pruefeStimme, sammleFakten, schaetzeFakten, schaetzeStimme, type FaktenAuftrag, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
+import { bekannteKosten, KiFehler, pruefeStimme, sammleFakten, schaetzeFakten, schaetzeStimme, type FaktenAuftrag, type Schaetzung, type StimmenAuftrag } from '@core/ki/index';
 import type { BogenStufe, Figurenbogen as BogenDaten, HinweisEntscheidung, Id, ProjektDaten, TextAnker } from '@core/model/types';
 import type { ProjektLeser } from '@core/projekt/fs';
 import { sprache, texte } from '../../i18n';
@@ -40,6 +40,8 @@ export interface StimmenLaufErgebnis {
   vage: boolean;
   modell: string;
   kostenUsd: number;
+  /** false = Kosten unbekannt (OpenAI-kompatibler Dienst) */
+  kostenBekannt?: false;
   zeit: number;
 }
 
@@ -223,7 +225,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
             d.kiStimmen,
             auftrag.figur,
             r.ergebnis.beobachtungen,
-            { datum: r.datum, modell: r.modell, kostenUsd: r.kostenUsd },
+            { datum: r.datum, modell: r.modell, ...bekannteKosten(r) },
             d.entscheidungen,
           );
           await get().speichereKiStimmen(gemischt.ablage);
@@ -243,6 +245,7 @@ export const createFigurenbogenSlice: StateCreator<Store, [], [], FigurenbogenSl
               vage: r.ergebnis.vage,
               modell: r.modell,
               kostenUsd: r.kostenUsd,
+              ...(r.kostenBekannt === false ? { kostenBekannt: false as const } : {}),
               zeit: Date.now(),
             },
           });

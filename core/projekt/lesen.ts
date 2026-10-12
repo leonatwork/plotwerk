@@ -46,6 +46,7 @@ import type {
   KapitelAnalyse,
   KapitelPlan,
   KiEinstellungen,
+  KiOpenAiEinstellungen,
   Motiv,
   Ort,
   Projekt,
@@ -301,15 +302,31 @@ function parseKiModelle(v: unknown): KiEinstellungen['deployments'] {
   };
 }
 
-/** Ältere projekt.md ohne `anbieter`/`claude` bleiben gültig (gelten als Foundry). */
+/** Vorlagen des OpenAI-kompatiblen Anbieters (= KiVorlage; Standard Ollama wie in core/ki/anbieter.ts). */
+const KI_VORLAGEN = ['ollama', 'lmstudio', 'openai', 'openrouter', 'qwen', 'eigen'] as const;
+
+/** OpenAI-kompatibel: Modellnamen ohne Claude-Standard (leer bleibt leer). */
+function parseOpenAi(v: Record<string, unknown>): KiOpenAiEinstellungen {
+  const m = istObjekt(v.modelle) ? v.modelle : {};
+  const kontext = zahl(v.kontextTokens, 0);
+  return ohneUndefined<KiOpenAiEinstellungen>({
+    vorlage: eines(v.vorlage, KI_VORLAGEN, 'ollama'),
+    endpoint: s(v.endpoint),
+    modelle: { erkennung: s(m.erkennung), pruefung: s(m.pruefung), tiefencheck: s(m.tiefencheck) },
+    kontextTokens: kontext > 0 ? Math.round(kontext) : undefined,
+  });
+}
+
+/** Ältere projekt.md ohne `anbieter`/`claude`/`openai` bleiben gültig (gelten als Foundry). */
 function parseKi(v: unknown): KiEinstellungen | undefined {
   if (!istObjekt(v)) return undefined;
   const c = istObjekt(v.claude) ? v.claude : undefined;
   return ohneUndefined<KiEinstellungen>({
     endpoint: s(v.endpoint),
     deployments: parseKiModelle(v.deployments),
-    anbieter: v.anbieter === 'claude' ? 'claude' : v.anbieter === 'foundry' ? 'foundry' : undefined,
+    anbieter: v.anbieter === 'claude' || v.anbieter === 'foundry' || v.anbieter === 'openai' ? v.anbieter : undefined,
     claude: c ? { endpoint: s(c.endpoint), modelle: parseKiModelle(c.modelle) } : undefined,
+    openai: istObjekt(v.openai) ? parseOpenAi(v.openai) : undefined,
   });
 }
 

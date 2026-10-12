@@ -29,7 +29,7 @@ import { ladeProjekt } from '../projekt/lesen';
 import { normalisiere } from '../text';
 import { baueAnfrage, EFFORT, prefixZaehlBody, zaehlBody } from './anfrage';
 import { KiFehler, LEERE_NUTZUNG, leseAntwort, type Nutzung } from './antwort';
-import { kiModell } from './anbieter';
+import { kiModell, mitKosten } from './anbieter';
 import { kostenUsd, preisFuer } from './kosten';
 import { meldungenIn } from './meldungen';
 import { baueBuchKontext, type BuchKontext, type KontextFigur, type KontextOrt } from './kontext';
@@ -214,6 +214,7 @@ interface VorschlagsLauf {
   rolle: Rolle;
   modell: string;
   body: Record<string, unknown>;
+  einstellungen: KiEinstellungen | undefined;
 }
 
 function modellFuer(einstellungen: KiEinstellungen | undefined, rolle: Rolle): string {
@@ -237,7 +238,7 @@ function planeVorschlaege(daten: ProjektDaten, einstellungen: KiEinstellungen | 
     }),
     max_tokens: VORSCHLAG_MAX_TOKENS,
   };
-  return { daten, kontext, rolle, modell, body };
+  return { daten, kontext, rolle, modell, body, einstellungen };
 }
 
 /** Der vollständige Messages-API-Body, wie er an das Modell ginge (z. B. um Antworten vorzubereiten). */
@@ -281,7 +282,7 @@ export async function schaetzeVorschlaege(
     eingabeTokens: voll.tokens,
     prefixTokens,
     ausgabeTokens: ausgabe,
-    kostenUsd: kostenUsd({ eingabe: voll.tokens - prefixTokens, ausgabe, cacheGelesen: 0, cacheGeschrieben: prefixTokens }, preis),
+    ...mitKosten(einstellungen, kostenUsd({ eingabe: voll.tokens - prefixTokens, ausgabe, cacheGelesen: 0, cacheGeschrieben: prefixTokens }, preis)),
     gezaehlt: voll.gezaehlt && prefix.gezaehlt,
   };
 }
@@ -303,6 +304,8 @@ export interface VorschlagsErgebnis {
   tokens: { eingabe: number; ausgabe: number; cacheGelesen: number };
   modell: string;
   kostenUsd: number;
+  /** false = kein Listenpreis bekannt (OpenAI-kompatible Dienste); kostenUsd ist dann 0 */
+  kostenBekannt?: false;
   /** ISO-Zeitpunkt des Laufs */
   datum: string;
 }
@@ -323,7 +326,7 @@ function ergebnisAus(lauf: VorschlagsLauf, roh: unknown, nutzung: Nutzung, jetzt
     ...geprueft,
     tokens: { eingabe: nutzung.eingabe + nutzung.cacheGeschrieben, ausgabe: nutzung.ausgabe, cacheGelesen: nutzung.cacheGelesen },
     modell: lauf.modell,
-    kostenUsd: kostenUsd(nutzung, preisFuer(lauf.modell, lauf.rolle, lauf.kontext.text.length / 3)),
+    ...mitKosten(lauf.einstellungen, kostenUsd(nutzung, preisFuer(lauf.modell, lauf.rolle, lauf.kontext.text.length / 3))),
     datum: jetzt().toISOString(),
   };
 }

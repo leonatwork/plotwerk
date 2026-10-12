@@ -170,7 +170,7 @@ export function alsBuchFrage(id: Id, frage: string, e: AufgabenErgebnis<FrageAnt
     antwort: e.ergebnis.antwort,
     belege: e.ergebnis.belege,
     modell: e.modell,
-    kostenUsd: Math.round(e.kostenUsd * 10000) / 10000,
+    ...(e.kostenBekannt === false ? {} : { kostenUsd: Math.round(e.kostenUsd * 10000) / 10000 }),
     imBuch: e.ergebnis.imBuch,
   };
 }
