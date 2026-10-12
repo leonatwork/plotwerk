@@ -4,7 +4,8 @@
  * Es werden ausschließlich Felder einzeln übernommen, nie ganze Objekte: Kapiteltitel und
  * Klartext, Figuren (name, aliase, rolle, existenz, Plan-Felder), Kapitelpläne (szene, notiz),
  * Orte (name, aliase), Gruppen (name, typ, status) und Realitätseinträge (stufe, text, Zitat).
- * Nie: wahrheit, notizen, kurz, beschreibung, Anmerkungen, Ideen, Abweichungen, Akte, Stränge.
+ * Nie: wahrheit, notizen, kurz, beschreibung, Anmerkungen, Ideen, Abweichungen, Akte, Stränge. (Stränge gehen nur im
+ * Aufgabentext von „Stränge vorschlagen“ mit, siehe straenge.ts – freigegeben 2026-10-12.)
  * Plan-Felder sind seit Leons Entscheidung vom 2026-10-09 freigegeben (F-05).
  *
  * Buchsprache (angaben.sprache, nur als Sprache der Beschriftungen, nicht als Feld): Für englische Bücher sind die

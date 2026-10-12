@@ -43,7 +43,7 @@ describe('Hinweis-Entscheidung', () => {
     render(<Ansicht />);
     expect(screen.getByRole('heading', { name: 'Hinweise' })).toBeInTheDocument();
     const gruppen = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
-    expect(gruppen).toEqual(expect.arrayContaining(['Prüfen', 'Schreibweise', 'Offener Faden', 'Unbekannt', 'Zeitleiste']));
+    expect(gruppen).toEqual(expect.arrayContaining(['Prüfen', 'Schreibweise', 'Loses Ende', 'Unbekannt', 'Zeitleiste']));
 
     const pruefen = hinweis('pruefen');
     expect(useStore.getState().auswahl.hinweis).toBe(pruefen.schluessel);

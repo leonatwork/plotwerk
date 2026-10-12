@@ -16,11 +16,13 @@ import {
   type FadenKarte,
   type FadenSpalte,
 } from '@core/struktur/faeden';
+import { fadenKapitel } from '@core/struktur/straenge';
 import type { Store } from '../../state/store';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, bestaetigen, Button, Chip, Dialog, Inspektor, klassen, LeerZustand, Segment, StrangPunkt, Werkzeugseite } from '../../ui';
 import { EntwurfBereich, EntwurfFeld, strangFarbe, strangKurzname } from '../akte/gemeinsam';
 import { fadenFarbe, kapitelDauer as kapitelText, Kapitelstreifen, kapitelVoll, kapNr, StreifenLegende } from './gemeinsam';
+import { FadenTabelle } from './FadenTabelle';
 import { f, texte, useTexte } from '../../i18n';
 import './faeden.css';
 
@@ -304,6 +306,7 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
   const verschieben = useStore((s) => s.struktur.fadenVerschieben);
   const waehle = useStore((s) => s.struktur.waehleFaden);
   const oeffne = useStore((s) => s.oeffne);
+  const alsStrang = useStore((s) => s.struktur.strangAusFaden);
   const karte = auswahl ? karten.find((k) => k.id === auswahl) : undefined;
   const t = useTexte();
   const ti = t.faeden.inspektor;
@@ -423,6 +426,11 @@ function FadenInspektor({ daten, karten }: { daten: ProjektDaten; karten: FadenK
               </option>
             ))}
           </select>
+          {(!karte.strang || !daten.straenge.some((s) => s.id === karte.strang)) && fadenKapitel(daten, karte).length > 0 && (
+            <button type="button" className="pl-link" style={{ alignSelf: 'flex-start', marginTop: -4 }} title={t.faeden.ausFaeden.titel} onClick={() => void alsStrang(karte.id)}>
+              {t.faeden.ausFaeden.uebernehmen}
+            </button>
+          )}
           <label className="fd-label" htmlFor="fd-schwelle">
             {ti.schwelle}
           </label>
@@ -533,6 +541,7 @@ export default function Ansicht() {
   const neuOffen = useStore((s) => s.struktur.fadenNeuOffen);
   const setzeNeuOffen = useStore((s) => s.struktur.setzeFadenNeuOffen);
   const verschieben = useStore((s) => s.struktur.fadenVerschieben);
+  const darstellung = useStore((s) => s.struktur.fadenDarstellung);
   const [ziehend, setZiehend] = useState<FadenKarte | null>(null);
   const [aufloesungFuer, setAufloesungFuer] = useState<Id | null>(null);
   const sensoren = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -621,6 +630,9 @@ export default function Ansicht() {
       ) : (
         <>
           <Leiste daten={daten} karten={karten} />
+          {darstellung === 'tabelle' ? (
+            sichtbar.length ? <FadenTabelle daten={daten} karten={sichtbar} /> : <div className="fd-spalte__leer">{ta.keineFuerFilter}</div>
+          ) : (
           <DndContext sensors={sensoren} onDragStart={start} onDragEnd={ende} onDragCancel={() => setZiehend(null)}>
             <div className="fd-board">
               {FADEN_SPALTEN.map((sp) => (
@@ -641,6 +653,7 @@ export default function Ansicht() {
               )}
             </DragOverlay>
           </DndContext>
+          )}
         </>
       )}
       {neuOffen && <NeuerFadenDialog daten={daten} />}
@@ -651,8 +664,27 @@ export default function Ansicht() {
 
 export function Titelaktionen() {
   const setzeNeuOffen = useStore((s) => s.struktur.setzeFadenNeuOffen);
+  const darstellung = useStore((s) => s.struktur.fadenDarstellung);
+  const setzeDarstellung = useStore((s) => s.struktur.setzeFadenDarstellung);
   const t = useTexte();
-  return <Button onClick={() => setzeNeuOffen(true)}>{t.faeden.ansicht.plusFaden}</Button>;
+  const tt = t.faeden.tabelle;
+  return (
+    <>
+      <Segment<'board' | 'tabelle'>
+        rolle="group"
+        label={tt.darstellung}
+        hintergrund="selected"
+        groesse="klein"
+        wert={darstellung}
+        onChange={setzeDarstellung}
+        optionen={[
+          { wert: 'board', label: tt.board },
+          { wert: 'tabelle', label: tt.tabelle },
+        ]}
+      />
+      <Button onClick={() => setzeNeuOffen(true)}>{t.faeden.ansicht.plusFaden}</Button>
+    </>
+  );
 }
 
 export function kontext(state: Store): string {

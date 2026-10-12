@@ -21,6 +21,7 @@ export type Befehl =
   // Werkzeuge G1–G8
   | 'zeit-vorschlaege'
   | 'stimme-pruefen'
+  | 'straenge-vorschlagen'
   | 'marken'
   | 'typewriter'
   | 'wiederholungen'
@@ -90,6 +91,11 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
       if (!s.daten) break;
       await sichern();
       s.oeffneDialog('stimme-pruefen', { figur: s.auswahl.figur });
+      break;
+    case 'straenge-vorschlagen':
+      if (!s.daten) break;
+      await sichern();
+      s.oeffneDialog('straenge-vorschlagen');
       break;
     case 'marken':
       if (!s.daten) break;

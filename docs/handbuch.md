@@ -55,10 +55,22 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
   Enden bis hier, „Leserin nach Kap. n“, „Was ist sicher?“ (Gewissheit der Stellen), Recherche zum Kapitel.
 - **Akte planen** (⌘3): Akt-Board mit Kopfkarten (Quintessenz, Wendepunkt) und Ideen-Ablage; Umschalter „Nur Plan“,
   „Plan + Text“ und **„Stränge“** – das Strang-Raster zeigt, in welchen Kapiteln ein Strang fehlt oder verschwindet;
-  Klick oder Leertaste nimmt ihn in den Kapitelplan auf.
-- **Fäden** (⌘9): Board mit Offen, Auflösung geplant, Erledigt, Bewusst offen. Warnung bei Fäden, die zu lange ruhen,
-  oder deren geplante Auflösung schon geschrieben ist. „+ Faden“ bzw. „Neuer Faden …“ legt eigene Fäden an.
-  Pfeiltasten wandern, ⌥←/⌥→ verschiebt in die Nachbarspalte.
+  Klick oder Leertaste nimmt ihn in den Kapitelplan auf. Ein Klick auf den Strangnamen öffnet ihn im Inspektor:
+  Haupthandlung oder Nebenhandlung, „Wofür steht der Strang?“, Farbe. **„Mit KI vorschlagen …“** lässt die KI das Buch
+  lesen: Sie ordnet geschriebene Kapitel deinen Strängen zu, schlägt fehlende Stränge vor und stellt Rückfragen – jeweils
+  mit Zitat. Du übernimmst, verwirfst oder antwortest; Verworfenes kommt nicht wieder, Antworten gehen beim nächsten
+  Lauf mit.
+- **Kapitel planen** (Inspektor im Akt-Board): **Kurzbeschreibung** in einem Satz (steht auf der Karte), optional die
+  **Funktion im Buch** (Opening, Wendepunkt, Atempause … oder eigene; als Etikett auf der Karte) und ausführlich „Was
+  soll hier passieren?“. KI-Vorschläge zu Strängen erscheinen direkt beim Feld „Strang“.
+- **Lose Enden** (⌘9, früher „Fäden“): offene Fragen und Versprechen an die Leserin, die sich auflösen sollen – im
+  Unterschied zu **Strängen**, den Handlungslinien, die du in „Akte planen“ planst. Ein loses Ende kann zu einem Strang
+  gehören (Feld „Strang“). Ist es eigentlich eine ganze Handlungslinie (z. B. „Der Deloitte-Auftrag“), macht
+  **„Als Strang übernehmen“** daraus einen Strang und trägt ihn in alle Kapitel ein, in denen es vorkommt – auch aus dem
+  Kapitel-Inspektor und im Segment „Stränge“ möglich. Umschalter **Board | Tabelle**: Das Board hat die Spalten Offen,
+  Auflösung geplant, Erledigt, Bewusst offen; die Tabelle zeigt alle losen Enden × Kapitel, gruppiert nach Strang.
+  Warnung bei losen Enden, die zu lange ruhen, oder deren geplante Auflösung schon geschrieben ist. „+ Loses Ende“
+  legt eigene an. Pfeiltasten wandern, ⌥←/⌥→ verschiebt in die Nachbarspalte.
 - **Szenen**: Kapitel werden über `* * *` in Szenen geteilt. Pro Szene Titel, Ort, Figuren, Zeit und Notiz – im
   Schreiben-Inspektor und im Kapitel-Überblick. Der Kapiteltext wird dabei nie verändert.
 - In Notizen und Plan-Feldern verlinkt `[[` auf Figuren, Orte, Kapitel, Plan-Karten und Ideen.

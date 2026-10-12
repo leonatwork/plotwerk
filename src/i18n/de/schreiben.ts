@@ -123,7 +123,7 @@ export const schreiben = {
     hinweisTyp: {
       pruefen: 'Prüfen',
       schreibweise: 'Schreibweise',
-      offener_faden: 'Offener Faden',
+      offener_faden: 'Loses Ende',
       unbekannt: 'Unbekannt',
       struktur: 'Struktur',
       zeitleiste: 'Zeitleiste',
@@ -165,8 +165,9 @@ export const schreiben = {
     wasMitPlan: 'Was passiert mit dem Plan?',
     alsPlanNotiz: 'Notiz als neue Plan-Notiz übernehmen',
     keinPlan: 'Für dieses Kapitel gibt es noch keinen Plan.',
-    geplanteSzene: 'Geplante Szene',
-    keineSzene: 'Noch keine Szene geplant',
+    geplanteSzene: 'Kurzbeschreibung',
+    keineSzene: 'Noch keine Kurzbeschreibung',
+    funktion: 'Funktion: {funktion}',
     erkanntHier: 'Erkannt in diesem Kapitel',
     // Hinweise
     offen: '· offen',

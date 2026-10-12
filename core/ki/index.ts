@@ -54,6 +54,8 @@ export * from './aufgabe';
 export * from './zeit';
 export * from './stimme';
 export * from './leser';
+/** G2 Stränge vorschlagen */
+export * from './straenge';
 
 /** Transport zur Messages-API (Foundry oder Claude API). In der App: Rust-Kommando ki_anfrage. */
 export interface KiTransport {

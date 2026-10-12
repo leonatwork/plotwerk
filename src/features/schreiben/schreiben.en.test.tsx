@@ -38,7 +38,7 @@ function editorVon(container: HTMLElement): Editor {
   return el.editor;
 }
 
-const DEUTSCH = /Wörter|Wort |gesamt|Automatisch gespeichert|Speichert|Versionsverlauf|Kapitel planen|geplant|Entwurf|Erkannt|Hinweise|Stil\b|Geplante Szene|Ich weiche/;
+const DEUTSCH = /Wörter|Wort |gesamt|Automatisch gespeichert|Speichert|Versionsverlauf|Kapitel planen|geplant|Entwurf|Erkannt|Hinweise|Stil\b|Kurzbeschreibung|Ich weiche/;
 
 describe('Schreiben auf Englisch', () => {
   it('zeigt Statusleiste, Kapitelliste und Inspektor auf Englisch', async () => {
@@ -66,7 +66,7 @@ describe('Schreiben auf Englisch', () => {
     expect(screen.getByRole('tab', { name: 'Detected' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: /^Notes/ })).toBeTruthy();
     expect(screen.getByRole('tab', { name: 'Style' })).toBeTruthy();
-    expect(screen.getByText('Planned scene')).toBeTruthy();
+    expect(screen.getByText('Short description')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'I’m deviating here' })).toBeTruthy();
 
     expect(container.querySelector('.pw-s-kopf-label')?.textContent).toMatch(/^Chapter \d+/);

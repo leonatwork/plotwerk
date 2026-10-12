@@ -140,7 +140,7 @@ export const figuren = {
       typ: {
         pruefen: 'Prüfen',
         schreibweise: 'Schreibweise',
-        offener_faden: 'Offener Faden',
+        offener_faden: 'Loses Ende',
         unbekannt: 'Unbekannt',
         struktur: 'Struktur',
         zeitleiste: 'Zeitleiste',

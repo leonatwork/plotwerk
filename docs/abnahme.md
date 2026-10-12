@@ -145,6 +145,9 @@ Browser-Durchlauf mit dem Demo-Projekt bei 1440 × 900 und 1100 × 700, hell und
 | PS-01 | Fäden-Board | erfüllt | `src/features/faeden/faeden.test.tsx`, `core/struktur/faeden.test.ts`; Browser | Befehl „Neuer Faden …“ in Menü und Schnellsuche. |
 | PS-02 | Strang-Raster | erfüllt | `faeden.test.tsx`; Browser | |
 | PS-03 | Szenen | erfüllt | `core/struktur/szenen.test.ts`, `faeden.test.tsx`; Browser | Szenenkarte auch für Kapitel ohne Plan; Link springt zur Szene in der Zeitleiste. |
+| PS-04 | Haupt-/Nebenhandlung, Zweck, Kurzbeschreibung, Funktion | erfüllt | `core/ki/straenge.test.ts`, `src/features/faeden/straenge.test.tsx`; Browser | „Geplante Szene“ heißt jetzt „Kurzbeschreibung“ (Feld `szene` unverändert). |
+| PS-05 | KI-Vorschläge zu Strängen | erfüllt | `core/ki/straenge.test.ts`, `src/features/faeden/straenge.test.tsx`; Browser | Nur Demo-KI; Strang-Angaben an die KI von Leon am 2026-10-12 freigegeben (E12). |
+| PS-06 | Lose Enden: Tabelle, als Strang übernehmen | erfüllt | `src/features/faeden/straenge.test.tsx`; Browser | Interne Namen (`faeden`, `plan/faeden.md`, Befehl `faden-neu`) bleiben. |
 | FB-01 | Figuren-Bögen | erfüllt | `core/figuren/boegen.test.ts`, `src/features/figuren/Boegen.test.tsx`; Browser | |
 | FB-02 | Figurenstimme | erfüllt | `core/figuren/stimme.test.ts`, `core/ki/stimme.test.ts`, `Stimme.test.tsx`, `core/index/index.test.ts` | Erscheint als Hinweis „Sprache“ und auf der Figurenkarte. |
 | EW-01 | Typewriter | erfüllt | `src/features/schreiben/werkzeuge/werkzeuge.test.tsx`; Browser | |

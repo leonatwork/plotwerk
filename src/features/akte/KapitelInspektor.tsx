@@ -7,6 +7,8 @@ import { kurzfassung } from '../../state/slices/planung';
 import { bestaetigen as rueckfrage, Button, Chip, Inspektor } from '../../ui';
 import { AngehefteteNotizen, AuswahlMenue, EntfernbarerChip, EntwurfBereich, EntwurfFeld, strangFarbe, strangGeplant, strangKurzname } from './gemeinsam';
 import { VerweisText } from '../schreiben/VerweisFeld';
+import { FaedenAlsStraenge, KapitelStrangVorschlaege } from '../faeden/StrangVorschlaege';
+import { straengeSortiert } from '@core/struktur/straenge';
 import { datum, f, useTexte, vergleich, woerterbuch } from '../../i18n';
 
 const kopfLabel: CSSProperties = { fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', color: 'var(--accent-dark)' };
@@ -59,7 +61,7 @@ function StrangWahl({ gewaehlt, daten, onChange }: { gewaehlt: Id[]; daten: Proj
   const t = useTexte();
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 12 }}>
-      {daten.straenge.map((s) => {
+      {straengeSortiert(daten.straenge).map((s) => {
         const aktiv = gewaehlt.includes(s.id);
         return (
           <Chip
@@ -67,7 +69,8 @@ function StrangWahl({ gewaehlt, daten, onChange }: { gewaehlt: Id[]; daten: Proj
             variante="knopf"
             aktiv={aktiv}
             punkt={strangGeplant(s, daten) ? undefined : strangFarbe(s.farbe)}
-            title={s.name}
+            title={s.rolle ? `${s.name} · ${t.faeden.raster.rolle[s.rolle]}` : s.name}
+            style={s.rolle === 'haupt' ? { fontWeight: 600 } : undefined}
             onClick={() => onChange(aktiv ? gewaehlt.filter((x) => x !== s.id) : [...gewaehlt, s.id])}
           >
             {strangGeplant(s, daten) && (
@@ -78,6 +81,25 @@ function StrangWahl({ gewaehlt, daten, onChange }: { gewaehlt: Id[]; daten: Proj
         );
       })}
       {daten.straenge.length === 0 && <span style={feldLabel}>{t.akte.inspektor.keineStraenge}</span>}
+    </div>
+  );
+}
+
+/** „Funktion im Buch“: eigenes Feld plus Schnellauswahl (Opening, Wendepunkt …); leer = nicht festgelegt. */
+function FunktionWahl({ id, wert, onChange }: { id: string; wert: string; onChange(w: string): void }) {
+  const t = useTexte();
+  const ti = t.akte.inspektor;
+  const vorschlaege = Object.values(ti.funktionen);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: -8 }}>
+      <EntwurfFeld id={id} className="pl-eingabe" placeholder={ti.funktionPlatzhalter} wert={wert} onSpeichern={(w) => onChange(w.trim())} />
+      <div role="group" aria-label={ti.funktionWaehlen} style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        {vorschlaege.map((v) => (
+          <button key={v} type="button" className="pl-kleinknopf" aria-pressed={wert === v} onClick={() => onChange(wert === v ? '' : v)}>
+            {v}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -155,7 +177,7 @@ function Abweichungen({ plan }: { plan: KapitelPlan }) {
   );
 }
 
-export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: ProjektDaten; index: Index }) {
+export function KapitelPlanInspektor({ id, daten, index, zurueck }: { id: Id; daten: ProjektDaten; index: Index; zurueck?: () => void }) {
   const plan = daten.plaene[id];
   const aendern = useStore((s) => s.planung.kapitelPlanAendern);
   const schreibenBeginnen = useStore((s) => s.planung.schreibenBeginnen);
@@ -177,13 +199,18 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
 
   return (
     <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={t.akte.ansicht.kapitelPlanen}>
+      {zurueck && (
+        <button type="button" className="pl-link" style={{ alignSelf: 'flex-start' }} onClick={zurueck}>
+          {t.faeden.strang.uebersicht}
+        </button>
+      )}
       <span style={kopfLabel}>{f(ti.kopf, { nr, status: statusText })}</span>
       <label htmlFor={`${uid}-titel`} style={feldLabel}>
         {ti.titel}
       </label>
       <EntwurfFeld key={`${id}-titel`} id={`${uid}-titel`} style={titelFeld} wert={plan.titel} onSpeichern={(titel) => titel.trim() && speichern({ titel: titel.trim() })} />
       <label htmlFor={`${uid}-szene`} style={feldLabel}>
-        {ti.geplanteSzene}
+        {ti.kurzbeschreibung}
       </label>
       <EntwurfFeld
         key={`${id}-szene`}
@@ -194,9 +221,15 @@ export function KapitelPlanInspektor({ id, daten, index }: { id: Id; daten: Proj
         wert={plan.szene}
         onSpeichern={(szene) => speichern({ szene })}
       />
+      <label htmlFor={`${uid}-funktion`} style={feldLabel}>
+        {ti.funktion} <span style={{ fontSize: 11 }}>· {ti.funktionHinweis}</span>
+      </label>
+      <FunktionWahl key={`${id}-funktion`} id={`${uid}-funktion`} wert={plan.funktion ?? ''} onChange={(funktion) => speichern({ funktion: funktion || undefined })} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={feldLabel}>{ti.strang}</span>
         <StrangWahl gewaehlt={plan.straenge} daten={daten} onChange={(straenge) => speichern({ straenge })} />
+        <FaedenAlsStraenge daten={daten} kapitel={id} />
+        <KapitelStrangVorschlaege kapitel={id} daten={daten} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={feldLabel}>{ti.figuren}</span>

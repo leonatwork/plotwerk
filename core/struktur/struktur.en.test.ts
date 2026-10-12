@@ -80,7 +80,7 @@ describe('weitere lokale Hinweise (en)', () => {
 
   it('Hinweis-Typnamen', () => {
     expect(hinweisTypName('schreibweise', 'en')).toBe('Spelling');
-    expect(hinweisTypName('offener_faden')).toBe('Offener Faden');
+    expect(hinweisTypName('offener_faden')).toBe('Loses Ende');
     expect(Object.keys(hinweisTypNamen('en'))).toEqual(Object.keys(HINWEIS_TYP_NAME));
   });
 });

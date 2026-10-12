@@ -5,7 +5,7 @@ export const hinweise: Form<typeof de> = {
   typ: {
     pruefen: 'Check',
     schreibweise: 'Spelling',
-    offener_faden: 'Open thread',
+    offener_faden: 'Loose end',
     unbekannt: 'Unknown',
     struktur: 'Structure',
     zeitleiste: 'Timeline',
@@ -30,7 +30,7 @@ export const hinweise: Form<typeof de> = {
   keine: 'No notes',
   buchPruefen: 'Check book',
   leerText:
-    'Structure notes and spellings appear automatically when you save. Contradictions, open threads and timeline issues are found by the check you start yourself.',
+    'Structure notes and spellings appear automatically when you save. Contradictions, loose ends and timeline issues are found by the check you start yourself.',
   filterLabel: 'Filter by type and chapter',
   alleTypen: 'All types',
   kapitel: 'Chapter',
