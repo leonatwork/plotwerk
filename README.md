@@ -32,7 +32,7 @@
 
 - **Dein Text gehört dir.** Alles liegt als Markdown und JSON in einem normalen Ordner, zum Beispiel in
   iCloud oder OneDrive. Du kannst ihn jederzeit auch ohne Plotwerk lesen, etwa in Obsidian oder VS Code.
-  Kein Konto, keine Cloud, und ohne Internet funktioniert alles außer der KI.
+  Kein Konto, keine Cloud, und ohne Internet funktioniert alles, mit einem lokalen Modell sogar die KI.
 - **Die KI schreibt nie.** Sie macht keine Formulierungsvorschläge und hat keinen Schreibzugriff. Sie
   beobachtet nur: Widersprüche, offene Fäden, Zeitfehler, Figuren, die plötzlich anders klingen. Jede
   Beobachtung braucht ein wörtliches Zitat aus deinem Buch, sonst wird sie verworfen.
@@ -122,14 +122,24 @@ Voraussetzungen: macOS 12 (Monterey) oder neuer, Apple Silicon oder Intel. Updat
 
 ## KI einrichten (optional)
 
-Plotwerk funktioniert vollständig ohne KI. Wer die KI-Prüfung nutzen möchte, trägt unter
-*Einstellungen (⌘,)* einen eigenen Zugang ein: **Claude API** (Anthropic) oder **Claude in Microsoft
-Foundry**. Der Schlüssel liegt im macOS-Schlüsselbund, nie im Projektordner.
+Plotwerk funktioniert vollständig ohne KI. Wer die KI-Prüfung nutzen möchte, wählt unter
+*Einstellungen (⌘,)* einen eigenen Zugang:
+
+- **Claude API** (Anthropic) oder **Claude in Microsoft Foundry**. Darauf ist Plotwerk abgestimmt.
+- **Lokal auf deinem Mac** mit **Ollama** oder **LM Studio**. Dann verlässt kein Wort den Mac, ein
+  Schlüssel ist nicht nötig, und es entstehen keine Kosten. Gute Ergebnisse brauchen ein großes Modell
+  und entsprechend viel Arbeitsspeicher.
+- **Andere OpenAI-kompatible Dienste:** OpenAI, OpenRouter, Qwen (Alibaba Cloud) oder eine eigene URL.
+
+Schlüssel liegen im macOS-Schlüsselbund, nie im Projektordner. Andere Modelle als Claude sind nicht
+eigens abgestimmt. Weil jeder Hinweis ein wörtliches Zitat aus dem Buch braucht, verwirft Plotwerk
+aber alles, was ein Modell nicht belegen kann.
 
 Was an das Modell geht, regelt eine Allowlist. Kapiteltext, Titel, Namen und Plan-Felder sind
-erlaubt. Private Notizen und die „Wahrheit hinter den Kulissen“ verlassen den Mac nie. Vor jedem Lauf
-zeigt Plotwerk die geschätzten Kosten. Eine Prüfung des ganzen Buchs (80.000 Wörter) kostet mit Sonnet
-grob 0,50 bis 2 $. Ergebnisse werden gespeichert und kosten beim erneuten Öffnen nichts.
+erlaubt. Private Notizen und die „Wahrheit hinter den Kulissen“ verlassen den Mac nie. Mit Claude
+zeigt Plotwerk vor jedem Lauf die geschätzten Kosten. Eine Prüfung des ganzen Buchs (80.000 Wörter)
+kostet mit Sonnet grob 0,50 bis 2 $. Für andere Dienste gibt es keine Kostenschätzung. Ergebnisse
+werden gespeichert und kosten beim erneuten Öffnen nichts.
 
 ## Selbst bauen
 
