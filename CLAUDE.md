@@ -8,6 +8,7 @@ Lokale Mac-App (Tauri 2 + React/TypeScript) zum Schreiben und Planen von Romanen
 - `core/` ist reines TypeScript ohne DOM und ohne Tauri; dort liegt die testbare Logik (Vitest).
 - Die KI schreibt nie Text: `core/ki` darf nur `ProjektLeser` nutzen, nie `ProjektDateisystem`.
 - Releases: Tag `v*` → `.github/workflows/release.yml`, Ablauf in `docs/release.md`; Version mit `node scripts/version.mjs <x.y.z>` setzen.
+- Commits immer mit Sign-off (`git commit -s`), auch auf Feature-Branches; die CI prüft das DCO. Vergessen → `git rebase --signoff origin/main`, dann `git push --force-with-lease`.
 - Keine Inhalte aus privaten Manuskripten ins Repo; Beispiele nur aus dem Demo-Roman in `fixtures/`. Die Git-Hooks in `.githooks/` (aktiv nach `npm install`) blockieren Commits und Pushes mit Begriffen aus `~/.config/plotwerk/sperrliste.txt`; `npm run sperrliste` prüft das ganze Repo.
 - Rust liegt unter `/opt/homebrew/opt/rustup/bin` (vor Cargo-Befehlen `export PATH="/opt/homebrew/opt/rustup/bin:$PATH"`).
 

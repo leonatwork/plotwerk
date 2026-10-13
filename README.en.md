@@ -32,7 +32,7 @@
 
 - **Your text belongs to you.** Everything is stored as Markdown and JSON in an ordinary folder, for example
   in iCloud or OneDrive. You can read it at any time without Plotwerk, say in Obsidian or VS Code.
-  No account, no cloud, and without an internet connection everything works except the AI.
+  No account, no cloud, and without an internet connection everything works, even the AI with a local model.
 - **The AI never writes.** It makes no wording suggestions and has no write access. It only
   observes: contradictions, open threads, timing errors, characters who suddenly sound different. Every
   observation needs a verbatim quote from your book, otherwise it is discarded.
@@ -129,14 +129,23 @@ The interface follows the language of your Mac. You can switch between English a
 
 ## Setting up the AI (optional)
 
-Plotwerk works completely without AI. If you want to use the AI check, enter your own access under
-*Settings (⌘,)*: the **Claude API** (Anthropic) or **Claude in Microsoft Foundry**. The key is
-stored in the macOS keychain, never in the project folder.
+Plotwerk works completely without AI. If you want to use the AI check, choose your own access under
+*Settings (⌘,)*:
+
+- The **Claude API** (Anthropic) or **Claude in Microsoft Foundry**. Plotwerk is tuned for these.
+- **Locally on your Mac** with **Ollama** or **LM Studio**. Then not a single word leaves your Mac, no
+  key is needed and there are no costs. Good results need a large model and plenty of memory.
+- **Other OpenAI-compatible services:** OpenAI, OpenRouter, Qwen (Alibaba Cloud) or your own URL.
+
+Keys are stored in the macOS keychain, never in the project folder. Models other than Claude are not
+specifically tuned. But because every note needs a verbatim quote from the book, Plotwerk discards
+anything a model cannot back up.
 
 An allowlist governs what goes to the model. Chapter text, titles, names and plan fields are
-allowed. Private notes and the “truth behind the scenes” never leave your Mac. Before every run
-Plotwerk shows the estimated cost. A check of the whole book (80,000 words) costs roughly $0.50 to $2
-with Sonnet. Results are saved and cost nothing when you open them again. Prompts and answers follow the
+allowed. Private notes and the “truth behind the scenes” never leave your Mac. With Claude, Plotwerk
+shows the estimated cost before every run. A check of the whole book (80,000 words) costs roughly
+$0.50 to $2 with Sonnet. Other services get no cost estimate. Results are saved and cost nothing when
+you open them again. Prompts and answers follow the
 language of the book.
 
 ## Building it yourself
@@ -163,8 +172,12 @@ licensed under Apache-2.0 and confirmed with `git commit -s`; there is no separa
 
 - **English interface:** included since v0.2.0 (Settings → Language), with the English demo novel
   “Harbour Lights”. More languages are welcome, see [CONTRIBUTING.md](CONTRIBUTING.md).
-- **Plotwerk AI:** an optional subscription that lets the AI work without your own API key. The app
-  itself stays free, and using your own key remains possible.
+- **Free during the beta.** From version 1.0 you can try Plotwerk at your own pace and then unlock it with
+  a one-time payment, no subscription. The source code stays open, building it yourself stays free.
+- **AI your way:** With your own access in the cloud (Claude API, Microsoft Foundry or an
+  OpenAI-compatible service) or locally on your Mac (Ollama, LM Studio), the AI costs nothing extra.
+- **Plotwerk+ (planned):** for everyone who would rather focus on writing than on API keys. The AI is
+  built right in, as an optional subscription.
 
 ## License
 
@@ -173,6 +186,8 @@ Plotwerk is licensed under the **[Functional Source License 1.1](LICENSE.md)** (
 - ✅ Use it, including for commercially published books: your text belongs to you.
 - ✅ Read, change, build the source code for yourself and pass it on.
 - ❌ Offer Plotwerk or a derivative as a competing commercial product.
+- ❌ Distribute your own builds or derivatives under the name “Plotwerk” or with the Plotwerk icon. The
+  name and icon are not covered by the license.
 - 🔓 Two years after release every version automatically becomes **Apache-2.0**, i.e. fully open source.
 
 © 2026 Leon Machnik

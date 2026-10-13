@@ -69,9 +69,13 @@ Damit hängt Git die Zeile `Signed-off-by: Dein Name <deine@mail>` an. Sie best�
 geschrieben oder darfst ihn einreichen. Vergessene Sign-offs ergänzt
 `git rebase --signoff main` und danach `git push --force-with-lease`. Die CI prüft das.
 
-**Warum Apache-2.0 und nicht FSL?** Später soll es optionale bezahlte Zusatzfunktionen geben, etwa
-ein KI-Abo, die das Projekt finanzieren. Unter Apache-2.0 darf der Maintainer Beiträge dafür
-verwenden. Dein Urheberrecht bleibt bei dir, und du darfst deinen Code weiterhin beliebig nutzen.
+**Warum Apache-2.0 und nicht FSL?** Ab Version 1.0 finanziert sich Plotwerk über Lizenzen für die
+fertige Mac-App und später über das optionale Abo Plotwerk+ mit eingebauter KI. Unter Apache-2.0 darf der
+Maintainer Beiträge dafür verwenden. Dein Urheberrecht bleibt bei dir, und du darfst deinen Code
+weiterhin beliebig nutzen.
+
+**Name und Icon** gehören nicht zur Lizenz. Forks und eigene Builds brauchen einen anderen Namen und
+ein anderes Icon.
 
 ## Verhalten
 
