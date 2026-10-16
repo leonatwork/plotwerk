@@ -211,19 +211,46 @@ describe('Editor (Integration)', () => {
 
   describe('Blase: Lage, Schließen, Tastatur', () => {
     const SATZ = 'dass ich eine halbe Stunde zu früh bin';
+    const BLASE_BREITE = 260;
+    const BLASE_HOEHE = 32;
+    let offsetWidthOriginal: PropertyDescriptor | undefined;
+    let offsetHeightOriginal: PropertyDescriptor | undefined;
     /** Editor mit gestubbter Geometrie: Papier 600 × 400 px ab (0, 0), Auswahl bei `koord`. */
-    async function mitAuswahl(koord: { left: number; top: number }, kapitel = 'flut') {
+    async function mitAuswahl(
+      koord: {
+        left: number;
+        top: number;
+        bottom?: number;
+        endeLeft?: number;
+        endeTop?: number;
+        endeBottom?: number;
+        scrollTop?: number;
+        clientHeight?: number;
+      },
+      kapitel = 'flut',
+    ) {
       vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
         cb(0);
         return 0;
       });
       const r = render(<SchreibEditor kapitelId={kapitel} />);
       const ed = editorVon(r.container);
+      const von = posVor(ed, SATZ);
       const papier = r.container.querySelector('.pw-s-papier') as HTMLDivElement;
       papier.getBoundingClientRect = () => ({ left: 0, top: 0, right: 600, bottom: 400, width: 600, height: 400, x: 0, y: 0, toJSON() {} });
+      Object.defineProperty(papier, 'scrollTop', { value: koord.scrollTop ?? 0, writable: true, configurable: true });
+      Object.defineProperty(papier, 'clientHeight', { value: koord.clientHeight ?? 400, configurable: true });
       Object.defineProperty(papier, 'clientWidth', { value: 600, configurable: true });
-      ed.view.coordsAtPos = () => ({ left: koord.left, right: koord.left, top: koord.top, bottom: koord.top + 20 });
-      const von = posVor(ed, SATZ);
+      const start = { left: koord.left, top: koord.top, bottom: koord.bottom ?? koord.top + 20 };
+      const ende = {
+        left: koord.endeLeft ?? koord.left,
+        top: koord.endeTop ?? koord.top,
+        bottom: koord.endeBottom ?? (koord.endeTop ?? koord.top) + 20,
+      };
+      ed.view.coordsAtPos = (pos) => {
+        const k = pos <= von ? start : ende;
+        return { left: k.left, right: k.left, top: k.top, bottom: k.bottom };
+      };
       act(() => {
         ed.chain().focus().setTextSelection({ from: von, to: von + SATZ.length }).run();
       });
@@ -232,7 +259,31 @@ describe('Editor (Integration)', () => {
       });
       return { ...r, ed, papier, leiste: () => screen.queryByRole('toolbar', { name: 'Auswahl' }) as HTMLElement | null };
     }
+    beforeEach(() => {
+      offsetWidthOriginal = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth');
+      offsetHeightOriginal = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+        configurable: true,
+        get() {
+          if (this instanceof HTMLElement && this.classList.contains('pw-s-blase')) return BLASE_BREITE;
+          if (offsetWidthOriginal?.get) return offsetWidthOriginal.get.call(this);
+          return Number(offsetWidthOriginal?.value ?? 0);
+        },
+      });
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+        configurable: true,
+        get() {
+          if (this instanceof HTMLElement && this.classList.contains('pw-s-blase')) return BLASE_HOEHE;
+          if (offsetHeightOriginal?.get) return offsetHeightOriginal.get.call(this);
+          return Number(offsetHeightOriginal?.value ?? 0);
+        },
+      });
+    });
     afterEach(() => {
+      if (offsetWidthOriginal) Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidthOriginal);
+      else delete (HTMLElement.prototype as unknown as { offsetWidth?: unknown }).offsetWidth;
+      if (offsetHeightOriginal) Object.defineProperty(HTMLElement.prototype, 'offsetHeight', offsetHeightOriginal);
+      else delete (HTMLElement.prototype as unknown as { offsetHeight?: unknown }).offsetHeight;
       vi.unstubAllGlobals();
     });
 
@@ -242,6 +293,42 @@ describe('Editor (Integration)', () => {
       // angenommene Breite 260 → Mitte mindestens 130 + 8
       expect(parseFloat(l.style.left)).toBeGreaterThanOrEqual(138);
       expect(l.className).toContain('pw-s-blase--unten');
+      unmount();
+    });
+
+    it('mehrzeilige Auswahl knapp unter dem oberen sichtbaren Rand klappt nach unten und bleibt vollständig sichtbar', async () => {
+      const scrollTop = 500;
+      const clientHeight = 400;
+      const { leiste, unmount } = await mitAuswahl({
+        left: 120,
+        top: 10,
+        bottom: 30,
+        endeTop: 60,
+        endeBottom: 80,
+        scrollTop,
+        clientHeight,
+      });
+      const l = leiste()!;
+      expect(l.className).toContain('pw-s-blase--unten');
+      expect(parseFloat(l.style.top)).toBeGreaterThanOrEqual(scrollTop + 8);
+      expect(parseFloat(l.style.top) + BLASE_HOEHE).toBeLessThanOrEqual(scrollTop + clientHeight);
+      unmount();
+    });
+
+    it('wenn die Auswahl oberhalb des sichtbaren Bereichs startet, bleibt die Leiste bei scrollTop + Abstand', async () => {
+      const scrollTop = 500;
+      const { leiste, unmount } = await mitAuswahl({
+        left: 200,
+        top: -20,
+        bottom: 10,
+        endeTop: 40,
+        endeBottom: 60,
+        scrollTop,
+        clientHeight: 400,
+      });
+      const l = leiste()!;
+      expect(l.className).toContain('pw-s-blase--unten');
+      expect(parseFloat(l.style.top)).toBe(scrollTop + 8);
       unmount();
     });
 

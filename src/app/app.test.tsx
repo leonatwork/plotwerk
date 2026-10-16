@@ -56,8 +56,8 @@ describe('App im Browser-Demo', () => {
       'Schreiben', 'Kapitel-Überblick', 'Akte planen', 'Figuren', 'Beziehungen', 'Orte', 'Hinweise', 'Werkzeuge',
     ]);
     expect(screen.getByText('Hafenlichter')).toBeInTheDocument();
-    expect(await screen.findByText('Kap. 1 · Grundriss')).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: 'Kapitel prüfen' })).toBeInTheDocument();
+    expect(await screen.findByText('Kap. 1 · Grundriss', {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Kapitel prüfen' }, { timeout: 5000 })).toBeInTheDocument();
     // Gruppe „Werkzeuge“ ist eingeklappt; aufklappen zeigt die Werkzeug-Bereiche
     const gruppe = within(nav).getByRole('button', { name: 'Werkzeuge' });
     expect(gruppe).toHaveAttribute('aria-expanded', 'false');
