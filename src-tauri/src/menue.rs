@@ -174,6 +174,36 @@ pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .separator()
         .item(&befehl(
             app,
+            "suchen",
+            t("Suchen …", "Find…"),
+            Some("CmdOrCtrl+F"),
+        )?)
+        .item(&befehl(
+            app,
+            "ersetzen",
+            t("Ersetzen …", "Replace…"),
+            None,
+        )?)
+        .item(&befehl(
+            app,
+            "projektsuche",
+            t(
+                "Im Projekt suchen und ersetzen …",
+                "Find and Replace in Project…",
+            ),
+            Some("CmdOrCtrl+Alt+F"),
+        )?)
+        .item(&befehl(
+            app,
+            "ersetzen-undo",
+            t(
+                "Ersetzen in Plan und Notizen widerrufen",
+                "Undo Replacement in Plan and Notes",
+            ),
+            None,
+        )?)
+        .item(&befehl(
+            app,
             "schnellsuche",
             t("Schnellsuche …", "Quick Search…"),
             Some("CmdOrCtrl+K"),

@@ -1,0 +1,113 @@
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { demoFs } from '../../../fixtures/demoProjekt';
+import { useStore } from '../../state/store';
+import { festeSprache } from '../../i18n';
+import { BestaetigungHost } from '../../ui';
+import type { Editor } from '@tiptap/core';
+import { ankerErzeugen, klartext } from '@core/text';
+import { SchreibEditor } from '../schreiben/Editor';
+import Projektsuche from './Projektsuche';
+import { useTastenkuerzel } from '../../app/tastenkuerzel';
+
+beforeEach(async () => { await useStore.getState().projektLaden(demoFs()); });
+afterEach(() => { festeSprache('de'); });
+describe('Suchoberfläche', () => {
+  it('öffnet mit ⌘F die Kapitelsuche und springt zu einem Projekttreffer im Editor', async () => {
+    function Kuerzel() { useTastenkuerzel(); return null; }
+    const { container } = render(<><SchreibEditor kapitelId="flut" /><Kuerzel /></>);
+    await act(async () => { fireEvent.keyDown(window, { key: 'f', metaKey: true }); });
+    expect(screen.getByRole('searchbox', { name: 'Suchen' })).toHaveFocus();
+    act(() => useStore.getState().volltext.oeffneKapitel(false));
+    const dialog = render(<Projektsuche schliessen={() => {}} />);
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Suchen' }), { target: { value: 'Volvo' } });
+    const ergebnis = within(screen.getByRole('region', { name: 'Manuskript' })).getAllByRole('button').find(x => x.textContent?.includes('Flut'))!;
+    act(() => { fireEvent.click(ergebnis); });
+    dialog.unmount();
+    const ed = (container.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }).editor;
+    expect(container.querySelector('.pw-s-markierung')?.textContent).toBe('Volvo');
+    expect(ed.state.doc.textBetween(ed.state.selection.from, ed.state.selection.from + 5)).toBe('Volvo');
+  });
+  it('markiert alle Kapiteltreffer, navigiert mit Enter und ersetzt wörtlich', async () => {
+    useStore.getState().volltext.oeffneKapitel(true);
+    const { container } = render(<SchreibEditor kapitelId="flut" />);
+    const eingabe = screen.getByRole('searchbox', { name: 'Suchen' });
+    fireEvent.change(eingabe, { target: { value: 'ich' } });
+    expect(container.querySelectorAll('.pw-s-suchtreffer').length).toBeGreaterThan(0);
+    const status = screen.getByRole('search').querySelector('[role="status"]')!.textContent;
+    fireEvent.keyDown(eingabe, { key: 'Enter' });
+    expect(screen.getByRole('search').querySelector('[role="status"]')!.textContent).not.toBe(status);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Ersetzen durch' }), { target: { value: '"Hafen"' } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Ersetzen' })); });
+    expect(useStore.getState().daten!.kapitel.flut!.text).toContain('"Hafen"');
+    const ed = (container.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }).editor;
+    expect(ed.state.doc.textContent).toContain('"Hafen"');
+    act(() => { expect(ed.commands.undo()).toBe(true); });
+    expect(ed.state.doc.textContent).not.toContain('"Hafen"');
+    fireEvent.change(eingabe, { target: { value: 'xyzxyz' } });
+    expect(screen.getByText('Keine Treffer.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alle ersetzen' })).toBeDisabled();
+  });
+  it('zeigt DE/EN Leerzustände und deaktiviert Ersetzen', () => {
+    festeSprache('en');
+    render(<Projektsuche schliessen={() => {}} />);
+    expect(screen.getByText('Enter a search term.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Replace' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Replace all' })).toBeDisabled();
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Find' }), { target: { value: 'xyzxyz' } });
+    expect(screen.getByText('No matches.')).toBeInTheDocument();
+  });
+  it('fragt vor Projekt-Ersetzen nach, Abbrechen ändert nichts und Undo nimmt alle Notizen zurück', async () => {
+    await useStore.getState().speichereFigur({ ...useStore.getState().daten!.figuren.paul!, notizen: 'Hafen', plan: { Ziel: 'Hafen' } });
+    await useStore.getState().speichereOrt({ ...useStore.getState().daten!.orte.lindenhof!, notizen: 'Hafen' });
+    const vorher = useStore.getState().daten;
+    render(<><Projektsuche schliessen={() => {}} /><BestaetigungHost /></>);
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Suchen' }), { target: { value: 'Hafen' } });
+    expect(screen.getByRole('heading', { name: 'Manuskript' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Plan' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Notizen (inkl. privater)' })).toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Ersetzen durch' }), { target: { value: 'Ole' } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Alle ersetzen' })); });
+    const frage = screen.getByRole('dialog', { name: 'Ersetzen bestätigen' });
+    fireEvent.click(within(frage).getByRole('button', { name: 'Abbrechen' }));
+    expect(useStore.getState().daten).toBe(vorher);
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Alle ersetzen' })); });
+    await act(async () => { fireEvent.click(within(screen.getByRole('dialog', { name: 'Ersetzen bestätigen' })).getByRole('button', { name: 'Alle ersetzen' })); });
+    expect(useStore.getState().daten!.figuren.paul!.notizen).toBe('Ole');
+    expect(useStore.getState().daten!.orte.lindenhof!.notizen).toBe('Ole');
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Ersetzen in Plan und Notizen rückgängig machen' })); });
+    expect(useStore.getState().daten!.figuren).toEqual(vorher!.figuren);
+    expect(useStore.getState().daten!.orte).toEqual(vorher!.orte);
+  });
+  it('öffnet einen Manuskripttreffer mit Kapitelnummer und Anker', () => {
+    render(<Projektsuche schliessen={() => {}} />);
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Suchen' }), { target: { value: 'Volvo' } });
+    const liste = screen.getByRole('region', { name: 'Manuskript' });
+    const knopf = within(liste).getAllByRole('button')[0]!;
+    expect(knopf.textContent).toMatch(/Kapitel \d+ ·/);
+    fireEvent.click(knopf);
+    expect(useStore.getState().bereich).toBe('schreiben');
+    expect(useStore.getState().markierung!.anker.exakt.toLowerCase()).toBe('volvo');
+  });
+  it('sucht im ungespeicherten Editor und ersetzt dessen aktuellen Text', async () => {
+    useStore.getState().volltext.oeffneKapitel(true);
+    const { container } = render(<SchreibEditor kapitelId="flut" />);
+    const ed = (container.querySelector('.ProseMirror') as HTMLElement & { editor: Editor }).editor;
+    act(() => { ed.commands.insertContent('Hafen Hafen '); });
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Suchen' }), { target: { value: 'Hafen' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Ersetzen durch' }), { target: { value: 'Ole' } });
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Alle ersetzen' })); });
+    expect(useStore.getState().daten!.kapitel.flut!.text).toContain('Ole Ole');
+    expect(ed.state.doc.textContent).toContain('Ole Ole');
+  });
+  it('sucht Notizanker nach Ersetzen neu und markiert entfernte Zitate als verwaist', async () => {
+    const s = useStore.getState();
+    const text = klartext(s.daten!.kapitel.flut!.text);
+    const start = text.indexOf('Volvo');
+    const notiz = await s.anmerkungAnlegen(ankerErzeugen('flut', text, start, start + 5), 'Hafen', null);
+    render(<SchreibEditor kapitelId="flut" />);
+    await act(async () => { await useStore.getState().volltext.ersetzen('Volvo', 'Lotte', {}, { kapitel: 'flut' }); });
+    expect(useStore.getState().schreibenLive!.verwaist).toContain(notiz.id);
+    expect(useStore.getState().daten!.anmerkungen.find(x => x.id === notiz.id)!.anker.exakt).toBe('Volvo');
+  });
+});

@@ -86,8 +86,22 @@ Token-Namen aus `src/theme/tokens.css` ohne `--`.
 Gesamtwortzahl des Buchs verglichen; der Tag ist das lokale Kalenderdatum des Macs. Zunahme zählt als
 „geschrieben“, Abnahme zieht nichts ab. Ein in einem Speichervorgang eingefügter Block ab 25 Wörtern wird zuerst mit
 den in den 10 Minuten davor gelöschten Wörtern verrechnet (Verschieben zählt nicht doppelt). Laden, Änderungen von
-außen, Import, Wiederherstellen und Rückimport führen nur den `stand` nach. Geschrieben wird spätestens alle 15 s,
+außen, Import, Wiederherstellen, Suchen/Ersetzen und Rückimport führen nur den `stand` nach. Geschrieben wird spätestens alle 15 s,
 beim Beenden und beim Projektwechsel.
+
+**Suchen und Ersetzen** (`core/suche`, Issue #10): wörtliche Suche je Absatz, standardmäßig ohne
+Groß-/Kleinschreibung und ohne Ganzwort-Option; Unicode-Buchstaben, Zahlen und kombinierende Zeichen
+bilden Wortgrenzen. Keine regulären Ausdrücke. Manuskript in Buchreihenfolge, Plan-Textfelder und sämtliche
+Notizen (auch private) werden lokal durchsucht; IDs, Verweise, Enumwerte, Textanker, KI-Ablagen und Fassungen
+bleiben ausgenommen, einschließlich vollständiger `[[typ:id|Anzeige]]`-Spannen in Klartextfeldern.
+Plan- und Notizfelder werden als Klartext behandelt; Ersatztext wird dort unverändert gespeichert.
+Im Manuskript bleibt Markdown-Auszeichnung erhalten, Ersatztext wird als wörtlicher Text eingefügt
+(Markdown-Sonderzeichen werden nur dort maskiert), ohne Typografie-Regeln. Vor jeder Kapitel-Ersetzung entsteht
+ein neuer Schnappschuss (`SchnappschussAnlass: ersetzen`, immer); misslingt er, bleibt das Kapitel unverändert.
+Alle ersetzen im Projekt fragt nach. App-Undo hält nur die letzte Ersetzen-Aktion für Plan/Notizen im Speicher,
+verfällt beim Projektwechsel/Neuladen und überschreibt keine zwischenzeitlich bearbeiteten Textfelder.
+Manuskript kann über den Versionsverlauf zurückgeholt werden; im offenen Editor bleibt Ersetzen eine
+Undo-Transaktion. Textanker werden nach Ersetzen neu gesucht, nicht anhand alter Positionen zugeordnet.
 
 **LeserStand** (G6): Ältere Stände legten Vermutungen, Spannung und Plan-Abgleich als `LeserFrage` mit Präfix in der
 `id` ab (`vermutung|…`, `spannung|…`, `plan|status|kapitel|…`); `ausLeserStand` liest beides, eigene Felder haben
@@ -109,6 +123,7 @@ Jedes Verzeichnis hat genau einen Besitzer. Fremde Dateien nur lesen. Braucht ei
 | `core/projekt/` | Parse/Serialize, laden/speichern, MemoryFs, Schnappschuss-Ablage | Fundament |
 | `core/text/` | Normalisierung, Klartext aus Markdown, Absätze, Hash, Wortzahl, Textanker (finden/erzeugen) | Kernlogik |
 | `core/typografie/` | reine Funktionen für deutsche Typografie (vom Editor als Input-Rules genutzt) | Kernlogik |
+| `core/suche/` | lokale Volltextsuche und wörtliches Ersetzen in Manuskript, Plan und Notizen | Kernlogik |
 | `core/erkennung/` | exakte Erkennung von Figuren/Orten (E5), Schreibweisen-Varianten | Kernlogik |
 | `core/struktur/` | lokale Struktur-Hinweise (E10) | Kernlogik |
 | `core/versionen/` | Schnappschuss-Politik, Aufbewahrung, Zeilen-Diff | Kernlogik |
@@ -121,6 +136,7 @@ Jedes Verzeichnis hat genau einen Besitzer. Fremde Dateien nur lesen. Braucht ei
 | `src/backend/` | Backend-Auswahl, MemoryFs-Demo | Fundament |
 | `src/backend/tauri/` | TauriFs, Schlüsselbund, KI-Transport, SQLite-Index | Tauri |
 | `src/features/schreiben/` | Editor, Kapitelliste, Plan-Panel, Anmerkungen, Versionsverlauf, Fokus | Editor |
+| `src/features/suche/`, `src/state/slices/suche.ts` | Kapitel-/Projektsuche, Sicherheitsnetz und letztes App-Undo | Editor |
 | `src/features/akte/`, `kapitel/`, `figuren/`, `orte/` | Planungs-Ansichten | Planung |
 | `src/features/beziehungen/`, `hinweise/`, `gruppen/` | Netz, Hinweise, Antagonisten | Netz & Hinweise |
 | `src/features/importexport/` | Import-Vorschau, Export-Dialog | Import/Export |

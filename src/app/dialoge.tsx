@@ -15,6 +15,7 @@ export const DIALOGE: Record<DialogId, DialogKomponente> = {
   'ki-pruefen': lazy(() => import('../features/ki/PruefDialog')),
   'ki-einstellungen': lazy(() => import('../features/ki/EinstellungenDialog')),
   schnellsuche: lazy(() => import('./Schnellsuche')),
+  projektsuche: lazy(() => import('../features/suche/Projektsuche')),
   funktionen: lazy(() => import('../features/funktionen/FunktionenDialog')),
   // Werkzeuge G1–G8
   'zeit-vorschlaege': lazy(() => import('../features/zeitleiste/ZeitVorschlagDialog')),

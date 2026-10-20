@@ -13,6 +13,7 @@ import { ankerErzeugen, ankerFinden, findeZitat, woerterZaehlen } from '@core/te
 import Placeholder from '@tiptap/extension-placeholder';
 import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, TextSelection } from '@tiptap/pm/state';
+import { closeHistory } from '@tiptap/pm/history';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { EditorWerkzeuge, editorErweiterungen } from './werkzeuge';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -46,6 +47,8 @@ import { basisErweiterungen } from './schema';
 import { Statusleiste } from './Statusleiste';
 import { Typografie } from './typografie';
 import { fokusFiguren, notizFarbe } from './ziele';
+import { Kapitelsuche } from '../suche/Kapitelsuche';
+import { SuchDekorationen } from '../suche/dekorationen';
 
 /** Cursor und Scrollstand je Kapitel (für die Rückkehr) */
 const auswahlSpeicher = new Map<Id, { anker: number; kopf: number; scroll: number }>();
@@ -121,6 +124,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
   /** Buchsprache für Rechtschreibprüfung und Silbentrennung des WebViews */
   const buchLang = useBuchSprache();
   const fokusModus = useStore((s) => s.fokusModus);
+  const sucheOffen = useStore((s) => s.volltext.kapitelOffen);
   const typewriter = useStore((s) => s.editorwerkzeuge.typewriter);
   const kapitelText = useStore((s) => s.daten?.kapitel[kapitelId]?.text ?? '');
   const titel = useStore((s) => s.daten?.kapitel[kapitelId]?.titel ?? s.daten?.plaene[kapitelId]?.titel ?? '');
@@ -308,6 +312,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     extensions: [
       ...basisErweiterungen(),
       Typografie,
+      SuchDekorationen,
       Dekorationen.configure({ handler }),
       Placeholder.configure({ placeholder: () => texte().schreiben.editor.platzhalter }),
       ...editorErweiterungen(),
@@ -416,10 +421,22 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
       }
       autosave.verwerfen();
       setUngespeichert(false);
+      if (useStore.getState().volltext.editorErsetzungAbholen(kapitelId, kapitelText)) {
+        // Ersetzen bleibt eine Editor-Undo-Aktion. Anker werden neu gesucht, nie über alte
+        // Dekorationspositionen still einer anderen Textstelle zugeordnet.
+        const doc = markdownZuDoc(kapitelText, editor.schema);
+        geladen.current = { ...g, text: kapitelText, doc };
+        setzeNotizen(editor.view, []);
+        editor.view.dispatch(closeHistory(editor.state.tr.replaceWith(0, editor.state.doc.content.size, doc.content)));
+        editor.view.dispatch(closeHistory(editor.state.tr));
+        geladen.current.doc = editor.state.doc;
+        analysieren();
+        return;
+      }
       if (vonDatei) meldungZeigen(texte().schreiben.editor.externNeuGeladen);
     }
     laden(editor, kapitelId, kapitelText, !vonAussen);
-  }, [editor, kapitelId, kapitelText, autosave, laden, meldungZeigen]);
+  }, [editor, kapitelId, kapitelText, autosave, laden, meldungZeigen, analysieren]);
 
   // Vor dem Kapitelwechsel (und beim Verlassen): sichern, Auswahl merken, Schnappschuss (E8)
   useEffect(() => {
@@ -633,6 +650,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
 
   return (
     <div className="pw-s-mitte">
+      {sucheOffen && editor && <Kapitelsuche key={kapitelId} editor={editor} kapitel={kapitelId} />}
       <div ref={papierRef} className={klassen('pw-s-papier', fokusModus && 'pw-s-papier--fokus', typewriter && 'pw-s-papier--typewriter')}>
         <article className="pw-s-text" lang={buchLang}>
           <span className="pw-s-kopf-label">{label}</span>

@@ -156,12 +156,12 @@ export const createStatistikSlice: StateCreator<Store, [], [], StatistikSlice> =
     const neu = woerter.buch(s.daten);
     if (neu === stand) return;
     const nurStand =
-      aussetzen > 0 || s.externeAenderung !== vorher.externeAenderung || (s.dialog !== null && NICHT_ZAEHLEN.has(s.dialog.id));
+      aussetzen > 0 || s.volltext.laeuft || s.externeAenderung !== vorher.externeAenderung || (s.dialog !== null && NICHT_ZAEHLEN.has(s.dialog.id));
     const b = bucheAenderung(stand, neu, new Date(), puffer, nurStand);
     stand = neu;
     puffer = b.puffer;
     const schonEintrag = !!s.statistik.offen[b.tag] || !!s.daten.statistik?.tage[b.tag];
-    if (b.geschrieben === 0 && !schonEintrag) return;
+    if (b.geschrieben === 0 && !schonEintrag && !s.volltext.laeuft) return;
     setze({ offen: offenHinzufuegen(s.statistik.offen, b) });
     spaeterSichern();
   });

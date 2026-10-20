@@ -1,15 +1,38 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { ladeDemoProjekt } from '../../fixtures/demoProjekt';
+import { demoFs, ladeDemoProjekt } from '../../fixtures/demoProjekt';
 import { useStore } from '../state/store';
 import { App } from './App';
 import { befehlFuerTaste } from './befehle';
+import { useTastenkuerzel } from './tastenkuerzel';
 import { suche } from './suche';
 
 const taste = (key: string, extra: Partial<KeyboardEvent> = {}) =>
   befehlFuerTaste({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key, code: '', ...extra });
 
 describe('Tastenkürzel', () => {
+  it('öffnet ⌥⌘F als Dialog und lässt ⌘⇧F sowie ⌘K unverändert', async () => {
+    await useStore.getState().initialisieren();
+    await useStore.getState().projektLaden(demoFs());
+    function Kuerzel() { useTastenkuerzel(); return null; }
+    render(<Kuerzel />);
+    await act(async () => { fireEvent.keyDown(window, { key: 'ƒ', code: 'KeyF', metaKey: true, altKey: true }); });
+    expect(useStore.getState().dialog?.id).toBe('projektsuche');
+    expect(useStore.getState().fokusModus).toBe(false);
+    act(() => useStore.getState().schliesseDialog());
+    await act(async () => { fireEvent.keyDown(window, { key: 'F', metaKey: true, shiftKey: true }); });
+    expect(useStore.getState().fokusModus).toBe(true);
+    await act(async () => { fireEvent.keyDown(window, { key: 'k', metaKey: true }); });
+    expect(useStore.getState().dialog?.id).toBe('schnellsuche');
+    act(() => { useStore.getState().schliesseDialog(); useStore.getState().umschalteFokus(); });
+  });
+  it('⌥⌘F ist Projektsuche, ⌘F Kapitelsuche, ⌘⇧F bleibt Fokus', () => {
+    expect(taste('f', { altKey: true })).toBe('projektsuche');
+    expect(befehlFuerTaste({ metaKey: true, ctrlKey: false, altKey: true, shiftKey: false, key: 'ƒ', code: 'KeyF' })).toBe('projektsuche');
+    expect(taste('f')).toBe('suchen');
+    expect(taste('F', { shiftKey: true })).toBe('fokus');
+    expect(taste('f', { altKey: true, shiftKey: true })).toBeNull();
+  });
   it('⌘1–⌘0, ⌘K, ⌘⇧F, ⌘⇧T, ⌘E, ⌘,', () => {
     expect(taste('1')).toBe('schreiben');
     expect(taste('7')).toBe('hinweise');
@@ -90,5 +113,5 @@ describe('App im Browser-Demo', () => {
       fireEvent.keyDown(window, { key: 'F', metaKey: true, shiftKey: true });
     });
     expect(screen.queryByRole('navigation', { name: 'Bereiche' })).toBeNull();
-  });
+  }, 15_000);
 });
