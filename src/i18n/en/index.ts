@@ -25,6 +25,7 @@ import { recherche } from './recherche';
 import { vorschau } from './vorschau';
 import { abgabe } from './abgabe';
 import { funktionen } from './funktionen';
+import { sicherungen } from './sicherungen';
 
 export const en: Woerterbuch = {
   gemeinsam,
@@ -52,4 +53,5 @@ export const en: Woerterbuch = {
   vorschau,
   abgabe,
   funktionen,
+  sicherungen,
 };

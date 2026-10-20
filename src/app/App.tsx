@@ -16,6 +16,7 @@ const Assistent = lazy(() => import('../features/funktionen/Assistent').then((m)
 export function App() {
   const ladeStatus = useStore((s) => s.ladeStatus);
   const fehler = useStore((s) => s.fehler);
+  const sicherungsHinweis = useStore((s) => s.sicherungsHinweis);
   const initialisieren = useStore((s) => s.initialisieren);
   const assistentOffen = useFunktionsStore((s) => s.assistentOffen);
   const t = useTexte();
@@ -42,6 +43,7 @@ export function App() {
         <div className="pw-laden" aria-busy="true" aria-label={t.app.laden.laedt} />
       )}
       <DialogHost />
+      {sicherungsHinweis && <div role="alert" className="pw-fehler"><span>{sicherungsHinweis}</span><Button onClick={() => useStore.setState({ sicherungsHinweis: null })}>{t.gemeinsam.schliessen}</Button></div>}
       {assistentOffen && (
         <Suspense fallback={null}>
           <Assistent />

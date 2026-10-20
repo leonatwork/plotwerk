@@ -1,0 +1,15 @@
+export const sicherungen = {
+  titel: 'Externe Sicherungen',
+  aktiv: 'Automatisch täglich sichern',
+  versionen: 'Schnappschüsse (.versionen/) mitsichern',
+  standard: 'Standard: App-Ordner / Sicherungen / Projekt',
+  ordner: 'Ordner wählen …',
+  zuruecksetzen: 'Standardort verwenden',
+  erklaerung: 'Beim ersten Öffnen pro Tag. Aufbewahrung: 7 Tagesstände und 4 ältere Wochenstände. Recherche-Bilder und .plotwerk/ sind enthalten.',
+  fehler: 'Sicherung fehlgeschlagen: {grund}. Schreiben und Autosave laufen weiter.',
+  wiederherstellen: 'Sicherung wiederherstellen …',
+  leer: 'Noch keine Sicherungen vorhanden.',
+  zipWaehlen: 'ZIP-Datei wählen …',
+  ziel: 'Die Sicherung wird in einen neuen, leeren Ordner entpackt und geöffnet.',
+  laden: 'Sicherungen werden geladen …',
+};

@@ -18,6 +18,7 @@ import { legeGrundgeruestAn } from './grundgeruest';
 import { DATENBANK, erstelleSqlIndexSpeicher } from './indexSpeicher';
 import { erstelleTauriKiTransport, type KiZiel } from './kiTransport';
 import { TauriFs, type ProjektInfo } from './tauriFs';
+import { erstelleSicherungsBackend } from './sicherungen';
 
 export { TauriFs, type ProjektInfo } from './tauriFs';
 export { TauriFehler } from './aufruf';
@@ -91,6 +92,7 @@ export async function erstelleTauriBackend(): Promise<Backend> {
 
   return {
     art: 'tauri',
+    sicherungen: erstelleSicherungsBackend(uebernehmen),
 
     async projektOeffnen() {
       return uebernehmen(await aufruf<ProjektInfo | null>('projekt_waehlen'));
