@@ -177,11 +177,31 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 
 ## Tastenkürzel
 
+### Suchen und Ersetzen
+
+Im Schreiben-Bereich öffnet ⌘F die Suchleiste für das aktuelle Kapitel. Alle Treffer werden markiert;
+Enter / Umschalt+Enter und die Vor-/Zurück-Knöpfe springen durch die Treffer. „Ganzes Wort“ und
+„Groß- und Kleinschreibung beachten“ verfeinern die wörtliche Suche (keine regulären Ausdrücke).
+„Ersetzen“ ändert den aktiven Treffer, „Alle ersetzen“ alle Treffer des Kapitels.
+
+⌥⌘F öffnet die Projektsuche: Manuskript in Buchreihenfolge, Plan und Notizen (einschließlich privater)
+erscheinen getrennt. Ein Manuskripttreffer öffnet das Kapitel an der Stelle; einen Plan-/Notiztreffer
+anklicken, um ihn für „Ersetzen“ auszuwählen. „Alle ersetzen“ fragt vor der Projektaktion nach.
+Vor jedem betroffenen Kapitel wird ein Schnappschuss angelegt. Misslingt die Sicherung, bleibt das
+Kapitel unverändert und wird in der Fehlermeldung genannt. Rückkehr über den Versionsverlauf,
+im offenen Kapitel auch über Editor-Undo. Die letzte Ersetzen-Aktion für Plan und Notizen lässt sich
+im Suchdialog oder über Bearbeiten → „Ersetzen in Plan und Notizen widerrufen“ als Ganzes zurücknehmen.
+Dieses App-Undo gilt nur bis zum Neuladen/Projektwechsel und überschreibt keine späteren Feldänderungen.
+Private Treffer bleiben lokal; die Suche nutzt keine KI. Ersetzen zählt nicht als geschrieben.
+
 | Kürzel | Wirkung |
 | --- | --- |
 | ⌘1 … ⌘7 | Schreiben, Kapitel-Überblick, Akte planen, Figuren, Beziehungen, Orte, Hinweise |
 | ⌘8 · ⌘9 · ⌘0 | Zeitleiste · Fäden · Recherche |
 | ⌘K | Schnellsuche (Figuren, Orte, Kapitel, Befehle) |
+| ⌘F | Suchen und Ersetzen im aktuellen Kapitel (Schreiben) |
+| ⌥⌘F | Suchen und Ersetzen im Projekt |
+| ↩ · ⇧↩ | nächster · vorheriger Suchtreffer (Suchleiste) |
 | ⌘O | Projekt öffnen |
 | ⌘E | Exportieren |
 | ⌘, | Einstellungen |

@@ -4,7 +4,7 @@ import type { ProjektDateisystem, ProjektLeser } from '../projekt/fs';
 
 /** extern: vor dem Überschreiben einer Fassung, die außerhalb der App geändert wurde (immer). */
 /** 'benannt': für eine benannte Fassung (G5) – immer ein Schnappschuss. */
-export type SchnappschussAnlass = 'kapitelwechsel' | 'intervall' | 'beenden' | 'wiederherstellen' | 'entfernen' | 'extern' | 'benannt';
+export type SchnappschussAnlass = 'kapitelwechsel' | 'intervall' | 'beenden' | 'wiederherstellen' | 'entfernen' | 'extern' | 'benannt' | 'ersetzen';
 
 export interface Version {
   /** Originalpfad, z. B. manuskript/grundriss.md */
@@ -92,6 +92,7 @@ export function sollSchnappschuss(
   switch (anlass) {
     case 'extern':
     case 'benannt':
+    case 'ersetzen':
       return true;
     case 'intervall':
       return geaendertSeitLetztem && (letzter === null || jetzt.getTime() - letzter.getTime() >= ZEHN_MINUTEN);
@@ -175,4 +176,3 @@ export async function aufbewahrungAnwenden(fs: ProjektDateisystem, jetzt: Date, 
   }
   return geloescht;
 }
-

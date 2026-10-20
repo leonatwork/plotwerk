@@ -4,6 +4,8 @@ import { demoFs } from '../../../fixtures/demoProjekt';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { useStore } from '../../state/store';
 import { BestaetigungHost } from '../../ui';
+import { useTastenkuerzel } from '../../app/tastenkuerzel';
+import { befehlAusfuehren } from '../../app/befehle';
 import EintragDialog from './EintragDialog';
 import Ansicht, { kontext } from './index';
 import { RechercheLeiste } from './RechercheLeiste';
@@ -47,6 +49,18 @@ const optionen = () => within(screen.getByRole('listbox')).getAllByRole('option'
 const titelDer = (el: HTMLElement) => el.querySelector('.rc-kachel__titel, .rc-zeile__titel')?.textContent;
 
 describe('Bereich Recherche', () => {
+  it('⌘F und der native Suchen-Befehl fokussieren weiter nur die Recherche-Suche', async () => {
+    function Kuerzel() { useTastenkuerzel(); return null; }
+    render(<><Ansicht /><Kuerzel /></>);
+    const suche = screen.getByRole('searchbox', { name: 'Recherche durchsuchen' });
+    fireEvent.keyDown(window, { key: 'f', metaKey: true });
+    expect(suche).toHaveFocus();
+    expect(useStore.getState().volltext.kapitelOffen).toBe(false);
+    suche.blur();
+    await act(async () => { await befehlAusfuehren('suchen'); });
+    expect(suche).toHaveFocus();
+    expect(useStore.getState().dialog).toBeNull();
+  });
   it('zeigt die Einträge (neueste zuerst), filtert nach Art und Suche', async () => {
     render(<Ansicht />);
     expect(screen.getByRole('heading', { name: 'Recherche' })).toBeInTheDocument();

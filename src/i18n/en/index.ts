@@ -25,8 +25,10 @@ import { recherche } from './recherche';
 import { vorschau } from './vorschau';
 import { abgabe } from './abgabe';
 import { funktionen } from './funktionen';
+import { suche } from './suche';
 
 export const en: Woerterbuch = {
+  suche,
   gemeinsam,
   sprache,
   app,

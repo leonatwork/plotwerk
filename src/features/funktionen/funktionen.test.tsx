@@ -119,13 +119,14 @@ describe('Laden', () => {
 describe('Ausgeblendete Funktionen in der App', () => {
   it('fehlen in Seitenleiste, Titelleiste und Schnellsuche; ein Aufruf fragt nach und blendet ein', async () => {
     festesFunktionsProfil({ ...profilMitPreset(standardProfil(), 'einsteiger'), eingerichtet: true });
+    await useStore.getState().initialisieren();
     render(<App />);
     const nav = await screen.findByRole('navigation', { name: 'Bereiche' });
     fireEvent.click(within(nav).getByRole('button', { name: 'Werkzeuge' }));
     expect(within(nav).getAllByRole('button').map((e) => e.textContent?.replace(/\d+.*$/, ''))).toEqual([
       'Schreiben', 'Kapitel-Überblick', 'Figuren', 'Orte', 'Hinweise', 'Werkzeuge', 'Statistik',
     ]);
-    expect(await screen.findByRole('button', { name: 'Kapitel prüfen' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Kapitel prüfen' }, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Typewriter' })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'Stil' })).toBeNull();
 

@@ -731,6 +731,11 @@ export default function Ansicht() {
 
   // ⌘N, ⌘F und Einfügen, solange der Bereich sichtbar ist und kein Dialog offen ist
   useEffect(() => {
+    const sucheFokussieren = () => {
+      if (useStore.getState().dialog) return;
+      sucheRef.current?.focus();
+      sucheRef.current?.select();
+    };
     const taste = (e: globalThis.KeyboardEvent) => {
       if (e.defaultPrevented || !e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || useStore.getState().dialog) return;
       const k = e.key.toLowerCase();
@@ -751,9 +756,11 @@ export default function Ansicht() {
       void uebergeben(e.clipboardData);
     };
     window.addEventListener('keydown', taste);
+    window.addEventListener('plotwerk:recherche-suche', sucheFokussieren);
     window.addEventListener('paste', einfuegen);
     return () => {
       window.removeEventListener('keydown', taste);
+      window.removeEventListener('plotwerk:recherche-suche', sucheFokussieren);
       window.removeEventListener('paste', einfuegen);
     };
   }, [neu, uebergeben]);
