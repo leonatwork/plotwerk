@@ -457,7 +457,20 @@ export interface Faden {
 // Gesamtzustand eines geladenen Projekts
 // ---------------------------------------------------------------------------
 
+/** Laufzeitdiagnose, wird nie ins Projektformat geschrieben (Issue #11, Paket 1). */
+export interface ManuskriptKonflikt {
+  art: 'doppelte_id' | 'name_id_abweichung' | 'datei_fehlt' | 'icloud_platzhalter' | 'konfliktname';
+  /** Betroffene stabile IDs; bei einer Namensabweichung auch die ID aus dem Dateinamen. */
+  kapitelIds: Id[];
+  /** Relative Originalpfade, einschließlich sichtbarer Platzhalter/Kopien. */
+  pfade: string[];
+  /** Nutzersichtbare Erklärung in der gewählten Oberflächensprache. */
+  grund: string;
+}
+
 export interface ProjektDaten {
+  /** Erkennungsergebnis für manuskript/; fehlt bei Daten aus älteren Ständen. */
+  manuskriptKonflikte?: ManuskriptKonflikt[];
   projekt: Projekt;
   kapitel: Record<Id, Kapitel>;
   plaene: Record<Id, KapitelPlan>;
