@@ -5,3 +5,4 @@ export * from './schreiben';
 export * from './memoryFs';
 export * from './extern';
 export * from './binaer';
+export * from './konflikte';

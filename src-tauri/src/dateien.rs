@@ -18,6 +18,16 @@ pub fn ist_hilfsdatei(name: &str) -> bool {
         || (name.starts_with('.') && name.contains(TEMP_MARKE) && name.ends_with(".tmp"))
 }
 
+/// Sichtbare iCloud-Platzhalter bleiben in der Dateiliste, sind aber keine Projekttexte.
+pub fn icloud_original(name: &str) -> Option<&str> {
+    let original = name.strip_prefix('.')?.strip_suffix(".icloud")?;
+    if original.ends_with(".md") && original.len() > 3 {
+        Some(original)
+    } else {
+        None
+    }
+}
+
 fn temp_pfad(ziel: &Path) -> PathBuf {
     let name = ziel
         .file_name()
@@ -83,6 +93,14 @@ fn io_fehler(aktion: &str, pfad: &str, e: std::io::Error) -> String {
 /// Inhalt als UTF-8 oder None, wenn die Datei fehlt. Ein UTF-8-BOM wird entfernt.
 pub fn lesen(wurzel: &Wurzel, pfad: &str) -> Result<Option<String>, String> {
     let abs = wurzel.aufloesen(pfad, false)?;
+    if abs
+        .file_name()
+        .and_then(|n| n.to_str())
+        .and_then(icloud_original)
+        .is_some()
+    {
+        return Ok(None);
+    }
     match fs::read(&abs) {
         Ok(bytes) => {
             let text = String::from_utf8(bytes).map_err(|_| {
@@ -503,6 +521,22 @@ mod tests {
         symlink(aussen.path(), w.pfad().join("recherche/ausgang")).unwrap();
         assert!(schreiben_binaer(&w, "recherche/ausgang/x.png", b"x").is_err());
         assert!(!aussen.path().join("x.png").exists());
+    }
+
+    #[test]
+    fn icloud_platzhalter_sind_sichtbar_aber_keine_projekttexte() {
+        assert_eq!(icloud_original(".lotte.md.icloud"), Some("lotte.md"));
+        for name in ["lotte.md", "lotte.md.icloud", ".icloud", ".md.icloud"] {
+            assert_eq!(icloud_original(name), None);
+        }
+        assert!(!ist_hilfsdatei(".lotte.md.icloud"));
+        let (_tmp, w) = projekt();
+        schreiben(&w, "manuskript/.lotte.md.icloud", "Platzhalter").unwrap();
+        assert_eq!(
+            auflisten(&w, "manuskript").unwrap(),
+            vec!["manuskript/.lotte.md.icloud"]
+        );
+        assert_eq!(lesen(&w, "manuskript/.lotte.md.icloud").unwrap(), None);
     }
 
     #[test]

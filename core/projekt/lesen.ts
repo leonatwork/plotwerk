@@ -60,6 +60,7 @@ import type {
   Verweis,
 } from '../model/types';
 import type { ProjektLeser } from './fs';
+import { istManuskriptPfad, nichtGeladeneKapitel, pruefeManuskript } from './konflikte';
 
 // ---------------------------------------------------------------------------
 // Pfade (reine Konstanten, auch von schreiben.ts genutzt)
@@ -1193,6 +1194,8 @@ export interface LadeBericht {
   daten: ProjektDaten;
   /** Dateien, die nicht (vollständig) gelesen werden konnten – mit Grund */
   warnungen: { pfad: string; grund: string }[];
+  /** Manuskript-Diagnosen separat von Parse-/Ladewarnungen. */
+  konflikte: import('../model/types').ManuskriptKonflikt[];
 }
 
 /** Plan für ein Kapitel ohne Plandatei. */
@@ -1213,8 +1216,9 @@ export function standardPlan(kapitel: Kapitel): KapitelPlan {
 }
 
 /**
- * Lädt den Projektordner. Fehlende Dateien ergeben Leerwerte; Kapitel aus projekt.kapitel ohne
- * Manuskriptdatei sind nur geplant (text ''). Manuskript-/Plandateien, die in projekt.kapitel fehlen,
+ * Lädt den Projektordner. Nur ausdrücklich geplante Kapitel ohne Manuskriptdatei ergeben Leertext;
+ * nicht geladene Kapitel bleiben in Reihenfolge und Plan, ohne Text-Eintrag. Konfliktfreie Dateien,
+ * die in projekt.kapitel fehlen,
  * werden hinten angehängt (nur im Speicher). Jedes Kapitel hat danach einen Plan (ggf. Standardplan).
  */
 export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSprache = 'de'): Promise<LadeBericht> {
@@ -1249,10 +1253,20 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
     return ergebnis;
   }
 
-  const [projektRoh, manuskript, planDateien, akte, straenge, ideen, motive, figuren, gruppen, orte, anmerkungen, entscheidungen, kiHinweise] =
+  async function manuskriptLesen() {
+    const dateien = (await leser.auflisten(PFADE.manuskript)).filter(istManuskriptPfad);
+    const eintraege: { pfad: string; kapitel: Kapitel }[] = [];
+    for (const pfad of dateien.filter((p) => p.endsWith('.md'))) {
+      const kapitel = await liesFrontmatter(pfad, parseKapitel);
+      if (kapitel?.id) eintraege.push({ pfad, kapitel });
+    }
+    return { dateien, eintraege };
+  }
+
+  const [projektRoh, manuskriptRoh, planDateien, akte, straenge, ideen, motive, figuren, gruppen, orte, anmerkungen, entscheidungen, kiHinweise] =
     await Promise.all([
       liesFrontmatter(PFADE.projekt, (t) => parseProjekt(t)),
-      ordner(PFADE.manuskript, '.md', parseKapitel),
+      manuskriptLesen(),
       ordner(PFADE.planKapitel, '.md', parseKapitelPlan),
       liesFrontmatter(PFADE.akte, (t) => parseAkte(t)),
       liesFrontmatter(PFADE.straenge, (t) => parseStraenge(t)),
@@ -1292,6 +1306,10 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
   ]);
 
   const projekt: Projekt = projektRoh ?? { version: 1, titel: '', kapitel: [], notiz: '' };
+  const { kapitel: manuskript, konflikte } = pruefeManuskript(
+    manuskriptRoh.dateien, manuskriptRoh.eintraege, projekt.kapitel, planDateien, sprache,
+  );
+  const nichtGeladen = nichtGeladeneKapitel(konflikte);
   const reihenfolge: Id[] = [];
   const gesehen = new Set<Id>();
   const dazu = (id: Id) => {
@@ -1309,12 +1327,13 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
   for (const id of reihenfolge) {
     const plan = planDateien[id];
     const k = manuskript[id] ?? { id, titel: plan?.titel || id, text: '' };
-    kapitel[id] = k;
+    if (!nichtGeladen.has(id)) kapitel[id] = k;
     plaene[id] = plan ?? standardPlan(k);
   }
 
   return {
     daten: {
+      manuskriptKonflikte: konflikte,
       projekt: { ...projekt, kapitel: reihenfolge },
       kapitel,
       plaene,
@@ -1347,6 +1366,7 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
       ...(kiFakten ? { kiFakten } : {}),
     },
     warnungen,
+    konflikte,
   };
 }
 
