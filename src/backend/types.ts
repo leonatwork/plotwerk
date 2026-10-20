@@ -9,8 +9,20 @@ export interface GewaehlteDatei {
   daten: Uint8Array;
 }
 
+export interface SicherungsEinstellungen { aktiv: boolean; mitVersionen: boolean; ort: string | null }
+export interface SicherungsEintrag { ordner: string; name: string }
+export interface ArchivBackend {
+  einstellungen(): Promise<SicherungsEinstellungen>;
+  einstellen(wert: SicherungsEinstellungen): Promise<void>;
+  ortWaehlen(): Promise<string | null>;
+  sichern(fs: ProjektDateisystem, automatisch: boolean): Promise<void>;
+  auflisten(): Promise<SicherungsEintrag[]>;
+  wiederherstellen(eintrag?: SicherungsEintrag): Promise<ProjektDateisystem | null>;
+}
+
 export interface Backend {
   art: 'demo' | 'tauri';
+  archiv?: ArchivBackend;
   /** Ordnerauswahl; null = abgebrochen */
   projektOeffnen(): Promise<ProjektDateisystem | null>;
   /** Neuen Projektordner anlegen (mit projekt.md); null = abgebrochen */

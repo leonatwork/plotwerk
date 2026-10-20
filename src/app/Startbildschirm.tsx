@@ -3,6 +3,7 @@ import { demoGeaendert, demoZuruecksetzen } from '../backend/demoSpeicher';
 import { useTexte } from '../i18n';
 import { useStore } from '../state/store';
 import { Button, IconDokument, IconOrdner, IconPlus, Textfeld } from '../ui';
+import { WiederherstellenDialog } from '../features/sicherungen/ui';
 
 /** Ohne geöffnetes Projekt: Projektordner öffnen, neues Projekt, Word-Datei importieren. */
 export function Startbildschirm() {
@@ -12,6 +13,7 @@ export function Startbildschirm() {
   const neuesProjekt = useStore((s) => s.neuesProjekt);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const [neu, setNeu] = useState(false);
+  const [restore, setRestore] = useState(false);
   const [titel, setTitel] = useState('');
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [meldung, setMeldung] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export function Startbildschirm() {
         <h1 className="pw-start__titel">Plotwerk</h1>
         <p className="pw-start__text">{t.app.start.text}</p>
         <div className="pw-start__aktionen">
+          {backend?.art === 'tauri' && backend.archiv && <Button disabled={beschaeftigt} onClick={() => setRestore(true)}>{t.sicherungen.wiederherstellen}</Button>}
           <Button variante="primaer" icon={<IconOrdner size={14} />} disabled={!backend || beschaeftigt} onClick={() => ausfuehren(projektOeffnen)}>
             {t.app.start.oeffnen}
           </Button>
@@ -77,6 +80,7 @@ export function Startbildschirm() {
           </Button>
         )}
       </div>
+      {restore && <WiederherstellenDialog onSchliessen={() => setRestore(false)} />}
     </div>
   );
 }

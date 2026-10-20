@@ -14,6 +14,7 @@ import type { KiEinstellungen } from '@core/model/types';
 import { parseProjekt } from '@core/projekt';
 import type { Backend, GewaehlteDatei } from '../types';
 import { aufruf } from './aufruf';
+import { erstelleArchivBackend } from './archiv';
 import { legeGrundgeruestAn } from './grundgeruest';
 import { DATENBANK, erstelleSqlIndexSpeicher } from './indexSpeicher';
 import { erstelleTauriKiTransport, type KiZiel } from './kiTransport';
@@ -91,6 +92,7 @@ export async function erstelleTauriBackend(): Promise<Backend> {
 
   return {
     art: 'tauri',
+    archiv: erstelleArchivBackend(() => aktuell, uebernehmen),
 
     async projektOeffnen() {
       return uebernehmen(await aufruf<ProjektInfo | null>('projekt_waehlen'));

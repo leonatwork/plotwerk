@@ -18,6 +18,7 @@ export type Befehl =
   | 'pruefen'
   | 'buch-pruefen'
   | 'projekt-oeffnen'
+  | 'projekt-archiv'
   | 'vorschau'
   // Werkzeuge G1–G8
   | 'zeit-vorschlaege'
@@ -51,6 +52,14 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
   }
   const sichern = () => s.editorSichern().catch((e: unknown) => console.error('Sichern vor dem Befehl fehlgeschlagen:', e));
   switch (befehl) {
+    case 'projekt-archiv':
+      if (s.daten && s.backend?.art === 'tauri') {
+        await s.editorSichern();
+        await s.alleSpeichernAbwarten();
+        const { sichereProjekt } = await import('../features/sicherungen/dienst');
+        await sichereProjekt(false);
+      }
+      break;
     case 'schnellsuche':
       if (s.daten) s.oeffneDialog('schnellsuche');
       break;

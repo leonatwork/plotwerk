@@ -9,6 +9,7 @@ import type { KiAnbieter, KiEinstellungen, KiModelle, KiOpenAiEinstellungen, KiV
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
 import { f, setzeSprachWahl, texte, useSprachWahl, useTexte, type SprachWahl } from '../../i18n';
 import { FunktionenEinstellungen } from '../funktionen/EinstellungenAbschnitt';
+import { SicherungenEinstellungen } from '../sicherungen/ui';
 import { kiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Dialog, Feld, Segment, StrangPunkt, Textfeld } from '../../ui';
@@ -305,6 +306,7 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
       }
     >
       <SprachWahlAbschnitt />
+      <SicherungenEinstellungen />
       <FunktionenEinstellungen />
 
       <section className="pw-ki-abschnitt" aria-labelledby="ki-anbieter">

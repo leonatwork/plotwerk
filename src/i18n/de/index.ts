@@ -24,6 +24,7 @@ import { recherche } from './recherche';
 import { vorschau } from './vorschau';
 import { abgabe } from './abgabe';
 import { funktionen } from './funktionen';
+import { sicherungen } from './sicherungen';
 
 export const de = {
   gemeinsam,
@@ -51,4 +52,5 @@ export const de = {
   vorschau,
   abgabe,
   funktionen,
+  sicherungen,
 };

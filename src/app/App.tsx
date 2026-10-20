@@ -29,6 +29,7 @@ export function App() {
       {ladeStatus === 'bereit' ? (
         <Fehlergrenze bereich={t.app.fehlergrenze.fenster}>
           <Rahmen />
+          {fehler && <div role="alert" className="pw-fehler"><span>{fehler}</span><Button variante="text" onClick={() => useStore.setState({ fehler: null })}>{t.gemeinsam.schliessen}</Button></div>}
         </Fehlergrenze>
       ) : ladeStatus === 'start' ? (
         <Startbildschirm />

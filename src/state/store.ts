@@ -577,6 +577,8 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
         });
         indexBerechnen();
         // Aufbewahrung der Schnappschüsse (E8) im Hintergrund
+        const backend = get().backend;
+        void import('../features/sicherungen/dienst').then(({ sichereProjekt }) => sichereProjekt(true, { backend, fs }));
         const geschuetzt = new Set((d.fassungen ?? []).flatMap((f) => f.dateien.map((x) => x.version)));
         void aufbewahrungAnwenden(fs, new Date(), geschuetzt).catch((e: unknown) => console.warn('Alte Schnappschüsse nicht aufgeräumt:', e));
       } catch (e) {

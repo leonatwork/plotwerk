@@ -12,6 +12,7 @@ mod pfad;
 mod projekt;
 mod recherche;
 mod schluessel;
+mod sicherungen;
 mod sprache;
 mod ueberwachung;
 mod vorlesen;
@@ -28,6 +29,8 @@ pub struct Zustand {
     einstellungen: Mutex<()>,
     extern_lesen: Mutex<HashSet<PathBuf>>,
     extern_schreiben: Mutex<HashSet<PathBuf>>,
+    archiv_lesen: Mutex<HashSet<PathBuf>>,
+    archiv_schreiben: Mutex<()>,
     /// Vom Öffnen-/Neu-Dialog gelieferte Projektordner
     erlaubt: Mutex<HashSet<PathBuf>>,
     ki: OnceLock<plotwerk_ki::KiKlient>,
@@ -43,6 +46,8 @@ impl Default for Zustand {
             einstellungen: Mutex::new(()),
             extern_lesen: Mutex::default(),
             extern_schreiben: Mutex::default(),
+            archiv_lesen: Mutex::default(),
+            archiv_schreiben: Mutex::default(),
             erlaubt: Mutex::default(),
             ki: OnceLock::new(),
             beenden: beenden::Beenden::default(),
@@ -87,6 +92,17 @@ pub fn run() {
             extern_dateien::datei_lesen_extern,
             extern_dateien::datei_speichern,
             extern_dateien::datei_schreiben_extern,
+            sicherungen::archiv_einstellungen,
+            sicherungen::archiv_einstellen,
+            sicherungen::archiv_ort_waehlen,
+            sicherungen::archiv_info,
+            sicherungen::archiv_projekt_lesen,
+            sicherungen::archiv_schreiben,
+            sicherungen::archiv_entfernen,
+            sicherungen::archiv_liste,
+            sicherungen::archiv_waehlen,
+            sicherungen::archiv_lesen,
+            sicherungen::archiv_wiederherstellen,
             ki::schluessel_setzen,
             ki::schluessel_vorhanden,
             ki::schluessel_loeschen,

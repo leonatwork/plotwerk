@@ -111,6 +111,12 @@ pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             t("Exportieren …", "Export…"),
             Some("CmdOrCtrl+E"),
         )?)
+        .item(&befehl(
+            app,
+            "projekt-archiv",
+            t("Projekt als Archiv sichern …", "Back Up Project as Archive…"),
+            None,
+        )?)
         .separator()
         .item(&befehl(
             app,

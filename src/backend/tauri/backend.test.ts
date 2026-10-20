@@ -336,6 +336,21 @@ describe('Tauri-Backend', () => {
       vi.useRealTimers();
     }
   });
+  it('laufende ZIP-Sicherung hält Beenden nicht auf und Beenden startet keine ZIP-Sicherung', async () => {
+    mocks.invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === 'projekt_letztes') return INFO;
+      if (cmd === 'archiv_einstellungen') return { aktiv: true };
+      if (cmd === 'archiv_info') return new Promise(() => {});
+      return undefined;
+    });
+    const backend = await erstelleTauriBackend();
+    const fs = await backend.letztesProjekt();
+    void backend.archiv!.sichern(fs!, true);
+    await vi.waitFor(() => expect(mocks.invoke.mock.calls.some(([cmd]) => cmd === 'archiv_info')).toBe(true));
+    mocks.invoke.mockClear();
+    await mocks.handler.get('app-beenden')!({ payload: null });
+    expect(mocks.invoke.mock.calls.map(([cmd]) => cmd)).toEqual(['app_beenden']);
+  });
 
   it('externe Änderungen und Menübefehle kommen an', async () => {
     rustImSpeicher(new MemoryFs());

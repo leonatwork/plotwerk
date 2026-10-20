@@ -74,7 +74,7 @@ pub(crate) fn sperre<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T>
 }
 
 /// Öffnet einen bereits geprüften Ordner: registrieren, Überwachung starten, merken.
-fn oeffnen(app: &AppHandle, zustand: &Zustand, pfad: &Path) -> Result<ProjektInfo, String> {
+pub(crate) fn oeffnen(app: &AppHandle, zustand: &Zustand, pfad: &Path) -> Result<ProjektInfo, String> {
     let wurzel = Wurzel::neu(pfad)?;
     let kennung = sperre(&zustand.projekte).oeffnen(wurzel.clone());
     match ueberwachung::starten(app.clone(), wurzel.clone(), zustand.eigene.clone()) {
@@ -414,7 +414,7 @@ pub async fn einstellung_schreiben(
     schluessel: String,
     wert: serde_json::Value,
 ) -> Result<(), String> {
-    if schluessel == einstellungen::LETZTES_PROJEKT {
+    if [einstellungen::LETZTES_PROJEKT, "sicherungsOrt", "sicherungen", "sicherungstage"].contains(&schluessel.as_str()) {
         return Err(crate::sprache::t(
             "„letztesProjekt“ wird nur beim Öffnen eines Projekts gesetzt.",
             "“letztesProjekt” is only set when a project is opened.",
