@@ -1,0 +1,11 @@
+.pw-suche { padding: 16px 24px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.pw-suche__felder { display: flex; gap: 12px; }
+.pw-suche__felder > * { flex: 1; min-width: 0; }
+.pw-suche__optionen, .pw-suche__aktionen { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.pw-suche__status { font-size: 12px; color: var(--ink-quiet); }
+.pw-suche__liste { margin-top: 16px; max-height: 45vh; overflow: auto; }
+.pw-suche__treffer { display: block; width: 100%; padding: 12px; text-align: left; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); margin-bottom: 8px; cursor: pointer; }
+.pw-suche__treffer[aria-current="true"] { background: var(--accent-flaeche); border-color: var(--accent); }
+.pw-suche__treffer small { display: block; margin-top: 4px; color: var(--ink-quiet); }
+.pw-s-suchtreffer { background: var(--mark-gelb); }
+.pw-s-suchtreffer--aktiv { outline: 1px solid var(--accent); background: var(--mark-rosa); }

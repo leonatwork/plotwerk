@@ -86,7 +86,7 @@ Token-Namen aus `src/theme/tokens.css` ohne `--`.
 Gesamtwortzahl des Buchs verglichen; der Tag ist das lokale Kalenderdatum des Macs. Zunahme zählt als
 „geschrieben“, Abnahme zieht nichts ab. Ein in einem Speichervorgang eingefügter Block ab 25 Wörtern wird zuerst mit
 den in den 10 Minuten davor gelöschten Wörtern verrechnet (Verschieben zählt nicht doppelt). Laden, Änderungen von
-außen, Import, Wiederherstellen und Rückimport führen nur den `stand` nach. Geschrieben wird spätestens alle 15 s,
+außen, Import, Wiederherstellen, Suchen/Ersetzen und Rückimport führen nur den `stand` nach. Geschrieben wird spätestens alle 15 s,
 beim Beenden und beim Projektwechsel.
 
 **LeserStand** (G6): Ältere Stände legten Vermutungen, Spannung und Plan-Abgleich als `LeserFrage` mit Präfix in der
@@ -162,6 +162,19 @@ KI-Aufgaben der Werkzeuge nutzen `fuehreAufgabeAus(leser, transport, einstellung
 Zeitpunkte, Zustände, Bögen, Marken, Recherche und Lektorat gehören nicht dazu.
 
 ## Schnittstellen (Kurzform)
+
+**Suchen/Ersetzen (Issue #10):** `core/suche` arbeitet rein lokal, wörtlich und je Absatz.
+Standard: Case ignorieren, Ganzes Wort aus; Wortzeichen = Unicode-Buchstaben, kombinierende
+Zeichen und Zahlen (kein automatischer Genitiv). Manuskript wird als sichtbarer Markdown-Text
+durchsucht, Plan-/Notizfelder als Klartext wie in ihren Oberflächen. Eine Freitext-Allowlist schützt
+IDs, Referenzen, Anker, Status, Farben und KI-Ablagen. In `[[typ:id|Anzeige]]` ist nur die Anzeige
+ersetzbar; Ersetzungen mit `]`, `|` oder Zeilenumbruch in einer Anzeige werden vor der Aktion
+abgelehnt, damit der Verweis intakt bleibt. Vor jeder Kapitel-Ersetz-Aktion wird unabhängig vom
+Änderungsstand ein neuer Schnappschuss (`ersetzen`) angelegt. Schlägt er fehl, bleibt das Kapitel
+unverändert. Anker werden neu gesucht (E4), niemals automatisch auf den Ersatz umgedeutet.
+Projekt-Alle-Ersetzen fragt nach; die letzte Plan-/Notizaktion lässt sich gemeinsam per App-Undo
+zurücknehmen (in Memory, gelöscht beim Projektwechsel). Undo erhält Änderungen anderer Felder;
+wurden ersetzte Felder inzwischen bearbeitet, wird nicht still überschrieben.
 
 - `ProjektLeser` / `ProjektDateisystem`: `core/projekt/fs.ts`
 - `core/projekt`: `ladeProjekt(leser): Promise<ProjektDaten>`, `speichereKapitel(fs, kapitel)`, `speicherePlan(fs, plan)`, … je Dateityp ein Paar `parseX(text)` / `serializeX(obj)`; `schnappschuss(fs, pfad, zeit)`.

@@ -8,6 +8,9 @@ import { BEREICHE } from './bereiche';
 import { funktionFuerBefehl, funktionSicherstellen } from './funktionen';
 
 export type Befehl =
+  | 'textsuche'
+  | 'projektsuche'
+  | 'ersetzen-undo'
   | Bereich
   | 'schnellsuche'
   | 'fokus'
@@ -51,6 +54,18 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
   }
   const sichern = () => s.editorSichern().catch((e: unknown) => console.error('Sichern vor dem Befehl fehlgeschlagen:', e));
   switch (befehl) {
+    case 'textsuche':
+      if (s.daten && s.bereich === 'schreiben') s.suche.setzeKapitelOffen(true);
+      else if (s.bereich === 'recherche') window.dispatchEvent(new CustomEvent('plotwerk:recherche-suche'));
+      break;
+    case 'projektsuche':
+      if (!s.daten) break;
+      await s.editorSichern();
+      s.oeffneDialog('projektsuche');
+      break;
+    case 'ersetzen-undo':
+      await s.suche.undo();
+      break;
     case 'schnellsuche':
       if (s.daten) s.oeffneDialog('schnellsuche');
       break;
@@ -160,12 +175,14 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
 
 /** Befehl zu einem Tastendruck (nur ⌘, macOS). */
 export function befehlFuerTaste(e: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'key' | 'code'>): Befehl | null {
-  if (!e.metaKey || e.ctrlKey || e.altKey) return null;
+  if (!e.metaKey || e.ctrlKey) return null;
+  if (e.altKey) return !e.shiftKey && (e.code === 'KeyF' || e.key.toLowerCase() === 'f') ? 'projektsuche' : null;
   const taste = e.key.toLowerCase();
   if (e.shiftKey) return taste === 'f' ? 'fokus' : taste === 'b' ? 'vorschau' : taste === 't' ? 'typewriter' : taste === 's' ? 'fassung' : null;
   const bereich = BEREICHE.find((b) => b.taste && (b.taste === taste || e.code === `Digit${b.taste}`));
   if (bereich) return bereich.id;
   if (taste === 'k') return 'schnellsuche';
+  if (taste === 'f') return 'textsuche';
   if (taste === 'e') return 'export';
   if (taste === ',') return 'einstellungen';
   if (taste === 'o') return 'projekt-oeffnen';

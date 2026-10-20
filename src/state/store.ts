@@ -68,6 +68,7 @@ import { createRechercheSlice, type RechercheSlice } from './slices/recherche';
 import { createStatistikSlice, type StatistikSlice } from './slices/statistik';
 import { createStrukturSlice, type StrukturSlice } from './slices/struktur';
 import { createZeitSlice, type ZeitSlice } from './slices/zeit';
+import { createSucheSlice, type SucheSlice } from './slices/suche';
 
 export type Bereich =
   | 'schreiben'
@@ -84,6 +85,7 @@ export type Bereich =
   | 'recherche'
   | 'fragen';
 export type DialogId =
+  | 'projektsuche'
   | 'import'
   | 'export'
   | 'versionen'
@@ -263,6 +265,7 @@ export interface Basis {
 }
 
 export type Store = Basis &
+  SucheSlice &
   SchreibenSlice &
   PlanungSlice &
   NetzSlice &
@@ -950,6 +953,7 @@ export function erstelleStore(): UseBoundStore<StoreApi<Store>> {
     ...createKiLeserSlice(...a),
     ...createAbgabeSlice(...a),
     ...createRechercheSlice(...a),
+    ...createSucheSlice(...a),
   }));
 }
 

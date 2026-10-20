@@ -10,6 +10,8 @@ export function useTastenkuerzel(): void {
       if (e.defaultPrevented || e.repeat) return;
       const befehl = befehlFuerTaste(e);
       if (!befehl) return;
+      // Die bestehende Recherche-Suche verarbeitet ⌘F selbst.
+      if (befehl === 'textsuche' && useStore.getState().bereich !== 'schreiben') return;
       // solange ein Dialog offen ist, wechseln Tastenkürzel nicht den Bereich dahinter
       if (useStore.getState().dialog && BEREICHE.some((b) => b.id === befehl)) return;
       e.preventDefault();

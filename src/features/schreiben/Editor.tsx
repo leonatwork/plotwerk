@@ -46,6 +46,8 @@ import { basisErweiterungen } from './schema';
 import { Statusleiste } from './Statusleiste';
 import { Typografie } from './typografie';
 import { fokusFiguren, notizFarbe } from './ziele';
+import { Kapitelsuche } from './Kapitelsuche';
+import { SuchDekorationen } from './suchdekorationen';
 
 /** Cursor und Scrollstand je Kapitel (für die Rückkehr) */
 const auswahlSpeicher = new Map<Id, { anker: number; kopf: number; scroll: number }>();
@@ -121,6 +123,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
   /** Buchsprache für Rechtschreibprüfung und Silbentrennung des WebViews */
   const buchLang = useBuchSprache();
   const fokusModus = useStore((s) => s.fokusModus);
+  const sucheOffen = useStore((s) => s.suche.kapitelOffen);
   const typewriter = useStore((s) => s.editorwerkzeuge.typewriter);
   const kapitelText = useStore((s) => s.daten?.kapitel[kapitelId]?.text ?? '');
   const titel = useStore((s) => s.daten?.kapitel[kapitelId]?.titel ?? s.daten?.plaene[kapitelId]?.titel ?? '');
@@ -308,6 +311,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     extensions: [
       ...basisErweiterungen(),
       Typografie,
+      SuchDekorationen,
       Dekorationen.configure({ handler }),
       Placeholder.configure({ placeholder: () => texte().schreiben.editor.platzhalter }),
       ...editorErweiterungen(),
@@ -633,6 +637,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
 
   return (
     <div className="pw-s-mitte">
+      {sucheOffen && editor && <Kapitelsuche editor={editor} kapitelId={kapitelId} text={kapitelText} />}
       <div ref={papierRef} className={klassen('pw-s-papier', fokusModus && 'pw-s-papier--fokus', typewriter && 'pw-s-papier--typewriter')}>
         <article className="pw-s-text" lang={buchLang}>
           <span className="pw-s-kopf-label">{label}</span>

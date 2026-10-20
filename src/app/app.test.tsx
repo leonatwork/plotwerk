@@ -3,13 +3,19 @@ import { describe, expect, it } from 'vitest';
 import { ladeDemoProjekt } from '../../fixtures/demoProjekt';
 import { useStore } from '../state/store';
 import { App } from './App';
-import { befehlFuerTaste } from './befehle';
+import { befehlFuerTaste, befehlAusfuehren } from './befehle';
 import { suche } from './suche';
 
 const taste = (key: string, extra: Partial<KeyboardEvent> = {}) =>
   befehlFuerTaste({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key, code: '', ...extra });
 
 describe('Tastenkürzel', () => {
+  it('⌥⌘F öffnet Projektsuche ohne Fokus- oder Recherche-Kollision', () => {
+    expect(taste('ƒ', {altKey: true, code: 'KeyF'})).toBe('projektsuche');
+    expect(taste('f')).toBe('textsuche');
+    expect(taste('F', {shiftKey: true})).toBe('fokus');
+    expect(taste('f', {altKey: true, shiftKey: true})).toBeNull();
+  });
   it('⌘1–⌘0, ⌘K, ⌘⇧F, ⌘⇧T, ⌘E, ⌘,', () => {
     expect(taste('1')).toBe('schreiben');
     expect(taste('7')).toBe('hinweise');
@@ -48,6 +54,24 @@ describe('Schnellsuche', () => {
 });
 
 describe('App im Browser-Demo', () => {
+  it('⌥⌘F öffnet Projektsuche; ⌘F bleibt Kapitel-/Recherche-Suche und ⌘⇧F Fokus', async () => {
+    render(<App />);
+    await screen.findByRole('navigation', {name:'Bereiche'});
+    await act(async () => { fireEvent.keyDown(window,{key:'ƒ',code:'KeyF',metaKey:true,altKey:true}); });
+    expect(await screen.findByRole('dialog',{name:'Suchen und Ersetzen im Projekt'})).toBeInTheDocument();
+    expect(useStore.getState().fokusModus).toBe(false);
+    act(() => useStore.getState().schliesseDialog());
+    await act(async () => { fireEvent.keyDown(window,{key:'f',metaKey:true}); });
+    expect(await screen.findByRole('search',{name:'Suchen und Ersetzen im Kapitel'}, {timeout:5000})).toBeInTheDocument();
+    await act(async () => {useStore.getState().setzeBereich('recherche');});
+    const suche = await screen.findByRole('searchbox');
+    await act(async () => {await befehlAusfuehren('textsuche');});
+    expect(suche).toHaveFocus();
+    expect(useStore.getState().dialog).toBeNull();
+    await act(async () => {fireEvent.keyDown(window,{key:'F',shiftKey:true,metaKey:true});});
+    expect(useStore.getState().fokusModus).toBe(true);
+    act(() => {useStore.setState({fokusModus:false,bereich:'schreiben'}); useStore.getState().suche.setzeKapitelOffen(false);});
+  });
   it('lädt das Demo-Projekt und zeigt Rahmen, Navigation und Bereiche', async () => {
     render(<App />);
     const nav = await screen.findByRole('navigation', { name: 'Bereiche' });

@@ -177,11 +177,35 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 
 ## Tastenkürzel
 
+### Suchen und Ersetzen
+
+Im Schreiben öffnet **⌘F** die Kapitel-Suchleiste: alle Treffer sind markiert, Enter springt
+weiter, Umschalt+Enter zurück. **⌥⌘F** öffnet die Projektsuche mit Manuskript in Buchreihenfolge,
+Planfeldern und allen Notizen einschließlich privater. Ein Manuskript-Treffer öffnet die Stelle.
+Andere Treffer auswählen und mit „Ersetzen“ gezielt ändern. Die Optionen „Ganzes Wort“ und
+„Groß- und Kleinschreibung beachten“ schränken die Suche ein; reguläre Ausdrücke gibt es nicht.
+
+Ersetzungen werden wörtlich eingefügt, ohne automatische Typografie. Markdown-Auszeichnung im
+Manuskript bleibt erhalten; Plan-/Notiztext wird als Klartext durchsucht. IDs und strukturierte
+Verweise bleiben erhalten, nur deren Anzeige wird ersetzt. `]`, `|` und Zeilenumbrüche können
+deshalb nicht in eine Verweis-Anzeige eingesetzt werden.
+
+Vor jeder Kapitel-Ersetzung entsteht ein Schnappschuss. Bei einem Fehler wird das betroffene
+Kapitel übersprungen und genannt. Zurück geht es über den Versionsverlauf. „Alle ersetzen“ im
+Projekt fragt vorher nach. Die letzte Ersetzung in Plan und Notizen lässt sich mit dem Knopf in
+der Projektsuche oder **Bearbeiten → Ersetzen in Plan und Notizen rückgängig** als ganze Aktion
+zurücknehmen. Dieses Undo gilt nur in der laufenden Sitzung bis zum Projektwechsel; spätere
+Bearbeitungen ersetzter Felder werden nicht überschrieben. Ersetzen zählt nicht als geschrieben,
+sondern führt nur den Buchstand in der Statistik nach. Die Suche und private Treffer bleiben lokal.
+
 | Kürzel | Wirkung |
 | --- | --- |
 | ⌘1 … ⌘7 | Schreiben, Kapitel-Überblick, Akte planen, Figuren, Beziehungen, Orte, Hinweise |
 | ⌘8 · ⌘9 · ⌘0 | Zeitleiste · Fäden · Recherche |
 | ⌘K | Schnellsuche (Figuren, Orte, Kapitel, Befehle) |
+| ⌘F | Suchen und Ersetzen im aktuellen Kapitel (Schreiben) |
+| ⌥⌘F | Suchen und Ersetzen im Projekt |
+| ↩ · ⇧↩ | nächster · voriger Treffer (Kapitel-Suchleiste) |
 | ⌘O | Projekt öffnen |
 | ⌘E | Exportieren |
 | ⌘, | Einstellungen |

@@ -9,6 +9,7 @@ import { Fehlergrenze } from './Fehlergrenze';
 type DialogKomponente = LazyExoticComponent<ComponentType<DialogKomponentenProps>>;
 
 export const DIALOGE: Record<DialogId, DialogKomponente> = {
+  projektsuche: lazy(() => import('../features/suche/Projektsuche')),
   import: lazy(() => import('../features/importexport/ImportDialog')),
   export: lazy(() => import('../features/importexport/ExportDialog')),
   versionen: lazy(() => import('../features/schreiben/VersionenDialog')),

@@ -42,6 +42,8 @@ export interface WiederherstellErgebnis {
 }
 
 export interface Statistik {
+  /** Benutzerinitiierte Ersetzung zählt nur den Buchstand nach. */
+  ohneZaehlen<T>(arbeit: () => Promise<T>): Promise<T>;
   ansicht: StatistikAnsicht;
   setzeAnsicht(a: StatistikAnsicht): void;
   /** Tageswerte, die noch nicht in statistik.json stehen (geschrieben wird addiert, stand ersetzt) */
@@ -161,13 +163,14 @@ export const createStatistikSlice: StateCreator<Store, [], [], StatistikSlice> =
     stand = neu;
     puffer = b.puffer;
     const schonEintrag = !!s.statistik.offen[b.tag] || !!s.daten.statistik?.tage[b.tag];
-    if (b.geschrieben === 0 && !schonEintrag) return;
+     if (b.geschrieben === 0 && !schonEintrag && !s.suche.laeuft) return;
     setze({ offen: offenHinzufuegen(s.statistik.offen, b) });
     spaeterSichern();
   });
 
   return {
     statistik: {
+      ohneZaehlen,
       ansicht: 'ueberblick',
       setzeAnsicht: (ansicht) => setze({ ansicht }),
       offen: {},
