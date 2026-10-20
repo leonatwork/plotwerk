@@ -94,9 +94,10 @@ describe('Store', () => {
   it('entferneKapitel, entferneOrt, entferneGruppe', async () => {
     const { store, fs } = await geladen();
     const s = store.getState();
-    await s.entferneKapitel('weissraum');
-    expect(store.getState().daten?.projekt.kapitel).not.toContain('weissraum');
-    expect(await fs.lesen('projekt.md')).not.toContain('weissraum');
+    await expect(s.entferneKapitel('weissraum')).rejects.toThrow('Kapitel mit Text');
+    await s.entferneKapitel('regatta');
+    expect(store.getState().daten?.projekt.kapitel).not.toContain('regatta');
+    expect(await fs.lesen('projekt.md')).not.toContain('regatta');
     await s.entferneOrt('buero');
     expect(store.getState().daten?.orte.zeichensaal?.in).toBeUndefined();
     expect(await fs.lesen('orte/zeichensaal.md')).not.toContain('in: buero');

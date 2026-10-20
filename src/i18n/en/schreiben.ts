@@ -2,6 +2,15 @@ import type { Form } from '@core/i18n';
 import type { schreiben as de } from '../de/schreiben';
 
 export const schreiben: Form<typeof de> = {
+  archiv: {
+    archivieren: 'Archive chapter',
+    wiederherstellen: 'Restore chapter',
+    liste: 'Archived chapters',
+    status: 'archived',
+    zurueck: 'Restore: {titel}',
+    ansehen: 'View archive: {titel}',
+    beschaeftigt: 'A chapter action is in progress. Please wait.',
+  },
   zitat: '“{text}”',
   ansicht: {
     kontext: 'Write',

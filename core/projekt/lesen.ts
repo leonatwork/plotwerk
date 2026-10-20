@@ -84,6 +84,7 @@ export const PFADE = {
   /** KI-Vorschläge für Figuren, Orte, Beziehungen (KiVorschlaege) */
   vorschlaege: '.plotwerk/vorschlaege.json',
   versionen: '.versionen',
+  archiv: 'archiv/index.json',
   // Werkzeuge G1–G8 (docs/architektur.md)
   /** G1 Zeitleiste und Zustände (Zeitleiste) */
   zeitleiste: 'plan/zeitleiste.md',
@@ -652,6 +653,7 @@ export function parseAnalyse(text: string, id?: Id): KapitelAnalyse {
       .map((l) => ({ id: s(l.id), name: s(l.name), eroeffnet: l.eroeffnet === true })),
     modell: s(a.modell),
     datum: s(a.datum),
+    ...(a.veraltet === true ? { veraltet: true } : {}),
   };
 }
 
@@ -672,6 +674,7 @@ export function parseHinweise(text: string): Hinweis[] {
         quelle: eines(h.quelle, ['lokal', 'ki'] as const, 'ki'),
         offen: h.offen === true ? true : undefined,
         status: eines(h.status, ['neu', 'absicht', 'erledigt'] as const, 'neu'),
+        veraltet: h.veraltet === true ? true : undefined,
       }),
     );
 }
@@ -1310,6 +1313,14 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
     manuskriptRoh.dateien, manuskriptRoh.eintraege, projekt.kapitel, planDateien, sprache,
   );
   const nichtGeladen = nichtGeladeneKapitel(konflikte);
+  const archiv: NonNullable<ProjektDaten['archiv']> = {};
+  const archivIndex = await lies(PFADE.archiv, parseArchivIndex);
+  for (const id of archivIndex?.kapitel ?? []) {
+    const k = await liesFrontmatter(`archiv/${kapitelPfad(id)}`, parseKapitel);
+    const p = await liesFrontmatter(`archiv/${planPfad(id)}`, parseKapitelPlan);
+    if (k && k.id === id && (!p || p.id === id)) archiv[id] = { kapitel: k, plan: p ?? standardPlan(k) };
+    else warnungen.push({ pfad: `archiv/${kapitelPfad(id)}`, grund: sprache === 'de' ? 'Archivkapitel fehlt oder hat eine widersprüchliche ID.' : 'Archived chapter is missing or has an inconsistent ID.' });
+  }
   const reihenfolge: Id[] = [];
   const gesehen = new Set<Id>();
   const dazu = (id: Id) => {
@@ -1334,6 +1345,8 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
   return {
     daten: {
       manuskriptKonflikte: konflikte,
+      archiv,
+      reservierteKapitelIds: archivIndex?.reihenfolge ?? [],
       projekt: { ...projekt, kapitel: reihenfolge },
       kapitel,
       plaene,
@@ -1372,4 +1385,18 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
 
 export async function ladeProjekt(leser: ProjektLeser): Promise<ProjektDaten> {
   return (await ladeProjektMitBericht(leser)).daten;
+}
+
+/** Strikte Archiv-Metadaten: keine Pfade aus handbearbeiteten IDs konstruieren. */
+export function parseArchivIndex(text: string): { version: 1; kapitel: Id[]; reihenfolge: Id[] } {
+  const roh: unknown = JSON.parse(text);
+  if (!istObjekt(roh) || roh.version !== 1 || !Array.isArray(roh.kapitel) || !Array.isArray(roh.reihenfolge)) throw new Error('Invalid archive index');
+  const ids = (v: unknown[]): string[] => {
+    if (v.some(id => typeof id !== 'string' || !id || /[/\\]|^\.{1,2}$/.test(id)) || new Set(v).size !== v.length) throw new Error('Invalid archive IDs');
+    return v as string[];
+  };
+  const kapitel = ids(roh.kapitel);
+  const reihenfolge = ids(roh.reihenfolge);
+  if (kapitel.some(id => !reihenfolge.includes(id))) throw new Error('Invalid archive order');
+  return { version: 1, kapitel, reihenfolge };
 }

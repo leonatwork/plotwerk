@@ -188,6 +188,20 @@ export function KapitelPlanInspektor({ id, daten, index, zurueck }: { id: Id; da
   const uid = useId();
   const t = useTexte();
   const ti = t.akte.inspektor;
+  const fehler = useStore((s) => s.speichern.fehler);
+  const archivieren = useStore((s) => s.kapitelArchivieren);
+  const wiederherstellen = useStore((s) => s.kapitelWiederherstellen);
+  const archiviert = daten.archiv?.[id];
+  if (archiviert) return (
+    <Inspektor className="pl-inspektor" breite={330} hintergrund="weiss" label={t.schreiben.archiv.liste}>
+      <span style={kopfLabel}>{t.schreiben.archiv.status}</span>
+      <h2>{archiviert.kapitel.titel}</h2>
+      <VerweisText text={archiviert.plan.notiz} />
+      <AngehefteteNotizen ziele={[{ typ: 'plan', id }, { typ: 'kapitel', id }]} daten={daten} />
+      <Button onClick={() => void wiederherstellen(id).catch(() => undefined)}>{t.schreiben.archiv.wiederherstellen}</Button>
+      {fehler && <span role="alert">{fehler}</span>}
+    </Inspektor>
+  );
   if (!plan) return null;
   const nr = daten.projekt.kapitel.indexOf(id) + 1;
   const hatText = !!daten.kapitel[id]?.text.trim();
@@ -332,6 +346,8 @@ export function KapitelPlanInspektor({ id, daten, index, zurueck }: { id: Id; da
         daten={daten}
       />
       <span style={{ flexGrow: 1 }} />
+      <Button onClick={() => void archivieren(id).catch(() => undefined)}>{t.schreiben.archiv.archivieren}</Button>
+      {fehler && <span role="alert">{fehler}</span>}
       {geplant && !hatText ? (
         <button type="button" style={primaer} onClick={() => void schreibenBeginnen(id)}>
           {ti.schreibenBeginnen}

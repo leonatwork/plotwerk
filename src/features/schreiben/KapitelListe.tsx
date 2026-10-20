@@ -48,6 +48,10 @@ export function KapitelListe() {
   const gewaehlt = useStore((s) => s.auswahl.kapitel);
   const verschieben = useStore((s) => s.kapitelVerschieben);
   const planen = useStore((s) => s.kapitelPlanen);
+  const archiv = useStore((s) => s.daten?.archiv);
+  const archivieren = useStore((s) => s.kapitelArchivieren);
+  const wiederherstellen = useStore((s) => s.kapitelWiederherstellen);
+  const fehler = useStore((s) => s.speichern.fehler);
   const t = useTexte();
   const sensoren = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -81,6 +85,20 @@ export function KapitelListe() {
           ))}
         </SortableContext>
       </DndContext>
+      {aktiv && <button type="button" className="pw-s-kapitel__neu" onClick={() => void archivieren(aktiv).catch(() => undefined)}>{t.schreiben.archiv.archivieren}</button>}
+      {Object.keys(archiv ?? {}).length > 0 && (
+        <details>
+          <summary className="pw-s-kapitel__neu">{t.schreiben.archiv.liste}</summary>
+          {Object.entries(archiv ?? {}).map(([id, eintrag]) => (
+            <div key={id}>
+              <button type="button" className="pw-s-kapitel__neu" aria-label={f(t.schreiben.archiv.ansehen, { titel: eintrag.kapitel.titel })}
+                onClick={() => useStore.getState().oeffne('akte', { plan: id })}>{eintrag.kapitel.titel}</button>
+              <button type="button" className="pw-s-kapitel__neu" onClick={() => void wiederherstellen(id).catch(() => undefined)}>{f(t.schreiben.archiv.zurueck, { titel: eintrag.kapitel.titel })}</button>
+            </div>
+          ))}
+        </details>
+      )}
+      {fehler && <span role="alert">{fehler}</span>}
       <button
         type="button"
         className="pw-s-kapitel__neu"

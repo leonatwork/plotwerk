@@ -6,3 +6,4 @@ export * from './memoryFs';
 export * from './extern';
 export * from './binaer';
 export * from './konflikte';
+export { archiviereKapitel, stelleKapitelWiederHer } from './archiv';

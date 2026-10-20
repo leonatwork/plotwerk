@@ -409,6 +409,8 @@ export interface Zitat {
 }
 
 export interface Hinweis {
+  /** Nach einem Kapitelumbau erhalten, aber nicht mehr als aktueller Hinweis verwendet. */
+  veraltet?: boolean;
   /** stabiler Schlüssel aus Typ + normalisierten Zitaten (für Entscheidungen) */
   schluessel: string;
   typ: HinweisTyp;
@@ -431,6 +433,8 @@ export interface LoseEnde {
 
 /** .plotwerk/analysen/<kapitel-id>.json – bezahltes KI-Ergebnis, bleibt im Projektordner */
 export interface KapitelAnalyse {
+  /** Kapitel wurde archiviert; erst eine neue Prüfung macht die Analyse wieder aktuell. */
+  veraltet?: boolean;
   kapitel: Id;
   textHash: string;
   zusammenfassung: string;
@@ -469,6 +473,10 @@ export interface ManuskriptKonflikt {
 }
 
 export interface ProjektDaten {
+  /** Separate, nur lesende Ablage; gehört nicht zum aktiven Buch oder KI-Kontext. */
+  archiv?: Record<Id, { kapitel: Kapitel; plan: KapitelPlan }>;
+  /** Reservierung bleibt auch erhalten, wenn eine Archivdatei extern fehlt/beschädigt ist. */
+  reservierteKapitelIds?: Id[];
   /** Erkennungsergebnis für manuskript/; fehlt bei Daten aus älteren Ständen. */
   manuskriptKonflikte?: ManuskriptKonflikt[];
   projekt: Projekt;

@@ -47,6 +47,9 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 ├── plan/ideen.md              Frontmatter: ideen[]
 ├── plan/motive.md             Frontmatter: motive[] (id, name, aliase) – Motive im Tab „Erkannt“ (S-10)
 ├── plan/kapitel/<id>.md       Frontmatter: KapitelPlan ohne notiz (szene = „Kurzbeschreibung“, funktion? = „Funktion im Buch“) · Body: notiz
+├── archiv/index.json          {version: 1, kapitel: [archivierte IDs], reihenfolge: [aktive + archivierte IDs]}
+├── archiv/manuskript/<id>.md  Archivierter Manuskriptstand, unveränderte Originaldatei
+├── archiv/plan/kapitel/<id>.md Archivierter Kapitelplan einschließlich Notizen, unveränderte Originaldatei
 ├── figuren/<id>.md            Frontmatter: Figur ohne wahrheit/notizen · Body: "## Wahrheit hinter den Kulissen" + "## Notizen"
 ├── gruppen/<id>.md            Frontmatter: Gruppe ohne notizen · Body: "## Notizen"
 ├── orte/<id>.md               Frontmatter: Ort ohne beschreibung/notizen · Body: Beschreibung + "## Notizen"
@@ -77,6 +80,21 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 ```
 
 `projekt.md` hat zusätzlich das optionale Feld `angaben` (autor, untertitel, genre, sprache; G7, nicht an die KI).
+
+**Kapitelarchiv (Issue #13, Paket 1):** Archivierte Kapitel stehen nicht in `projekt.md → kapitel` und werden
+separat als `ProjektDaten.archiv` geladen, nie als aktiver Text/Plan, Export oder KI-Kontext. Die IDs bleiben
+reserviert. `archiv/index.json` erhält die alte Position anhand der Nachbarn; aktive Umordnungen haben Vorrang.
+Vor Archivieren und Wiederherstellen entsteht immer ein **neuer** Schnappschuss von Manuskript und vorhandenem
+Plan im ursprünglichen `.versionen/<pfad>/`-Verlauf (auch bei unverändertem Inhalt in derselben Sekunde).
+Bei einem I/O-Fehler setzt ein Änderungsjournal bereits ausgeführte Schreibvorgänge zurück. Ist auch das
+Rücksetzen nicht möglich, meldet die App den Fehler ausdrücklich; eine Mehrdatei-Crash-Transaktion bietet die
+Dateisystem-Schnittstelle nicht. Anmerkungen und sonstige ID-Verweise bleiben unverändert im Projekt;
+Verweisbeschriftungen zeigen „archiviert“. `.plotwerk/analysen/<id>.json` und betroffene Einträge in
+`.plotwerk/hinweise.json` bleiben erhalten, einschließlich unbekannter JSON-Felder, und erhalten additiv
+`veraltet: true`. Die Markierung bleibt auch nach Wiederherstellen bestehen; der Analyse-Cache verwendet
+solche Ergebnisse nicht, und veraltete Hinweise werden nicht als aktuelle Hinweise angezeigt. Keine automatische
+KI-Neuberechnung. Archivieren/Wiederherstellen verändert nur den Wortzahlstand, zählt nicht als Schreiben.
+
 KI-Ablagen haben alle die Form `{version: 1, eintraege: [], lauf?: {datum, modell, kostenUsd?}}`. Fehlende
 Werkzeug-Dateien füllt `ladeProjekt` mit Standardwerten (`leereZeitleiste()` mit `STANDARD_ZUSTANDSARTEN` usw.);
 KI-Ablagen fehlen in `ProjektDaten`, solange es die Datei nicht gibt. Farben in Daten (`ZustandsArt.farbe`) sind
