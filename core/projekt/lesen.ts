@@ -393,6 +393,7 @@ export function parseKapitelPlan(text: string, id?: Id): KapitelPlan {
     notiz: body,
     abweichungen: liste(daten.abweichungen).map(parseAbweichung).filter(nichtNull),
     realitaet: liste(daten.realitaet).map(parseRealitaetsEintrag).filter(nichtNull),
+    ...(daten.notizPrivat === true ? { notizPrivat: true } : {}),
     ...(zeit ? { zeit } : {}),
     ...(Array.isArray(daten.szenen) ? { szenen: parseSzenen(daten.szenen, pid) } : {}),
   };

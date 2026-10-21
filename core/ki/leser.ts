@@ -498,5 +498,5 @@ export function fadenAbgleich(reihenfolge: Id[], kapitel: Id, faeden: FadenSoll[
 
 /** Plan-Text eines Kapitels für die Anzeige (wie an das Modell: Verweise als Text) */
 export function kapitelPlanText(plan: KapitelPlan | undefined): { szene: string; notiz: string } {
-  return { szene: planText(plan?.szene), notiz: planText(plan?.notiz) };
+  return { szene: planText(plan?.szene), notiz: plan?.notizPrivat ? '' : planText(plan?.notiz) };
 }

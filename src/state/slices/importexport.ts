@@ -1,6 +1,6 @@
 /** Slice „importexport“ (S-11, S-12). Besitzer: Import/Export. Persistenz über get().speichereX. */
 import type { StateCreator } from 'zustand';
-import { kommentareAlsAnmerkungen, type ImportErgebnis } from '@core/docx/index';
+import { kommentareAlsAnmerkungen, type ImportErgebnis, type ImportKapitel } from '@core/docx/index';
 import type { Id, Kapitel, KapitelPlan } from '@core/model/types';
 import { standardPlan } from '@core/projekt';
 import { klartext } from '@core/text/index';
@@ -90,10 +90,20 @@ export const createImportExportSlice: StateCreator<Store, [], [], ImportExportSl
     const daten = get().daten;
     if (!daten) throw new Error(texte().state.fehler.keinProjekt);
 
-    const liste: { titel: string; text: string }[] = [];
+    const liste: ImportKapitel[] = [];
     const mitVorspann = !!(optionen.vorspannAlsKapitel && klartext(ergebnis.vorspann).trim());
     if (mitVorspann) liste.push({ titel: optionen.vorspannTitel?.trim() || texte().state.standard.vorspann, text: ergebnis.vorspann });
     liste.push(...ergebnis.kapitel);
+
+    // Import-Akte werden angehängt, niemals anhand gleicher Titel mit bestehenden Akten vereint.
+    const aktZuordnung = new Map<number, number>();
+    let aktNummer = Math.max(0, ...daten.akte.map((a) => a.nummer), ...Object.values(daten.plaene).map((p) => p.akt ?? 0));
+    const neueAkte = (ergebnis.akte ?? []).map((a) => {
+      const nummer = ++aktNummer;
+      aktZuordnung.set(a.nummer, nummer);
+      return { nummer, titel: a.titel, quintessenz: '', wendepunkt: '', antagonisten: [] };
+    });
+    if (neueAkte.length) await get().speichereAkte([...daten.akte, ...neueAkte]);
 
     const vergeben = new Set<string>([...daten.projekt.kapitel, ...Object.keys(daten.kapitel), ...Object.keys(daten.plaene)]);
     const ids: Id[] = [];
@@ -120,8 +130,13 @@ export const createImportExportSlice: StateCreator<Store, [], [], ImportExportSl
       const kapitel: Kapitel = { id, titel: k.titel, text: k.text };
       const leer = klartext(k.text).trim() === '';
       const basis = standardPlan(kapitel);
-      const notiz = [basis.notiz, uebernahme.planNotizen[id]].filter((t) => t?.trim()).join('\n\n');
-      const plan: KapitelPlan = { ...basis, notiz, status: leer ? 'geplant' : 'geschrieben' };
+      const notiz = [k.notiz ?? basis.notiz, uebernahme.planNotizen[id]].filter((t) => t !== undefined && t !== '').join('\n\n');
+      const plan: KapitelPlan = {
+        ...basis, notiz, szene: k.szene ?? basis.szene,
+        ...(k.notizPrivat ? { notizPrivat: true } : {}),
+        akt: k.akt == null ? basis.akt : (aktZuordnung.get(k.akt) ?? k.akt),
+        status: leer ? 'geplant' : 'geschrieben',
+      };
       // Reihenfolge der Aufrufe = Reihenfolge in projekt.kapitel (der Zustand ändert sich synchron)
       if (leer) {
         geplant++;
