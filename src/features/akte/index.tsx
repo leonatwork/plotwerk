@@ -59,7 +59,9 @@ export default function Ansicht() {
           <Board daten={daten} index={index} ansicht={ansicht} />
         )}
       </div>
-      {darstellung === 'straenge' && !(rasterKapitel && planId && daten.plaene[planId]) ? (
+      {planId && daten.archiv?.[planId] ? (
+        <KapitelPlanInspektor key={planId} id={planId} daten={daten} index={index} />
+      ) : darstellung === 'straenge' && !(rasterKapitel && planId && daten.plaene[planId]) ? (
         <StrangInspektor daten={daten} />
       ) : darstellung === 'straenge' && planId ? (
         <KapitelPlanInspektor key={planId} id={planId} daten={daten} index={index} zurueck={() => waehleStrang(null)} />

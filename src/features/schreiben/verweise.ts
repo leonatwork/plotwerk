@@ -54,6 +54,7 @@ export function verweiseAlsText(text: string): string {
 }
 
 export function kapitelAnzeige(daten: ProjektDaten, id: Id): string {
+  if (daten.archiv?.[id]) return `${daten.archiv[id].kapitel.titel} · ${texte().schreiben.archiv.status}`;
   const nr = daten.projekt.kapitel.indexOf(id) + 1;
   const titel = daten.kapitel[id]?.titel ?? daten.plaene[id]?.titel ?? id;
   return nr > 0 ? `${kapKurz(nr)} · ${titel}` : titel;
@@ -72,8 +73,9 @@ export function zielName(daten: ProjektDaten, v: Verweis): string | null {
     case 'ort':
       return daten.orte[v.id]?.name ?? null;
     case 'kapitel':
-      return daten.kapitel[v.id] || daten.plaene[v.id] ? kapitelAnzeige(daten, v.id) : null;
+      return daten.kapitel[v.id] || daten.plaene[v.id] || daten.archiv?.[v.id] ? kapitelAnzeige(daten, v.id) : null;
     case 'plan': {
+      if (daten.archiv?.[v.id]) return kapitelAnzeige(daten, v.id);
       const p = daten.plaene[v.id];
       return p ? p.szene || p.titel : null;
     }
@@ -188,7 +190,11 @@ export function kapitelVerweise(text: string, daten: ProjektDaten): Id[] {
 }
 
 /** Ziel öffnen (Klick auf einen Verweis). */
-export function verweisOeffnen(store: Pick<Store, 'oeffne'>, v: Verweis): void {
+export function verweisOeffnen(store: Pick<Store, 'oeffne'> & Partial<Pick<Store, 'daten'>>, v: Verweis): void {
+  if ((v.typ === 'kapitel' || v.typ === 'plan') && store.daten?.archiv?.[v.id]) {
+    store.oeffne('akte', { plan: v.id });
+    return;
+  }
   const ziel: Record<VerweisTyp, [Bereich, Partial<Store['auswahl']>]> = {
     figur: ['figuren', { figur: v.id }],
     ort: ['orte', { ort: v.id }],

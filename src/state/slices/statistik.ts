@@ -156,7 +156,7 @@ export const createStatistikSlice: StateCreator<Store, [], [], StatistikSlice> =
     const neu = woerter.buch(s.daten);
     if (neu === stand) return;
     const nurStand =
-      aussetzen > 0 || s.externeAenderung !== vorher.externeAenderung || (s.dialog !== null && NICHT_ZAEHLEN.has(s.dialog.id));
+      aussetzen > 0 || s.daten.archiv !== vorher.daten.archiv || s.externeAenderung !== vorher.externeAenderung || (s.dialog !== null && NICHT_ZAEHLEN.has(s.dialog.id));
     const b = bucheAenderung(stand, neu, new Date(), puffer, nurStand);
     stand = neu;
     puffer = b.puffer;

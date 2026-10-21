@@ -25,6 +25,62 @@ import { docZuMarkdown } from '../src/features/schreiben/markdown';
 import { zusammenfassungFuer } from '../src/state/slices/planung';
 import { erstelleStore, useStore } from '../src/state/store';
 import { berechneIndex } from '@core/index/index';
+import { baueBuchKontext } from '@core/ki/kontext';
+import { zielName } from '../src/features/schreiben/verweise';
+
+describe('Issue #13 AC-1 bis AC-6: Kapitel archivieren und wiederherstellen', () => {
+  it('bewahrt Kapitel, Plan, Notizen und bezahlte KI-Ergebnisse; schließt Archiv vom Buch aus und reserviert IDs', async () => {
+    const fs = demoFs();
+    const store = await geladenerStore(fs);
+    const original = store.getState().daten!;
+    const versionen = (await fs.auflisten('.versionen')).length;
+    await store.getState().kapitelArchivieren('flut');
+    const d = store.getState().daten!;
+    expect(d.projekt.kapitel).not.toContain('flut');
+    expect(d.kapitel.flut).toBeUndefined();
+    expect(await fs.lesen('archiv/manuskript/flut.md')).toBeTruthy();
+    expect(await fs.lesen('archiv/plan/kapitel/flut.md')).toBeTruthy();
+    expect(d.anmerkungen).toEqual(original.anmerkungen);
+    expect(original.anmerkungen.some(a => a.anker.kapitel === 'flut')).toBe(true);
+    expect(d.analysen.flut).toMatchObject({ ...original.analysen.flut, veraltet: true });
+    const hinweise = d.kiHinweise.filter(h => h.zitate.some(z => z.kapitel === 'flut'));
+    expect(hinweise.length).toBeGreaterThan(0);
+    expect(hinweise.every(h => h.veraltet)).toBe(true);
+    expect(baueBuchKontext(d).kapitel.some(k => k.id === 'flut')).toBe(false);
+    expect(zielName(d, { typ: 'kapitel', id: 'flut' })).toContain('archiviert');
+    expect(store.getState().neueId('Flut', [])).not.toBe('flut');
+    store.getState().indexNeuBerechnen();
+    expect(store.getState().index.hinweise.some(h => h.zitate.some(z => z.kapitel === 'flut'))).toBe(false);
+    const exportiert = await store.getState().exportErstellen({ format: 'docx', kapitel: d.projekt.kapitel, titelseite: false, schrift: 'newsreader' });
+    expect(await rohtextDocx(exportiert)).not.toContain('dass ich eine halbe Stunde zu früh bin');
+    expect((await fs.auflisten('.versionen')).length).toBe(versionen + 2);
+    const statistik = JSON.stringify(store.getState().statistik.offen);
+    await store.getState().kapitelWiederherstellen('flut');
+    expect(store.getState().daten!.projekt.kapitel).toEqual(original.projekt.kapitel);
+    expect(store.getState().daten!.kapitel.flut).toEqual(original.kapitel.flut);
+    expect(store.getState().daten!.plaene.flut).toEqual(original.plaene.flut);
+    expect(store.getState().daten!.anmerkungen).toEqual(original.anmerkungen);
+    expect(JSON.stringify(store.getState().statistik.offen)).toBe(statistik);
+    expect((await fs.auflisten('.versionen')).length).toBe(versionen + 4);
+  });
+
+  it('zeigt einen Sicherungsfehler und ändert weder Dateien noch Store', async () => {
+    class FehlerFs extends MemoryFs {
+      override async schreiben(p: string, t: string) {
+        if (p.startsWith('.versionen/')) throw new Error('disk full');
+        return super.schreiben(p, t);
+      }
+    }
+    const fs = new FehlerFs(demoDateien());
+    const store = await geladenerStore(fs);
+    const d = store.getState().daten;
+    const dateien = fs.alleDateien();
+    await expect(store.getState().kapitelArchivieren('ebbe')).rejects.toThrow('Schnappschuss');
+    expect(store.getState().speichern.fehler).toContain('Schnappschuss');
+    expect(store.getState().daten).toBe(d);
+    expect(fs.alleDateien()).toEqual(dateien);
+  });
+});
 
 const FIXTURE_DOCX = join(__dirname, '../fixtures/test-manuskript.docx');
 
