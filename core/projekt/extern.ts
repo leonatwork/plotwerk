@@ -5,6 +5,7 @@
  */
 import type { Id, ProjektDaten } from '../model/types';
 import { idAusPfad, PFADE, standardPlan } from './lesen';
+import { icloudKapitelId, istManuskriptPfad, nichtGeladeneKapitel } from './konflikte';
 
 function ersetze<T>(alt: Record<Id, T>, neu: Record<Id, T>, id: Id): Record<Id, T> {
   const ergebnis = { ...alt };
@@ -46,7 +47,19 @@ const imOrdner = (pfad: string, ordner: string, endung: string) =>
 
 export function uebernehmeExterneAenderungen(alt: ProjektDaten, neu: ProjektDaten, pfade: string[]): ProjektDaten {
   let d: ProjektDaten = alt;
+  if (pfade.some(p => p.startsWith('archiv/'))) d = { ...d, archiv: neu.archiv, reservierteKapitelIds: neu.reservierteKapitelIds };
   const kapitelBetroffen = new Set<Id>();
+  if (pfade.some(istManuskriptPfad) || pfade.includes(PFADE.projekt)) {
+    d = { ...d, manuskriptKonflikte: neu.manuskriptKonflikte ?? [] };
+    // Kopien sind nach Dateiname keiner stabilen ID zuzuordnen. Die Diagnose nennt
+    // alle betroffenen IDs, auch beim Entfernen/Umbenennen der letzten Kopie.
+    for (const konflikt of [...(alt.manuskriptKonflikte ?? []), ...(neu.manuskriptKonflikte ?? [])]) {
+      if (konflikt.pfade.some((p) => pfade.includes(p)) || pfade.includes(PFADE.projekt)) {
+        if (konflikt.art !== 'konfliktname') konflikt.kapitelIds.forEach((id) => kapitelBetroffen.add(id));
+      }
+    }
+    for (const id of kapitelBetroffen) d = { ...d, kapitel: ersetze(d.kapitel, neu.kapitel, id) };
+  }
   for (const pfad of pfade) {
     const werkzeug = WERKZEUG_DATEIEN.find(([p]) => p === pfad);
     if (werkzeug) d = feldUebernehmen(d, neu, werkzeug[1]);
@@ -63,8 +76,8 @@ export function uebernehmeExterneAenderungen(alt: ProjektDaten, neu: ProjektDate
       void _alt;
       d = neu.kiVorschlaege ? { ...rest, kiVorschlaege: neu.kiVorschlaege } : rest;
     }
-    else if (imOrdner(pfad, PFADE.manuskript, '.md')) {
-      const id = idAusPfad(pfad);
+    else if (istManuskriptPfad(pfad)) {
+      const id = icloudKapitelId(pfad) ?? idAusPfad(pfad);
       kapitelBetroffen.add(id);
       d = { ...d, kapitel: ersetze(d.kapitel, neu.kapitel, id) };
     } else if (imOrdner(pfad, PFADE.planKapitel, '.md')) {
@@ -82,14 +95,20 @@ export function uebernehmeExterneAenderungen(alt: ProjektDaten, neu: ProjektDate
     const dazu = neu.projekt.kapitel.filter((id) => kapitelBetroffen.has(id) && !d.projekt.kapitel.includes(id));
     if (dazu.length) d = { ...d, projekt: { ...d.projekt, kapitel: [...d.projekt.kapitel, ...dazu] } };
   }
-  // Jedes Kapitel der Reihenfolge hat Text-Eintrag und Plan (wie ladeProjekt)
+  // Nicht geladene Kapitel bekommen keinen synthetischen Leertext (wie ladeProjekt).
+  const nichtGeladen = nichtGeladeneKapitel(d.manuskriptKonflikte ?? []);
+  if (nichtGeladen.size) {
+    const kapitel = { ...d.kapitel };
+    for (const id of nichtGeladen) delete kapitel[id];
+    d = { ...d, kapitel };
+  }
   const fehlend = d.projekt.kapitel.filter((id) => !d.kapitel[id] || !d.plaene[id]);
   if (fehlend.length) {
     const kapitel = { ...d.kapitel };
     const plaene = { ...d.plaene };
     for (const id of fehlend) {
       const k = kapitel[id] ?? neu.kapitel[id] ?? { id, titel: plaene[id]?.titel || id, text: '' };
-      kapitel[id] = k;
+      if (!nichtGeladen.has(id)) kapitel[id] = k;
       plaene[id] ??= neu.plaene[id] ?? standardPlan(k);
     }
     d = { ...d, kapitel, plaene };

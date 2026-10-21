@@ -6,6 +6,7 @@ import { KiFehler, type KiTransport } from '@core/ki/index';
 import { ladeDemoProjekt } from '../../../fixtures/demoProjekt';
 import { App } from '../../app/App';
 import { befehlAusfuehren } from '../../app/befehle';
+import { ladeBereich } from '../../app/bereiche';
 import { suche } from '../../app/suche';
 import { festesFunktionsProfil, initialisiereFunktionen, mitKiSperre, setzeFunktionsProfil, useFunktionsStore } from '../../state/funktionen';
 import { useStore } from '../../state/store';
@@ -126,7 +127,12 @@ describe('Ausgeblendete Funktionen in der App', () => {
     expect(within(nav).getAllByRole('button').map((e) => e.textContent?.replace(/\d+.*$/, ''))).toEqual([
       'Schreiben', 'Kapitel-Überblick', 'Figuren', 'Orte', 'Hinweise', 'Werkzeuge', 'Statistik',
     ]);
-    expect(await screen.findByRole('button', { name: 'Kapitel prüfen' }, { timeout: 5000 })).toBeInTheDocument();
+    // Die Navigation ist vor der lazy geladenen Schreibansicht bereit. Auf die
+    // tatsächlichen Imports warten, bevor auch ausgeblendete Aktionen geprüft werden.
+    await act(async () => {
+      await ladeBereich('schreiben');
+    });
+    expect(screen.getByRole('button', { name: 'Kapitel prüfen' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Typewriter' })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'Stil' })).toBeNull();
 

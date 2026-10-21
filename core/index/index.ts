@@ -160,6 +160,7 @@ function beruehrteStufen(h: Hinweis, daten: ProjektDaten, stellen: Stelle[]): Se
 
 /** KI-Hinweise erneut prüfen: jedes Zitat muss (normalisiert) im Kapiteltext stehen, sonst fällt der Hinweis weg. */
 function kiHinweisGueltig(h: Hinweis, daten: ProjektDaten): boolean {
+  if (h.veraltet) return false;
   if (!h.zitate?.length) return false;
   return h.zitate.every((z) => {
     const md = textVon(daten, z.kapitel);

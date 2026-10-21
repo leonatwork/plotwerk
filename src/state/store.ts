@@ -239,6 +239,8 @@ export interface Basis {
   entferneBinaerDatei(pfad: string): Promise<void>;
   /** Entfernen legt vorher Schnappschüsse an und räumt Verweise in anderen Dateien auf. */
   entferneKapitel(id: Id): Promise<void>;
+  kapitelArchivieren(id: Id): Promise<void>;
+  kapitelWiederherstellen(id: Id): Promise<void>;
   entferneFigur(id: Id): Promise<void>;
   /** Führt `aufgeben` in `behalten` zusammen (Namen, Beziehungen, Plan, alle Verweise) und entfernt `aufgeben`. */
   figurenZusammenfuehren(behalten: Id, aufgeben: Id): Promise<void>;
@@ -300,6 +302,47 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
   let externTimer: ReturnType<typeof setTimeout> | null = null;
   const externePfade = new Set<string>();
   let initialisierung: Promise<void> | null = null;
+  let archivAktion = false;
+  let umbaut = false;
+  let letzterArchivFehler: string | null = null;
+
+  async function kapitelUmbauen(id: Id, wiederherstellen: boolean): Promise<void> {
+    if (archivAktion) throw new Error(texte().schreiben.archiv.beschaeftigt);
+    archivAktion = true;
+    try {
+      if (letzterArchivFehler && get().speichern.fehler === letzterArchivFehler) {
+        set((s) => ({ speichern: { ...s.speichern, fehler: null } }));
+      }
+      letzterArchivFehler = null;
+      await get().editorSichern();
+      await alleSpeichernAbwarten();
+      if (get().speichern.fehler) throw new Error(get().speichern.fehler!);
+      const fs = get().fs;
+      if (!fs) throw new Error(texte().state.fehler.keinProjekt);
+      const aktion = wiederherstellen ? persistenz.stelleKapitelWiederHer : persistenz.archiviereKapitel;
+      umbaut = true;
+      const neu = await aktion(fs, id, new Date(), sprache());
+      if (get().fs !== fs) return;
+      for (const p of [persistenz.kapitelPfad(id), persistenz.planPfad(id), persistenz.PFADE.projekt, persistenz.PFADE.archiv,
+        persistenz.analysePfad(id), persistenz.PFADE.hinweise, `archiv/${persistenz.kapitelPfad(id)}`, `archiv/${persistenz.planPfad(id)}`]) eigene.set(p, Date.now());
+      geaendert.delete(persistenz.kapitelPfad(id));
+      sitzungGesichert.delete(persistenz.kapitelPfad(id));
+      set((s) => ({
+        daten: neu,
+        auswahl: wiederherstellen ? { ...s.auswahl, kapitel: id, plan: id } : {
+          ...s.auswahl,
+          kapitel: s.auswahl.kapitel === id ? neu.projekt.kapitel[0] : s.auswahl.kapitel,
+          plan: s.auswahl.plan === id ? undefined : s.auswahl.plan,
+        },
+        speichern: { ...s.speichern, fehler: null, zuletzt: Date.now() },
+      }));
+      get().indexNeuBerechnen();
+    } catch (e) {
+      if (umbaut) letzterArchivFehler = fehlertext(e);
+      set((s) => ({ speichern: { ...s.speichern, fehler: fehlertext(e) } }));
+      throw e;
+    } finally { archivAktion = false; umbaut = false; }
+  }
 
   function inReihe<T>(pfad: string, arbeit: () => Promise<T>): Promise<T> {
     const vorher = ketten.get(pfad) ?? Promise.resolve();
@@ -602,6 +645,8 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     },
 
     async speichereKapitel(k) {
+      if (umbaut) throw new Error(texte().schreiben.archiv.beschaeftigt);
+      if (daten().archiv?.[k.id]) throw new Error(texte().schreiben.archiv.status);
       let neuImProjekt = false;
       setzeDaten((d) => {
         neuImProjekt = !d.projekt.kapitel.includes(k.id);
@@ -616,6 +661,8 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     },
 
     async speicherePlan(p) {
+      if (umbaut) throw new Error(texte().schreiben.archiv.beschaeftigt);
+      if (daten().archiv?.[p.id]) throw new Error(texte().schreiben.archiv.status);
       let neuImProjekt = false;
       setzeDaten((d) => {
         neuImProjekt = !d.projekt.kapitel.includes(p.id);
@@ -630,6 +677,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     },
 
     async speichereProjekt(p) {
+      if (umbaut) throw new Error(texte().schreiben.archiv.beschaeftigt);
       setzeDaten((d) => ({ ...d, projekt: p }));
       await speichereProjektDatei();
     },
@@ -756,6 +804,8 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
     },
 
     async entferneKapitel(id) {
+      if (umbaut) throw new Error(texte().schreiben.archiv.beschaeftigt);
+      if (daten().kapitel[id]?.text.trim() || daten().archiv?.[id]) throw new Error(texte().state.fehler.kapitelMitText);
       setzeDaten((d) => {
         const kapitel = { ...d.kapitel };
         const plaene = { ...d.plaene };
@@ -922,7 +972,9 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
       return ziel;
     },
 
-    neueId: (titel, vorhandene) => erzeugeId(titel, vorhandene),
+    neueId: (titel, vorhandene) => erzeugeId(titel, [...vorhandene, ...(get().daten?.reservierteKapitelIds ?? []), ...Object.keys(get().daten?.archiv ?? {})]),
+    kapitelArchivieren: (id) => kapitelUmbauen(id, false),
+    kapitelWiederherstellen: (id) => kapitelUmbauen(id, true),
     indexNeuBerechnen: indexBerechnen,
     alleSpeichernAbwarten,
     sitzungSichern(pfad) {

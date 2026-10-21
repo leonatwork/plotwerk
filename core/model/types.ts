@@ -409,6 +409,8 @@ export interface Zitat {
 }
 
 export interface Hinweis {
+  /** Nach einem Kapitelumbau erhalten, aber nicht mehr als aktueller Hinweis verwendet. */
+  veraltet?: boolean;
   /** stabiler Schlüssel aus Typ + normalisierten Zitaten (für Entscheidungen) */
   schluessel: string;
   typ: HinweisTyp;
@@ -431,6 +433,8 @@ export interface LoseEnde {
 
 /** .plotwerk/analysen/<kapitel-id>.json – bezahltes KI-Ergebnis, bleibt im Projektordner */
 export interface KapitelAnalyse {
+  /** Kapitel wurde archiviert; erst eine neue Prüfung macht die Analyse wieder aktuell. */
+  veraltet?: boolean;
   kapitel: Id;
   textHash: string;
   zusammenfassung: string;
@@ -457,7 +461,24 @@ export interface Faden {
 // Gesamtzustand eines geladenen Projekts
 // ---------------------------------------------------------------------------
 
+/** Laufzeitdiagnose, wird nie ins Projektformat geschrieben (Issue #11, Paket 1). */
+export interface ManuskriptKonflikt {
+  art: 'doppelte_id' | 'name_id_abweichung' | 'datei_fehlt' | 'icloud_platzhalter' | 'konfliktname';
+  /** Betroffene stabile IDs; bei einer Namensabweichung auch die ID aus dem Dateinamen. */
+  kapitelIds: Id[];
+  /** Relative Originalpfade, einschließlich sichtbarer Platzhalter/Kopien. */
+  pfade: string[];
+  /** Nutzersichtbare Erklärung in der gewählten Oberflächensprache. */
+  grund: string;
+}
+
 export interface ProjektDaten {
+  /** Separate, nur lesende Ablage; gehört nicht zum aktiven Buch oder KI-Kontext. */
+  archiv?: Record<Id, { kapitel: Kapitel; plan: KapitelPlan }>;
+  /** Reservierung bleibt auch erhalten, wenn eine Archivdatei extern fehlt/beschädigt ist. */
+  reservierteKapitelIds?: Id[];
+  /** Erkennungsergebnis für manuskript/; fehlt bei Daten aus älteren Ständen. */
+  manuskriptKonflikte?: ManuskriptKonflikt[];
   projekt: Projekt;
   kapitel: Record<Id, Kapitel>;
   plaene: Record<Id, KapitelPlan>;

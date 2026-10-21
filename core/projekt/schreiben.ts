@@ -83,9 +83,9 @@ const S = {
   gruppe: ['id', 'name', 'typ', 'status', 'mitglieder', 'strang', 'spuren', 'praesenz', 'netz', 'rollen'],
   spur: ['id', 'text', 'kapitel', 'anker', 'status'],
   ort: ['id', 'name', 'aliase', 'in'],
-  hinweis: ['schluessel', 'typ', 'titel', 'zitate', 'erklaerung', 'quelle', 'offen', 'status'],
+  hinweis: ['schluessel', 'typ', 'titel', 'zitate', 'erklaerung', 'quelle', 'offen', 'status', 'veraltet'],
   zitat: ['kapitel', 'text'],
-  analyse: ['kapitel', 'textHash', 'zusammenfassung', 'kurz', 'wendung', 'antagonistenBezug', 'loseEnden', 'modell', 'datum'],
+  analyse: ['kapitel', 'textHash', 'zusammenfassung', 'kurz', 'wendung', 'antagonistenBezug', 'loseEnden', 'modell', 'datum', 'veraltet'],
 } as const;
 
 type Roh = Record<string, unknown>;

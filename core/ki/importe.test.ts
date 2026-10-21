@@ -80,10 +80,15 @@ describe('core/ki – Importe (harte Regel 1, statisch)', () => {
 
   it('auch core/projekt/lesen (transitiv) importiert nichts, was schreiben kann', () => {
     const lesen = resolve(ORDNER, '../projekt/lesen.ts');
-    const erlaubt = new Set(['yaml', '../model/types', './fs']);
+    const erlaubt = new Set(['yaml', '../model/types', './fs', './konflikte']);
     for (const imp of importe(lesen)) {
       expect(erlaubt.has(imp.pfad), `lesen.ts: ${imp.pfad}`).toBe(true);
       if (imp.pfad === './fs') expect(imp.nurTyp).toBe(true);
+    }
+    // Neue Diagnose-Abhängigkeit ebenfalls prüfen: nur Modelltypen und reines i18n.
+    for (const imp of importe(resolve(ORDNER, '../projekt/konflikte.ts'))) {
+      expect(['../model/types', '../i18n'].includes(imp.pfad), `konflikte.ts: ${imp.pfad}`).toBe(true);
+      if (imp.pfad === '../model/types') expect(imp.nurTyp).toBe(true);
     }
     const text = resolve(ORDNER, '../text/index.ts');
     for (const imp of importe(text)) {

@@ -60,6 +60,7 @@ import type {
   Verweis,
 } from '../model/types';
 import type { ProjektLeser } from './fs';
+import { istManuskriptPfad, nichtGeladeneKapitel, pruefeManuskript } from './konflikte';
 
 // ---------------------------------------------------------------------------
 // Pfade (reine Konstanten, auch von schreiben.ts genutzt)
@@ -83,6 +84,7 @@ export const PFADE = {
   /** KI-Vorschläge für Figuren, Orte, Beziehungen (KiVorschlaege) */
   vorschlaege: '.plotwerk/vorschlaege.json',
   versionen: '.versionen',
+  archiv: 'archiv/index.json',
   // Werkzeuge G1–G8 (docs/architektur.md)
   /** G1 Zeitleiste und Zustände (Zeitleiste) */
   zeitleiste: 'plan/zeitleiste.md',
@@ -651,6 +653,7 @@ export function parseAnalyse(text: string, id?: Id): KapitelAnalyse {
       .map((l) => ({ id: s(l.id), name: s(l.name), eroeffnet: l.eroeffnet === true })),
     modell: s(a.modell),
     datum: s(a.datum),
+    ...(a.veraltet === true ? { veraltet: true } : {}),
   };
 }
 
@@ -671,6 +674,7 @@ export function parseHinweise(text: string): Hinweis[] {
         quelle: eines(h.quelle, ['lokal', 'ki'] as const, 'ki'),
         offen: h.offen === true ? true : undefined,
         status: eines(h.status, ['neu', 'absicht', 'erledigt'] as const, 'neu'),
+        veraltet: h.veraltet === true ? true : undefined,
       }),
     );
 }
@@ -1193,6 +1197,8 @@ export interface LadeBericht {
   daten: ProjektDaten;
   /** Dateien, die nicht (vollständig) gelesen werden konnten – mit Grund */
   warnungen: { pfad: string; grund: string }[];
+  /** Manuskript-Diagnosen separat von Parse-/Ladewarnungen. */
+  konflikte: import('../model/types').ManuskriptKonflikt[];
 }
 
 /** Plan für ein Kapitel ohne Plandatei. */
@@ -1213,8 +1219,9 @@ export function standardPlan(kapitel: Kapitel): KapitelPlan {
 }
 
 /**
- * Lädt den Projektordner. Fehlende Dateien ergeben Leerwerte; Kapitel aus projekt.kapitel ohne
- * Manuskriptdatei sind nur geplant (text ''). Manuskript-/Plandateien, die in projekt.kapitel fehlen,
+ * Lädt den Projektordner. Nur ausdrücklich geplante Kapitel ohne Manuskriptdatei ergeben Leertext;
+ * nicht geladene Kapitel bleiben in Reihenfolge und Plan, ohne Text-Eintrag. Konfliktfreie Dateien,
+ * die in projekt.kapitel fehlen,
  * werden hinten angehängt (nur im Speicher). Jedes Kapitel hat danach einen Plan (ggf. Standardplan).
  */
 export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSprache = 'de'): Promise<LadeBericht> {
@@ -1249,10 +1256,20 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
     return ergebnis;
   }
 
-  const [projektRoh, manuskript, planDateien, akte, straenge, ideen, motive, figuren, gruppen, orte, anmerkungen, entscheidungen, kiHinweise] =
+  async function manuskriptLesen() {
+    const dateien = (await leser.auflisten(PFADE.manuskript)).filter(istManuskriptPfad);
+    const eintraege: { pfad: string; kapitel: Kapitel }[] = [];
+    for (const pfad of dateien.filter((p) => p.endsWith('.md'))) {
+      const kapitel = await liesFrontmatter(pfad, parseKapitel);
+      if (kapitel?.id) eintraege.push({ pfad, kapitel });
+    }
+    return { dateien, eintraege };
+  }
+
+  const [projektRoh, manuskriptRoh, planDateien, akte, straenge, ideen, motive, figuren, gruppen, orte, anmerkungen, entscheidungen, kiHinweise] =
     await Promise.all([
       liesFrontmatter(PFADE.projekt, (t) => parseProjekt(t)),
-      ordner(PFADE.manuskript, '.md', parseKapitel),
+      manuskriptLesen(),
       ordner(PFADE.planKapitel, '.md', parseKapitelPlan),
       liesFrontmatter(PFADE.akte, (t) => parseAkte(t)),
       liesFrontmatter(PFADE.straenge, (t) => parseStraenge(t)),
@@ -1292,6 +1309,18 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
   ]);
 
   const projekt: Projekt = projektRoh ?? { version: 1, titel: '', kapitel: [], notiz: '' };
+  const { kapitel: manuskript, konflikte } = pruefeManuskript(
+    manuskriptRoh.dateien, manuskriptRoh.eintraege, projekt.kapitel, planDateien, sprache,
+  );
+  const nichtGeladen = nichtGeladeneKapitel(konflikte);
+  const archiv: NonNullable<ProjektDaten['archiv']> = {};
+  const archivIndex = await lies(PFADE.archiv, parseArchivIndex);
+  for (const id of archivIndex?.kapitel ?? []) {
+    const k = await liesFrontmatter(`archiv/${kapitelPfad(id)}`, parseKapitel);
+    const p = await liesFrontmatter(`archiv/${planPfad(id)}`, parseKapitelPlan);
+    if (k && k.id === id && (!p || p.id === id)) archiv[id] = { kapitel: k, plan: p ?? standardPlan(k) };
+    else warnungen.push({ pfad: `archiv/${kapitelPfad(id)}`, grund: sprache === 'de' ? 'Archivkapitel fehlt oder hat eine widersprüchliche ID.' : 'Archived chapter is missing or has an inconsistent ID.' });
+  }
   const reihenfolge: Id[] = [];
   const gesehen = new Set<Id>();
   const dazu = (id: Id) => {
@@ -1309,12 +1338,15 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
   for (const id of reihenfolge) {
     const plan = planDateien[id];
     const k = manuskript[id] ?? { id, titel: plan?.titel || id, text: '' };
-    kapitel[id] = k;
+    if (!nichtGeladen.has(id)) kapitel[id] = k;
     plaene[id] = plan ?? standardPlan(k);
   }
 
   return {
     daten: {
+      manuskriptKonflikte: konflikte,
+      archiv,
+      reservierteKapitelIds: archivIndex?.reihenfolge ?? [],
       projekt: { ...projekt, kapitel: reihenfolge },
       kapitel,
       plaene,
@@ -1347,9 +1379,24 @@ export async function ladeProjektMitBericht(leser: ProjektLeser, sprache: LadeSp
       ...(kiFakten ? { kiFakten } : {}),
     },
     warnungen,
+    konflikte,
   };
 }
 
 export async function ladeProjekt(leser: ProjektLeser): Promise<ProjektDaten> {
   return (await ladeProjektMitBericht(leser)).daten;
+}
+
+/** Strikte Archiv-Metadaten: keine Pfade aus handbearbeiteten IDs konstruieren. */
+export function parseArchivIndex(text: string): { version: 1; kapitel: Id[]; reihenfolge: Id[] } {
+  const roh: unknown = JSON.parse(text);
+  if (!istObjekt(roh) || roh.version !== 1 || !Array.isArray(roh.kapitel) || !Array.isArray(roh.reihenfolge)) throw new Error('Invalid archive index');
+  const ids = (v: unknown[]): string[] => {
+    if (v.some(id => typeof id !== 'string' || !id || /[/\\]|^\.{1,2}$/.test(id)) || new Set(v).size !== v.length) throw new Error('Invalid archive IDs');
+    return v as string[];
+  };
+  const kapitel = ids(roh.kapitel);
+  const reihenfolge = ids(roh.reihenfolge);
+  if (kapitel.some(id => !reihenfolge.includes(id))) throw new Error('Invalid archive order');
+  return { version: 1, kapitel, reihenfolge };
 }
