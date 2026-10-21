@@ -20,6 +20,7 @@ function fakeBackend(teil: Partial<Backend> = {}): Backend {
     neuesProjekt: vi.fn(async () => null),
     letztesProjekt: vi.fn(async () => null),
     dateiWaehlen: vi.fn(async () => null),
+    ordnerWaehlen: vi.fn(async () => null),
     dateiSpeichern: vi.fn(async () => true),
     ki: { senden: vi.fn(), tokenZaehlen: vi.fn(), bereit: vi.fn(async () => false) } as unknown as Backend['ki'],
     indexSpeicher: { laden: async () => null, speichern: async () => undefined, leeren: async () => undefined },

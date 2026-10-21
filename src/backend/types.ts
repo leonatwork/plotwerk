@@ -3,6 +3,12 @@ import type { IndexSpeicher } from '@core/index/index';
 import type { KiTransport } from '@core/ki/index';
 import type { KiAnbieter } from '@core/model/types';
 import type { ProjektDateisystem } from '@core/projekt/fs';
+import type { ImportDatei } from '@core/importieren';
+
+export interface GewaehlterImportOrdner {
+  name: string;
+  dateien: ImportDatei[];
+}
 
 export interface GewaehlteDatei {
   name: string;
@@ -19,6 +25,8 @@ export interface Backend {
   letztesProjekt(): Promise<ProjektDateisystem | null>;
   /** Datei wählen, z. B. endungen ['docx']; null = abgebrochen */
   dateiWaehlen(endungen: string[]): Promise<GewaehlteDatei | null>;
+  /** Externer Importordner, eine Ebene; Fehler je Datei, null = abgebrochen. */
+  ordnerWaehlen(): Promise<GewaehlterImportOrdner | null>;
   /** Speichern-Dialog bzw. Download; false = abgebrochen */
   dateiSpeichern(vorschlag: string, daten: Uint8Array): Promise<boolean>;
   ki: KiTransport;

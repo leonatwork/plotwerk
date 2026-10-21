@@ -83,6 +83,14 @@ describe('TauriFs', () => {
 });
 
 describe('Tauri-Backend', () => {
+  it('liest Importordner über den dialoggebundenen Aufruf, einschließlich Dateifehlern und Abbruch', async () => {
+    const ordner = { name: 'Hafenlichter', dateien: [{ name: 'ebbe.md', inhalt: '# Ebbe\r\n' }, { name: 'flut.txt', fehler: 'kodierung' }] };
+    mocks.invoke.mockResolvedValueOnce(ordner).mockResolvedValueOnce(null);
+    const backend = await erstelleTauriBackend();
+    expect(await backend.ordnerWaehlen()).toEqual(ordner);
+    expect(await backend.ordnerWaehlen()).toBeNull();
+    expect(mocks.invoke).toHaveBeenCalledWith('import_ordner_waehlen', undefined, undefined);
+  });
   it('öffnet das letzte Projekt und lädt es über TauriFs', async () => {
     const speicher = new MemoryFs({
       'projekt.md': serializeProjekt({ version: 1, titel: 'Hafenlichter', kapitel: [], ki: STANDARD_KI, notiz: '' }),

@@ -203,6 +203,16 @@ describe('Roundtrip parse(serialize(x))', () => {
     expect(parseProjekt(serializeProjekt(projekt))).toEqual(projekt);
   });
 
+  it('erhält beim Ordnerimport Body, CRLF und äußeren Leerraum auch über erneutes Speichern', () => {
+    for (const text of ['', '\r\n  "Hafenlichter" --\r\n\r\n ', '---\r\nEbbe\r\n---\r\n', '\n\n# Flut\n']) {
+      const kapitel = { id: 'ebbe', titel: 'Ebbe', text, textUnveraendert: true };
+      const datei = serializeKapitel(kapitel);
+      expect(parseKapitel(datei)).toEqual(kapitel);
+      // Ein Aufrufer ohne das additive Feld verliert die gespeicherte Kennzeichnung nicht.
+      expect(parseKapitel(serializeKapitel({ id: 'ebbe', titel: 'Ebbe', text }, datei))).toEqual(kapitel);
+    }
+  });
+
   it('JSON-Dateien', () => {
     const e = parseEntscheidungen('{}');
     expect(e).toEqual({ version: 1, schreibweisen: [], hinweise: [], zuordnungen: [], faeden: [], zusammenfassungen: [], realitaet: [] });

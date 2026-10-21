@@ -67,7 +67,7 @@ const S = {
   deployments: ['erkennung', 'pruefung', 'tiefencheck'],
   claude: ['endpoint', 'modelle'],
   openai: ['vorlage', 'endpoint', 'modelle', 'kontextTokens'],
-  kapitel: ['id', 'titel'],
+  kapitel: ['id', 'titel', 'textUnveraendert'],
   plan: ['id', 'titel', 'akt', 'status', 'szene', 'funktion', 'straenge', 'figuren', 'orte', 'abweichungen', 'realitaet', 'zeit', 'szenen'],
   zeitpunkt: ['tag', 'wochentag', 'datum', 'tageszeit', 'uhrzeit', 'dauer', 'sicherheit', 'beleg', 'notiz'],
   szene: ['id', 'index', 'titel', 'ort', 'figuren', 'zeit', 'notiz'],
@@ -175,7 +175,11 @@ export function serializeProjekt(p: Projekt, vorhanden?: string | null): string 
 }
 
 export function serializeKapitel(k: Kapitel, vorhanden?: string | null): string {
-  return mitFrontmatter(ordne(k, S.kapitel, alteDaten(vorhanden).daten), k.text);
+  const alt = alteDaten(vorhanden).daten;
+  const daten = ordne({ ...k, textUnveraendert: k.textUnveraendert ?? alt.textUnveraendert }, S.kapitel, alt);
+  // Hier ist der Body bereits exakt definiert; keinen zusätzlichen Leerraum einfügen.
+  if (daten.textUnveraendert === true) return `---\n${yaml(daten)}---\n${k.text}`;
+  return mitFrontmatter(daten, k.text);
 }
 
 export function serializeKapitelPlan(p: KapitelPlan, vorhanden?: string | null): string {

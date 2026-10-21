@@ -347,6 +347,10 @@ export function parseProjekt(text: string): Projekt {
 export function parseKapitel(text: string, id?: Id): Kapitel {
   const { daten, body } = parseFrontmatter(text);
   const kid = s(daten.id) || id || '';
+  if (daten.textUnveraendert === true) {
+    const kopf = /^\uFEFF?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/.exec(text);
+    return { id: kid, titel: s(daten.titel) || kid, text: kopf ? text.slice(kopf[0].length) : text, textUnveraendert: true };
+  }
   return { id: kid, titel: s(daten.titel) || kid, text: body };
 }
 

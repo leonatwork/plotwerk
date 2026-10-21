@@ -12,7 +12,7 @@ import Database from '@tauri-apps/plugin-sql';
 import { kiAnbieter, kiEndpoint, kiMitStandards } from '@core/ki/index';
 import type { KiEinstellungen } from '@core/model/types';
 import { parseProjekt } from '@core/projekt';
-import type { Backend, GewaehlteDatei } from '../types';
+import type { Backend, GewaehlteDatei, GewaehlterImportOrdner } from '../types';
 import { aufruf } from './aufruf';
 import { legeGrundgeruestAn } from './grundgeruest';
 import { DATENBANK, erstelleSqlIndexSpeicher } from './indexSpeicher';
@@ -118,6 +118,10 @@ export async function erstelleTauriBackend(): Promise<Backend> {
       if (!gewaehlt) return null;
       const daten = await aufruf<ArrayBuffer>('datei_lesen_extern', { pfad: gewaehlt.pfad });
       return { name: gewaehlt.name, daten: new Uint8Array(daten) };
+    },
+
+    ordnerWaehlen() {
+      return aufruf<GewaehlterImportOrdner | null>('import_ordner_waehlen');
     },
 
     async dateiSpeichern(vorschlag, daten) {
