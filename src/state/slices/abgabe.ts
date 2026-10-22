@@ -152,7 +152,11 @@ export const createAbgabeSlice: StateCreator<Store, [], [], AbgabeSlice> = (set,
       async angabenSpeichern(angaben) {
         const projekt = daten().projekt;
         const sauber: ProjektAngaben = {};
-        for (const [k, v] of Object.entries(angaben) as [keyof ProjektAngaben, string | undefined][]) if (v?.trim()) sauber[k] = v.trim();
+        for (const k of ['autor', 'untertitel', 'genre', 'sprache'] as const) {
+          const v = angaben[k]?.trim();
+          if (v) sauber[k] = v;
+        }
+        if (angaben.anfuehrung) sauber.anfuehrung = angaben.anfuehrung;
         const alt = projekt.angaben ?? {};
         const gleich = JSON.stringify(Object.entries(alt).sort()) === JSON.stringify(Object.entries(sauber).sort());
         if (gleich) return;

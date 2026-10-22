@@ -631,6 +631,9 @@ export interface KiAblage<T> {
   lauf?: { datum: string; modell: string; kostenUsd?: number };
 }
 
+/** Manuell wählbare deutsche Anführungszeichen für die Tipp-Typografie. */
+export type AnfuehrungszeichenStil = 'de' | 'verlag' | 'schweiz';
+
 /** Angaben zum Buch (projekt.md, Feld `angaben`) – für Exposé, EPUB, Normseiten-Export (G7). Nicht an die KI. */
 export interface ProjektAngaben {
   autor?: string;
@@ -638,6 +641,8 @@ export interface ProjektAngaben {
   genre?: string;
   /** Sprache des Buchs als BCP-47-Code, Standard „de“ */
   sprache?: string;
+  /** Tipp-Typografie bei deutscher Buchsprache; fehlt = de. Keine Umstellung vorhandenen Texts. */
+  anfuehrung?: AnfuehrungszeichenStil;
 }
 
 // ---------------------------------------------------------------------------

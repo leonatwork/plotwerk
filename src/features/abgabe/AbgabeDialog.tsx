@@ -5,6 +5,7 @@
 import { useId, useMemo, useState } from 'react';
 import { exposeGeruest, exposePlatzhalter, normseitenZaehlen, offeneHinweise, personenAuswahl, type ExposeKapitelQuelle, type PersonenOptionen } from '@core/abgabe/index';
 import { epubKapitel } from '@core/epub/index';
+import { buchSprache } from '@core/i18n';
 import type { Id, KapitelStatus, ProjektAngaben } from '@core/model/types';
 import { wortzahl } from '@core/text/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
@@ -105,11 +106,11 @@ function Umfang({
   );
 }
 
-/** Angaben zum Buch (projekt.md) – aufklappbar, gespeichert beim Verlassen eines Felds. */
-function Angaben({ angaben, setze }: { angaben: ProjektAngaben; setze(teil: ProjektAngaben): void }) {
+/** Angaben zum Buch (projekt.md) – Sprache beim Verlassen, Stil bei Auswahl gespeichert; übrige Angaben beim Export. */
+function Angaben({ angaben, setze, speichern }: { angaben: ProjektAngaben; setze(teil: ProjektAngaben): void; speichern(angaben: ProjektAngaben): void }) {
   const id = useId();
   const ta = useTexte().abgabe.export.angaben;
-  const felder: { schluessel: keyof ProjektAngaben; label: string; platzhalter: string; hilfe?: string }[] = [
+  const felder: { schluessel: 'autor' | 'untertitel' | 'genre' | 'sprache'; label: string; platzhalter: string; hilfe?: string }[] = [
     { schluessel: 'autor', label: ta.autor, platzhalter: ta.autorPlatzhalter },
     { schluessel: 'untertitel', label: ta.untertitel, platzhalter: ta.untertitelPlatzhalter },
     { schluessel: 'genre', label: ta.genre, platzhalter: ta.genrePlatzhalter },
@@ -135,6 +136,7 @@ function Angaben({ angaben, setze }: { angaben: ProjektAngaben; setze(teil: Proj
               placeholder={f.platzhalter}
               aria-describedby={f.hilfe ? `${id}-${f.schluessel}-hilfe` : undefined}
               onChange={(e) => setze({ [f.schluessel]: e.target.value })}
+              onBlur={f.schluessel === 'sprache' ? () => speichern(angaben) : undefined}
             />
             {f.hilfe && (
               <span id={`${id}-${f.schluessel}-hilfe`} className="pw-ab-angaben__hilfe">
@@ -143,6 +145,28 @@ function Angaben({ angaben, setze }: { angaben: ProjektAngaben; setze(teil: Proj
             )}
           </div>
         ))}
+        {buchSprache(angaben) === 'de' && (
+          <div className="pw-feld">
+            <label className="pw-feld__label" htmlFor={`${id}-anfuehrung`}>{ta.anfuehrung}</label>
+            <select
+              id={`${id}-anfuehrung`}
+              className="pw-ab-select"
+              value={angaben.anfuehrung ?? 'de'}
+              aria-describedby={`${id}-anfuehrung-hilfe`}
+              onChange={(e) => {
+                const wert = e.target.value;
+                if (wert !== 'de' && wert !== 'verlag' && wert !== 'schweiz') return;
+                setze({ anfuehrung: wert });
+                speichern({ ...angaben, anfuehrung: wert });
+              }}
+            >
+              <option value="de">{ta.anfuehrungDe}</option>
+              <option value="verlag">{ta.anfuehrungVerlag}</option>
+              <option value="schweiz">{ta.anfuehrungSchweiz}</option>
+            </select>
+            <span id={`${id}-anfuehrung-hilfe`} className="pw-ab-angaben__hilfe">{ta.anfuehrungHilfe}</span>
+          </div>
+        )}
       </div>
     </details>
   );
@@ -539,7 +563,17 @@ export default function AbgabeDialog({ param, schliessen }: DialogKomponentenPro
             </div>
           )}
 
-          {format !== 'mappe' && <Angaben angaben={angaben} setze={(teil) => setAngaben((a) => ({ ...a, ...teil }))} />}
+          {format !== 'mappe' && (
+            <Angaben
+              angaben={angaben}
+              setze={(teil) => setAngaben((a) => ({ ...a, ...teil }))}
+              speichern={(neu) => {
+                void abgabe.angabenSpeichern(neu).catch((fehler: unknown) => {
+                  setStatus({ art: 'fehler', meldung: f(te.fehlgeschlagen, { meldung: fehler instanceof Error ? fehler.message : String(fehler) }) });
+                });
+              }}
+            />
+          )}
 
           <div className="pw-ie-feldreihe">
             <label htmlFor={dateinameId}>{te.dateiname}</label>

@@ -39,6 +39,10 @@ describe('Abgabe auf Englisch', () => {
     expect(screen.getByLabelText('File name')).toBeInTheDocument();
     const sprache = screen.getByLabelText('Language');
     expect(sprache).toHaveAccessibleDescription(/controls typography, hyphenation and the AI/);
+    const stil = screen.getByLabelText('Quotation mark style');
+    expect(within(stil).getAllByRole('option').map((o) => o.textContent)).toEqual(['German „…“ ‚…‘', 'Publishing »…« ›…‹', 'Swiss «…» ‹…›']);
+    fireEvent.change(sprache, { target: { value: 'en-GB' } });
+    expect(screen.queryByLabelText('Quotation mark style')).toBeNull();
     expect(screen.getByRole('button', { name: 'Export' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument();
     const text = document.body.textContent ?? '';

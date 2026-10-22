@@ -59,10 +59,10 @@ describe('typografieBeimTippen (Tabelle)', () => {
 });
 
 /** Tippt Zeichen für Zeichen wie der Editor (Absatzanfang = leerer Text). */
-function tippe(eingaben: string): string {
+function tippe(eingaben: string, stil?: 'de' | 'verlag' | 'schweiz'): string {
   let text = '';
   for (const z of eingaben) {
-    const e = typografieBeimTippen(text, z);
+    const e = typografieBeimTippen(text, z, 'de', stil);
     text = e ? text.slice(0, text.length - e.loeschen) + e.einfuegen : text + z;
   }
   return text;
@@ -78,6 +78,34 @@ describe('typografieBeimTippen (ganze Sätze)', () => {
     ['Link: https://a.de/x--y...', 'Link: https://a.de/x--y...'],
   ])('%s', (eingabe, erwartet) => {
     expect(tippe(eingabe)).toBe(erwartet);
+  });
+});
+
+describe.each([
+  ['de', '„', '“', '‚', '‘'],
+  ['verlag', '»', '«', '›', '‹'],
+  ['schweiz', '«', '»', '‹', '›'],
+] as const)('Anführungszeichen-Stil %s', (stil, auf, zu, einfachAuf, einfachZu) => {
+  it('tippt doppelte und einfache Zeichen mit Apostroph', () => {
+    expect(tippe('"Hallo"', stil)).toBe(`${auf}Hallo${zu}`);
+    expect(tippe("'Ich geh's holen', probier' es...", stil)).toBe(`${einfachAuf}Ich geh’s holen${einfachZu}, probier’ es…`);
+    expect(tippe(`"Er nennt es 'Kunst'"`, stil)).toBe(`${auf}Er nennt es ${einfachAuf}Kunst${einfachZu}${zu}`);
+  });
+
+  it.each(['', ' ', '(', '[', '{', '–', '—', '-', '\n'])('öffnet nach %j, auch verschachtelt', (davor) => {
+    expect(typografieBeimTippen(davor, '"', 'de', stil)?.einfuegen).toBe(auf);
+    expect(typografieBeimTippen(davor, "'", 'de', stil)?.einfuegen).toBe(einfachAuf);
+    expect(typografieBeimTippen(auf, "'", 'de', stil)?.einfuegen).toBe(einfachAuf);
+    expect(typografieBeimTippen(einfachAuf, '"', 'de', stil)?.einfuegen).toBe(auf);
+  });
+
+  it.each(['https://example.com/a', 'www.example.com', '~/Dokumente/', '/tmp/datei', 'C:\\Dokumente\\', 'paul@example.com', 'mailto:paul@example.com', '`x = '])('lässt technische Umgebung %j unverändert', (davor) => {
+    for (const zeichen of ['"', "'"]) expect(typografieBeimTippen(davor, zeichen, 'de', stil)).toBeNull();
+  });
+
+  it('wirkt nicht auf englische Typografie', () => {
+    expect(typografieBeimTippen('', '"', 'en', stil)?.einfuegen).toBe('“');
+    expect(typografieBeimTippen('“Hallo', '"', 'en', stil)?.einfuegen).toBe('”');
   });
 });
 

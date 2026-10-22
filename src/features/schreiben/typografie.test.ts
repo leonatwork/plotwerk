@@ -2,6 +2,8 @@ import { Editor } from '@tiptap/core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { basisErweiterungen } from './schema';
 import { Typografie } from './typografie';
+import { useStore } from '../../state/store';
+import { demoFs } from '../../../fixtures/demoProjekt';
 
 let editor: Editor | null = null;
 
@@ -23,6 +25,7 @@ function tippe(ed: Editor, zeichen: string) {
 afterEach(() => {
   editor?.destroy();
   editor = null;
+  useStore.setState({ daten: null, fs: null });
 });
 
 describe('Typografie im Editor', () => {
@@ -77,6 +80,37 @@ describe('Typografie im Editor', () => {
 });
 
 describe('Typografie im Editor – Buchsprache', () => {
+  it.each([
+    ['de', '„Hallo“ ‚ja‘'],
+    ['verlag', '»Hallo« ›ja‹'],
+    ['schweiz', '«Hallo» ‹ja›'],
+  ] as const)('liest %s zur Tippzeit aus dem Store und erhält Undo', async (anfuehrung, erwartet) => {
+    await useStore.getState().projektLaden(demoFs());
+    await useStore.getState().abgabe.angabenSpeichern({ sprache: 'de-CH', anfuehrung });
+    const ed = neuerEditor('<p>"Bestand"</p>');
+    ed.commands.setTextSelection(ed.state.doc.content.size - 1);
+    tippe(ed, ' "Hallo" \'ja\'');
+    expect(ed.state.doc.textContent).toBe(`"Bestand" ${erwartet}`);
+    ed.commands.undo();
+    expect(ed.state.doc.textContent).toBe(`"Bestand" ${erwartet.slice(0, -1)}'`);
+    const vorher = ed.state.doc.textContent;
+    await useStore.getState().abgabe.angabenSpeichern({ sprache: 'de', anfuehrung: 'schweiz' });
+    expect(ed.state.doc.textContent).toBe(vorher);
+    tippe(ed, ' "Neu"');
+    expect(ed.state.doc.textContent).toBe(`${vorher} «Neu»`);
+    await useStore.getState().abgabe.angabenSpeichern({ sprache: 'en', anfuehrung: 'schweiz' });
+    tippe(ed, ' "Hello"');
+    expect(ed.state.doc.textContent).toBe(`${vorher} «Neu» “Hello”`);
+  });
+
+  it('de-CH wählt ohne Stil nicht automatisch Schweizer Zeichen', async () => {
+    await useStore.getState().projektLaden(demoFs());
+    await useStore.getState().abgabe.angabenSpeichern({ sprache: 'de-CH' });
+    const ed = neuerEditor();
+    tippe(ed, '"Hallo"');
+    expect(ed.state.doc.textContent).toBe('„Hallo“');
+  });
+
   it('setzt bei englischer Buchsprache englische Anführungszeichen und Geviertstrich', () => {
     let sprache: 'de' | 'en' = 'en';
     editor = new Editor({

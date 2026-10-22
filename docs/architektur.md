@@ -79,7 +79,11 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 └── .versionen/…               Schnappschüsse (Binärdateien: .versionen/recherche/…/<Zeitstempel>.<endung>)
 ```
 
-`projekt.md` hat zusätzlich das optionale Feld `angaben` (autor, untertitel, genre, sprache; G7, nicht an die KI).
+`projekt.md` hat zusätzlich das optionale Feld `angaben` (autor, untertitel, genre, sprache, anfuehrung; G7, nicht an die KI).
+`angaben.anfuehrung` ist optional: `de` = „…“ / ‚…‘ (auch ohne Angabe), `verlag` = »…« / ›…‹,
+`schweiz` = «…» / ‹…›. Nur bei deutscher Buchsprache wirkt der Stil beim Tippen (E7); Apostroph bleibt ’.
+Bei anderen Buchsprachen ist die Auswahl ausgeblendet, der gespeicherte Wert bleibt erhalten.
+`de-CH` wählt keinen Stil automatisch. Unbekannte Stilwerte werden beim Lesen verworfen.
 
 **Kapitelarchiv (Issue #13, Paket 1):** Archivierte Kapitel stehen nicht in `projekt.md → kapitel` und werden
 separat als `ProjektDaten.archiv` geladen, nie als aktiver Text/Plan, Export oder KI-Kontext. Die IDs bleiben

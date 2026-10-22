@@ -48,7 +48,8 @@ describe('Wörterbuch de ↔ en', () => {
   });
 
   it('enthält im Englischen keine deutschen Umlaute (außer ausdrücklich deutschen Wörtern)', () => {
-    const erlaubt = new Set(['sprache.de']);
+    // Die Stilwahl zeigt auch in der englischen Oberfläche die tatsächlichen deutschen Zeichen.
+    const erlaubt = new Set(['sprache.de', 'abgabe.export.angaben.anfuehrungDe']);
     const verdaechtig = [...enKarte.entries()]
       .filter(([k, w]) => !erlaubt.has(k) && typeof w === 'string' && /[äöüÄÖÜß„]/.test(w))
       .map(([k]) => k);
