@@ -13,6 +13,9 @@ body,
 }
 
 body {
+  zoom: var(--ui-skalierung, 1);
+  width: calc(100% / var(--ui-skalierung, 1));
+  height: calc(100% / var(--ui-skalierung, 1));
   background: var(--surface);
   color: var(--ink);
   font-family: var(--schrift-ui);

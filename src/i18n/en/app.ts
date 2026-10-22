@@ -2,6 +2,15 @@ import type { Form } from '@core/i18n';
 import type { app as de } from '../de/app';
 
 export const app: Form<typeof de> = {
+  darstellung: {
+    abschnitt: 'Appearance',
+    schriftgroesse: 'Font size (px)',
+    zeilenbreite: 'Line width (px)',
+    zeilenhoehe: 'Line height',
+    skalierung: 'UI scale',
+    zuruecksetzen: 'Reset',
+    erklaerung: 'Applies immediately to all projects. ⌘+ and ⌘− scale the entire interface. Reset restores the editor and interface defaults.',
+  },
   laden: {
     laedt: 'Loading',
     fehler: 'The project couldn’t be loaded.',

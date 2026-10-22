@@ -1,5 +1,14 @@
 /** Texte für den Bereich „app“ (deutsch, Quellsprache). Schlüssel: kurze deutsche Bezeichner. */
 export const app = {
+  darstellung: {
+    abschnitt: 'Darstellung',
+    schriftgroesse: 'Schriftgröße (px)',
+    zeilenbreite: 'Zeilenbreite (px)',
+    zeilenhoehe: 'Zeilenhöhe',
+    skalierung: 'UI-Skalierung',
+    zuruecksetzen: 'Zurücksetzen',
+    erklaerung: 'Gilt sofort für alle Projekte. ⌘+ und ⌘− skalieren die ganze Oberfläche. Zurücksetzen stellt Editor und Oberfläche auf die Standardwerte.',
+  },
   /** App.tsx: Laden und Ladefehler */
   laden: {
     laedt: 'Lädt',

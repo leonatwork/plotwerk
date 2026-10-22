@@ -193,6 +193,25 @@ pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .separator()
         .item(&befehl(
             app,
+            "ui-vergroessern",
+            t("Vergrößern", "Zoom In"),
+            None,
+        )?)
+        .item(&befehl(
+            app,
+            "ui-verkleinern",
+            t("Verkleinern", "Zoom Out"),
+            None,
+        )?)
+        .item(&befehl(
+            app,
+            "ui-originalgroesse",
+            t("Originalgröße", "Actual Size"),
+            None,
+        )?)
+        .separator()
+        .item(&befehl(
+            app,
             "typewriter",
             t("Typewriter-Modus", "Typewriter Mode"),
             Some("CmdOrCtrl+Shift+T"),

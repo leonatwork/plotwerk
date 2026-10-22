@@ -5,11 +5,24 @@ import { useStore } from '../state/store';
 import { App } from './App';
 import { befehlFuerTaste } from './befehle';
 import { suche } from './suche';
+import { BEFEHL_EREIGNIS } from './befehle';
+import { initialisiereDarstellung, setzeDarstellung, useDarstellungsStore } from '../state/darstellung';
+import { STANDARD_DARSTELLUNG } from '@core/darstellung';
 
 const taste = (key: string, extra: Partial<KeyboardEvent> = {}) =>
   befehlFuerTaste({ metaKey: true, ctrlKey: false, altKey: false, shiftKey: false, key, code: '', ...extra });
 
 describe('Tastenkürzel', () => {
+  it('⌘+/⌘− unterstützen deutsche und US-Tastaturen ohne Kollisionen', () => {
+    expect(taste('+')).toBe('ui-vergroessern');
+    expect(taste('+', { shiftKey: true, code: 'Equal' })).toBe('ui-vergroessern');
+    expect(taste('=', { code: 'Equal' })).toBe('ui-vergroessern');
+    expect(taste('-')).toBe('ui-verkleinern');
+    expect(taste('+', { altKey: true })).toBeNull();
+    expect(taste('-', { ctrlKey: true })).toBeNull();
+    expect(taste('0')).toBe('recherche');
+    expect(taste('0', { altKey: true })).toBeNull();
+  });
   it('⌘1–⌘0, ⌘K, ⌘⇧F, ⌘⇧T, ⌘E, ⌘,', () => {
     expect(taste('1')).toBe('schreiben');
     expect(taste('7')).toBe('hinweise');
@@ -48,6 +61,30 @@ describe('Schnellsuche', () => {
 });
 
 describe('App im Browser-Demo', () => {
+  it('skaliert auch bei offenem Dialog, persistiert und setzt über den Menübefehl nur Zoom zurück', async () => {
+    await setzeDarstellung({ ...STANDARD_DARSTELLUNG });
+    render(<App />);
+    await screen.findByRole('navigation', { name: 'Bereiche' });
+    await act(async () => { fireEvent.keyDown(window, { key: ',', metaKey: true }); });
+    await screen.findByRole('dialog', { name: 'Einstellungen' });
+    const bereich = useStore.getState().bereich;
+    await act(async () => { fireEvent.keyDown(window, { key: '+', shiftKey: true, metaKey: true }); });
+    expect(useDarstellungsStore.getState().werte.skalierung).toBe(1.1);
+    expect(document.body.style.getPropertyValue('--ui-skalierung')).toBe('1.1');
+    expect(useStore.getState().bereich).toBe(bereich);
+    expect(useStore.getState().dialog?.id).toBe('ki-einstellungen');
+    await act(async () => { fireEvent.keyDown(window, { key: '-', metaKey: true }); });
+    expect(useDarstellungsStore.getState().werte.skalierung).toBe(1);
+    await act(async () => { await setzeDarstellung({ schriftgroesse: 20, skalierung: 1.2 }); await initialisiereDarstellung(); });
+    expect(useDarstellungsStore.getState().werte.skalierung).toBe(1.2);
+    await act(async () => { window.dispatchEvent(new CustomEvent(BEFEHL_EREIGNIS, { detail: 'ui-originalgroesse' })); });
+    expect(useDarstellungsStore.getState().werte).toMatchObject({ skalierung: 1, schriftgroesse: 20 });
+    act(() => { useStore.getState().schliesseDialog(); });
+    await act(async () => { fireEvent.keyDown(window, { key: '0', metaKey: true }); });
+    expect(useStore.getState().bereich).toBe('recherche');
+    act(() => { useStore.getState().setzeBereich('schreiben'); });
+    await act(async () => { await setzeDarstellung({ ...STANDARD_DARSTELLUNG }); });
+  });
   it('lädt das Demo-Projekt und zeigt Rahmen, Navigation und Bereiche', async () => {
     render(<App />);
     const nav = await screen.findByRole('navigation', { name: 'Bereiche' });

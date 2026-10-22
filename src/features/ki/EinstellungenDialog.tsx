@@ -13,6 +13,7 @@ import { kiFehlerAnzeige } from '../../state/slices/ki';
 import { useStore } from '../../state/store';
 import { Abschnittslabel, Button, Dialog, Feld, Segment, StrangPunkt, Textfeld } from '../../ui';
 import './ki.css';
+import { DarstellungAbschnitt } from './DarstellungAbschnitt';
 
 /** Basis-URL ohne „/“ und ohne „/v1/messages“ am Ende. */
 export function endpointNormalisieren(wert: string): string {
@@ -305,6 +306,7 @@ export function EinstellungenDialog({ schliessen }: DialogKomponentenProps) {
       }
     >
       <SprachWahlAbschnitt />
+      <DarstellungAbschnitt />
       <FunktionenEinstellungen />
 
       <section className="pw-ki-abschnitt" aria-labelledby="ki-anbieter">
