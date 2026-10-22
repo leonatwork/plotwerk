@@ -6,11 +6,15 @@ import { oeffneVorschau, schliesseVorschau, vorschauOffen } from '../features/vo
 import { useStore, type Bereich } from '../state/store';
 import { BEREICHE } from './bereiche';
 import { funktionFuerBefehl, funktionSicherstellen } from './funktionen';
+import { setzeDarstellung, skaliereOberflaeche } from '../state/darstellung';
 
 export type Befehl =
   | Bereich
   | 'schnellsuche'
   | 'fokus'
+  | 'ui-vergroessern'
+  | 'ui-verkleinern'
+  | 'ui-originalgroesse'
   | 'export'
   | 'import'
   | 'einstellungen'
@@ -51,6 +55,15 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
   }
   const sichern = () => s.editorSichern().catch((e: unknown) => console.error('Sichern vor dem Befehl fehlgeschlagen:', e));
   switch (befehl) {
+    case 'ui-vergroessern':
+      await skaliereOberflaeche(1);
+      break;
+    case 'ui-verkleinern':
+      await skaliereOberflaeche(-1);
+      break;
+    case 'ui-originalgroesse':
+      await setzeDarstellung({ skalierung: 1 });
+      break;
     case 'schnellsuche':
       if (s.daten) s.oeffneDialog('schnellsuche');
       break;
@@ -162,6 +175,9 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
 export function befehlFuerTaste(e: Pick<KeyboardEvent, 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey' | 'key' | 'code'>): Befehl | null {
   if (!e.metaKey || e.ctrlKey || e.altKey) return null;
   const taste = e.key.toLowerCase();
+  // „+“ braucht auf US-Tastaturen Shift; ⌘= ist dort ebenfalls üblich.
+  if (taste === '+' || (!e.shiftKey && taste === '=')) return 'ui-vergroessern';
+  if (!e.shiftKey && taste === '-') return 'ui-verkleinern';
   if (e.shiftKey) return taste === 'f' ? 'fokus' : taste === 'b' ? 'vorschau' : taste === 't' ? 'typewriter' : taste === 's' ? 'fassung' : null;
   const bereich = BEREICHE.find((b) => b.taste && (b.taste === taste || e.code === `Digit${b.taste}`));
   if (bereich) return bereich.id;

@@ -9,6 +9,7 @@
 import { Extension } from '@tiptap/core';
 import { Plugin, PluginKey, type EditorState, type Transaction } from '@tiptap/pm/state';
 import { Decoration, DecorationSet, type EditorView } from '@tiptap/pm/view';
+import { oberflaechenSkalierung } from '../../../state/darstellung';
 
 export interface WiederholungsStelle {
   from: number;
@@ -74,7 +75,7 @@ export function zeileMittig(view: EditorView, sanft = true): void {
     return;
   }
   const r = papier.getBoundingClientRect();
-  const ziel = papier.scrollTop + (y - r.top) - papier.clientHeight / 2;
+  const ziel = papier.scrollTop + (y - r.top) / oberflaechenSkalierung() - papier.clientHeight / 2;
   if (Math.abs(ziel - papier.scrollTop) < 2) return;
   papier.scrollTo({ top: Math.max(0, ziel), behavior: sanft && !reduziert() ? 'smooth' : 'auto' });
 }

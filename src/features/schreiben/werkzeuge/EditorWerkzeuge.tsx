@@ -21,6 +21,7 @@ import { setzeFortschritt, vorleseMeldung } from './fortschritt';
 import { bekannteNamen, eigennamen, LEERE_MARKENLISTE } from './gemeinsam';
 import { neueAeusserung, satzAb, sprachausgabe, vorleseSaetze, vorleseStartAbholen, waehleStimme, type VorleseSatz } from './vorlesen';
 import type { Node as PMNode } from '@tiptap/pm/model';
+import { oberflaechenSkalierung, useDarstellungsStore } from '../../../state/darstellung';
 
 export interface EditorWerkzeugeProps {
   editor: Editor | null;
@@ -61,13 +62,14 @@ function inSicht(editor: Editor, papier: HTMLElement | null, pos: number, mittig
     if (sichtbar && !mittig) return;
     const anteil = mittig ? 0.5 : 0.35;
     const reduziert = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-    papier.scrollTo({ top: Math.max(0, papier.scrollTop + (c.top - r.top) - papier.clientHeight * anteil), behavior: reduziert ? 'auto' : 'smooth' });
+    papier.scrollTo({ top: Math.max(0, papier.scrollTop + (c.top - r.top) / oberflaechenSkalierung() - papier.clientHeight * anteil), behavior: reduziert ? 'auto' : 'smooth' });
   } catch {
     /* Position außerhalb des Dokuments */
   }
 }
 
 export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeugeProps) {
+  const darstellung = useDarstellungsStore((s) => s.werte);
   const typewriter = useStore((s) => s.editorwerkzeuge.typewriter);
   const karteRef = useRef<{ doc: PMNode; karte: KlartextKarte } | null>(null);
 
@@ -148,8 +150,9 @@ export function EditorWerkzeuge({ editor, papierRef, kapitelId }: EditorWerkzeug
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
     setzeTypewriter(editor.view, typewriter);
-    if (typewriter) requestAnimationFrame(() => !editor.isDestroyed && zeileMittig(editor.view, false));
-  }, [editor, typewriter, kapitelId]);
+    const rahmen = typewriter ? requestAnimationFrame(() => !editor.isDestroyed && zeileMittig(editor.view, false)) : 0;
+    return () => cancelAnimationFrame(rahmen);
+  }, [editor, typewriter, kapitelId, darstellung]);
 
   // ------------------------------------------------------------ Vorlesen
   useEffect(() => {

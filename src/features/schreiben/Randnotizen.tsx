@@ -8,6 +8,7 @@ import type { Anmerkung, Id, ProjektDaten, TextAnker, Verweis } from '@core/mode
 import type { Editor } from '@tiptap/react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useStore } from '../../state/store';
+import { oberflaechenSkalierung, useDarstellungsStore } from '../../state/darstellung';
 import { datum, f, useTexte, vergleich } from '../../i18n';
 import { Abschnittslabel, Avatar, Button, klassen } from '../../ui';
 import { notizBereiche } from './dekorationen';
@@ -118,7 +119,7 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
       const neu: Record<Id, number> = {};
       for (const [id, b] of notizBereiche(editor.state)) {
         try {
-          neu[id] = Math.round(editor.view.coordsAtPos(b.from).top - oben - 4);
+          neu[id] = Math.round((editor.view.coordsAtPos(b.from).top - oben) / oberflaechenSkalierung() - 4);
         } catch {
           /* Position nicht darstellbar */
         }
@@ -132,6 +133,7 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
     };
     editor.on('transaction', planen);
     window.addEventListener('resize', planen);
+    const abDarstellung = useDarstellungsStore.subscribe(planen);
     const beobachter = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(planen);
     beobachter?.observe(editor.view.dom);
     if (randRef.current) beobachter?.observe(randRef.current);
@@ -140,6 +142,7 @@ export function Randnotizen({ editor, kapitelId, randRef, anmerkungen, verwaist,
     return () => {
       editor.off('transaction', planen);
       window.removeEventListener('resize', planen);
+      abDarstellung();
       beobachter?.disconnect();
       if (rahmen) cancelAnimationFrame(rahmen);
     };

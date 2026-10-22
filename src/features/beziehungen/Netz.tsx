@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Keyboard
 import type { Index } from '@core/index/index';
 import type { Id, ProjektDaten } from '@core/model/types';
 import { f as fmt, useTexte } from '../../i18n';
+import { oberflaechenSkalierung } from '../../state/darstellung';
 import { useStore } from '../../state/store';
 import { klassen } from '../../ui';
 import { KARTE, netzBerechnen, paarSchluessel, type NetzAnsicht, type NetzFilter, type NetzKarte, type NetzPlatzhalter, type Segment } from './logik';
@@ -87,7 +88,9 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
 
   const punkt = (e: { clientX: number; clientY: number }) => {
     const r = inhalt.current?.getBoundingClientRect();
-    return { x: e.clientX - (r?.left ?? 0), y: e.clientY - (r?.top ?? 0) };
+    const skalierung = oberflaechenSkalierung();
+    // Zeiger und DOMRect sind Bildschirm-Pixel, Netzpositionen lokale CSS-Pixel.
+    return { x: (e.clientX - (r?.left ?? 0)) / skalierung, y: (e.clientY - (r?.top ?? 0)) / skalierung };
   };
 
   const starte = (e: PointerEvent, z: Zug) => {
@@ -141,7 +144,10 @@ export function Netz({ daten, index, ansicht: basis, standIdx, filter }: NetzPro
       const p = punkt(e);
       const ueber = figurUnter(e.clientX, e.clientY);
       neu = { ...z, x: p.x, y: p.y, bewegt, ueber: ueber !== z.von ? ueber : null };
-    } else neu = { ...z, dx, dy, bewegt };
+    } else {
+      const skalierung = oberflaechenSkalierung();
+      neu = { ...z, dx: dx / skalierung, dy: dy / skalierung, bewegt };
+    }
     zugRef.current = neu;
     setZug(neu);
   };

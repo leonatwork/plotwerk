@@ -15,7 +15,8 @@ import type { Node as PMNode } from '@tiptap/pm/model';
 import { EditorState, TextSelection } from '@tiptap/pm/state';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import { EditorWerkzeuge, editorErweiterungen } from './werkzeuge';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { oberflaechenSkalierung, useDarstellungsStore } from '../../state/darstellung';
 import { ankerGleich } from '../../state/slices/schreiben';
 import { useStore } from '../../state/store';
 import { f, texte, useTexte } from '../../i18n';
@@ -117,6 +118,7 @@ function KapitelTitel({ kapitelId, titel, editor }: { kapitelId: Id; titel: stri
 }
 
 export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
+  const darstellung = useDarstellungsStore((s) => s.werte);
   const t = useTexte();
   /** Buchsprache für Rechtschreibprüfung und Silbentrennung des WebViews */
   const buchLang = useBuchSprache();
@@ -348,7 +350,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
     try {
       const c = ed.view.coordsAtPos(pos);
       const r = papier.getBoundingClientRect();
-      papier.scrollTo({ top: Math.max(0, papier.scrollTop + (c.top - r.top) - papier.clientHeight * 0.3), behavior: 'smooth' });
+      papier.scrollTo({ top: Math.max(0, papier.scrollTop + (c.top - r.top) / oberflaechenSkalierung() - papier.clientHeight * 0.3), behavior: 'smooth' });
     } catch {
       /* außerhalb des Dokuments */
     }
@@ -634,7 +636,11 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
   return (
     <div className="pw-s-mitte">
       <div ref={papierRef} className={klassen('pw-s-papier', fokusModus && 'pw-s-papier--fokus', typewriter && 'pw-s-papier--typewriter')}>
-        <article className="pw-s-text" lang={buchLang}>
+        <article className="pw-s-text" lang={buchLang} style={{
+          '--editor-schriftgroesse': `${darstellung.schriftgroesse}px`,
+          '--editor-zeilenbreite': `${darstellung.zeilenbreite}px`,
+          '--editor-zeilenhoehe': darstellung.zeilenhoehe,
+        } as CSSProperties}>
           <span className="pw-s-kopf-label">{label}</span>
           <KapitelTitel kapitelId={kapitelId} titel={titel} editor={editor} />
           <EditorContent editor={editor} />
