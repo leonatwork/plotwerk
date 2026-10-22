@@ -316,7 +316,7 @@ export function SchreibEditor({ kapitelId }: { kapitelId: Id }) {
       attributes: {
         class: 'pw-s-prosemirror',
         spellcheck: 'true',
-        lang: 'de',
+        lang: buchLang,
         autocorrect: 'off',
         autocapitalize: 'off',
         'aria-label': t.schreiben.editor.textLabel,

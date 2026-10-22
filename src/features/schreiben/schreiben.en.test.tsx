@@ -2,7 +2,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { Editor } from '@tiptap/core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { demoFs } from '../../../fixtures/demoProjekt';
+import { demoFs, demoFsEn } from '../../../fixtures/demoProjekt';
 import { festeSprache } from '../../i18n';
 import { useStore } from '../../state/store';
 import { BLASE_VERZOEGERUNG_MS } from './Blase';
@@ -38,7 +38,88 @@ function editorVon(container: HTMLElement): Editor {
   return el.editor;
 }
 
+function erwarteBuchLang(container: HTMLElement, lang: 'de' | 'en') {
+  for (const selektor of ['.pw-s-titel', 'article.pw-s-text', '.pw-s-prosemirror']) {
+    expect(container.querySelector(selektor)).toHaveAttribute('lang', lang);
+  }
+}
+
 const DEUTSCH = /Wörter|Wort |gesamt|Automatisch gespeichert|Speichert|Versionsverlauf|Kapitel planen|geplant|Entwurf|Erkannt|Hinweise|Stil\b|Kurzbeschreibung|Ich weiche/;
+
+describe('Buchsprache im Editor', () => {
+  it('setzt lang="en" für Harbour Lights auch bei deutscher Oberfläche', async () => {
+    await useStore.getState().projektLaden(demoFsEn());
+    festeSprache('de');
+    const { container, unmount } = render(<SchreibEditor kapitelId="high-tide" />);
+    expect(editorVon(container).state.doc.textContent).not.toBe('');
+    erwarteBuchLang(container, 'en');
+    unmount();
+  });
+
+  it.each(['de', undefined] as const)('setzt lang="de" bei Buchsprache %s trotz englischer Oberfläche', async (sprache) => {
+    await useStore.getState().abgabe.angabenSpeichern({ sprache });
+    expect(useStore.getState().daten!.projekt.angaben?.sprache).toBe(sprache);
+    const { container, unmount } = render(<SchreibEditor kapitelId="flut" />);
+    erwarteBuchLang(container, 'de');
+    unmount();
+  });
+
+  it('aktualisiert die Buchsprache ohne neue Instanz, Textverlust, Auswahlsprung oder Verlust des Undo-Verlaufs', async () => {
+    await useStore.getState().abgabe.angabenSpeichern({ sprache: 'de' });
+    const { container, unmount } = render(<SchreibEditor kapitelId="flut" />);
+    const ed = editorVon(container);
+    // jsdom hat kein Text-Layout; Fokus/Auswahl werden mit festen Koordinaten geprüft.
+    vi.spyOn(ed.view, 'coordsAtPos').mockReturnValue({ left: 100, right: 100, top: 100, bottom: 120 });
+    const dom = ed.view.dom;
+    const original = ed.state.doc;
+    act(() => {
+      ed.commands.insertContent('Volvo ');
+      ed.commands.setTextSelection({ from: 2, to: 5 });
+      dom.focus();
+    });
+    const doc = ed.state.doc;
+    const auswahl = ed.state.selection;
+    expect(doc).not.toBe(original);
+    expect(ed.can().undo()).toBe(true);
+    erwarteBuchLang(container, 'de');
+
+    for (const sprache of ['en', 'de', undefined] as const) {
+      // Derselbe Persistenzweg wie „Angaben zum Buch“, ohne Autosave-Timer auszuführen.
+      await act(async () => {
+        await useStore.getState().abgabe.angabenSpeichern({ sprache });
+      });
+      erwarteBuchLang(container, sprache ?? 'de');
+      expect(editorVon(container)).toBe(ed);
+      expect(ed.view.dom).toBe(dom);
+      expect(ed.isDestroyed).toBe(false);
+      expect(ed.state.doc).toBe(doc);
+      expect(ed.state.selection.eq(auswahl)).toBe(true);
+      expect(ed.view.hasFocus()).toBe(true);
+      expect(ed.can().undo()).toBe(true);
+    }
+    act(() => { ed.commands.undo(); });
+    expect(ed.state.doc.eq(original)).toBe(true);
+    unmount();
+  });
+
+  it('aktualisiert lang beim Projektwechsel in beide Richtungen ohne neue Editor-Instanz', async () => {
+    const { container, unmount } = render(<SchreibEditor kapitelId="lotte" />);
+    const ed = editorVon(container);
+    erwarteBuchLang(container, 'de');
+
+    for (const [fs, lang] of [[demoFsEn(), 'en'], [demoFs(), 'de']] as const) {
+      await act(async () => {
+        await useStore.getState().projektLaden(fs);
+      });
+      erwarteBuchLang(container, lang);
+      expect(editorVon(container)).toBe(ed);
+      expect(ed.isDestroyed).toBe(false);
+      expect(ed.state.doc.textContent).not.toBe('');
+      expect(container.querySelector('.pw-s-titel')?.textContent).toBe(useStore.getState().daten!.kapitel.lotte!.titel);
+    }
+    unmount();
+  });
+});
 
 describe('Schreiben auf Englisch', () => {
   it('zeigt Statusleiste, Kapitelliste und Inspektor auf Englisch', async () => {
