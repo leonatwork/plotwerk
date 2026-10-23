@@ -94,6 +94,12 @@ pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     let ablage = SubmenuBuilder::new(app, t("Ablage", "File"))
         .item(&befehl(
             app,
+            "projekt-sichern",
+            t("Projekt als Archiv sichern …", "Back Up Project as Archive…"),
+            None,
+        )?)
+        .item(&befehl(
+            app,
             "projekt-oeffnen",
             t("Projekt öffnen …", "Open Project…"),
             Some("CmdOrCtrl+O"),

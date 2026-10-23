@@ -7,6 +7,7 @@ import { useStore, type Bereich } from '../state/store';
 import { BEREICHE } from './bereiche';
 import { funktionFuerBefehl, funktionSicherstellen } from './funktionen';
 import { setzeDarstellung, skaliereOberflaeche } from '../state/darstellung';
+import { sicherungStarten } from '../features/sicherungen/sicherung';
 
 export type Befehl =
   | Bereich
@@ -22,6 +23,7 @@ export type Befehl =
   | 'pruefen'
   | 'buch-pruefen'
   | 'projekt-oeffnen'
+  | 'projekt-sichern'
   | 'vorschau'
   // Werkzeuge G1–G8
   | 'zeit-vorschlaege'
@@ -55,6 +57,17 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
   }
   const sichern = () => s.editorSichern().catch((e: unknown) => console.error('Sichern vor dem Befehl fehlgeschlagen:', e));
   switch (befehl) {
+    case 'projekt-sichern':
+      if (!s.daten || !s.fs || s.backend?.art !== 'tauri' || !s.backend.sicherungen) break;
+      try {
+        await s.editorSichern();
+        await s.alleSpeichernAbwarten();
+        await sicherungStarten(s.backend.sicherungen, s.fs, false);
+      } catch (e) {
+        const { useSicherungsStatus } = await import('../features/sicherungen/sicherung');
+        useSicherungsStatus.setState({ fehler: String(e), fertig: false });
+      }
+      break;
     case 'ui-vergroessern':
       await skaliereOberflaeche(1);
       break;

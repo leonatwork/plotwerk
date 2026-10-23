@@ -74,7 +74,7 @@ pub(crate) fn sperre<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T>
 }
 
 /// Öffnet einen bereits geprüften Ordner: registrieren, Überwachung starten, merken.
-fn oeffnen(app: &AppHandle, zustand: &Zustand, pfad: &Path) -> Result<ProjektInfo, String> {
+pub(crate) fn oeffnen(app: &AppHandle, zustand: &Zustand, pfad: &Path) -> Result<ProjektInfo, String> {
     let wurzel = Wurzel::neu(pfad)?;
     let kennung = sperre(&zustand.projekte).oeffnen(wurzel.clone());
     match ueberwachung::starten(app.clone(), wurzel.clone(), zustand.eigene.clone()) {
@@ -414,6 +414,16 @@ pub async fn einstellung_schreiben(
     schluessel: String,
     wert: serde_json::Value,
 ) -> Result<(), String> {
+    if schluessel == crate::sicherungen::ORT
+        || schluessel == crate::sicherungen::WURZELN
+        || schluessel == crate::sicherungen::PROJEKTE
+    {
+        return Err(crate::sprache::t(
+            "Sicherungspfade werden nur über die Sicherungskommandos freigegeben.",
+            "Backup paths can only be authorized by the backup commands.",
+        )
+        .into());
+    }
     if schluessel == einstellungen::LETZTES_PROJEKT {
         return Err(crate::sprache::t(
             "„letztesProjekt“ wird nur beim Öffnen eines Projekts gesetzt.",

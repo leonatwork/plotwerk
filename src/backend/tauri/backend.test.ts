@@ -83,6 +83,67 @@ describe('TauriFs', () => {
 });
 
 describe('Tauri-Backend', () => {
+  it('verwendet eine enge Archivgrenze, rohe Projektbytes und feste Kennungen', async () => {
+    const bytes = new Uint8Array([0, 255, 128]);
+    mocks.invoke.mockImplementation(async (cmd: string) => cmd === 'sicherung_projekt_lesen' ? bytes.buffer : cmd === 'sicherung_wiederherstellen' ? INFO : cmd === 'sicherung_auflisten' ? { ziel: 42, namen: [] } : 'hafenlichter-2026-10-23-1200.zip');
+    const backend = await erstelleTauriBackend();
+    const api = backend.sicherungen!;
+    const fs = new TauriFs(INFO);
+    expect(await api.projekt(fs, false).leser.lesenBinaer!('anlage.bin')).toEqual(bytes);
+    await api.auflisten(fs);
+    await api.schreiben(fs, 'hafenlichter-2026-10-23-1200.zip', bytes);
+    expect(mocks.invoke).toHaveBeenCalledWith('sicherung_schreiben', bytes, { headers: { 'plotwerk-ziel': '42', 'plotwerk-name': 'hafenlichter-2026-10-23-1200.zip' } });
+    const neu = await api.wiederherstellen([{ pfad: 'projekt.md', daten: bytes }]);
+    expect(neu).toBeInstanceOf(TauriFs);
+    expect(mocks.invoke).toHaveBeenCalledWith('sicherung_wiederherstellen', new Uint8Array([
+      80, 87, 82, 49, // PWR1
+      10, 0, 0, 0, 3, 0, 0, 0, // UTF-8-Pfadlänge und Datenlänge (u32 LE)
+      112, 114, 111, 106, 101, 107, 116, 46, 109, 100, 0, 255, 128,
+    ]), undefined);
+    expect(mocks.invoke.mock.calls.some(([cmd]) => String(cmd).startsWith('fs_schreiben'))).toBe(false);
+  });
+  it('überträgt große Wiederherstellungsdateien kompakt binär, einschließlich UTF-8, Teilansichten und leerer Dateien', async () => {
+    const bild = new Uint8Array(16 * 1024 ** 2 + 2).fill(255).subarray(1, -1);
+    // Zahlenarrays/Spread würden bereits vor invoke fehlschlagen: keine Byte-Iteration für JSON.
+    Object.defineProperty(bild, Symbol.iterator, { value: () => { throw new Error('Bytes dürfen nicht zu JSON-Zahlenarrays werden'); } });
+    const dateien = [
+      { pfad: 'projekt.md', daten: new Uint8Array([0, 128, 255]) },
+      { pfad: 'recherche/dateien/büro 🖼.png', daten: bild },
+      { pfad: '.plotwerk/leer.json', daten: new Uint8Array() },
+    ];
+    mocks.invoke.mockImplementation(async (cmd: string, body: unknown) => {
+      if (cmd !== 'sicherung_wiederherstellen') return undefined;
+      expect(body).toBeInstanceOf(Uint8Array);
+      const raw = body as Uint8Array;
+      const view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+      expect(new TextDecoder().decode(raw.subarray(0, 4))).toBe('PWR1');
+      let pos = 4;
+      for (const datei of dateien) {
+        const pfadLaenge = view.getUint32(pos, true);
+        const datenLaenge = view.getUint32(pos + 4, true);
+        pos += 8;
+        expect(new TextDecoder('utf-8', { fatal: true }).decode(raw.subarray(pos, pos + pfadLaenge))).toBe(datei.pfad);
+        pos += pfadLaenge;
+        expect(datenLaenge).toBe(datei.daten.byteLength);
+        // Keine teuren Array-Matcher für das große Bild.
+        expect(raw.subarray(pos, pos + datenLaenge).every((b, i) => b === datei.daten[i])).toBe(true);
+        pos += datenLaenge;
+      }
+      expect(pos).toBe(raw.byteLength);
+      expect(raw.byteLength).toBe(4 + dateien.reduce((n, d) => n + 8 + new TextEncoder().encode(d.pfad).byteLength + d.daten.byteLength, 0));
+      return INFO;
+    });
+    const backend = await erstelleTauriBackend();
+    expect(await backend.sicherungen!.wiederherstellen(dateien)).toBeInstanceOf(TauriFs);
+  });
+
+  it('übernimmt nach Abbruch oder Fehler der binären Wiederherstellung kein Projekt', async () => {
+    const backend = await erstelleTauriBackend();
+    mocks.invoke.mockResolvedValue(null);
+    expect(await backend.sicherungen!.wiederherstellen([{ pfad: 'projekt.md', daten: new Uint8Array() }])).toBeNull();
+    mocks.invoke.mockRejectedValue('Archive operation failed: permission denied');
+    await expect(backend.sicherungen!.wiederherstellen([{ pfad: 'projekt.md', daten: new Uint8Array() }])).rejects.toThrow('permission denied');
+  });
   it('öffnet das letzte Projekt und lädt es über TauriFs', async () => {
     const speicher = new MemoryFs({
       'projekt.md': serializeProjekt({ version: 1, titel: 'Hafenlichter', kapitel: [], ki: STANDARD_KI, notiz: '' }),
