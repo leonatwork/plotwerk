@@ -83,6 +83,15 @@ describe('TauriFs', () => {
 });
 
 describe('Tauri-Backend', () => {
+  it('Ordner wählen: Texte und einzelne Lesefehler bleiben getrennt, Abbruch ergibt null', async () => {
+    const ordner = { name: 'Hafenlichter', dateien: [{ name: 'ebbe.md', inhalt: '\uFEFF# Ebbe\r\nText.' }, { name: 'ansi.txt', fehler: 'kodierung' }] };
+    rustImSpeicher(new MemoryFs(), { ordner_waehlen: () => ordner });
+    const backend = await erstelleTauriBackend();
+    expect(await backend.ordnerWaehlen()).toEqual(ordner);
+    expect(mocks.invoke).toHaveBeenCalledWith('ordner_waehlen', undefined, undefined);
+    rustImSpeicher(new MemoryFs(), { ordner_waehlen: () => null });
+    expect(await backend.ordnerWaehlen()).toBeNull();
+  });
   it('öffnet das letzte Projekt und lädt es über TauriFs', async () => {
     const speicher = new MemoryFs({
       'projekt.md': serializeProjekt({ version: 1, titel: 'Hafenlichter', kapitel: [], ki: STANDARD_KI, notiz: '' }),

@@ -172,8 +172,16 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 
 ### Import
 
-- **Word-Datei importieren …** (Startbildschirm, Ablage): Kapitel nach Überschrift 1, Fett und Kursiv bleiben, Text
-  unverändert, Vorschau mit Struktur-Hinweisen vor der Übernahme.
+- **Importieren …** (Startbildschirm, Ablage): Quelle Word oder Ordner wählen, danach Vorschau mit
+  Struktur-Hinweisen. In das aktuelle Projekt hinten anhängen oder ein neues Projekt anlegen.
+- **Word:** Kapitel nach Überschrift 1; Fett und Kursiv bleiben erhalten, Text unverändert.
+- **Ordner:** Eine `.md`-, `.markdown`- oder `.txt`-Datei pro Kapitel, natürlich nach Dateiname sortiert
+  (2 vor 10). Nur die erste `# `-Überschrift am Anfang nach optionalem Frontmatter und Leerzeilen
+  liefert den Titel und wird entfernt. Sonst liefert der Dateiname ohne Endung und führende Nummer
+  den Titel; spätere Überschriften bleiben im Text. YAML-Frontmatter und ein anfängliches BOM werden
+  ausgelassen, der übrige Text samt Zeilenenden bleibt erhalten. Leerzeilen trennen `.txt`-Absätze.
+  Nur UTF-8; leere, nicht lesbare oder anders kodierte Dateien werden mit Hinweis übersprungen.
+  Unterordner, versteckte Dateien und Symlinks werden nicht gelesen.
 
 ## Tastenkürzel
 

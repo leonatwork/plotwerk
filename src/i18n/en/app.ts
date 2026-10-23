@@ -62,7 +62,7 @@ export const app: Form<typeof de> = {
     titelLabel: 'Title of the new project',
     titelPlatzhalter: 'Book title',
     anlegen: 'Create',
-    importieren: 'Import Word document',
+    importieren: 'Import …',
     demoZuruecksetzen: 'Reset demo',
   },
   schnellsuche: {

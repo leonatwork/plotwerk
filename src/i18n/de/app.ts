@@ -65,7 +65,7 @@ export const app = {
     titelLabel: 'Titel des neuen Projekts',
     titelPlatzhalter: 'Titel des Buchs',
     anlegen: 'Anlegen',
-    importieren: 'Word-Datei importieren',
+    importieren: 'Importieren …',
     demoZuruecksetzen: 'Demo zurücksetzen',
   },
   schnellsuche: {

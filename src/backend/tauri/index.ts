@@ -127,6 +127,10 @@ export async function erstelleTauriBackend(): Promise<Backend> {
       return true;
     },
 
+    ordnerWaehlen() {
+      return aufruf('ordner_waehlen');
+    },
+
     ki: erstelleTauriKiTransport(kiZiel),
     indexSpeicher,
 

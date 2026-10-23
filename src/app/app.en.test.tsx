@@ -18,7 +18,7 @@ describe('Oberfläche auf Englisch', () => {
     useStore.setState({ backend: erstelleDemoBackend(), fehler: null });
     const { container } = render(<Startbildschirm />);
     expect(screen.getByRole('button', { name: 'Open project folder' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Import Word document' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import …' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'New project' }));
     expect(screen.getByRole('textbox', { name: 'Title of the new project' })).toHaveAttribute('placeholder', 'Book title');
     expect(screen.getByRole('button', { name: 'Create' })).toBeDisabled();
