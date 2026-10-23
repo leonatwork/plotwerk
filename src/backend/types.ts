@@ -4,6 +4,25 @@ import type { KiTransport } from '@core/ki/index';
 import type { KiAnbieter } from '@core/model/types';
 import type { ProjektDateisystem } from '@core/projekt/fs';
 
+export interface SicherungsEinstellung {
+  aktiv: boolean;
+  mitVersionen: boolean;
+  /** null = App-Standard, eigener Ort wird ausschließlich vom Rust-Dialog freigegeben */
+  ordner: string | null;
+}
+export interface SicherungsArchiv { name: string; pfad: string }
+export interface SicherungsBackend {
+  einstellungen(): Promise<SicherungsEinstellung>;
+  einstellen(wert: SicherungsEinstellung): Promise<void>;
+  ordnerWaehlen(): Promise<string | null>;
+  auflisten(fs: ProjektDateisystem | null): Promise<SicherungsArchiv[]>;
+  schreiben(fs: ProjektDateisystem, name: string, daten: Uint8Array): Promise<void>;
+  entfernen(fs: ProjektDateisystem, name: string): Promise<void>;
+  /** null = ZIP-Dateidialog; Ziel immer ein neuer/leerer Ordner, nie das offene Projekt. */
+  wiederherstellen(archiv: SicherungsArchiv | null): Promise<ProjektDateisystem | null>;
+  leser?(fs: ProjektDateisystem): import('@core/sicherungen').ArchivLeser;
+}
+
 export interface GewaehlteDatei {
   name: string;
   daten: Uint8Array;
@@ -11,6 +30,7 @@ export interface GewaehlteDatei {
 
 export interface Backend {
   art: 'demo' | 'tauri';
+  sicherungen?: SicherungsBackend;
   /** Ordnerauswahl; null = abgebrochen */
   projektOeffnen(): Promise<ProjektDateisystem | null>;
   /** Neuen Projektordner anlegen (mit projekt.md); null = abgebrochen */

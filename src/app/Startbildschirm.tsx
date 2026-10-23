@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Wiederherstellen } from '../features/sicherungen/Wiederherstellen';
 import { demoGeaendert, demoZuruecksetzen } from '../backend/demoSpeicher';
 import { useTexte } from '../i18n';
 import { useStore } from '../state/store';
@@ -12,6 +13,7 @@ export function Startbildschirm() {
   const neuesProjekt = useStore((s) => s.neuesProjekt);
   const oeffneDialog = useStore((s) => s.oeffneDialog);
   const [neu, setNeu] = useState(false);
+  const [wiederherstellen, setWiederherstellen] = useState(false);
   const [titel, setTitel] = useState('');
   const [beschaeftigt, setBeschaeftigt] = useState(false);
   const [meldung, setMeldung] = useState<string | null>(null);
@@ -66,6 +68,8 @@ export function Startbildschirm() {
             {t.app.start.importieren}
           </Button>
         </div>
+        {backend?.art === 'tauri' && backend.sicherungen && <Button disabled={beschaeftigt} onClick={() => setWiederherstellen(true)}>{t.sicherungen.wiederherstellen}</Button>}
+        {wiederherstellen && <Wiederherstellen schliessen={() => setWiederherstellen(false)} />}
         {(meldung || fehler) && (
           <p role="alert" className="pw-start__fehler">
             {meldung ?? fehler}

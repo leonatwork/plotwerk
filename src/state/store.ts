@@ -7,6 +7,7 @@
  * (300 ms entprellt). Fehler beim Schreiben werden geworfen und in `speichern.fehler` vermerkt.
  */
 import { create, type StateCreator, type StoreApi, type UseBoundStore } from 'zustand';
+import { sichereProjekt } from '../features/sicherungen/ablauf';
 import { figurenZusammenfuehren as zusammenfuehren } from '@core/figuren/zusammenfuehren';
 import { berechneIndex, LEERER_INDEX, type Index } from '@core/index/index';
 import type {
@@ -146,6 +147,7 @@ export interface SpeicherStatus {
 
 export interface Basis {
   backend: Backend | null;
+  sicherungsHinweis: string | null;
   fs: ProjektDateisystem | null;
   daten: ProjektDaten | null;
   index: Index;
@@ -544,6 +546,7 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
 
   return {
     backend: null,
+    sicherungsHinweis: null,
     fs: null,
     daten: null,
     index: LEERER_INDEX,
@@ -617,11 +620,21 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
           auswahl: { kapitel: d.projekt.kapitel[0] },
           markierung: null,
           externeAenderung: null,
+          sicherungsHinweis: null,
         });
         indexBerechnen();
-        // Aufbewahrung der Schnappschüsse (E8) im Hintergrund
+        const backend = get().backend;
+        // E8 zuerst abschließen, damit die ZIP keine gerade gelöschten Schnappschüsse liest.
+        // Beide Läufe bleiben im Hintergrund und außerhalb der Speicher-/Beenden-Warteschlange.
         const geschuetzt = new Set((d.fassungen ?? []).flatMap((f) => f.dateien.map((x) => x.version)));
-        void aufbewahrungAnwenden(fs, new Date(), geschuetzt).catch((e: unknown) => console.warn('Alte Schnappschüsse nicht aufgeräumt:', e));
+        void aufbewahrungAnwenden(fs, new Date(), geschuetzt)
+          .catch((e: unknown) => console.warn('Alte Schnappschüsse nicht aufgeräumt:', e))
+          .then(async () => {
+            if (backend) await sichereProjekt(backend, fs, d.projekt.titel, false);
+          })
+          .catch((e: unknown) => {
+            if (get().fs === fs) set({ sicherungsHinweis: f(texte().sicherungen.fehler, { grund: fehlertext(e) }) });
+          });
       } catch (e) {
         set({ ladeStatus: 'fehler', fehler: fehlertext(e) });
       }

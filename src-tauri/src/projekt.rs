@@ -22,6 +22,9 @@ pub struct Projekte {
 }
 
 impl Projekte {
+    pub(crate) fn enthaelt_pfad(&self, pfad: &Path) -> bool {
+        self.liste.values().any(|w| pfad.starts_with(w.pfad()))
+    }
     /// Registriert einen Ordner (gleicher Ordner = gleiche Kennung) und macht ihn aktuell.
     pub fn oeffnen(&mut self, wurzel: Wurzel) -> u32 {
         let kennung = match self.liste.iter().find(|(_, w)| w.pfad() == wurzel.pfad()) {
@@ -74,7 +77,11 @@ pub(crate) fn sperre<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T>
 }
 
 /// Öffnet einen bereits geprüften Ordner: registrieren, Überwachung starten, merken.
-fn oeffnen(app: &AppHandle, zustand: &Zustand, pfad: &Path) -> Result<ProjektInfo, String> {
+pub(crate) fn oeffnen(
+    app: &AppHandle,
+    zustand: &Zustand,
+    pfad: &Path,
+) -> Result<ProjektInfo, String> {
     let wurzel = Wurzel::neu(pfad)?;
     let kennung = sperre(&zustand.projekte).oeffnen(wurzel.clone());
     match ueberwachung::starten(app.clone(), wurzel.clone(), zustand.eigene.clone()) {
@@ -414,10 +421,10 @@ pub async fn einstellung_schreiben(
     schluessel: String,
     wert: serde_json::Value,
 ) -> Result<(), String> {
-    if schluessel == einstellungen::LETZTES_PROJEKT {
+    if schluessel == einstellungen::LETZTES_PROJEKT || schluessel == "sicherungsOrt" {
         return Err(crate::sprache::t(
-            "„letztesProjekt“ wird nur beim Öffnen eines Projekts gesetzt.",
-            "“letztesProjekt” is only set when a project is opened.",
+            "Diese Einstellung wird nur über den zuständigen nativen Dialog gesetzt.",
+            "This setting is only set through its dedicated native dialog.",
         )
         .into());
     }

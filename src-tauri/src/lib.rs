@@ -12,6 +12,7 @@ mod pfad;
 mod projekt;
 mod recherche;
 mod schluessel;
+mod sicherungen;
 mod sprache;
 mod ueberwachung;
 mod vorlesen;
@@ -83,6 +84,16 @@ pub fn run() {
             projekt::fs_schreiben_binaer,
             projekt::einstellung_lesen,
             projekt::einstellung_schreiben,
+            sicherungen::sicherung_einstellungen,
+            sicherungen::sicherung_einstellen,
+            sicherungen::sicherung_ordner_waehlen,
+            sicherungen::sicherung_auflisten,
+            sicherungen::sicherung_schreiben,
+            sicherungen::sicherung_entfernen,
+            sicherungen::sicherung_projekt_lesen,
+            sicherungen::sicherung_zip_waehlen,
+            sicherungen::sicherung_lesen,
+            sicherungen::sicherung_wiederherstellen,
             extern_dateien::datei_waehlen,
             extern_dateien::datei_lesen_extern,
             extern_dateien::datei_speichern,

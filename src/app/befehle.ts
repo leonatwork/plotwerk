@@ -3,6 +3,8 @@
  * befehlAusfuehren auf oder sendet window.dispatchEvent(new CustomEvent('plotwerk:befehl', {detail: 'export'}))).
  */
 import { oeffneVorschau, schliesseVorschau, vorschauOffen } from '../features/vorschau';
+import { sichereProjekt } from '../features/sicherungen/ablauf';
+import { f, texte } from '../i18n';
 import { useStore, type Bereich } from '../state/store';
 import { BEREICHE } from './bereiche';
 import { funktionFuerBefehl, funktionSicherstellen } from './funktionen';
@@ -22,6 +24,7 @@ export type Befehl =
   | 'pruefen'
   | 'buch-pruefen'
   | 'projekt-oeffnen'
+  | 'projekt-archiv'
   | 'vorschau'
   // Werkzeuge G1–G8
   | 'zeit-vorschlaege'
@@ -55,6 +58,15 @@ export async function befehlAusfuehren(befehl: Befehl): Promise<void> {
   }
   const sichern = () => s.editorSichern().catch((e: unknown) => console.error('Sichern vor dem Befehl fehlgeschlagen:', e));
   switch (befehl) {
+    case 'projekt-archiv':
+      if (!s.daten || !s.fs || s.backend?.art !== 'tauri') break;
+      try {
+        await s.editorSichern();
+        await s.alleSpeichernAbwarten();
+        await sichereProjekt(s.backend, s.fs, s.daten.projekt.titel, true);
+        useStore.setState({ sicherungsHinweis: null });
+      } catch (e) { useStore.setState({ sicherungsHinweis: f(texte().sicherungen.fehler, { grund: String(e) }) }); }
+      break;
     case 'ui-vergroessern':
       await skaliereOberflaeche(1);
       break;
