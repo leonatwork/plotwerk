@@ -212,7 +212,7 @@ async function planeLauf(leser: ProjektLeser, auftrag: PruefAuftrag, einstellung
   const uebersprungen: Id[] = [];
   for (const k of kandidaten) {
     const a = daten.analysen[k.id];
-    if (cacheNutzen && a && a.textHash && a.textHash === k.hash) uebersprungen.push(k.id);
+    if (cacheNutzen && a && !a.veraltet && a.textHash && a.textHash === k.hash) uebersprungen.push(k.id);
     else kapitel.push(k);
   }
   return { daten, kontext, rolle, modell: deploymentFuer(einstellungen, rolle), kapitel, uebersprungen };

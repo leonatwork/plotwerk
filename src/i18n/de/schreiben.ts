@@ -1,5 +1,14 @@
 /** Texte für den Bereich „schreiben“ (deutsch, Quellsprache). Schlüssel: kurze deutsche Bezeichner. */
 export const schreiben = {
+  archiv: {
+    archivieren: 'Kapitel archivieren',
+    wiederherstellen: 'Kapitel wiederherstellen',
+    liste: 'Archivierte Kapitel',
+    status: 'archiviert',
+    zurueck: 'Wiederherstellen: {titel}',
+    ansehen: 'Archiv ansehen: {titel}',
+    beschaeftigt: 'Eine Kapitelaktion läuft. Bitte kurz warten.',
+  },
   /** Zitat aus dem Text in Anführungszeichen der Oberflächensprache */
   zitat: '„{text}“',
   /** Bereich, Titelaktionen, Leerzustand (index.tsx) */

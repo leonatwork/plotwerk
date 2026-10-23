@@ -24,6 +24,7 @@ import {
   type RefObject,
 } from 'react';
 import { useTexte } from '../../i18n';
+import { oberflaechenSkalierung, useDarstellungsStore } from '../../state/darstellung';
 import { REALITAET_FARBE } from '../../ui';
 
 interface Lage {
@@ -140,9 +141,14 @@ export function Blase({
       try {
         const von = alles ? Math.min(1, selection.to) : selection.from;
         const bis = alles ? von : selection.to;
-        const start = editor.view.coordsAtPos(von);
-        const ende = editor.view.coordsAtPos(bis);
-        const r = papier.getBoundingClientRect();
+        const skalierung = oberflaechenSkalierung();
+        const lokal = (r: { top: number; bottom: number; left: number; right: number }) => ({
+          top: r.top / skalierung, bottom: r.bottom / skalierung, left: r.left / skalierung, right: r.right / skalierung,
+        });
+        const start = lokal(editor.view.coordsAtPos(von));
+        const ende = lokal(editor.view.coordsAtPos(bis));
+        const rect = papier.getBoundingClientRect();
+        const r = { ...lokal(rect), width: rect.width / skalierung };
         const breite = blaseRef.current?.offsetWidth || BREITE_ANNAHME;
         const hoehe = blaseRef.current?.offsetHeight || HOEHE_ANNAHME;
         const gleicheZeile = Math.abs(start.top - ende.top) < 4;
@@ -276,6 +282,7 @@ export function Blase({
     window.addEventListener('mousemove', mausBewegt);
     window.addEventListener('blur', fensterWeg);
     window.addEventListener('resize', beiGroesse);
+    const abDarstellung = useDarstellungsStore.subscribe(beiGroesse);
     editor.on('selectionUpdate', neueAuswahl);
     editor.on('focus', spaeter);
     editor.on('blur', verbergen);
@@ -292,6 +299,7 @@ export function Blase({
       window.removeEventListener('mousemove', mausBewegt);
       window.removeEventListener('blur', fensterWeg);
       window.removeEventListener('resize', beiGroesse);
+      abDarstellung();
       editor.off('selectionUpdate', neueAuswahl);
       editor.off('focus', spaeter);
       editor.off('blur', verbergen);

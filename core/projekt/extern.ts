@@ -47,6 +47,7 @@ const imOrdner = (pfad: string, ordner: string, endung: string) =>
 
 export function uebernehmeExterneAenderungen(alt: ProjektDaten, neu: ProjektDaten, pfade: string[]): ProjektDaten {
   let d: ProjektDaten = alt;
+  if (pfade.some(p => p.startsWith('archiv/'))) d = { ...d, archiv: neu.archiv, reservierteKapitelIds: neu.reservierteKapitelIds };
   const kapitelBetroffen = new Set<Id>();
   if (pfade.some(istManuskriptPfad) || pfade.includes(PFADE.projekt)) {
     d = { ...d, manuskriptKonflikte: neu.manuskriptKonflikte ?? [] };

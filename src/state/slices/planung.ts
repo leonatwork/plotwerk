@@ -100,7 +100,7 @@ export function zusammenfassungFuer(daten: ProjektDaten, index: Pick<Index, 'tex
   const hash = index.textHashes[kapitel];
   const basis = {
     antagonisten: analyse?.antagonistenBezug ?? '',
-    analyseVeraltet: !!analyse && istVeraltet(analyse.textHash, hash),
+    analyseVeraltet: !!analyse && (!!analyse.veraltet || istVeraltet(analyse.textHash, hash)),
     hatAnalyse: !!analyse,
   };
   if (eigene)

@@ -479,6 +479,16 @@ describe('Bewusst vage (harte Regel 4) und Etikett „offen“', () => {
 });
 
 describe('Ergebnis-Cache pro Kapitel-Hash (E13)', () => {
+  it('veraltete Archiv-Analyse wird auch bei identischem Text nicht aus dem Cache verwendet', async () => {
+    const fs = frischFs();
+    const r1 = await pruefe(fs, { umfang: 'kapitel', kapitel: 'ebbe' }, erstelleDemoKiTransport({ verzoegerungMs: 0 }), STANDARD_KI);
+    await fs.schreiben(analysePfad('ebbe'), serializeAnalyse({ ...r1.analysen[0]!, veraltet: true }));
+    const { transport, bodies } = aufzeichnend();
+    const r2 = await pruefe(fs, { umfang: 'kapitel', kapitel: 'ebbe' }, transport, STANDARD_KI);
+    expect(bodies.map(aufgabeKapitel)).toEqual(['ebbe']);
+    expect(r2.uebersprungen).toEqual([]);
+    expect(r2.analysen[0]?.veraltet).toBeUndefined();
+  });
   it('überspringt unveränderte Kapitel mit Analyse, prüft geänderte; Tiefencheck und „erzwingen“ prüfen alles', async () => {
     const fs = frischFs();
     const erst = aufzeichnend();
