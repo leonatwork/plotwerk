@@ -99,7 +99,10 @@ pub async fn import_ordner_waehlen(
         .dialog()
         .file()
         .set_parent(&fenster)
-        .set_title(crate::sprache::t("Importordner wählen", "Choose Import Folder"))
+        .set_title(crate::sprache::t(
+            "Importordner wählen",
+            "Choose Import Folder",
+        ))
         .blocking_pick_folder()
     else {
         return Ok(None);
