@@ -43,6 +43,8 @@ export interface ImportKommentar {
 }
 
 export interface ImportErgebnis {
+  /** Ordnerimport (E7): äußeren Leerraum und Zeilenenden auch beim Speichern/Laden erhalten. */
+  textUnveraendert?: boolean;
   kapitel: ImportKapitel[];
   /** Word-Kommentare mit Stelle (Antworten zusammengefasst); fehlt bei älteren Ergebnissen */
   kommentare?: ImportKommentar[];

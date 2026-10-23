@@ -99,12 +99,7 @@ pub fn erstellen<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             Some("CmdOrCtrl+O"),
         )?)
         .separator()
-        .item(&befehl(
-            app,
-            "import",
-            t("Word-Datei importieren …", "Import Word File…"),
-            None,
-        )?)
+        .item(&befehl(app, "import", t("Importieren …", "Import…"), None)?)
         .item(&befehl(
             app,
             "export",

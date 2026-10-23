@@ -4,6 +4,7 @@
  * („Harbour Lights“), sonst fixtures/demo-projekt („Hafenlichter“).
  */
 import type { Sprache } from '@core/i18n';
+import { importDateinameErlaubt, type ImportDatei } from '@core/importieren';
 import type { Index } from '@core/index/index';
 import { STANDARD_KI } from '@core/ki/index';
 import type { KiAnbieter } from '@core/model/types';
@@ -11,7 +12,7 @@ import { MemoryFs, serializeProjekt } from '@core/projekt';
 import { sprache } from '../i18n/sprache';
 import { ladeDemoAenderungen, sichereDemoAenderungen } from './demoSpeicher';
 import { erstelleDemoKiTransport } from './ki/demo';
-import type { Backend, GewaehlteDatei } from './types';
+import type { Backend, GewaehlteDatei, GewaehlterImportOrdner } from './types';
 
 const DATEIEN_DE = import.meta.glob<string>('/fixtures/demo-projekt/**/*', {
   query: '?raw',
@@ -82,6 +83,42 @@ function dateiWaehlen(endungen: string[]): Promise<GewaehlteDatei | null> {
   });
 }
 
+function ordnerWaehlen(): Promise<GewaehlterImportOrdner | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.setAttribute('webkitdirectory', '');
+    input.multiple = true;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    let fertig = false;
+    const ende = (wert: GewaehlterImportOrdner | null) => {
+      if (fertig) return;
+      fertig = true;
+      input.remove();
+      resolve(wert);
+    };
+    input.addEventListener('change', async () => {
+      const alle = Array.from(input.files ?? []);
+      if (!alle.length) return ende(null);
+      const name = alle[0]!.webkitRelativePath.split('/')[0] || alle[0]!.name;
+      const dateien = await Promise.all(alle.filter((d) => {
+        const teile = d.webkitRelativePath.split('/');
+        return teile.length === 2 && importDateinameErlaubt(d.name);
+      }).map(async (d): Promise<ImportDatei> => {
+        let bytes: ArrayBuffer;
+        try { bytes = await d.arrayBuffer(); }
+        catch { return { name: d.name, fehler: 'lesen' }; }
+        try { return { name: d.name, inhalt: new TextDecoder('utf-8', { fatal: true }).decode(bytes) }; }
+        catch { return { name: d.name, fehler: 'kodierung' }; }
+      }));
+      ende({ name, dateien });
+    });
+    input.addEventListener('cancel', () => ende(null));
+    input.click();
+  });
+}
+
 const MIME: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   pdf: 'application/pdf',
@@ -128,6 +165,7 @@ export function erstelleDemoBackend(): Backend {
       return oeffne();
     },
     dateiWaehlen,
+    ordnerWaehlen,
     dateiSpeichern,
     ki: erstelleDemoKiTransport(),
     indexSpeicher: {
@@ -165,4 +203,3 @@ export function erstelleDemoBackend(): Backend {
     },
   };
 }
-

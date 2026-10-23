@@ -84,6 +84,7 @@ pub fn run() {
             projekt::einstellung_lesen,
             projekt::einstellung_schreiben,
             extern_dateien::datei_waehlen,
+            extern_dateien::import_ordner_waehlen,
             extern_dateien::datei_lesen_extern,
             extern_dateien::datei_speichern,
             extern_dateien::datei_schreiben_extern,

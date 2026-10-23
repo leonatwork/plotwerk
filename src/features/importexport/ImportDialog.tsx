@@ -1,6 +1,7 @@
-/** Dialog „Word-Datei importieren“ (S-11): Datei wählen, Vorschau, Übernahme, Struktur-Hinweise. */
+/** Importieren: Word oder Markdown-/Textordner, Vorschau, Übernahme, Struktur-Hinweise. */
 import { useMemo, useState, type ReactNode } from 'react';
 import { importHinweisKapitel, importiereDocx, type ImportErgebnis } from '@core/docx/index';
+import { importiereMarkdownOrdner } from '@core/importieren';
 import type { Hinweis, Id } from '@core/model/types';
 import { klartext, wortzahl } from '@core/text/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
@@ -15,6 +16,7 @@ type Phase =
   | { art: 'start' }
   | { art: 'liest'; name: string }
   | { art: 'fehler'; meldung: string }
+  | { art: 'leer'; name: string; ergebnis: ImportErgebnis; keineDateien: boolean }
   | { art: 'vorschau'; name: string; ergebnis: ImportErgebnis }
   | { art: 'uebernimmt'; name: string; ergebnis: ImportErgebnis }
   | { art: 'fertig'; ergebnis: ImportErgebnis; bericht: ImportBericht; versatz: number };
@@ -85,6 +87,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   const mitAbgabe = useFunktion('abgabe');
 
   const [phase, setPhase] = useState<Phase>({ art: 'start' });
+  const [quelle, setQuelle] = useState<'word' | 'ordner'>('word');
   const [ziel, setZiel] = useState<'aktuell' | 'neu'>(daten ? 'aktuell' : 'neu');
   const [projektTitel, setProjektTitel] = useState('');
   const [vorspannAlsKapitel, setVorspannAlsKapitel] = useState(false);
@@ -95,15 +98,30 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
 
   async function dateiWaehlen() {
     if (!backend) return;
-    const datei = await backend.dateiWaehlen(['docx']);
-    if (!datei) return;
-    setPhase({ art: 'liest', name: datei.name });
+    const vorher = phase;
+    setPhase({ art: 'liest', name: quelle === 'ordner' ? T.ordner : T.word });
     try {
-      const ergebnis = await importiereDocx(datei.daten, sprache());
-      setProjektTitel(ergebnis.buchtitel ?? datei.name.replace(/\.docx$/i, ''));
+      let name: string;
+      let ergebnis: ImportErgebnis;
+      if (quelle === 'ordner') {
+        const ordner = await backend.ordnerWaehlen();
+        if (!ordner) { setPhase(vorher); return; }
+        name = ordner.name;
+        ergebnis = importiereMarkdownOrdner(ordner.dateien, sprache());
+        if (!ergebnis.kapitel.length) {
+          setPhase({ art: 'leer', name, ergebnis, keineDateien: ordner.dateien.length === 0 });
+          return;
+        }
+      } else {
+        const datei = await backend.dateiWaehlen(['docx']);
+        if (!datei) { setPhase(vorher); return; }
+        name = datei.name;
+        ergebnis = await importiereDocx(datei.daten, sprache());
+      }
+      setProjektTitel(ergebnis.buchtitel ?? name.replace(/\.docx$/i, ''));
       setVorspannAlsKapitel(false);
       setKommentareUebernehmen(true);
-      setPhase({ art: 'vorschau', name: datei.name, ergebnis });
+      setPhase({ art: 'vorschau', name, ergebnis });
     } catch (e) {
       setPhase({ art: 'fehler', meldung: fehlertext(e) });
     }
@@ -140,11 +158,15 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   let inhalt: ReactNode;
   let aktionen: ReactNode;
 
-  if (phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler') {
+  if (phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler' || phase.art === 'leer') {
     inhalt = (
       <>
-        <p className="pw-ie-text">{T.erklaerung}</p>
-        {daten && mitAbgabe && phase.art !== 'liest' && (
+        <div className="pw-ie-optionen" role="radiogroup" aria-label={T.quelle}>
+          <Radio name="pw-import-quelle" checked={quelle === 'word'} onChange={() => { setQuelle('word'); setPhase({ art: 'start' }); }} disabled={beschaeftigt}>{T.word}</Radio>
+          <Radio name="pw-import-quelle" checked={quelle === 'ordner'} onChange={() => { setQuelle('ordner'); setPhase({ art: 'start' }); }} disabled={beschaeftigt}>{T.ordner}</Radio>
+        </div>
+        <p className="pw-ie-text">{quelle === 'ordner' ? T.ordnerErklaerung : T.erklaerung}</p>
+        {quelle === 'word' && daten && mitAbgabe && phase.art !== 'liest' && (
           <p className="pw-ie-text" style={{ fontSize: 12 }}>
             {T.lektoratFrage}{' '}
             <Button variante="text" klein onClick={() => oeffneDialog('rueckimport')} style={{ height: 'auto', padding: 0 }}>
@@ -153,6 +175,11 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
           </p>
         )}
         {phase.art === 'liest' && <p className="pw-ie-meldung">{f(T.wirdGelesen, { name: phase.name })}</p>}
+        {phase.art === 'leer' && <>
+          <p className="pw-ie-kopf__datei">{phase.name}</p>
+          <p role="status" className="pw-ie-meldung">{phase.keineDateien ? T.ordnerLeer : T.keinKapiteltext}</p>
+          <HinweisListe hinweise={phase.ergebnis.hinweise} />
+        </>}
         {phase.art === 'fehler' && (
           <p role="alert" className="pw-ie-meldung pw-ie-meldung--fehler">
             {phase.meldung}
@@ -166,7 +193,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
           {t.gemeinsam.abbrechen}
         </Button>
         <Button variante="primaer" onClick={dateiWaehlen} disabled={!backend || beschaeftigt} data-autofocus>
-          {T.dateiWaehlen}
+          {quelle === 'ordner' ? T.ordnerWaehlen : T.dateiWaehlen}
         </Button>
       </>
     );
@@ -186,8 +213,9 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
             {f(t.importexport.kapitelAnzahl, { n: ergebnis.kapitel.length })} · {f(t.gemeinsam.woerter, { n: gesamt })}
           </span>
           <Button variante="text" klein onClick={dateiWaehlen} disabled={beschaeftigt}>
-            {T.andereDatei}
+            {quelle === 'ordner' ? T.andererOrdner : T.andereDatei}
           </Button>
+          <Button variante="text" klein onClick={() => setPhase({ art: 'start' })} disabled={beschaeftigt}>{T.quelle}</Button>
         </div>
 
         {ergebnis.kapitel.length > 0 && (

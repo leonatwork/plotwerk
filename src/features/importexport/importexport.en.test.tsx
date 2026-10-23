@@ -38,7 +38,7 @@ describe('Import und Export auf Englisch', () => {
 
   it('Import-Dialog mit Vorschau', async () => {
     render(<ImportDialog schliessen={() => {}} />);
-    const dialog = screen.getByRole('dialog', { name: 'Import Word document' });
+    const dialog = screen.getByRole('dialog', { name: 'Import' });
     expect(within(dialog).getByText(/Chapters are detected by paragraphs in the “Heading 1” style/)).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Choose Word document …' }));
     expect(await within(dialog).findByRole('button', { name: /^Import \d+ chapters$/ })).toBeInTheDocument();

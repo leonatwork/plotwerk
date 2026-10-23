@@ -117,7 +117,7 @@ export const createImportExportSlice: StateCreator<Store, [], [], ImportExportSl
     let geplant = 0;
     liste.forEach((k, i) => {
       const id = ids[i]!;
-      const kapitel: Kapitel = { id, titel: k.titel, text: k.text };
+      const kapitel: Kapitel = { id, titel: k.titel, text: k.text, ...(ergebnis.textUnveraendert ? { textUnveraendert: true } : {}) };
       const leer = klartext(k.text).trim() === '';
       const basis = standardPlan(kapitel);
       const notiz = [basis.notiz, uebernahme.planNotizen[id]].filter((t) => t?.trim()).join('\n\n');

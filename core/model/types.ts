@@ -93,6 +93,8 @@ export interface Projekt {
 // ---------------------------------------------------------------------------
 
 export interface Kapitel {
+  /** Body zeichengleich speichern/laden (Markdown-/Textordnerimport, E7). */
+  textUnveraendert?: boolean;
   id: Id;
   titel: string;
   /** Markdown-Body ohne Frontmatter. Absätze durch Leerzeile, **fett**, *kursiv*, "* * *" = Szenentrenner. */

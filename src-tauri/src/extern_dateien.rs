@@ -1,6 +1,7 @@
-//! Dateien außerhalb des Projektordners (Import .docx, Export .docx/.pdf).
+//! Dateien außerhalb des Projektordners (Import Word/Markdown/Text, Export .docx/.pdf).
 //! Gelesen/geschrieben wird nur, was der native Dialog in dieser Sitzung geliefert hat.
 
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use percent_encoding::percent_decode_str;
@@ -19,6 +20,105 @@ const MAX_GROESSE: u64 = 200 * 1024 * 1024;
 pub struct GewaehlteDatei {
     pub name: String,
     pub pfad: String,
+}
+
+#[derive(Serialize)]
+pub struct ImportDatei {
+    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inhalt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fehler: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct GewaehlterImportOrdner {
+    pub name: String,
+    pub dateien: Vec<ImportDatei>,
+}
+
+fn import_dateiname_erlaubt(name: &str) -> bool {
+    if name.starts_with('.') || name.contains(['/', '\\']) {
+        return false;
+    }
+    Path::new(name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| matches!(e.to_ascii_lowercase().as_str(), "md" | "markdown" | "txt"))
+}
+
+/// Eine Ebene, keine versteckten Dateien, Unterordner oder Symlinks. Fehler je Datei.
+fn lese_import_ordner(ordner: &Path) -> Result<Vec<ImportDatei>, std::io::Error> {
+    let mut dateien = Vec::new();
+    for eintrag in std::fs::read_dir(ordner)? {
+        let eintrag = eintrag?;
+        let name = eintrag.file_name().to_string_lossy().into_owned();
+        if !import_dateiname_erlaubt(&name) {
+            continue;
+        }
+        let typ = eintrag.file_type();
+        if typ.as_ref().is_ok_and(|t| !t.is_file()) {
+            continue;
+        }
+        let daten = typ.and_then(|_| {
+            let datei = std::fs::File::open(eintrag.path())?;
+            if datei.metadata()?.len() > MAX_GROESSE {
+                return Err(std::io::Error::other("Datei zu groß"));
+            }
+            // Auch bei Wachstum während des Lesens begrenzen.
+            let mut bytes = Vec::new();
+            datei.take(MAX_GROESSE + 1).read_to_end(&mut bytes)?;
+            if bytes.len() as u64 > MAX_GROESSE {
+                return Err(std::io::Error::other("Datei zu groß"));
+            }
+            Ok(bytes)
+        });
+        let (inhalt, fehler) = match daten {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(text) => (Some(text), None),
+                Err(_) => (None, Some("kodierung".into())),
+            },
+            Err(_) => (None, Some("lesen".into())),
+        };
+        dateien.push(ImportDatei {
+            name,
+            inhalt,
+            fehler,
+        });
+    }
+    Ok(dateien)
+}
+
+/// Ordnerdialog und Lesen in einem Aufruf: kein frei wählbarer externer Pfad aus der Webview.
+#[tauri::command]
+pub async fn import_ordner_waehlen(
+    app: AppHandle,
+    fenster: WebviewWindow,
+) -> Result<Option<GewaehlterImportOrdner>, String> {
+    let Some(gewaehlt) = app
+        .dialog()
+        .file()
+        .set_parent(&fenster)
+        .set_title(crate::sprache::t(
+            "Importordner wählen",
+            "Choose Import Folder",
+        ))
+        .blocking_pick_folder()
+    else {
+        return Ok(None);
+    };
+    let pfad = gewaehlt
+        .into_path()
+        .map_err(|e| crate::tf!("Ordner nicht lesbar: {e}", "Folder not readable: {e}"))?;
+    let dateien = lese_import_ordner(&pfad)
+        .map_err(|e| crate::tf!("Ordner nicht lesbar: {e}", "Folder not readable: {e}"))?;
+    Ok(Some(GewaehlterImportOrdner {
+        name: pfad
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        dateien,
+    }))
 }
 
 fn sperre<T>(m: &std::sync::Mutex<T>) -> std::sync::MutexGuard<'_, T> {
@@ -193,6 +293,99 @@ pub async fn datei_schreiben_extern(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ordner_nur_eine_ebene_und_erlaubte_endungen() {
+        let tmp = tempfile::tempdir().unwrap();
+        for name in [
+            "01-ankunft.md",
+            "02-ebbe.MARKDOWN",
+            "10-flut.TXT",
+            ".lotte.md",
+            ".DS_Store",
+            "flut.docx",
+        ] {
+            std::fs::write(tmp.path().join(name), "Hafenlichter.").unwrap();
+        }
+        let unter = tmp.path().join("unter.md");
+        std::fs::create_dir(&unter).unwrap();
+        std::fs::write(unter.join("lotte.md"), "Hafenlichter.").unwrap();
+        let mut namen: Vec<_> = lese_import_ordner(tmp.path())
+            .unwrap()
+            .into_iter()
+            .map(|d| d.name)
+            .collect();
+        namen.sort();
+        assert_eq!(namen, ["01-ankunft.md", "02-ebbe.MARKDOWN", "10-flut.TXT"]);
+    }
+
+    #[test]
+    fn ordner_meldet_kodierung_und_leere_dateien() {
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::write(tmp.path().join("ebbe.txt"), [0xff, 0xfe]).unwrap();
+        std::fs::write(tmp.path().join("flut.md"), "").unwrap();
+        let dateien = lese_import_ordner(tmp.path()).unwrap();
+        assert_eq!(
+            dateien
+                .iter()
+                .find(|d| d.name == "ebbe.txt")
+                .unwrap()
+                .fehler
+                .as_deref(),
+            Some("kodierung")
+        );
+        assert_eq!(
+            dateien
+                .iter()
+                .find(|d| d.name == "flut.md")
+                .unwrap()
+                .inhalt
+                .as_deref(),
+            Some("")
+        );
+        assert!(lese_import_ordner(&tmp.path().join("fehlt")).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ordner_folgt_keinen_symlinks() {
+        let tmp = tempfile::tempdir().unwrap();
+        let externes = tempfile::tempdir().unwrap();
+        std::fs::write(externes.path().join("lotte.md"), "Hafenlichter.").unwrap();
+        std::os::unix::fs::symlink(
+            externes.path().join("lotte.md"),
+            tmp.path().join("lotte.md"),
+        )
+        .unwrap();
+        assert!(lese_import_ordner(tmp.path()).unwrap().is_empty());
+    }
+
+    #[test]
+    fn ordner_meldet_lesefehler_und_liest_den_rest() {
+        let tmp = tempfile::tempdir().unwrap();
+        let datei = std::fs::File::create(tmp.path().join("ebbe.md")).unwrap();
+        datei.set_len(MAX_GROESSE + 1).unwrap();
+        std::fs::write(tmp.path().join("flut.txt"), "Hafenlichter.\r\n").unwrap();
+        let dateien = lese_import_ordner(tmp.path()).unwrap();
+        assert_eq!(
+            dateien
+                .iter()
+                .find(|d| d.name == "ebbe.md")
+                .unwrap()
+                .fehler
+                .as_deref(),
+            Some("lesen")
+        );
+        assert_eq!(
+            dateien
+                .iter()
+                .find(|d| d.name == "flut.txt")
+                .unwrap()
+                .inhalt
+                .as_deref(),
+            Some("Hafenlichter.\r\n")
+        );
+    }
 
     #[test]
     fn filternamen() {
