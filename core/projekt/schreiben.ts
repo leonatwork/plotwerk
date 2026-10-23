@@ -68,7 +68,7 @@ const S = {
   claude: ['endpoint', 'modelle'],
   openai: ['vorlage', 'endpoint', 'modelle', 'kontextTokens'],
   kapitel: ['id', 'titel'],
-  plan: ['id', 'titel', 'akt', 'status', 'szene', 'funktion', 'straenge', 'figuren', 'orte', 'abweichungen', 'realitaet', 'zeit', 'szenen'],
+  plan: ['id', 'titel', 'akt', 'status', 'szene', 'funktion', 'straenge', 'figuren', 'orte', 'abweichungen', 'realitaet', 'notizPrivat', 'zeit', 'szenen'],
   zeitpunkt: ['tag', 'wochentag', 'datum', 'tageszeit', 'uhrzeit', 'dauer', 'sicherheit', 'beleg', 'notiz'],
   szene: ['id', 'index', 'titel', 'ort', 'figuren', 'zeit', 'notiz'],
   abweichung: ['id', 'notiz', 'entscheidung', 'datum', 'alterPlan'],

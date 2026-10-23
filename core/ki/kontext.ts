@@ -186,7 +186,7 @@ export function baueBuchKontext(
         titel: k?.titel ?? id,
         text: k ? klartext(k.text) : '',
         hash: textHash(k?.text ?? ''),
-        plan: mitPlan ? { szene: planText(daten.plaene[id]?.szene), notiz: planText(daten.plaene[id]?.notiz) } : { szene: '', notiz: '' },
+        plan: mitPlan ? { szene: planText(daten.plaene[id]?.szene), notiz: daten.plaene[id]?.notizPrivat ? '' : planText(daten.plaene[id]?.notiz) } : { szene: '', notiz: '' },
       };
     });
 

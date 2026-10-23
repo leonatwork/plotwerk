@@ -140,6 +140,8 @@ export interface KapitelPlan {
   notiz: string;
   abweichungen: Abweichung[];
   realitaet: RealitaetsEintrag[];
+  /** Private importierte Dokumentnotiz (Scrivener): nie an die KI, auch nach erneutem Laden. */
+  notizPrivat?: boolean;
   /** G1: wann das Kapitel spielt */
   zeit?: Zeitpunkt;
   /** G2: Szenen des Kapitels (Reihenfolge = index) */

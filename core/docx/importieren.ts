@@ -13,6 +13,14 @@ export interface ImportKapitel {
   titel: string;
   /** Markdown-Body (Absätze, **fett**, *kursiv*), Text unverändert (keine Typografie-Umwandlung) */
   text: string;
+  /** Kurzbeschreibung als unveränderter Klartext (Scrivener-Synopsis). */
+  szene?: string;
+  /** Klartextnotiz; die Plan-Oberfläche rendert kein Markdown. */
+  notiz?: string;
+  /** Importierte Dokumentnotizen sind privat; fehlt bei bisherigen DOCX-Ergebnissen. */
+  notizPrivat?: boolean;
+  /** Import-interne Aktnummer; wird beim Übernehmen kollisionsfrei zugeordnet. */
+  akt?: number | null;
 }
 
 export interface ImportKommentarAntwort {
@@ -44,6 +52,8 @@ export interface ImportKommentar {
 
 export interface ImportErgebnis {
   kapitel: ImportKapitel[];
+  /** Import-interne Akte einschließlich leerer Akte; fehlt bei DOCX. */
+  akte?: { nummer: number; titel: string }[];
   /** Word-Kommentare mit Stelle (Antworten zusammengefasst); fehlt bei älteren Ergebnissen */
   kommentare?: ImportKommentar[];
   /** z. B. leere Überschrift am Ende, leeres Kapitel */
@@ -66,7 +76,7 @@ export function importKapitelNummer(kapitelId: string): number | null {
 export function importHinweisKapitel(h: Hinweis): number | null {
   const ausZitat = h.zitate[0] ? importKapitelNummer(h.zitate[0].kapitel) : null;
   if (ausZitat) return ausZitat;
-  const m = /^struktur:import:(?:leeres-kapitel|satzende|ueberschrift-ohne-text)-(\d+)$/.exec(h.schluessel);
+  const m = /^struktur:import:(?:leeres-kapitel|satzende|ueberschrift-ohne-text|scrivener-rtf-(?:content|notes)\.rtf)-(\d+)$/.exec(h.schluessel);
   return m ? Number(m[1]) : null;
 }
 

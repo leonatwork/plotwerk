@@ -81,6 +81,14 @@ Design: `docs/design/screens/*.dc.html` (verbindlich, Pixelwerte und Farben exak
 
 `projekt.md` hat zusätzlich das optionale Feld `angaben` (autor, untertitel, genre, sprache; G7, nicht an die KI).
 
+**Scrivener-3-Import (Issue #15, Pakete 1–3):** `core/scrivener` liest bereitgestellte Paketdateien
+ohne Dateisystem/DOM. Draft-Textdokumente werden in Binder-Reihenfolge Kapitel, oberste Ordner
+Akte; Unterordner sind nur Struktur. Synopsis wird `szene`, Dokumentnotiz der Klartext-Body des
+Kapitelplans. Importierte Dokumentnotizen erhalten additiv `notizPrivat: true` im Frontmatter:
+Sie sind im Unterschied zur bisherigen freigegebenen „Was soll hier passieren?“-Planung **nicht**
+Teil des KI-Kontexts (E12); Synopsis bleibt freigegeben. Details, Formatgrenzen und die Abhängigkeit
+der nativen Auswahl/Vorschau von #14: `docs/issue-15-handover.md`.
+
 **Kapitelarchiv (Issue #13, Paket 1):** Archivierte Kapitel stehen nicht in `projekt.md → kapitel` und werden
 separat als `ProjektDaten.archiv` geladen, nie als aktiver Text/Plan, Export oder KI-Kontext. Die IDs bleiben
 reserviert. `archiv/index.json` erhält die alte Position anhand der Nachbarn; aktive Umordnungen haben Vorrang.
