@@ -347,6 +347,13 @@ export function parseProjekt(text: string): Projekt {
 export function parseKapitel(text: string, id?: Id): Kapitel {
   const { daten, body } = parseFrontmatter(text);
   const kid = s(daten.id) || id || '';
+  if (daten.textUnveraendert === true) {
+    // Additive E7-Kennzeichnung: ein Separator-Umbruch nach dem Frontmatter gehört zum
+    // Dateiformat, alle weiteren Zeichen zum Manuskript. Keine Normalisierung des Bodys.
+    const roh = text.replace(/^\uFEFF/, '');
+    const kopf = /^---[ \t]*\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/.exec(roh);
+    if (kopf) return { id: kid, titel: s(daten.titel) || kid, text: roh.slice(kopf[0].length).replace(/^\r?\n/, '') };
+  }
   return { id: kid, titel: s(daten.titel) || kid, text: body };
 }
 

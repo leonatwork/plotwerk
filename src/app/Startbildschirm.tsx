@@ -4,7 +4,7 @@ import { useTexte } from '../i18n';
 import { useStore } from '../state/store';
 import { Button, IconDokument, IconOrdner, IconPlus, Textfeld } from '../ui';
 
-/** Ohne geöffnetes Projekt: Projektordner öffnen, neues Projekt, Word-Datei importieren. */
+/** Ohne geöffnetes Projekt: Projektordner öffnen, neues Projekt, importieren. */
 export function Startbildschirm() {
   const backend = useStore((s) => s.backend);
   const fehler = useStore((s) => s.fehler);

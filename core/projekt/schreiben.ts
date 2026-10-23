@@ -175,7 +175,14 @@ export function serializeProjekt(p: Projekt, vorhanden?: string | null): string 
 }
 
 export function serializeKapitel(k: Kapitel, vorhanden?: string | null): string {
-  return mitFrontmatter(ordne(k, S.kapitel, alteDaten(vorhanden).daten), k.text);
+  const daten = ordne(k, S.kapitel, alteDaten(vorhanden).daten);
+  // E7: Nur wenn der bisherige Leser Zeichen bereinigen würde (oder die Kennzeichnung schon
+  // vorhanden ist), den Body exakt schreiben. Bisherige kanonische Kapitel bleiben unverändert.
+  if (/^\n|\r|\s$/u.test(k.text) || daten.textUnveraendert === true) {
+    daten.textUnveraendert = true;
+    return `---\n${yaml(daten)}---\n\n${k.text}`;
+  }
+  return mitFrontmatter(daten, k.text);
 }
 
 export function serializeKapitelPlan(p: KapitelPlan, vorhanden?: string | null): string {

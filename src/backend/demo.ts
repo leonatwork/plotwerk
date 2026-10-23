@@ -4,6 +4,7 @@
  * („Harbour Lights“), sonst fixtures/demo-projekt („Hafenlichter“).
  */
 import type { Sprache } from '@core/i18n';
+import { importDateinameErlaubt, type ImportDatei } from '@core/importieren';
 import type { Index } from '@core/index/index';
 import { STANDARD_KI } from '@core/ki/index';
 import type { KiAnbieter } from '@core/model/types';
@@ -11,7 +12,7 @@ import { MemoryFs, serializeProjekt } from '@core/projekt';
 import { sprache } from '../i18n/sprache';
 import { ladeDemoAenderungen, sichereDemoAenderungen } from './demoSpeicher';
 import { erstelleDemoKiTransport } from './ki/demo';
-import type { Backend, GewaehlteDatei } from './types';
+import type { Backend, GewaehlteDatei, GewaehlterOrdner } from './types';
 
 const DATEIEN_DE = import.meta.glob<string>('/fixtures/demo-projekt/**/*', {
   query: '?raw',
@@ -82,6 +83,46 @@ function dateiWaehlen(endungen: string[]): Promise<GewaehlteDatei | null> {
   });
 }
 
+function ordnerWaehlen(): Promise<GewaehlterOrdner | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.setAttribute('webkitdirectory', '');
+    input.multiple = true;
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    let fertig = false;
+    const ende = (wert: GewaehlterOrdner | null) => {
+      if (fertig) return;
+      fertig = true;
+      input.remove();
+      resolve(wert);
+    };
+    input.addEventListener('change', async () => {
+      const dateien = Array.from(input.files ?? []);
+      const name = dateien[0]?.webkitRelativePath.split('/')[0];
+      if (!name) return ende(null);
+      const ausgabe: ImportDatei[] = [];
+      // Nacheinander lesen: keine parallelen großen ArrayBuffer im Speicher.
+      for (const datei of dateien) {
+        const teile = datei.webkitRelativePath.split('/');
+        if (teile.length !== 2 || !importDateinameErlaubt(datei.name)) continue;
+        let puffer: ArrayBuffer;
+        try { puffer = await datei.arrayBuffer(); }
+        catch { ausgabe.push({ name: datei.name, fehler: 'lesen' }); continue; }
+        try {
+          // BOM bewusst erhalten: der reine Parser entfernt exakt das erste BOM.
+          const inhalt = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(puffer);
+          ausgabe.push({ name: datei.name, inhalt });
+        } catch { ausgabe.push({ name: datei.name, fehler: 'kodierung' }); }
+      }
+      ende({ name, dateien: ausgabe });
+    });
+    input.addEventListener('cancel', () => ende(null));
+    input.click();
+  });
+}
+
 const MIME: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   pdf: 'application/pdf',
@@ -128,6 +169,7 @@ export function erstelleDemoBackend(): Backend {
       return oeffne();
     },
     dateiWaehlen,
+    ordnerWaehlen,
     dateiSpeichern,
     ki: erstelleDemoKiTransport(),
     indexSpeicher: {
@@ -165,4 +207,3 @@ export function erstelleDemoBackend(): Backend {
     },
   };
 }
-

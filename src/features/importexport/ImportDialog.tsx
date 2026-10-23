@@ -1,6 +1,7 @@
-/** Dialog „Word-Datei importieren“ (S-11): Datei wählen, Vorschau, Übernahme, Struktur-Hinweise. */
+/** Import (S-11): Quelle wählen, Vorschau, Übernahme, Struktur-Hinweise. */
 import { useMemo, useState, type ReactNode } from 'react';
 import { importHinweisKapitel, importiereDocx, type ImportErgebnis } from '@core/docx/index';
+import { importiereOrdner } from '@core/importieren';
 import type { Hinweis, Id } from '@core/model/types';
 import { klartext, wortzahl } from '@core/text/index';
 import type { DialogKomponentenProps } from '../../app/dialogTypen';
@@ -15,6 +16,7 @@ type Phase =
   | { art: 'start' }
   | { art: 'liest'; name: string }
   | { art: 'fehler'; meldung: string }
+  | { art: 'leer'; ergebnis: ImportErgebnis }
   | { art: 'vorschau'; name: string; ergebnis: ImportErgebnis }
   | { art: 'uebernimmt'; name: string; ergebnis: ImportErgebnis }
   | { art: 'fertig'; ergebnis: ImportErgebnis; bericht: ImportBericht; versatz: number };
@@ -85,6 +87,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   const mitAbgabe = useFunktion('abgabe');
 
   const [phase, setPhase] = useState<Phase>({ art: 'start' });
+  const [quelle, setQuelle] = useState<'word' | 'ordner'>('word');
   const [ziel, setZiel] = useState<'aktuell' | 'neu'>(daten ? 'aktuell' : 'neu');
   const [projektTitel, setProjektTitel] = useState('');
   const [vorspannAlsKapitel, setVorspannAlsKapitel] = useState(false);
@@ -95,15 +98,23 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
 
   async function dateiWaehlen() {
     if (!backend) return;
-    const datei = await backend.dateiWaehlen(['docx']);
-    if (!datei) return;
-    setPhase({ art: 'liest', name: datei.name });
+    const vorher = phase;
+    setPhase({ art: 'liest', name: quelle === 'word' ? T.word : T.ordner });
     try {
-      const ergebnis = await importiereDocx(datei.daten, sprache());
-      setProjektTitel(ergebnis.buchtitel ?? datei.name.replace(/\.docx$/i, ''));
+      const gewaehlt = quelle === 'word' ? await backend.dateiWaehlen(['docx']) : await backend.ordnerWaehlen();
+      if (!gewaehlt) {
+        setPhase(vorher);
+        return;
+      }
+      const ergebnis = 'daten' in gewaehlt
+        ? await importiereDocx(gewaehlt.daten, sprache())
+        : importiereOrdner(gewaehlt.dateien, sprache());
+      setProjektTitel(ergebnis.buchtitel ?? gewaehlt.name.replace(/\.docx$/i, ''));
       setVorspannAlsKapitel(false);
       setKommentareUebernehmen(true);
-      setPhase({ art: 'vorschau', name: datei.name, ergebnis });
+      setPhase(quelle === 'ordner' && ergebnis.kapitel.length === 0
+        ? { art: 'leer', ergebnis }
+        : { art: 'vorschau', name: gewaehlt.name, ergebnis });
     } catch (e) {
       setPhase({ art: 'fehler', meldung: fehlertext(e) });
     }
@@ -140,11 +151,35 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
   let inhalt: ReactNode;
   let aktionen: ReactNode;
 
-  if (phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler') {
+  if (phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler' || phase.art === 'leer') {
     inhalt = (
       <>
-        <p className="pw-ie-text">{T.erklaerung}</p>
-        {daten && mitAbgabe && phase.art !== 'liest' && (
+        <div className="pw-ie-optionen" role="radiogroup" aria-label={T.quelle}>
+          <Radio
+            name="pw-import-quelle"
+            checked={quelle === 'word'}
+            disabled={beschaeftigt}
+            onChange={() => { setQuelle('word'); setPhase({ art: 'start' }); }}
+          >
+            {T.word}
+          </Radio>
+          <Radio
+            name="pw-import-quelle"
+            checked={quelle === 'ordner'}
+            disabled={beschaeftigt}
+            onChange={() => { setQuelle('ordner'); setPhase({ art: 'start' }); }}
+          >
+            {T.ordner}
+          </Radio>
+        </div>
+        <p className="pw-ie-text">{quelle === 'word' ? T.erklaerung : T.ordnerErklaerung}</p>
+        {phase.art === 'leer' && (
+          <>
+            <p role="status" className="pw-ie-meldung">{T.ordnerLeer}</p>
+            <HinweisListe hinweise={phase.ergebnis.hinweise} />
+          </>
+        )}
+        {quelle === 'word' && daten && mitAbgabe && phase.art !== 'liest' && (
           <p className="pw-ie-text" style={{ fontSize: 12 }}>
             {T.lektoratFrage}{' '}
             <Button variante="text" klein onClick={() => oeffneDialog('rueckimport')} style={{ height: 'auto', padding: 0 }}>
@@ -166,7 +201,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
           {t.gemeinsam.abbrechen}
         </Button>
         <Button variante="primaer" onClick={dateiWaehlen} disabled={!backend || beschaeftigt} data-autofocus>
-          {T.dateiWaehlen}
+          {quelle === 'word' ? T.dateiWaehlen : T.ordnerWaehlen}
         </Button>
       </>
     );
@@ -186,7 +221,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
             {f(t.importexport.kapitelAnzahl, { n: ergebnis.kapitel.length })} · {f(t.gemeinsam.woerter, { n: gesamt })}
           </span>
           <Button variante="text" klein onClick={dateiWaehlen} disabled={beschaeftigt}>
-            {T.andereDatei}
+            {quelle === 'word' ? T.andereDatei : T.andererOrdner}
           </Button>
         </div>
 
@@ -313,7 +348,7 @@ export function ImportDialog({ schliessen }: DialogKomponentenProps) {
       titel={T.titel}
       onSchliessen={beschaeftigt ? () => undefined : schliessen}
       modalFest={beschaeftigt || phase.art === 'vorschau'}
-      breite={phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler' ? 480 : 600}
+      breite={phase.art === 'start' || phase.art === 'liest' || phase.art === 'fehler' || phase.art === 'leer' ? 480 : 600}
       aktionen={aktionen}
     >
       {inhalt}

@@ -121,6 +121,19 @@ Fragen mit gleicher `id` (gleicher Wortlaut) aus der vorigen Simulation des Kapi
 
 YAML-Frontmatter mit `yaml` (Paket), Schlüssel in der Reihenfolge der Typdefinition, 2 Leerzeichen Einrückung. Unbekannte Frontmatter-Felder beim Speichern erhalten (Obsidian-Kompatibilität).
 
+**Ordnerimport (Issue #14, E7):** `.md`, `.markdown` und `.txt`, eine Ebene, eine Datei pro Kapitel,
+natürliche Dateinamensortierung mit festem Locale `de` (unabhängig von der UI-Sprache). Nur eine
+`# `-Titelzeile am Anfang nach optionalem geschlossenem YAML-Frontmatter und Leerzeilen zählt.
+BOM, Frontmatter und Titelzeile samt eigenem Umbruch werden entfernt; alle übrigen Zeichen bleiben.
+Dateinamen-Titel: Endung und führende Ziffern samt unmittelbar folgenden Leerzeichen, Punkten,
+Unterstrichen oder Bindestrichen entfernen; ergibt das nichts, bleibt der Stammname als Titel.
+Leere Dateien werden mit Hinweis übersprungen; Titel ohne Body werden geplante Kapitel. Dateifehler
+und ungültiges UTF-8 verhindern den Import der übrigen Dateien nicht.
+Bei Kapiteltexten mit Rand-Leerraum oder CR-Zeilenenden schreibt `serializeKapitel` additiv
+`textUnveraendert: true` ins Frontmatter. Danach steht genau ein formatbedingter Separator-Umbruch;
+der folgende Body wird ohne zusätzlichen Endumbruch gespeichert und ohne Bereinigung geladen.
+Die Kennzeichnung bleibt beim erneuten Speichern erhalten; Dateien ohne sie werden wie bisher gelesen.
+
 ## Verzeichnisse und Zuständigkeit
 
 Jedes Verzeichnis hat genau einen Besitzer. Fremde Dateien nur lesen. Braucht ein Modul etwas aus einem fremden Bereich, importiert es die öffentliche API (`index.ts`) und meldet fehlende Funktionen im Ergebnis, statt fremde Dateien zu ändern.
