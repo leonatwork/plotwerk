@@ -68,6 +68,7 @@ import { createRechercheSlice, type RechercheSlice } from './slices/recherche';
 import { createStatistikSlice, type StatistikSlice } from './slices/statistik';
 import { createStrukturSlice, type StrukturSlice } from './slices/struktur';
 import { createZeitSlice, type ZeitSlice } from './slices/zeit';
+import { sicherungStarten } from '../features/sicherungen/sicherung';
 
 export type Bereich =
   | 'schreiben'
@@ -621,7 +622,10 @@ const createBasis: StateCreator<Store, [], [], Basis> = (set, get) => {
         indexBerechnen();
         // Aufbewahrung der Schnappschüsse (E8) im Hintergrund
         const geschuetzt = new Set((d.fassungen ?? []).flatMap((f) => f.dateien.map((x) => x.version)));
-        void aufbewahrungAnwenden(fs, new Date(), geschuetzt).catch((e: unknown) => console.warn('Alte Schnappschüsse nicht aufgeräumt:', e));
+        const backend = get().backend;
+        const sicherung = backend?.art === 'tauri' && backend.sicherungen ? sicherungStarten(backend.sicherungen, fs, true) : Promise.resolve();
+        // Archivbytes erfassen, bevor E8 alte Schnappschüsse entfernt. Nicht beim Beenden abwarten.
+        void sicherung.then(() => aufbewahrungAnwenden(fs, new Date(), geschuetzt)).catch((e: unknown) => console.warn('Alte Schnappschüsse nicht aufgeräumt:', e));
       } catch (e) {
         set({ ladeStatus: 'fehler', fehler: fehlertext(e) });
       }

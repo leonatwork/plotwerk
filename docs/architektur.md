@@ -192,6 +192,30 @@ Zeitpunkte, Zustände, Bögen, Marken, Recherche und Lektorat gehören nicht daz
 - Rust-Kommandos (camelCase-Argumente via Tauri): `projekt_oeffnen(pfad)`, `fs_lesen(pfad)`, `fs_schreiben(pfad, inhalt)`, `fs_auflisten(ordner)`, `fs_existiert(pfad)`, `fs_entfernen(pfad)`, `vorlesen_stimmen()`, `vorlesen_sagen(text, stimme?, tempo?)` → `"fertig"`/`"abgebrochen"`, `vorlesen_stopp()` (macOS `say`, Text über stdin; in der Mac-App immer statt der Web Speech API), `link_oeffnen(url)` (nur http/https), `schluessel_setzen(wert, anbieter?)`, `schluessel_vorhanden(anbieter?)`, `schluessel_loeschen(anbieter?)`, `ki_anfrage(endpoint, body, anbieter?)`, `ki_tokens(endpoint, body, anbieter?)` (`anbieter`: `"foundry"` (Standard), `"claude"` oder `"openai"`; bei `"openai"` geht `ki_anfrage` an `/chat/completions`, `ki_tokens` gibt es nicht). Alle `fs_*` arbeiten relativ zum geöffneten Projekt und lehnen `..`/absolute Pfade ab.
 - Binärdateien (G8): `fs_lesen_binaer(kennung?, pfad)` → rohe Bytes (`ipc::Response`, in TS `ArrayBuffer`), `fs_schreiben_binaer` mit rohem Body und Kopfzeilen `plotwerk-pfad` (URI-kodiert) und `plotwerk-kennung`. Nur unter `recherche/` und `.versionen/recherche/` (`dateien::binaer_erlaubt` = `binaerPfadErlaubt` in TS), atomar, gleicher Pfadwächter. TS: optionale Methoden `lesenBinaer`/`schreibenBinaer` an `ProjektDateisystem` (TauriFs, MemoryFs), Aufruf über `leseBinaer`/`schreibeBinaer`/`entferneBinaerMitSchnappschuss` (core/projekt) bzw. Store `leseBinaerDatei`/`speichereBinaerDatei`/`entferneBinaerDatei`.
 
+## Externe Archive (Issue #12)
+
+- `core/sicherungen/`: lesender ZIP-Aufbau, Ausschlüsse, portable Namen, Wiederherstellungsprüfung und reine
+  Rotation (7 verschiedene Kalendertage, danach 4 ältere ISO-Wochen). Bytezugriff über `ArchivLeser`, kein DOM/Tauri.
+- `src/features/sicherungen/`: eigene Warteschlange und Fehlerstatus, Einstellungen und Wiederherstellung.
+  Beim Projektladen im Hintergrund starten; Archivbytes vor der E8-Aufbewahrung erfassen. Keine Einbindung in
+  `alleSpeichernAbwarten` oder `beimBeenden`. Einstellungen sind App-Einstellungen, nicht Projektdateien.
+- `src-tauri/src/sicherungen.rs`: eigene enge Command-Familie für native Ordnerwahl, Optionen, Archivlesen,
+  -schreiben und -rotation, strikte lesende Projektauflistung einschließlich beliebiger Binärdateien sowie
+  Wiederherstellung in einen leeren Zielordner. Die bestehenden `fs_*` und `pfad.rs` behalten ihre Freigaben.
+  Sicherungspfade und Projektzuordnungen sind für `einstellung_schreiben` gesperrt; nur die nativen Commands
+  können sie setzen. Ein vorbereiteter Lauf erhält eine sitzungsinterne Ziel-Capability, sodass ein Wechsel
+  des Sicherungsorts während des Laufs Schreiben und Rotation nicht auseinanderzieht.
+- Archivnamen: ASCII-Slug des Projektordners, Datum/Zeit, optional Kollisionszähler ≥ 2. Nicht-ASCII-Folgen
+  werden ohne Transliteration zu einem Bindestrich; leere Slugs werden `projekt`. Rust/TS nutzen dieselbe Regel.
+  Gleichnamige Projekte erhalten getrennte Unterordner (Zuordnung in `sicherungsProjekte` im App-Ordner).
+- ZIP-Dateien werden mit `create_new` und `sync_all` geschrieben; andere Dateien werden nie überschrieben,
+  auch ohne Hardlink-Unterstützung. Ein abgebrochener Lauf kann eine Teil-ZIP hinterlassen; die Auflistung
+  erkennt fehlende ZIP-Endverzeichnisse und zählt solche Dateien nicht als Tagesstand oder Rotationskandidat.
+  Wiederherstellen baut zunächst in einem eigenen Geschwisterordner auf, danach `rename` auf den leeren
+  Zielordner. Bei Fehlern bleibt das Ziel unberührt; vorhandene Inhalte werden nicht ersetzt.
+- Technische Grenze: maximal 2 GB entpackt/ZIP, kein ZIP64, keine Symlink-Ordner. ZIP-Pfade und CRCs werden
+  vor dem nativen Zieldialog geprüft; Größen aus dem Zentralverzeichnis vor der Dekompression.
+
 ## Funktionsumfang (E16/E17, ab 2026-10-13)
 
 - **Katalog** (`core/funktionen`): 22 Funktionen in vier Gruppen (Schreiben, Planen, Figuren & Welt, Prüfen & KI),

@@ -147,6 +147,33 @@ aktive Werkzeug sichtbar). Alle Befehle finden sich auch in der Schnellsuche (�
 - Die **Recherche-Leiste** erscheint auf Figurenkarte, Ortskarte, im Kapitel-Überblick, im Schreiben-Inspektor und im
   Szenen-Formular; Dateien lassen sich direkt darauf ziehen.
 
+### Externe ZIP-Sicherungen (Mac-App)
+
+In **Einstellungen → Automatische Sicherung** ist die tägliche Sicherung standardmäßig eingeschaltet.
+Beim ersten Öffnen eines Projekts an einem Kalendertag entsteht ein ZIP außerhalb seines Ordners:
+`~/Library/Application Support/app.plotwerk.mac/Sicherungen/<Projekt>/`.
+„Ordner wählen …“ legt einen anderen Basisordner fest; jedes Projekt erhält darin einen eigenen Unterordner.
+Bei gleichnamigen Projektordnern wird der Unterordner zur Unterscheidung ergänzt.
+
+Das ZIP enthält Manuskript, Planung, `.plotwerk/` und Recherche-Bilder bytegetreu. Temporäre Dateien und
+`.DS_Store` fehlen. Schnappschüsse unter `.versionen/` sind standardmäßig ausgenommen und können in den
+Einstellungen eingeschlossen werden. Es bleiben die neuesten sieben Tagesstände und je ein Stand der vier
+neuesten älteren ISO-Wochen. Namen verwenden den portablen Projektordnernamen und die lokale Zeit:
+`<projekt>-YYYY-MM-DD-HHmm.zip`, bei mehreren Sicherungen derselben Minute zusätzlich `-2`, `-3` usw.
+
+**Ablage → Projekt als Archiv sichern …** sichert auch dann sofort, wenn es heute schon eine Sicherung gibt
+oder die Automatik ausgeschaltet ist. Fehler erscheinen mit ihrem Grund als Hinweis; Schreiben und Autosave
+laufen weiter. ZIP-Sicherungen werden beim Beenden weder gestartet noch abgewartet.
+
+Auf dem **Startbildschirm → Sicherung wiederherstellen …** eine Sicherung aus den bekannten Sicherungsordnern
+wählen. Anschließend im nativen Dialog einen neuen, vollständig leeren Ordner wählen oder anlegen.
+Das Archiv wird geprüft, entpackt und als Projekt geöffnet. Bestehende Projekte werden nicht überschrieben.
+Ohne Sicherungen zeigt der Dialog einen Hinweis. Die ZIP-Funktion ist in der Browser-Demo ausgeblendet.
+
+Sicherung und Wiederherstellung unterstützen derzeit höchstens 2 GB Projektdateien (entpackt), kein ZIP64
+und keine symbolischen Ordnerverweise. Nicht unterstützte oder unlesbare Dateien führen zu einem Fehlerhinweis
+statt zu einer unvollständigen Sicherung.
+
 ### Statistik & Versionen
 
 - **Statistik** (Werkzeuge → Statistik): Heute mit Ring, Serie, Durchschnitt der letzten 7 Tage, Fortschritt zum

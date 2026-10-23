@@ -10,6 +10,7 @@ import { Fehlergrenze } from './Fehlergrenze';
 import { BEREICH_FUNKTION, funktionSicherstellen } from './funktionen';
 import { Seitenleiste } from './Seitenleiste';
 import { Titelleiste } from './Titelleiste';
+import { SicherungsHinweis } from '../features/sicherungen/ui';
 
 function BereichInhalt() {
   const bereich = useStore((s) => s.bereich);
@@ -61,6 +62,7 @@ export function Rahmen() {
   return (
     <>
       <Titelleiste modul={modul} />
+      <SicherungsHinweis />
       <div className="pw-koerper">
         {!fokus && <Seitenleiste modul={modul} />}
         <main className="pw-inhalt" aria-label={bereichDefinition(bereich).titel}>
