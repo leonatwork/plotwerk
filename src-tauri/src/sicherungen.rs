@@ -77,7 +77,10 @@ fn name_gueltig(name: &str) -> bool {
 }
 fn archiv_pfad(ordner: &Path, name: &str) -> Result<PathBuf, String> {
     if !name_gueltig(name) {
-        return Err(fehler(crate::sprache::t("Ungültiger ZIP-Name", "Invalid ZIP name")));
+        return Err(fehler(crate::sprache::t(
+            "Ungültiger ZIP-Name",
+            "Invalid ZIP name",
+        )));
     }
     let root = ordner.canonicalize().map_err(fehler)?;
     let ziel = root.join(name);
@@ -214,7 +217,10 @@ pub async fn sicherung_ordner_waehlen(
         .dialog()
         .file()
         .set_parent(&fenster)
-        .set_title(crate::sprache::t("Sicherungsordner wählen", "Choose Backup Folder"))
+        .set_title(crate::sprache::t(
+            "Sicherungsordner wählen",
+            "Choose Backup Folder",
+        ))
         .blocking_pick_folder()
     else {
         return Ok(None);
