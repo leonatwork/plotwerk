@@ -164,6 +164,29 @@ describe('ladeProjekt auf fixtures/demo-projekt', () => {
   });
 });
 
+describe('Anführungszeichen-Stil in projekt.md', () => {
+  it.each(['de', 'verlag', 'schweiz'] as const)('speichert und lädt %s mit unbekannten Feldern', async (anfuehrung) => {
+    const alt = '---\nversion: 1\ntitel: Hafenlichter\nkapitel: []\nangaben:\n  autor: Leon\n  verlagNotiz: erhalten\nextern: erhalten\n---\n\n';
+    const projekt = parseProjekt(alt);
+    projekt.angaben = { ...projekt.angaben, anfuehrung };
+    const gespeichert = serializeProjekt(projekt, alt);
+    expect(gespeichert).toContain(`anfuehrung: ${anfuehrung}`);
+    expect(gespeichert).toContain('verlagNotiz: erhalten');
+    expect(gespeichert).toContain('extern: erhalten');
+    const fs = new MemoryFs({ 'projekt.md': gespeichert });
+    expect((await ladeProjekt(fs)).projekt.angaben?.anfuehrung).toBe(anfuehrung);
+  });
+
+  it.each(['unbekannt', '42', 'null', '[]', '{}'])('verwirft ungültigen Wert %s beim Lesen und Speichern', (wert) => {
+    const alt = `---\nversion: 1\ntitel: Hafenlichter\nkapitel: []\nangaben:\n  autor: Leon\n  anfuehrung: ${wert}\n  extern: erhalten\n---\n\n`;
+    const projekt = parseProjekt(alt);
+    expect(projekt.angaben).toEqual({ autor: 'Leon' });
+    const gespeichert = serializeProjekt(projekt, alt);
+    expect(gespeichert).not.toContain('anfuehrung:');
+    expect(gespeichert).toContain('extern: erhalten');
+  });
+});
+
 describe('Roundtrip parse(serialize(x))', () => {
   it('Figur mit leeren und optionalen Feldern', () => {
     const figuren: Figur[] = [

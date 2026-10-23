@@ -164,6 +164,36 @@ describe('AbgabeDialog', () => {
     useStore.setState({ dialog: null, daten: null, fs: null });
   });
 
+  it('wählt den Stil, speichert ohne Export und erhält ihn beim Sprachwechsel und Neuladen', async () => {
+    const fs = demoFs();
+    await useStore.getState().projektLaden(fs);
+    const vorher = useStore.getState().daten!.kapitel;
+    const ui = render(<AbgabeDialog schliessen={vi.fn()} />);
+    const auswahl = screen.getByLabelText('Anführungszeichen-Stil');
+    expect(auswahl).toHaveValue('de');
+    expect(within(auswahl).getAllByRole('option').map((o) => o.textContent)).toEqual(['Deutsch „…“ ‚…‘', 'Verlag »…« ›…‹', 'Schweiz «…» ‹…›']);
+    await act(async () => {
+      fireEvent.change(auswahl, { target: { value: 'verlag' } });
+    });
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.projekt.angaben?.anfuehrung).toBe('verlag');
+    expect(await fs.lesen('projekt.md')).toContain('anfuehrung: verlag');
+    expect(useStore.getState().daten!.kapitel).toEqual(vorher);
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Sprache'), { target: { value: 'fr' } });
+      fireEvent.blur(screen.getByLabelText('Sprache'));
+    });
+    expect(screen.queryByLabelText('Anführungszeichen-Stil')).toBeNull();
+    await useStore.getState().alleSpeichernAbwarten();
+    expect(useStore.getState().daten!.projekt.angaben).toMatchObject({ sprache: 'fr', anfuehrung: 'verlag' });
+    ui.unmount();
+    await useStore.getState().projektLaden(fs);
+    render(<AbgabeDialog schliessen={vi.fn()} />);
+    expect(screen.queryByLabelText('Anführungszeichen-Stil')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Sprache'), { target: { value: 'de-CH' } });
+    expect(screen.getByLabelText('Anführungszeichen-Stil')).toHaveValue('verlag');
+  });
+
   it('zeigt die Normseitenzahl vorab und exportiert über backend.dateiSpeichern', async () => {
     const backend = fakeBackend();
     useStore.setState({ backend });

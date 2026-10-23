@@ -62,7 +62,7 @@ import {
 
 const S = {
   projekt: ['version', 'titel', 'kapitel', 'ki', 'angaben'],
-  angaben: ['autor', 'untertitel', 'genre', 'sprache'],
+  angaben: ['autor', 'untertitel', 'genre', 'sprache', 'anfuehrung'],
   ki: ['endpoint', 'deployments', 'anbieter', 'claude', 'openai'],
   deployments: ['erkennung', 'pruefung', 'tiefencheck'],
   claude: ['endpoint', 'modelle'],

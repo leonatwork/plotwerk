@@ -3,6 +3,8 @@
  *
  * Deutsch (Standard): „ “ für doppelte, ‚ ‘ für einfache Anführungszeichen, ’ als Apostroph (geht’s, probier’),
  * " -- " / "--" → Gedankenstrich –, "..." → …
+ * Wählbare deutsche Stile: Verlag » « / › ‹, Schweiz « » / ‹ ›. Apostroph immer ’;
+ * öffnende Lage nach Leerraum, Klammern, Strichen oder den öffnenden Zeichen des jeweiligen Stils.
  *
  * Regeln Deutsch:
  * - `"` öffnend „ am Absatzanfang, nach Leerraum, Klammer, Strich oder öffnendem Anführungszeichen, sonst “.
@@ -26,6 +28,7 @@
  * Nichts davon in URLs, Pfaden, E-Mail-Adressen und `Code`.
  */
 import type { Sprache } from '../i18n';
+import type { AnfuehrungszeichenStil } from '../model/types';
 
 export interface Ersetzung {
   /** Anzahl Zeichen direkt vor dem Cursor, die entfernt werden */
@@ -36,6 +39,11 @@ export interface Ersetzung {
 
 const BUCHSTABE = /^[\p{L}\p{N}]$/u;
 const OEFFNEND_DAVOR = /[\s([{<\-‐‑–—/„‚»›]$/u;
+const STILE = {
+  de: { auf: '„', zu: '“', einfachAuf: '‚', einfachZu: '‘', davor: OEFFNEND_DAVOR },
+  verlag: { auf: '»', zu: '«', einfachAuf: '›', einfachZu: '‹', davor: /[\s([{<\-‐‑–—/»›]$/u },
+  schweiz: { auf: '«', zu: '»', einfachAuf: '‹', einfachZu: '›', davor: /[\s([{<\-‐‑–—/«‹]$/u },
+} as const;
 /** Englisch: öffnende Lage für `'` (auch nach Strichen) … */
 const OEFFNEND_DAVOR_EN = /[\s([{<\-‐‑–—/“‘]$/u;
 /** … und für `"` (direkt nach einem Strich schließt es: “I was going to—”). */
@@ -55,20 +63,21 @@ function technisch(textDavor: string): boolean {
   return /:\/\/|^www\.|^mailto:|\S@\S|\\|^(?:~|\.{1,2})?\//i.test(wort);
 }
 
-function einfachOffen(textDavor: string): boolean {
-  return textDavor.lastIndexOf('‚') > textDavor.lastIndexOf('‘');
+function einfachOffen(textDavor: string, auf: string, zu: string): boolean {
+  return textDavor.lastIndexOf(auf) > textDavor.lastIndexOf(zu);
 }
 
 /**
  * @param textDavor Text des aktuellen Absatzes vom Absatzanfang bis zum Cursor
  * @param eingabe das gerade getippte Zeichen
  * @param sprache Buchsprache (Standard Deutsch)
+ * @param stil deutsche Anführungszeichen (Standard de), bei Englisch ohne Wirkung
  * @returns null = Eingabe unverändert übernehmen
  */
-export function typografieBeimTippen(textDavor: string, eingabe: string, sprache: Sprache = 'de'): Ersetzung | null {
+export function typografieBeimTippen(textDavor: string, eingabe: string, sprache: Sprache = 'de', stil: AnfuehrungszeichenStil = 'de'): Ersetzung | null {
   if ([...eingabe].length !== 1) return null;
   if (technisch(textDavor)) return null;
-  return sprache === 'en' ? englisch(textDavor, eingabe) : deutsch(textDavor, eingabe);
+  return sprache === 'en' ? englisch(textDavor, eingabe) : deutsch(textDavor, eingabe, stil);
 }
 
 function englisch(textDavor: string, eingabe: string): Ersetzung | null {
@@ -104,14 +113,15 @@ function englischZeichen(textDavor: string, eingabe: string): Ersetzung | null {
   }
 }
 
-function deutsch(textDavor: string, eingabe: string): Ersetzung | null {
+function deutsch(textDavor: string, eingabe: string, stil: AnfuehrungszeichenStil): Ersetzung | null {
+  const { auf, zu, einfachAuf, einfachZu, davor } = STILE[stil];
   const vor = textDavor.slice(-1);
   switch (eingabe) {
     case '"':
-      return { loeschen: 0, einfuegen: oeffnendeLage(textDavor) ? '„' : '“' };
+      return { loeschen: 0, einfuegen: oeffnendeLage(textDavor, davor) ? auf : zu };
     case "'":
-      if (oeffnendeLage(textDavor)) return { loeschen: 0, einfuegen: '‚' };
-      return { loeschen: 0, einfuegen: einfachOffen(textDavor) ? '‘' : '’' };
+      if (oeffnendeLage(textDavor, davor)) return { loeschen: 0, einfuegen: einfachAuf };
+      return { loeschen: 0, einfuegen: einfachOffen(textDavor, einfachAuf, einfachZu) ? einfachZu : '’' };
     case '-':
       return vor === '-' ? { loeschen: 1, einfuegen: '–' } : null;
     case ' ':
@@ -119,7 +129,7 @@ function deutsch(textDavor: string, eingabe: string): Ersetzung | null {
     case '.':
       return textDavor.endsWith('..') && !textDavor.endsWith('...') ? { loeschen: 2, einfuegen: '…' } : null;
     default:
-      if (vor === '‘' && BUCHSTABE.test(eingabe) && BUCHSTABE.test(textDavor.slice(-2, -1)))
+      if (vor === einfachZu && BUCHSTABE.test(eingabe) && BUCHSTABE.test(textDavor.slice(-2, -1)))
         return { loeschen: 1, einfuegen: `’${eingabe}` };
       return null;
   }

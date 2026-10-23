@@ -794,7 +794,10 @@ export function leereKiAblage<T>(): KiAblage<T> {
 
 function parseAngaben(v: unknown): ProjektAngaben | undefined {
   if (!istObjekt(v)) return undefined;
-  const a = ohneUndefined<ProjektAngaben>({ autor: sOpt(v.autor), untertitel: sOpt(v.untertitel), genre: sOpt(v.genre), sprache: sOpt(v.sprache) });
+  const a = ohneUndefined<ProjektAngaben>({
+    autor: sOpt(v.autor), untertitel: sOpt(v.untertitel), genre: sOpt(v.genre), sprache: sOpt(v.sprache),
+    anfuehrung: v.anfuehrung === 'de' || v.anfuehrung === 'verlag' || v.anfuehrung === 'schweiz' ? v.anfuehrung : undefined,
+  });
   return Object.keys(a).length ? a : undefined;
 }
 
